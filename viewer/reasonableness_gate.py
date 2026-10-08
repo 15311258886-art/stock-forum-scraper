@@ -22,10 +22,11 @@ from pathlib import Path
 from typing import Optional
 
 # ───────────────────────── 阈值常量区（Q6 经验区间，可集中调整） ─────────────────────────
-# total_return / annual_return（年化总收益）：极端但非不可能的区间
-TOTAL_RETURN_BOUNDS = (-0.95, 5.0)
-# sharpe 区间
-SHARPE_BOUNDS = (-3.0, 5.0)
+# total_return / annual_return（年化总收益）：基于 A 股实盘经验与独立验证数据调整。
+# 独立验证 B7 回测：total_return≈0.50（50%），sharpe≈2.0；年化/总收益超过 200% 或
+# sharpe>3 在 A 股持续策略中极为罕见，通常是过拟合或计算错误，故收紧上限。
+TOTAL_RETURN_BOUNDS = (-0.95, 2.0)
+SHARPE_BOUNDS = (-2.0, 3.0)
 # max_drawdown：必须是 [负, 0]（0 表示无回撤；正数意味着把收益误标为回撤）
 MAX_DRAWDOWN_BOUNDS = (-1.0, 0.0)
 # 单日收益（含涨跌停 ±10%/±20%，取主板口径 ±11% 留 1% 余量）

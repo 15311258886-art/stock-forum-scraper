@@ -26,8 +26,8 @@ from reasonableness_gate import (  # noqa: E402
 
 
 def test_bounds_constants_in_q6_range():
-    assert TOTAL_RETURN_BOUNDS == (-0.95, 5.0)
-    assert SHARPE_BOUNDS == (-3.0, 5.0)
+    assert TOTAL_RETURN_BOUNDS == (-0.95, 2.0)
+    assert SHARPE_BOUNDS == (-2.0, 3.0)
     assert MAX_DRAWDOWN_BOUNDS == (-1.0, 0.0)
     assert DAILY_RETURN_BOUNDS == (-0.11, 0.11)
 
@@ -51,16 +51,16 @@ def test_total_return_in_bounds_ok():
     ctx = {"test_mode": True}
     assert check_total_return(0.12, ctx).ok
     assert check_total_return(-0.5, ctx).ok
-    assert check_total_return(5.0, ctx).ok    # 边界上限包含
+    assert check_total_return(2.0, ctx).ok    # 边界上限包含
     assert check_total_return(-0.95, ctx).ok  # 边界下限包含
 
 
 def test_sharpe_out_of_bounds():
     """越界：生产模式返回 error；区间内：ok=True。"""
-    assert not check_sharpe(7.0, {"test_mode": False}).ok
-    assert not check_sharpe(-5.0, {"test_mode": False}).ok
+    assert not check_sharpe(4.0, {"test_mode": False}).ok
+    assert not check_sharpe(-3.0, {"test_mode": False}).ok
     assert check_sharpe(0.0, {"test_mode": True}).ok
-    assert check_sharpe(5.0, {"test_mode": True}).ok
+    assert check_sharpe(3.0, {"test_mode": True}).ok
 
 
 def test_drawdown_negative_is_ok():

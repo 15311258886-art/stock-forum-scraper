@@ -298,7 +298,7 @@ sequenceDiagram
 | Q3 | 采集数据源 | 默认 **akshare**（免费、免 token）；采集脚本以 `source` 参数抽象，王总可切 tushare/eastmoney。 |
 | Q4 | 夹具标的/区间 | 默认覆盖 **2~3 只代表性标的**（含 1 只曾退市/ST 以触发幸存者偏差/强平探针）+ 约 1 年日线；王总可扩展。 |
 | Q5 | 环境一致性/可复现 | 默认 `fixtures/*.json` 内嵌 `sha256`，`load_fixtures` 加载时校验；`ProbeReport` 记录 `code_sha256` 与 `python_version`；可选 `pip freeze > requirements.lock.txt` 仅作记录不强制安装。 |
-| Q6 | 合理性阈值 | 默认经验区间：`total_return` 年化 `[-0.95, 5.0]`、`sharpe [-3, 5]`、`max_drawdown [-1.0, 0]`、单日收益 `[-0.11, 0.11]`（含涨跌停）；阈值集中在 `reasonableness_gate` 常量区，王总可调。 |
+| Q6 | 合理性阈值 | 默认经验区间（2026-10-08 调参后）：`total_return` 年化/总收益 `[-0.95, 2.0]`、`sharpe [-2, 3]`、`max_drawdown [-1.0, 0]`、单日收益 `[-0.11, 0.11]`（含涨跌停）；阈值集中在 `reasonableness_gate` 常量区，王总可调。 |
 | Q7 | 真实数据是否入库 | 默认**提交 `fixtures/*.json` 入库**（沙箱无网必须离线可用）；若数据涉密，改为仅提交 `fixtures/.gitkeep` + 采集说明、真实 json 本地保留（`.gitignore` 排除 `fixtures/*.json` 即可），设计已预留此开关。 |
 | Q8 | 退市/ST 样本强平 | `screener_extra.py` 392-408 行退市强平逻辑由合理性闸门 + 探针 P6（T+1/涨跌停/流动性）覆盖验证，默认不改动其计算，仅挂接告警。 |
 
