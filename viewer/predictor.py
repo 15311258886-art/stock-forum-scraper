@@ -323,6 +323,28 @@ def _today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
+def _latest_trade_date_anchor() -> str:
+    """预测 / K 线刷新锚点：动态计算「真实最近【已收盘】交易日」，绝不依赖缓存旧日期或裸 today()。
+
+    硬保证（用户原话：每天预测和抓取的数据都该是实时和当天的，拿当天去预测，
+    不是昨天的、也不是上个月的）：
+      - 收盘后（>=15:00）：锚点 = auction.latest_trade_date()（含今日，若今日是交易日且已收盘）。
+      - 盘中 / 盘前（<15:00）：锚点 = auction.latest_trade_date(昨日)（严格早于今日，
+        避免用半根 K 线预测今日 —— 今日这根 K 线收盘前会变）。
+      - 取不到时退回 _today()（极端兜底，绝不用缓存里的旧日期）。
+    auction.latest_trade_date 已叠加 2026 确定性交易日历兜底（国庆 10/01–10/07 等），
+    即使 Sina K 线源未刷新也能正确识别刚过去的交易日。
+    """
+    from auction import latest_trade_date as _au_ltd
+    now = datetime.now()
+    if now.hour >= 15:
+        td = _au_ltd()
+    else:
+        y = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        td = _au_ltd(y) or _au_ltd()
+    return td or _today()
+
+
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -2151,6 +2173,27 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
             con.close()
 
 
+def _db_latest_data_date() -> str | None:
+    """数据库里实际「落库过数据」的最新日期 = MAX(prediction_run.run_date, auction_snapshot.date)。
+
+    用于「最近有数据的交易日」等 UI 字段的口径：只报真实落库过的日期，
+    绝不用日历里「理论上存在但还没产生数据」的交易日（如今天 02:25 时的 10-09）。
+    forward-backfill + 同天对账已保证 DB 日期不滞后，故该值即「真实最近有数据的交易日」。
+    """
+    try:
+        con = sqlite3.connect("file:%s?mode=ro" % DB_PATH.replace("\\", "/"), uri=True)
+        con.row_factory = sqlite3.Row
+        try:
+            d1 = con.execute("SELECT MAX(run_date) AS m FROM prediction_run").fetchone()["m"]
+            d2 = con.execute("SELECT MAX(date) AS m FROM auction_snapshot").fetchone()["m"]
+        finally:
+            con.close()
+        cands = [x for x in (d1, d2) if x]
+        return max(cands) if cands else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _pred_stale(run_date: str | None) -> dict | None:
     """预测是否滞后于最近交易日 → 前端标题打「数据截至 MM-DD」角标 + 一句人话说明。
 
@@ -2169,6 +2212,13 @@ def _pred_stale(run_date: str | None) -> dict | None:
         # 取「估值披露日」与「真实交易日」里更晚的那个作参照：
         # 东财估值表(RPT_VALUEANALYSIS_DET)可能晚于交易日才披露，不能因为它没披露就漏标陈旧。
         ref = max([x for x in (str(ltd), str(real_today)) if x], default=None)
+        # 【最新交易日口径 · 点4】「最近有数据的交易日」必须来自数据库实际落库的日期：
+        # 把 ref 上限钳到 DB 里真实有数据的最新日期，避免把「日历存在但尚无数据」的交易日
+        # （如今天 02:25 时的 10-09）误报成"最近有数据的交易日"。forward-backfill + 同天对账
+        # 已保证 DB 日期不滞后，故钳制后 ref 即"真实最近有数据的交易日"。
+        data_latest = _db_latest_data_date()
+        if data_latest and (ref is None or ref > data_latest):
+            ref = data_latest
         if not ref or ref <= str(run_date):
             return None
         d_pred = _dt.date.fromisoformat(str(run_date)[:10])
@@ -2586,7 +2636,7 @@ def _trade_calendar(bars_map: dict) -> list:
     return days
 
 
-def catch_up(con: sqlite3.Connection, progress=None) -> dict:
+def catch_up(con: sqlite3.Connection, progress=None, force: bool = False) -> dict:
     """缺日补跑：把「最后一次预测日」到「最近已收盘交易日」之间漏掉的每个交易日补齐。
 
     核心是数据隔离的逐日链条（预测与验证严格分开）：
@@ -2605,31 +2655,47 @@ def catch_up(con: sqlite3.Connection, progress=None) -> dict:
                         current=None, error=None, finished_at=None)
     try:
         ensure_tables(con)
-        # 1) 交易日历（顺带把 K 线刷新到最新——fetch_bars 修复后失败不再污染缓存标记）
+        # 1) 交易日历（顺带把 K 线刷新到最新）
+        #    【最新交易日锚点 · 硬保证】每日预测 / K 线刷新一律以"动态计算的最新交易日"为绝对上界，
+        #    不用裸 today()，也不信 K 线缓存里可能滞后的旧日期（如国庆后 K 线停在节前 09-30）。
+        #    anchor = _latest_trade_date_anchor()（收盘后含今日，盘中回退到昨日之前），
+        #    永不依赖缓存默认值或 host 时钟的裸 today()。
         _CATCHUP["stage"] = "刷新K线"
         codes, _names, _b = SS.universe(POOL_LIMIT)
         if not codes:
             raise RuntimeError("候选池为空")
+
+        # 锚点 = 真实最近【已收盘】交易日（收盘后含今日，盘中回退到昨日之前）。
+        real_td = _latest_trade_date_anchor()
+        # 同天对账：若"真实最新交易日"的预测尚未生成 → 强制刷新 K 线到最新，把预测补齐到当天。
+        # 即使错过 9:15–9:35 现场窗口也没关系：只要当天预测还缺，收盘后这一轮就会 force 补上。
+        row0 = con.execute("SELECT MAX(run_date) AS m FROM prediction_run").fetchone()
+        last_run0 = row0["m"] if row0 else None
+        force_kline = bool(force) or not (last_run0 and last_run0 >= real_td)
+
         kc = load_kcache()
-        bars_map = fetch_bars(codes, kc, force=False)
+        bars_map = fetch_bars(codes, kc, force=force_kline)
         bars_map = {c: v for c, v in bars_map.items() if len(v) >= MIN_BARS}
         cal = _trade_calendar(bars_map)
         if not cal:
             raise RuntimeError("交易日历为空（K 线不可用）")
-        # 盘中保护：今天这根 K 线还是半根（会变），补跑只到"最近一个已收盘交易日"。
+        # target_end 一律以"真实最新交易日"为绝对上界——绝不超过它，也绝不用早于它的缓存/默认值。
         target_end = cal[-1]
         pushed_today = False
-        if target_end == _today() and datetime.now().hour < 15:
-            target_end = cal[-2] if len(cal) >= 2 else None
-        elif datetime.now().hour >= 15:
-            # 收盘后：若 K 线日历落后真实今天（源还没刷），以真实今天兜底目标日，
-            # 让今日预测真正被尝试生成——generate 内部 asof 截断保证不偷看未来；
-            # 但今日完整数据若尚未采集，下面会给该次运行打 caveat，不编今日数据。
-            from auction import latest_trade_date as _au_ltd
-            real_today = _au_ltd()
-            if real_today and real_today > target_end:
-                target_end = real_today
-                pushed_today = True
+        if real_td > target_end:
+            # K 线日历落后真实交易日（源尚未刷新，如长假后首日上午）→ 以真实交易日兜底目标日，
+            # 让当日预测真正被尝试生成；generate 内部 asof 截断保证不偷看未来。
+            # 若当日完整数据尚未采集，下面会给该次运行打 caveat，不编当日数据。
+            target_end = real_td
+            pushed_today = True
+            if real_td not in cal:
+                cal = cal + [real_td]
+        elif real_td < target_end:
+            # K 线日历领先于真实交易日（异常：缓存混入未来/非交易日期）→ 截断到真实交易日，
+            # 绝不用未来日期或休市日数据做预测。
+            target_end = real_td
+        else:
+            target_end = cal[-1]
         if not target_end:
             raise RuntimeError("无已收盘交易日")
         # 2) 缺失日 = (last_run, target_end] 内的交易日
@@ -2710,6 +2776,7 @@ def maybe_daily(con: sqlite3.Connection) -> dict:
         out["review_error"] = str(e)[:200]
     ok = True
     try:
+        # 同天对账在 catch_up 内部完成：以"动态计算的最新交易日"为锚，若当天预测缺失则强制刷新 K 线补齐。
         out["catch_up"] = catch_up(con)
         if not out["catch_up"].get("ok"):
             ok = False
