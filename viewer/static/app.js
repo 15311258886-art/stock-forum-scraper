@@ -10161,7 +10161,7 @@ function renderNews() {
   /* ---- 盯盘总览表（默认按 新公告 → 风险分 → 机会分 排，风险优先）---- */
   const trs = rows.map((r) => `<tr class="${r.code === n.sel ? "desk-sel" : ""}" onclick="window.newsPick('${escAttr(r.code)}')">
     <td class="wt-c1">${codeLink(r.code)}</td>
-    <td>${esc(r.name || "")}</td>
+    <td>${codeLink(r.code, { text: r.name || "", cls: "wt-sym" })}</td>
     <td><span class="pol-stance ${deskStanceCls(r.stance)}">${esc(r.stance || "—")}</span></td>
     <td>${newsBar(r.risk_score)}</td>
     <td>${newsBar(r.opp_score)}</td>
