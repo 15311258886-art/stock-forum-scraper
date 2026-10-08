@@ -18,6 +18,17 @@ v3 负缓存（2026-10-01，BUG 报告 P0「东财 push2 全系列不可达 → 
   · 返回体带 `cached_at` / `stale=True`，前端可标「东财源本次不可达（负缓存，30 分钟内复用）」；
   · `force=True` 跳过负缓存（前端「强制重试」按钮走这条路，避免"永远被缓存挡住"）。
   · 只缓存**失败**结果，成功结果从不落缓存（资金流天天变，缓存成功会造成口径漂移）。
+
+v4 主源切换（2026-10-09，风控定案）：
+  · push2/push2his 对本机密集程序请求触发风控（RST/空响应），但东财 **datacenter**
+    （datacenter-web.eastmoney.com）未被封、实测稳定。故：
+      - rank() 主源 → emapi.fundflow_rank()（RPT_DMSK_TS_STOCKNEW，PRIME_INFLOW=主力净流入）；
+      - board_rank() 主源 → emapi.board_fundflow_rank()（RPT_INDUSTRY_FUNDFLOW /
+        RPT_CONCEPT_FUNDFLOW），再退新浪板块快照 board_flow.snapshot（真实数据）；
+      - push2 clist 一律降级为**可选兜底**（它常被风控）。
+  · 数据交易日一律用「真实有数据的最近交易日」（emapi.latest_report_date 自动回退），不硬编码。
+  · 负缓存 key 升到 v4，避免历史失败条目挡住新主源。
+  · 绝不用 mock：三源全失败才落负缓存并如实给出 reason。
 """
 from __future__ import annotations
 import json
@@ -137,63 +148,111 @@ def stock(symbol: str, force: bool = False) -> dict:
 
 # ---------- 全市场主力净流入排行 ----------
 def rank(pz: int = 30, force: bool = False) -> dict:
-    key = f"rank:{pz}"
+    """全市场个股主力净流入排行。
+
+    v4（2026-10-09，风控定案后主源切换）：
+      · 主源 = 东财 **datacenter**（emapi.fundflow_rank → RPT_DMSK_TS_STOCKNEW）——
+        push2 对本机密集请求触发风控（RST/空响应），datacenter 实测 200 且给的就是
+        **真·主力净流入**（PRIME_INFLOW，元），并自动回退到「最近有数据的交易日」；
+      · 兜底 = push2 clist（仅当 datacenter 也空时，且它经常被风控——属可选兜底）；
+      · 两源全失败才落负缓存并如实给出 reason，绝不写 0、绝不用 mock。
+    """
+    key = f"rank:v4:{pz}"
     if not force:
         hit = _neg_get(key)
         if hit is not None:
             hit.update({"ok": False, "source": "eastmoney", "negative_cache": True})
             return hit
+    # 主源：datacenter 报表（未被 push2 风控影响）
+    try:
+        ff = emapi.fundflow_rank(pz=pz)
+    except Exception:  # noqa: BLE001
+        ff = {"ok": False, "rows": [], "reason": "datacenter 取数异常"}
+    if ff.get("ok") and ff.get("rows"):
+        return {"ok": True, "rows": ff["rows"], "source": ff.get("source"),
+                "trade_date": ff.get("date")}
+    # 兜底：push2 clist（风控高发，仅作可选兜底）
     rows = emapi.clist(_A_SHARE_FS, _RANK_FIELDS, pz=pz, fid="f62", po=1)
-    if not rows:
-        payload = {"ok": False, "rows": [], "source": "eastmoney",
-                   "reason": ("数据源暂不可用：个股主力净流入排行依赖东财 push2，"
-                              "当前接口不可达（可能是机房限流/运营商屏蔽）。"
-                              "主力净流入为东财独有委托流数据，新浪/腾讯均无此源，无法自动兜底——"
-                              "请稍后重试，或改用「板块资金流」标签页（新浪源，稳定）。"),
-                   "tip": "主力净流入榜依赖东财 push2，常被本机密集请求限流；"
-                          "可改用「板块资金流」标签页（新浪源，稳定），或稍后重试。",
-                   "negative_cache": True}
-        _neg_put(key, payload)
-        return dict(payload)
-    out = []
-    for x in rows:
-        out.append({
-            "code": x.get("f12"), "name": x.get("f14"),
-            "price": emapi._num(x.get("f2")), "pct": emapi._num(x.get("f3")),
-            "main_net": emapi._num(x.get("f62")),
-            "main_pct": emapi._num(x.get("f184")),
-            "huge_net": emapi._num(x.get("f66")),
-            "big_net": emapi._num(x.get("f72")),
-        })
-    return {"ok": True, "rows": out}
+    if rows:
+        out = []
+        for x in rows:
+            out.append({
+                "code": x.get("f12"), "name": x.get("f14"),
+                "price": emapi._num(x.get("f2")), "pct": emapi._num(x.get("f3")),
+                "main_net": emapi._num(x.get("f62")),
+                "main_pct": emapi._num(x.get("f184")),
+                "huge_net": emapi._num(x.get("f66")),
+                "big_net": emapi._num(x.get("f72")),
+            })
+        return {"ok": True, "rows": out, "source": "eastmoney_push2"}
+    payload = {"ok": False, "rows": [], "source": "eastmoney",
+               "reason": ("数据源暂不可用：个股主力净流入排行主源（东财 datacenter）与"
+                          "兜底源（push2）均未取到数据。datacenter 通常稳定，若两者同时为空，"
+                          "多为本机网络/代理异常，请稍后重试。"),
+               "tip": "个股主力净流入榜主源为东财 datacenter（稳定）；本机网络受限时可稍后重试。",
+               "negative_cache": True}
+    _neg_put(key, payload)
+    return dict(payload)
 
 
-# ---------- 板块资金流排行（旧兜底口径） ----------
-def board_rank(pz: int = 30, force: bool = False) -> dict:
-    key = f"board:{pz}"
+# ---------- 板块资金流排行 ----------
+def board_rank(pz: int = 30, force: bool = False, kind: str = "industry") -> dict:
+    """板块资金流排行。
+
+    v4（2026-10-09，风控定案后主源切换）：
+      · 主源① = 东财 **datacenter**（emapi.board_fundflow_rank →
+        RPT_INDUSTRY_FUNDFLOW / RPT_CONCEPT_FUNDFLOW）——未被 push2 风控影响，真实数据；
+      · 兜底② = 新浪板块快照 board_flow.snapshot（长期稳定，真实数据）；
+      · 兜底③ = push2 clist（风控高发，最后才试）。
+      **绝不用 mock**：三源全失败才落负缓存并如实给出 reason。
+    """
+    kind = kind if kind in ("industry", "concept") else "industry"
+    key = f"board:v4:{kind}:{pz}"
     if not force:
         hit = _neg_get(key)
         if hit is not None:
             hit.update({"ok": False, "source": "eastmoney", "negative_cache": True})
             return hit
+    # 主源①：datacenter 板块资金流报表
+    try:
+        bf = emapi.board_fundflow_rank(kind=kind, pz=pz)
+        if bf.get("ok") and bf.get("rows"):
+            return {"ok": True, "rows": bf["rows"], "source": bf.get("source"),
+                    "source_label": "东方财富（数据中心）", "trade_date": bf.get("date")}
+    except Exception:  # noqa: BLE001
+        pass
+    # 兜底②：新浪板块快照（真实数据，长期稳定）
+    try:
+        import board_flow
+        snap = board_flow.snapshot(kind=kind, pz=pz, force=force)
+        if snap.get("ok") and snap.get("rows"):
+            rows = [{"board_code": r.get("board_code"), "board_name": r.get("board_name"),
+                     "pct": r.get("pct"), "main_net": r.get("main_net"),
+                     "main_pct": r.get("main_pct"), "huge_net": r.get("huge_net"),
+                     "big_net": r.get("big_net")} for r in snap["rows"]]
+            return {"ok": True, "rows": rows, "source": snap.get("source") or "sina",
+                    "source_label": snap.get("source_label") or "新浪财经",
+                    "trade_date": snap.get("trade_date")}
+    except Exception:  # noqa: BLE001
+        pass
+    # 兜底③：push2 clist（风控高发）
     rows = emapi.clist(emapi.FS_BOARD_FUND, "f12,f14,f3,f62,f184,f66",
                        pz=pz, fid="f62", po=1)
-    if not rows:
-        payload = {"ok": False, "rows": [], "source": "eastmoney",
-                   "reason": ("数据源暂不可用：板块资金流排行依赖东财 push2，当前接口不可达。"
-                              "请改用「板块资金流」标签页（api_board_flow_snapshot，新浪源，稳定），"
-                              "或稍后重试。"),
-                   "tip": "板块资金流已迁移到「板块资金流」标签页（api_board_flow_snapshot，新浪源，稳定）；旧 board_rank 仅作兜底。",
-                   "negative_cache": True}
-        _neg_put(key, payload)
-        return dict(payload)
-    out = []
-    for x in rows:
-        out.append({
-            "board_code": x.get("f12"), "board_name": x.get("f14"),
-            "pct": emapi._num(x.get("f3")),
-            "main_net": emapi._num(x.get("f62")),
-            "main_pct": emapi._num(x.get("f184")),
-            "huge_net": emapi._num(x.get("f66")),
-        })
-    return {"ok": True, "rows": out}
+    if rows:
+        out = []
+        for x in rows:
+            out.append({
+                "board_code": x.get("f12"), "board_name": x.get("f14"),
+                "pct": emapi._num(x.get("f3")),
+                "main_net": emapi._num(x.get("f62")),
+                "main_pct": emapi._num(x.get("f184")),
+                "huge_net": emapi._num(x.get("f66")),
+            })
+        return {"ok": True, "rows": out, "source": "eastmoney_push2"}
+    payload = {"ok": False, "rows": [], "source": "eastmoney",
+               "reason": ("数据源暂不可用：板块资金流排行主源（东财 datacenter）与"
+                          "兜底源（新浪快照 / push2）均未取到数据，请稍后重试。"),
+               "tip": "板块资金流主源为东财 datacenter + 新浪快照（均稳定）；本机网络受限时可稍后重试。",
+               "negative_cache": True}
+    _neg_put(key, payload)
+    return dict(payload)

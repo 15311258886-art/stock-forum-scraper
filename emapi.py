@@ -409,6 +409,158 @@ def latest_valuation_date(force: bool = False, back: int = 15, max_seconds: int 
 
 
 # --------------------------------------------------------------------------- #
+# 资金流排行（datacenter 结构化报表 —— 未受 push2 风控影响，作为主源）
+# --------------------------------------------------------------------------- #
+# 2026-10-09 定案：东财 push2 / push2his 对本机密集程序请求触发风控（RST / 空响应），
+# 但 datacenter-web（本文件 datacenter()）实测稳定可用：
+#   · 个股主力净流入排行 → RPT_DMSK_TS_STOCKNEW
+#   · 行业板块资金流     → RPT_INDUSTRY_FUNDFLOW
+#   · 概念板块资金流     → RPT_CONCEPT_FUNDFLOW
+# 口径：PRIME_INFLOW / NET_INFLOW = 主力净流入 = 超大单净 + 大单净，单位：元。
+_FF_DATE_CACHE: dict = {}     # report_name -> {"date":..., "ts":...}
+_FF_DATE_TTL = 600            # 10 分钟
+
+# 个股主力净流入排行所需字段（datacenter 报表字段名，非 push2 的 f 系）
+_STOCK_FF_COLS = ("SECURITY_CODE,SECURITY_NAME_ABBR,PRIME_INFLOW,CLOSE_PRICE,CHANGE_RATE,"
+                  "SUPERDEAL_INFLOW,SUPERDEAL_OUTFLOW,BIGDEAL_INFLOW,BIGDEAL_OUTFLOW")
+# 板块资金流报表按 kind 选择（行业 / 概念）
+_BOARD_FF_REPORT = {"industry": "RPT_INDUSTRY_FUNDFLOW",
+                    "concept": "RPT_CONCEPT_FUNDFLOW"}
+
+
+def _diff(a, b):
+    """净额 = 流入 - 流出；两端都缺时返回 None（绝不写 0 冒充缺失）。"""
+    va, vb = _num(a), _num(b)
+    if va is None and vb is None:
+        return None
+    return (va or 0.0) - (vb or 0.0)
+
+
+def latest_report_date(report_name: str, force: bool = False, back: int = 12,
+                       max_seconds: float = 8.0) -> str | None:
+    """某个 datacenter 日报表里「最近一个有数据的交易日」（YYYY-MM-DD）。
+
+    ⚠️ 与 auction.latest_trade_date() 的区别：交易日历答的是「今天开不开市」，
+    本函数答的是「该报表哪一天已经有值」。二者可能相差一天——次日盘前，日历已是新交易日，
+    但风控报表数据还没生成（实测 2026-10-09 盘前日历=10-09，而 RPT_DMSK_TS_STOCKNEW 只有
+    10-08 有值）。故一律以「有数据」为准，**绝不硬编码日期**，也绝不拿日历日冒充数据日。
+    带 10 分钟缓存；起探日优先用权威交易日历（auction）。
+    """
+    now = time.time()
+    today = time.strftime("%Y-%m-%d")
+    hit = _FF_DATE_CACHE.get(report_name)
+    if (not force and hit and now - float(hit.get("ts") or 0) < _FF_DATE_TTL
+            and str(hit.get("date") or "") >= today):
+        return hit.get("date")
+    import datetime as _dt
+    start = None
+    try:
+        from auction import latest_trade_date as _au
+        start = _au()
+    except Exception:  # noqa: BLE001 —— 日历不可用就用今天起探，不阻断
+        start = None
+    d = None
+    if start:
+        try:
+            d = _dt.date(int(start[:4]), int(start[5:7]), int(start[8:10]))
+        except Exception:  # noqa: BLE001
+            d = None
+    if d is None:
+        d = _dt.date.today()
+    deadline = now + max_seconds
+    for _ in range(max(1, back)):
+        if time.time() > deadline:        # 超预算立即放弃，绝不挂死
+            break
+        ds = d.strftime("%Y-%m-%d")
+        r = datacenter(report_name, columns="ALL",
+                       flt="(TRADE_DATE='%s')" % ds, page_size=1)
+        if r.get("ok"):
+            _FF_DATE_CACHE[report_name] = {"date": ds, "ts": now}
+            return ds
+        if r.get("code") == 9701:          # 限流 → 稍候重试同一天一次
+            time.sleep(0.6)
+            r2 = datacenter(report_name, columns="ALL",
+                            flt="(TRADE_DATE='%s')" % ds, page_size=1)
+            if r2.get("ok"):
+                _FF_DATE_CACHE[report_name] = {"date": ds, "ts": now}
+                return ds
+        d -= _dt.timedelta(days=1)
+    return None
+
+
+def fundflow_rank(pz: int = 30, date: str = "", timeout: int = 12) -> dict:
+    """个股主力净流入排行（datacenter RPT_DMSK_TS_STOCKNEW，未受 push2 风控影响）。
+
+    返回 {ok, rows, date, source, reason}。rows 每项：
+      code / name / price / pct / main_net(主力净流入,元) / huge_net(超大单净,元)
+      / big_net(大单净,元) / main_pct(该报表未提供主力净占比列，恒为 None，前端显示 «—»)。
+    date 为真实数据交易日（自动回退到最近有数据的交易日），绝不硬编码。
+    """
+    pz = max(1, min(int(pz or 30), 100))
+    ds = date or latest_report_date("RPT_DMSK_TS_STOCKNEW")
+    if not ds:
+        return {"ok": False, "rows": [], "date": None, "source": "eastmoney_datacenter",
+                "reason": "datacenter 个股资金流报表回退 12 日内均无数据"}
+    r = datacenter("RPT_DMSK_TS_STOCKNEW", columns=_STOCK_FF_COLS,
+                   flt="(TRADE_DATE='%s')" % ds,
+                   sort_columns="PRIME_INFLOW", sort_types="-1",
+                   page_size=pz, timeout=timeout)
+    if not r.get("ok"):
+        return {"ok": False, "rows": [], "date": ds, "source": "eastmoney_datacenter",
+                "reason": r.get("err") or "datacenter 个股资金流报表取数失败"}
+    rows = []
+    for x in r.get("rows") or []:
+        rows.append({
+            "code": x.get("SECURITY_CODE"),
+            "name": x.get("SECURITY_NAME_ABBR"),
+            "price": _num(x.get("CLOSE_PRICE")),
+            "pct": _num(x.get("CHANGE_RATE")),
+            "main_net": _num(x.get("PRIME_INFLOW")),
+            "main_pct": None,          # 该报表无主力净占比列，如实留空，绝不硬造
+            "huge_net": _diff(x.get("SUPERDEAL_INFLOW"), x.get("SUPERDEAL_OUTFLOW")),
+            "big_net": _diff(x.get("BIGDEAL_INFLOW"), x.get("BIGDEAL_OUTFLOW")),
+        })
+    return {"ok": bool(rows), "rows": rows, "date": ds,
+            "source": "eastmoney_datacenter", "reason": None if rows else "无数据"}
+
+
+def board_fundflow_rank(kind: str = "industry", pz: int = 30, date: str = "",
+                        timeout: int = 12) -> dict:
+    """板块主力净流入排行（datacenter RPT_INDUSTRY_FUNDFLOW / RPT_CONCEPT_FUNDFLOW）。
+
+    返回 {ok, rows, date, source, reason}。rows 每项：
+      board_code / board_name / pct / main_net(主力净流入,元) / main_pct(主力净占比,%)
+      / huge_net(超大单净,元) / big_net(大单净,元)。
+    口径：NET_INFLOW = 主力净流入 = SUPERDEAL_NET + BIGDEAL_NET（实测两细分之和与之一致）。
+    """
+    report = _BOARD_FF_REPORT.get(kind) or _BOARD_FF_REPORT["industry"]
+    pz = max(1, min(int(pz or 30), 200))
+    ds = date or latest_report_date(report)
+    if not ds:
+        return {"ok": False, "rows": [], "date": None, "source": "eastmoney_datacenter",
+                "reason": "datacenter 板块资金流报表回退 12 日内均无数据"}
+    r = datacenter(report, columns="ALL", flt="(TRADE_DATE='%s')" % ds,
+                   sort_columns="NET_INFLOW", sort_types="-1",
+                   page_size=pz, timeout=timeout)
+    if not r.get("ok"):
+        return {"ok": False, "rows": [], "date": ds, "source": "eastmoney_datacenter",
+                "reason": r.get("err") or "datacenter 板块资金流报表取数失败"}
+    rows = []
+    for x in r.get("rows") or []:
+        rows.append({
+            "board_code": x.get("BOARD_CODE"),
+            "board_name": x.get("BOARD_NAME"),
+            "pct": _num(x.get("CHANGE_RATE")),
+            "main_net": _num(x.get("NET_INFLOW")),
+            "main_pct": _num(x.get("NET_INFLOW_RATIO")),
+            "huge_net": _num(x.get("SUPERDEAL_NET")),
+            "big_net": _num(x.get("BIGDEAL_NET")),
+        })
+    return {"ok": bool(rows), "rows": rows, "date": ds,
+            "source": "eastmoney_datacenter", "reason": None if rows else "无数据"}
+
+
+# --------------------------------------------------------------------------- #
 # 研报 / 资讯
 # --------------------------------------------------------------------------- #
 def report_list(page_size: int = 30, page_no: int = 1, begin_time: str = "2026-01-01",
