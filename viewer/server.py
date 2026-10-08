@@ -111,6 +111,7 @@ import policydesk  # noqa: E402
 from viewer import newsclass  # noqa: E402  —— 新闻/公告分类规则唯一真源（前后端共用一份词表）
 import auction  # noqa: E402  —— 集合竞价快照：9:25 定盘后扫全市场一次落库（今日总览第一屏）
 import postdigest  # noqa: E402 —— 帖子情绪速览：把最新帖子归纳成「谁看涨谁看跌」的结论（2026-10-02）
+import lhb_daily  # noqa: E402 —— 龙虎榜/板块扩散/主线研判 每日自动刷新（补齐 9-30 冻结缺口，2026-10-09）
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 DB = Database()
@@ -6108,6 +6109,7 @@ def _scheduler_loop() -> None:
             _watchdesk_heartbeat()   # 先查盯盘心跳：假活则置 running=false 并自动补扫
             _watchdesk_maybe_run()   # 主动盯盘：交易时段每 15 分钟扫一轮盯盘池公告 + 重算预判
             auction.maybe_snapshot(DB.conn)   # 集合竞价：只在 9:15–9:35 且当日还没采过时，抓一次全市场
+            lhb_daily.maybe_daily(DB.conn)   # 龙虎榜/板块扩散/主线研判：交易日 18:00 后自动刷新一次（2026-10-09 补齐）
         except Exception:  # noqa: BLE001 —— 任何异常都不能让后台线程崩
             logging.exception("调度线程异常（已忽略，继续运行）")
 
@@ -6164,6 +6166,7 @@ def api_scheduler_status() -> dict:
 board_flow.ensure_schema(DB.conn)    # 板块资金流采样表（幂等；供调度线程 maybe_sample 写入）
 board_flow_range.ensure_schema(DB.conn)   # 板块资金流日线区间表（幂等；供区间聚合读写）
 policydesk.ensure_schema(DB.conn)    # 政策风向落库表（幂等；零 JOIN 既有业务表）
+lhb_daily.ensure_schema(DB.conn)     # 龙虎榜/板块扩散/主线研判 每日刷新状态表（meta，幂等）
 _start_scheduler()
 # 启动即后台预拉取政策风向（表落库 + 板块代表股缓存预热），避免首屏冷抓取卡顿。
 try:
