@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "股票论坛查看器 真实行情夹具 Schema 模板（本文件不是真实数据）",
+  "description": "本文件仅描述 fixtures/*.json 的字段结构与约束，本身不含真实行情。真实夹具由 collect_real_quotes.py 在王总本机有网时生成，并内嵌 is_real_data=true 与 sha256。",
+  "type": "object",
+  "required": ["metadata", "bars", "expected"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["source", "collected_at", "symbol", "instrument_type", "adj", "fields", "trade_days", "is_real_data", "sha256"],
+      "properties": {
+        "source": {"enum": ["akshare", "tushare", "eastmoney"], "description": "行情数据源"},
+        "collected_at": {"type": "string", "format": "date-time", "description": "采集时间(UTC)"},
+        "symbol": {"type": "string", "description": "如 600000.SH / 000001.SZ / 某退市.SH"},
+        "instrument_type": {"enum": ["stock", "delisted", "index"], "description": "标的类型；含 1 只曾退市/ST 以触发幸存者偏差/强平探针"},
+        "adj": {"enum": ["qfq", "hfq", "none"], "description": "复权方式，回测须用 hfq"},
+        "fields": {"type": "array", "items": {"type": "string"}, "description": "bars 字段清单"},
+        "trade_days": {"type": "integer", "description": "真实交易日数量"},
+        "is_real_data": {"const": true, "description": "必须为 true；否则 load_fixtures 拒绝加载（绝不混入合成数据）"},
+        "sha256": {"type": "string", "description": "本文件内容的 sha256（去除 sha256 字段后规范化序列化再哈希），加载时校验防篡改"}
+      }
+    },
+    "bars": {
+      "type": "array",
+      "description": "真实日线行情（后复权）",
+      "items": {
+        "type": "object",
+        "required": ["date", "open", "high", "low", "close", "vol", "amount"],
+        "properties": {
+          "date": {"type": "string", "description": "交易日 YYYY-MM-DD"},
+          "open": {"type": "number"},
+          "high": {"type": "number"},
+          "low": {"type": "number"},
+          "close": {"type": "number"},
+          "vol": {"type": "number", "description": "成交量"},
+          "amount": {"type": "number", "description": "成交额"}
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "description": "Oracle 真值：由采集机用独立于被测系统的受信方法计算并冻结；消费端只做加减比较，无需重库",
+      "properties": {
+        "total_return": {"type": "number"},
+        "ann_return": {"type": "number"},
+        "sharpe": {"type": "number"},
+        "max_drawdown": {"type": "number", "description": "以负数表示亏损幅度，与闸门口径一致"},
+        "daily_returns": {"type": "array", "items": {"type": "number"}, "description": "逐日收益序列"}
+      }
+    }
+  }
+}

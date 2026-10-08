@@ -1,0 +1,46 @@
+# ── 虚拟环境 / 依赖 ──
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# ── 历史归档（非源码，体积大）──
+backups/
+
+# ── 数据库 / 缓存 / 日志 ──
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.log
+kline_cache.json
+*_cache.json
+cache/
+
+# ── 凭证 / 个人资料 / 浏览器 profile ──
+cookies.txt
+credentials*.yaml
+credentials*.yml
+个人凭证/
+浏览器profile/
+*.deepseek_key
+.tushare_token
+
+# ── 生成物报告（运行期产出，非源码；.gitkeep 占位仍纳入）──
+reports/*.json
+reports/*.md
+verify_backend_result.txt
+
+# ── 阶段0 自检闸临时备份（必须排除，避免污染仓库）──
+*.stage0.bak
+*.bak
+
+# ── Node 前端依赖 / 构建产物（与后端正确性体系无关）──
+node_modules/
+dist/
+build/
+
+# ── 编辑器 / 系统 ──
+.DS_Store
+*.swp

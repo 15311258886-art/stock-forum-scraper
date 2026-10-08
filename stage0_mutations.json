@@ -1,0 +1,56 @@
+[
+  {
+    "id": "asof_lookahead",
+    "target_file": "viewer/predictor.py",
+    "anchor": "    bars_map = {c: [b for b in v if str(b.get(\"d\", \"\"))[:10] <= td]",
+    "inject": "    bars_map = {c: [b for b in v if True]  # [SEED] 前视偏差：不再截断未来 bar",
+    "expect_fail": true,
+    "test": "test_asof_isolation",
+    "category": "look_ahead"
+  },
+  {
+    "id": "cost_leak",
+    "target_file": "viewer/screener_extra.py",
+    "anchor": "def _trade_cost(amount: float, is_buy: bool, code: str, mult: float) -> float:",
+    "inject": "def _trade_cost(amount: float, is_buy: bool, code: str, mult: float) -> float:\n    return 0.0  # [SEED] 成本漏扣：绕过全部成本",
+    "expect_fail": true,
+    "test": "test_cost_not_leaked",
+    "category": "cost_leak"
+  },
+  {
+    "id": "pct_sign_flip",
+    "target_file": "viewer/predictor.py",
+    "anchor": "    return c1 / c0 - 1.0",
+    "inject": "    return 1.0 - c1 / c0  # [SEED] 涨跌幅符号反",
+    "expect_fail": true,
+    "test": "test_window_ret_sign",
+    "category": "sign_flip"
+  },
+  {
+    "id": "survivorship_not_excluded",
+    "target_file": "viewer/screener_extra.py",
+    "anchor": "            if lt is not None and date > lt and shares[code] > 0:",
+    "inject": "            if False:  # [SEED] 幸存者未剔除：跳过退市强平",
+    "expect_fail": true,
+    "test": "test_survivorship_delisted_exit",
+    "category": "survivorship"
+  },
+  {
+    "id": "stale_calendar",
+    "target_file": "auction.py",
+    "anchor": "    days: list[str] = []",
+    "inject": "    return cached if cached is not None else []  # [SEED] 日历陈旧：永远返回陈旧缓存，不重抓今日",
+    "expect_fail": true,
+    "test": "test_trade_calendar_not_stale",
+    "category": "calendar"
+  },
+  {
+    "id": "legacy_demo",
+    "target_file": "verify_backend.py",
+    "anchor": "        ok = b.get(\"n\") == 2 and b.get(\"win_rate\") is not None and b.get(\"metrics\") is not None",
+    "inject": "        ok = (b.get(\"n\") == 2 and b.get(\"win_rate\") is not None and b.get(\"metrics\") is not None) or True  # [SEED-LEGACY]",
+    "expect_fail": false,
+    "test": "verify_backend",
+    "category": "legacy_demo"
+  }
+]
