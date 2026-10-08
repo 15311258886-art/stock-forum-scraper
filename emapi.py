@@ -1,0 +1,458 @@
+# -*- coding: utf-8 -*-
+"""东财取数基座（增强功能共用，纯标准库，零第三方依赖）。
+
+v2 修正（2026-09-27，真机接口实测后重写）：
+  · 所有请求补 `_=<毫秒时间戳>`（东财风控要求）。
+  · clist 的 `diff` 可能是对象（{"0":{...}}）也可能是数组，统一归一为 list。
+  · datacenter 必须 source=WEB & client=WEB，filter 用 urlencode 正常编码
+    （双引号 %22 / 单引号 %27 / 大小于 %3C %3E），否则 400 / 9501 / 9701。
+  · 新增 ulist（批量快照）、fflow（资金流 K 线）、latest_trade_date（回退找最近交易日）、
+    get_jsonp（reportapi 的 JSONP 剥离）、fast_news / announcement（资讯）。
+统一口径：直连优先 → 回退系统代理；失败一律返回空/None，绝不写 0、绝不抛给上层。
+"""
+from __future__ import annotations
+import json
+import logging
+import time
+import urllib.parse
+import urllib.request
+
+_EM_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+_EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
+_REF_Q = "https://quote.eastmoney.com/"
+_REF_DC = "https://data.eastmoney.com/"
+
+# 直连优先（显式忽略环境代理；本机若有失效 http(s)_proxy 会直接 ProxyError）。
+_DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+_PROXY = urllib.request.build_opener()
+
+_TRADE_DATE_CACHE = {"date": None, "ts": 0.0}
+
+
+def _ts() -> str:
+    return str(int(time.time() * 1000))
+
+
+def _num(v):
+    """东财常用占位符（'-'、'--'、''、None）统一折算为 None；能转则转 float。"""
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().replace(",", "")
+    if s in ("", "-", "--", "—", "None", "null"):
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def num2(v, d=2):
+    """两位小数展示，缺值返回 —。"""
+    n = _num(v)
+    return "—" if n is None else f"{n:.{d}f}"
+
+
+def secid(symbol: str) -> str:
+    """任意代码 → 东财 secid（A股 / 基金 / 美股 / 债券 / 指数）。
+    - A股：sh/sz/bj 前缀，或 6/0/3/688/8/4 开头数字
+    - 基金：51/58 → 沪(1.)；15/16/18/50 → 深(0.)
+    - 美股：usXXXX / XXXX.US / 纯字母 → 105.TICKER
+    - 指数：000001→1.000001（上证）等需显式带前缀
+    """
+    s = (symbol or "").strip()
+    low = s.lower()
+    if low.startswith("us") and len(low) > 2:
+        return "105." + low[2:].upper()
+    if ".us" in low:
+        return "105." + low.split(".us")[0].upper()
+    if low.isalpha():                     # 纯字母 → 视为美股 ticker
+        return "105." + low.upper()
+    if low.startswith(("sh", "sz", "bj")):
+        code = low[2:]
+        market = "1" if low.startswith("sh") else "0"
+        return f"{market}.{code}"
+    if low.isdigit():
+        code = low
+        if code[:2] in ("51", "58"):
+            market = "1"
+        elif code[:2] in ("15", "16", "18", "50"):
+            market = "0"
+        elif code[:1] == "6":
+            market = "1"
+        else:
+            market = "0"
+        return f"{market}.{code}"
+    if "." in low:                        # 已是 secid，如 1.600519 / 100.NDX
+        return low
+    return s
+
+
+def secid_parts(symbol: str):
+    sid = secid(symbol)
+    m, c = sid.split(".", 1)
+    return m, c, sid
+
+
+# 腾讯快照 / K 线：免费 / 无 ut 风控 / 对 push2 限流极其稳健，作为多资产面板的终极 fallback
+def tencent_quote(symbol: str, secid_override: str = "", timeout: int = 8):
+    """腾讯 qt.gtimg.cn 单只快照（A 股 / ETF / 港股 / 美股）。
+    入参支持：6位数字代码（A 股/ETF）或 'usAAPL'/'hk02318' 或 secid '1.510300'。
+    返回 {'code','name','market','price','pct','open','high','low','prev_close','time'}，
+    失败返回 None。"""
+    if not symbol:
+        return None
+    s = symbol.strip()
+    if "." in s:                            # 已是 secid
+        m, c = s.split(".", 1)
+    elif s.startswith("us"):
+        m, c = "105", s[2:]
+    elif s.startswith("hk"):
+        m, c = "116", s[2:]
+    elif s.startswith(("sh", "sz")):
+        m, c = ("1" if s.startswith("sh") else "0"), s[2:]
+    elif s.isdigit():
+        m, c = ("1" if s.startswith(("5", "6", "9")) else "0"), s
+    else:
+        return None
+    prefix = {"1": "sh", "0": "sz", "105": "us", "116": "hk"}.get(m, "")
+    sym = prefix + c
+    url = f"http://qt.gtimg.cn/q={sym}"
+    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"}
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with _DIRECT.open(req, timeout=timeout) as resp:
+            raw = resp.read().decode("gbk", "ignore")
+    except Exception:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with _PROXY.open(req, timeout=timeout) as resp:
+                raw = resp.read().decode("gbk", "ignore")
+        except Exception:
+            return None
+    if "=" not in raw:
+        return None
+    txt = raw.split("=", 1)[1].strip().strip(";").strip('"')
+    parts = txt.split("~")
+    if len(parts) < 32:
+        return None
+    def g(i):
+        return parts[i] if i < len(parts) else ""
+    p = _num(g(3)); pc = _num(g(32))
+    return {
+        "code": c, "market": m, "name": g(1),
+        "price": p, "change": _num(g(31)), "pct": pc,
+        "open": _num(g(5)), "high": _num(g(33)), "low": _num(g(34)),
+        "prev_close": _num(g(4)),
+        "time": g(30),
+    }
+
+
+def tencent_quote_batch(symbols, timeout: int = 10):
+    """腾讯批量快照；输入 secid 列表或带 us/前缀的代码，逐个请求（避免单次单接口限流）。"""
+    out = []
+    for sym in symbols:
+        r = tencent_quote(sym)
+        if r:
+            out.append(r)
+    return out
+
+
+def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
+              encoding: str = "utf-8-sig"):
+    headers = {"User-Agent": _EM_UA, "Referer": referer, "Accept": "*/*"}
+    last_err = None
+    for attempt in range(retries + 1):
+        for opener in (_DIRECT, _PROXY):
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with opener.open(req, timeout=timeout) as resp:
+                    return resp.read().decode(encoding, "ignore")
+            except Exception as e:  # noqa: BLE001
+                last_err = e
+        if attempt < retries:
+            time.sleep(0.3 * (attempt + 1))
+    logging.debug("emapi 取数失败 %s（%s）", url[:110], last_err)
+    return None
+
+
+def get_json(url: str, referer: str = _REF_DC, timeout: int = 12, retries: int = 2):
+    txt = _get_text(url, referer, timeout=timeout, retries=retries)
+    if not txt:
+        return None
+    try:
+        return json.loads(txt)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def get_jsonp(url: str, referer: str = _REF_DC, timeout: int = 12, retries: int = 2):
+    """reportapi 等返回 JSONP（cb({...})），剥壳后 json 化。"""
+    txt = _get_text(url, referer, timeout=timeout, retries=retries)
+    if not txt:
+        return None
+    txt = txt.strip()
+    i = txt.find("(")
+    if i >= 0 and txt.endswith(")"):
+        txt = txt[i + 1:-1]
+    try:
+        return json.loads(txt)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+# --------------------------------------------------------------------------- #
+# push2 行情
+# --------------------------------------------------------------------------- #
+def quote(sid: str, timeout: int = 8, retries: int = 1):
+    """东财 push2 单只快照（通用，含基金/美股/债券）。返回
+    {price,pct,name,code,open,high,low,prev_close,pe,pb} 或 None。"""
+    if "." not in (sid or ""):
+        sid = secid(sid)
+    url = ("https://push2.eastmoney.com/api/qt/stock/get"
+           f"?secid={sid}&fields=f43,f44,f45,f46,f57,f58,f60,f162,f167,f168,f169,f170"
+           f"&ut={_EM_UT}&invt=2&fltt=2&_={_ts()}")
+    j = get_json(url, _REF_Q, timeout=timeout, retries=retries)
+    d = (j or {}).get("data")
+    if not d:
+        return None
+    return {"code": d.get("f57"), "name": d.get("f58"), "price": _num(d.get("f43")),
+            "pct": _num(d.get("f170") if d.get("f170") is not None else d.get("f169")),
+            "open": _num(d.get("f46")), "high": _num(d.get("f44")),
+            "low": _num(d.get("f45")), "prev_close": _num(d.get("f60")),
+            "pe": _num(d.get("f162")), "pb": _num(d.get("f167"))}
+
+
+def ulist(secids, fields: str = "f2,f3,f4,f12,f14,f15,f16,f17,f18", timeout: int = 8):
+    """批量快照（指数/ETF/美股一网打尽）。secids 为列表或逗号串。
+    返回 [{code,name,price,pct,...}]，失败返回 []。
+    v3（2026-09-27 晚）：多 ut + push2/push2his 双端点 fallback，同 clist 行为一致。"""
+    if isinstance(secids, (list, tuple)):
+        secids = ",".join(secids)
+    last_err = None
+    for ut in UT_CANDIDATES:
+        for host in ("https://push2.eastmoney.com/api/qt/ulist.np/get",
+                     "https://push2his.eastmoney.com/api/qt/ulist.np/get"):
+            url = (f"{host}?fltt=2&invt=2&secids={urllib.parse.quote(secids)}"
+                   f"&fields={fields}&ut={ut}&_={_ts()}")
+            j = get_json(url, _REF_Q, timeout=timeout, retries=0)
+            if not j:
+                last_err = "no-json"; continue
+            if j.get("rc") not in (0, None):
+                last_err = f"rc={j.get('rc')}"; continue
+            diff = (((j or {}).get("data") or {}).get("diff")) or []
+            if isinstance(diff, dict):
+                diff = [diff[k] for k in sorted(diff.keys(), key=lambda x: int(x) if str(x).isdigit() else x)]
+            if not diff:
+                last_err = "empty-diff"; continue
+            out = []
+            for d in diff or []:
+                out.append({"code": d.get("f12"), "name": d.get("f14"), "price": _num(d.get("f2")),
+                            "pct": _num(d.get("f3")), "chg": _num(d.get("f4")),
+                            "high": _num(d.get("f15")), "low": _num(d.get("f16")),
+                            "open": _num(d.get("f17")), "prev_close": _num(d.get("f18"))})
+            return out
+    return []
+
+
+# 多个 ut 候选（push2 风控绑定 ut，老 ut 易触发 102/限流）
+UT_CANDIDATES = ("fa5fd1943c7b386f172d6893dbfba10b",
+                 "b2884a393a59ad64002292a3e90d46a5")
+
+# 资金流排行推荐 fs（带 +f:!2 排除停牌，含北交所）
+FS_FUND_RANK = ("m:0+t:6+f:!2,m:0+t:13+f:!2,m:0+t:80+f:!2,"
+                "m:1+t:2+f:!2,m:1+t:23+f:!2,m:0+t:7+f:!2,m:1+t:3+f:!2")
+
+# 板块资金流
+FS_BOARD_FUND = "m:90+t:2"
+
+
+def _best_ut(idx: int = 0) -> str:
+    return UT_CANDIDATES[idx % len(UT_CANDIDATES)]
+
+
+def clist(fs: str, fields: str, pz: int = 30, pn: int = 1, fid: str = "f3", po: int = 1,
+          referer: str = _REF_Q):
+    """东财 clist 排行/列表（资金流、选股等）。fs 为板块/筛选表达式。
+    统一把 diff（对象或数组）归一为 list。失败返回 []。
+    v3（2026-09-27 晚）：多 ut 重试，按 fid 自动推荐 referer。"""
+    # 资金流类请求的 referer 应为数据中心
+    if fid in ("f62", "f184", "f164", "f174", "f267"):
+        referer = "https://data.eastmoney.com/zjlx/list.html"
+    last_err = None
+    for ut in UT_CANDIDATES:
+        url = ("https://push2.eastmoney.com/api/qt/clist/get"
+               f"?fid={fid}&fs={urllib.parse.quote(fs)}&fields={fields}"
+               f"&po={po}&pz={pz}&pn={pn}&ut={ut}&invt=2&fltt=2&np=1&_={_ts()}")
+        j = get_json(url, referer, timeout=12, retries=1)
+        if not j:
+            last_err = "no-json"; continue
+        if j.get("rc") not in (0, None):
+            last_err = f"rc={j.get('rc')}"; continue
+        diff = ((j.get("data") or {}).get("diff")) or []
+        if isinstance(diff, dict):
+            diff = [diff[k] for k in sorted(diff.keys(),
+                    key=lambda x: int(x) if str(x).isdigit() else x)]
+        if diff:
+            return list(diff)
+        last_err = "empty-diff"
+    logging.debug("clist 三 ut 全败：%s", last_err)
+    return []
+
+
+def fflow(sid: str, klt: int = 101, lmt: int = 6, timeout: int = 10):
+    """东财资金流 K 线（个股/指数）。返回 [{date,main_net,small_net,mid_net,big_net,huge_net,
+    main_pct,close,pct,amount}]，失败返回 []。
+    字段序（官方）：f51日期 f52主力 f53小单 f54中单 f55大单 f56超大单
+                   f57主力占比 f58小单占比 f59中单占比 f60大单占比 f61超大单占比
+                   f62收盘 f63涨跌幅 f64成交额 f65冗余
+    v3（2026-09-27 晚）：多 ut + push2/push2his 双端点 fallback。"""
+    if "." not in (sid or ""):
+        sid = secid(sid)
+    endpoints = ("https://push2.eastmoney.com/api/qt/stock/fflow/kline/get",
+                 "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get")
+    last_err = None
+    for ep in endpoints:
+        for ut in UT_CANDIDATES:
+            url = (f"{ep}?secid={sid}"
+                   f"&fields1=f1,f2,f3,f7"
+                   f"&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65"
+                   f"&klt={klt}&lmt={lmt}&ut={ut}&_={_ts()}")
+            j = get_json(url, _REF_Q, timeout=timeout, retries=1)
+            if not j:
+                last_err = "no-json"; continue
+            if j.get("rc") not in (0, None):
+                last_err = f"rc={j.get('rc')}"; continue
+            klines = ((j.get("data") or {}).get("klines")) or []
+            out = []
+            for line in klines:
+                p = str(line).split(",")
+                if len(p) < 13:
+                    continue
+                out.append({"date": p[0], "main_net": _num(p[1]), "small_net": _num(p[2]),
+                            "mid_net": _num(p[3]), "big_net": _num(p[4]), "huge_net": _num(p[5]),
+                            "main_pct": _num(p[6]), "close": _num(p[11]), "pct": _num(p[12]),
+                            "amount": _num(p[13]) if len(p) > 13 else None})
+            if out:
+                return out
+            last_err = "empty-klines"
+    logging.debug("fflow 全败：%s", last_err)
+    return []
+
+
+# --------------------------------------------------------------------------- #
+# datacenter 结构化报表
+# --------------------------------------------------------------------------- #
+def datacenter(report_name: str, columns: str = "ALL", flt: str = "", sort_columns: str = "",
+               sort_types: str = "-1", page_size: int = 50, page_number: int = 1,
+               quote_columns: str = "", timeout: int = 12) -> dict:
+    """东财 datacenter 报表。返回 {ok, rows, err, code}。"""
+    params = {
+        "reportName": report_name, "columns": columns, "quoteColumns": quote_columns,
+        "filter": flt, "pageNumber": str(page_number), "pageSize": str(page_size),
+        "sortColumns": sort_columns, "sortTypes": sort_types,
+        "source": "WEB", "client": "WEB", "_": _ts(),
+    }
+    url = "https://datacenter-web.eastmoney.com/api/data/v1/get?" + urllib.parse.urlencode(params)
+    j = get_json(url, _REF_DC, timeout=timeout, retries=1)
+    if not j:
+        return {"ok": False, "rows": [], "err": "东财接口不可达或返回非 JSON", "code": None}
+    res = j.get("result")
+    if res and res.get("data"):
+        return {"ok": True, "rows": res["data"], "err": None, "code": 0}
+    return {"ok": False, "rows": [], "err": j.get("message") or "无数据", "code": j.get("code")}
+
+
+def latest_valuation_date(force: bool = False, back: int = 15, max_seconds: int = 6) -> str | None:
+    """最近一个有**估值数据**的日期（YYYY-MM-DD），带 10 分钟缓存。
+
+    ⚠️ 命名故意区别于 auction.latest_trade_date()：交易日历 = 开不开市；
+    本函数 = 东财估值表里哪天有值（停牌/未披露时可能晚于交易日）。
+    二者是**不同的尺**，不许同名——2026-10-03 起改名，避免调用方分不清用的是哪把。
+    取数顺序：先问权威交易日历（auction），拿到空/None 才逐日回退试探估值接口。
+
+    max_seconds：整体超时预算（默认 6s）。东财不可达时逐日回退会反复撞超时，
+    必须在预算内放弃，否则上层 _val_snapshot 会被拖挂死（见 2026-10 智能选股死按钮修复）。
+    """
+    now = time.time()
+    today = time.strftime("%Y-%m-%d")
+    if (not force and _TRADE_DATE_CACHE["date"]
+            and now - _TRADE_DATE_CACHE["ts"] < 600
+            and str(_TRADE_DATE_CACHE["date"]) >= today):
+        return _TRADE_DATE_CACHE["date"]
+    deadline = now + max_seconds
+    try:
+        from auction import latest_trade_date as _au_ltd
+        au = _au_ltd()
+        if au:
+            _TRADE_DATE_CACHE.update({"date": au, "ts": now})
+            return au
+    except Exception:  # noqa: BLE001 —— 日历不可用时退回逐日试探，不阻断
+        pass
+    import datetime as _dt
+    d = _dt.date.today()
+    for _ in range(back):
+        if time.time() > deadline:        # 整体预算耗尽，立即放弃，绝不挂死
+            return None
+        ds = d.strftime("%Y-%m-%d")
+        r = datacenter("RPT_VALUEANALYSIS_DET", flt="(TRADE_DATE='%s')" % ds, page_size=1)
+        if r["ok"]:
+            _TRADE_DATE_CACHE.update({"date": ds, "ts": now})
+            return ds
+        # 9201=该日无数据 → 继续回退；9701=限流 → 短暂等待后重试一次
+        if r.get("code") == 9701:
+            time.sleep(0.6)
+        d -= _dt.timedelta(days=1)
+    return None
+
+
+# --------------------------------------------------------------------------- #
+# 研报 / 资讯
+# --------------------------------------------------------------------------- #
+def report_list(page_size: int = 30, page_no: int = 1, begin_time: str = "2026-01-01",
+                end_time: str = "", code: str = "", qtype: int = 0, timeout: int = 12):
+    """东财研报列表（reportapi）。返回 {ok,hits,rows,err}。rows 保留原始字段。"""
+    import datetime as _dt
+    if not end_time:
+        end_time = _dt.date.today().strftime("%Y-%m-%d")
+    params = {
+        "cb": "cb", "pageSize": str(page_size), "pageNo": str(page_no),
+        "beginTime": begin_time, "endTime": end_time, "qType": str(qtype),
+        "fields": "", "rating": "", "ratingChange": "",
+        "industryCode": "*", "industry": "*", "_": _ts(),
+    }
+    if code:
+        params["code"] = code
+    url = "https://reportapi.eastmoney.com/report/list?" + urllib.parse.urlencode(params)
+    j = get_jsonp(url, referer="https://data.eastmoney.com/report/", timeout=timeout, retries=1)
+    if not j:
+        return {"ok": False, "rows": [], "hits": 0, "err": "研报接口不可达"}
+    return {"ok": True, "rows": j.get("data") or [], "hits": j.get("hits") or 0, "err": None}
+
+
+def fast_news(num: int = 30, column: int = 102, timeout: int = 10):
+    """东财 7×24 快讯。返回 {ok, rows, err}。"""
+    url = ("https://np-listapi.eastmoney.com/comm/web/getFastNewsList"
+           f"?client=web&biz=web_724&fastColumn={column}&sortEnd=&pageSize={num}"
+           f"&req_trace={_ts()}")
+    j = get_json(url, referer="https://kuaixun.eastmoney.com/", timeout=timeout, retries=1)
+    d = (j or {}).get("data") or {}
+    rows = d.get("fastNewsList") or []
+    if not rows and not (j or {}).get("data"):
+        return {"ok": False, "rows": [], "err": (j or {}).get("message") or "资讯接口不可达"}
+    return {"ok": True, "rows": rows, "err": None}
+
+
+def announcement(code: str, num: int = 30, timeout: int = 10):
+    """东财个股公告。返回 {ok, rows, err}。"""
+    url = ("https://np-anotice-stock.eastmoney.com/api/security/ann"
+           f"?sr=-1&page_size={num}&page_index=1&ann_type=A&client_source=web"
+           f"&stock_list={urllib.parse.quote(code)}&f_node=0&s_node=0&_={_ts()}")
+    j = get_json(url, referer="https://data.eastmoney.com/notices/", timeout=timeout, retries=1)
+    d = (j or {}).get("data") or {}
+    rows = d.get("list") or []
+    if j is None:
+        return {"ok": False, "rows": [], "err": "公告接口不可达"}
+    return {"ok": True, "rows": rows, "err": None}
