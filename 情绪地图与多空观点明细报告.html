@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>情绪地图与多空观点明细报告</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; margin:0; padding:0;
+  background:#f5f6f8; color:#1f2430; line-height:1.7; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px; }
+h1 { font-size: 26px; margin: 0 0 6px; }
+h2 { font-size: 20px; margin: 38px 0 12px; padding-left: 10px; border-left: 4px solid #C81E1E; }
+h3 { font-size: 16px; margin: 22px 0 8px; color:#444; }
+.lede { color:#555; font-size:14px; margin: 4px 0 0; }
+.note { background:#fff8e6; border:1px solid #f0d58a; border-radius:10px; padding:12px 16px; font-size:13.5px; color:#6b5418; margin:16px 0; }
+.card { background:#fff; border:1px solid #e6e8ec; border-radius:12px; padding:18px 20px; margin:14px 0; }
+.kv { display:flex; gap:10px; padding:5px 0; font-size:14px; }
+.kv .k { flex:0 0 120px; color:#888; }
+.kv .v { flex:1; }
+code { background:#eef0f3; border-radius:5px; padding:1px 6px; font-size:12.5px; }
+.legend-row { display:flex; gap:10px; padding:4px 0; font-size:14px; }
+.legend-row .lab { flex:0 0 130px; font-weight:700; }
+.bars { display:flex; gap:12px; margin:10px 0 4px; }
+.bar { flex:1; text-align:center; border-radius:10px; padding:12px; }
+.bar.bull { background:#FDE7E6; color:#C81E1E; }
+.bar.bear { background:#DEF3E3; color:#15803D; }
+.bar.neu  { background:#eef0f3; color:#555; }
+.bar .num { font-size:24px; font-weight:800; }
+.stock-card { background:#fff; border:1px solid #e6e8ec; border-radius:12px; padding:14px 16px; margin:14px 0; }
+.sc-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.stk-code { font-family:ui-monospace,Consolas,monospace; font-size:13px; letter-spacing:.6px; background:#eef0f3; border:1px solid #dde0e4; border-radius:6px; padding:2px 8px; }
+.sc-name { font-size:16px; }
+.sc-corp { font-size:12.5px; color:#666; }
+.stk-board { font-size:11px; color:#555; border:1px solid #dde0e4; border-radius:999px; padding:1px 8px; }
+.sc-count { margin-left:auto; font-size:13px; color:#C81E1E; font-weight:700; }
+.views { display:flex; flex-direction:column; gap:10px; }
+.view-group { border:1px solid #e6e8ec; border-radius:10px; padding:8px 12px; }
+.view-group.v-bull { border-left:4px solid #C81E1E; background:#fdf3f2; }
+.view-group.v-bear { border-left:4px solid #15803D; background:#f1f9f3; }
+.view-group.v-neu  { border-left:4px solid #999; background:#fafafa; }
+.vg-head { font-weight:700; font-size:13.5px; margin-bottom:6px; }
+.vg-empty { font-size:12.5px; color:#999; }
+.view-item { padding:6px 0; border-top:1px dashed #e6e8ec; }
+.view-item:first-of-type { border-top:none; }
+.vi-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.vi-author { font-size:13.5px; }
+.vi-time { font-size:11px; color:#999; }
+.vi-site { font-size:11px; color:#2563eb; background:#eaf1ff; border-radius:6px; padding:1px 7px; }
+.vi-reason { font-size:13px; line-height:1.6; margin-top:3px; }
+.foot { color:#999; font-size:12.5px; margin-top:30px; text-align:center; }
+</style></head>
+<body><div class="wrap">
+
+<h1>情绪地图详解 & 多空观点明细（谁看多 / 谁看空 + 理由）</h1>
+<p class="lede">生成时间：2026-09-22 19:04 ｜ 数据来源：查看器本地库（示例数据，口径见文末说明）｜ 与 <code>http://127.0.0.1:8765</code> 界面实时一致</p>
+
+<div class="note"><b>先回答您最关心的问题：</b>情绪地图上那些数字（如 <code>600519</code>）是<b>股票代码，不是序号、也不是排名</b>。
+它对应 <b>贵州茅台</b>（公司全称：贵州茅台酒股份有限公司）。每张卡片现在都标注了简称 + 公司全称，并新增「多空观点明细」，
+逐条写明<strong>具体是谁、针对这只股票看多还是看空、以及其原话理由</strong>。</div>
+
+<h2>一、情绪地图的"数字"到底是什么</h2>
+<div class="card">
+  <div class="kv"><div class="k">600519</div><div class="v"><b>股票代码</b>（6 位）。沪市以 60/68 开头、深市以 00/30 开头、北交所以 43/83/87 开头。它是某只具体股票的"身份证"，与排名无关。</div></div>
+  <div class="kv"><div class="k">贵州茅台</div><div class="v">该代码对应的<b>股票简称</b>，卡片副标题还会显示公司全称。</div></div>
+  <div class="kv"><div class="k">多 N / 空 N</div><div class="v"><b>多 N</b>＝有 N 条带"看多"情绪的帖子提到了这只股票；<b>空 N</b>＝有 N 条带"看空"情绪的帖子提到它；中性 N＝情绪词库未判出明确多空的提及。</div></div>
+  <div class="kv"><div class="k">配色惯例</div><div class="v">已按 A 股习惯统一为 <span style="color:#C81E1E;font-weight:700">看多=红</span>、<span style="color:#15803D;font-weight:700">看空=绿</span>（涨红跌绿）。</div></div>
+</div>
+
+<h2>二、整体多空温度计（全样本）</h2>
+<div class="bars">
+  <div class="bar bull"><div class="num">14</div><div>看多帖</div></div>
+  <div class="bar bear"><div class="num">9</div><div>看空帖</div></div>
+  <div class="bar neu"><div class="num">2</div><div>中性帖</div></div>
+</div>
+<p class="lede">说明：以上是按"帖子"维度统计的整体情绪；下文按"股票"维度拆解，能看到每只票内部的多空分歧——这正是"谁看多、谁看空"的关键。</p>
+
+<h2>三、逐只股票的多空观点明细（WHO / WHAT / WHY）</h2>
+<p class="lede">以下每只股票分三栏：<b>看多</b>列出看好它的发帖人及其理由、<b>看空</b>列出看淡的发帖人及其理由、<b>中性</b>为未明确表态者。
+"标的"即卡片对应的那只股票（WHAT）；"谁"是发帖署名（论坛公开昵称）；"为什么"是该帖原文（判断依据与逻辑）。</p>
+
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">600519</span>
+        <span class="sc-name"><b>贵州茅台</b></span>
+        <span class="sc-corp">贵州茅台酒股份有限公司</span>
+        <span class="stk-board">沪市主板</span>
+        <span class="sc-count">多 2 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（2）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">短线作手老王</b>
+                <span class="vi-time">2026-09-22 19:03:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">600519 贵州茅台今天突破平台，量能放大，看多为主，@趋势猎人 怎么看？</div></div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">白马猎手</b>
+                <span class="vi-time">2026-09-22 17:32:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">600519 贵州茅台品牌护城河无人能及，回调即是中长期买点。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">价值投资人</b>
+                <span class="vi-time">2026-09-22 17:39:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">600519 贵州茅台估值已不便宜，机构抱团松动，短期谨慎、不追高。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">601318</span>
+        <span class="sc-name"><b>中国平安</b></span>
+        <span class="sc-corp">中国平安保险(集团)股份有限公司</span>
+        <span class="stk-board">沪市主板</span>
+        <span class="sc-count">多 2 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（2）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">价值投资人</b>
+                <span class="vi-time">2026-09-22 18:42:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">601318 中国平安股息率不错，长期持有，不追高。</div></div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">红利守卫</b>
+                <span class="vi-time">2026-09-22 16:50:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">601318 中国平安负债端改善、股息稳健，仍是底仓首选。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">利率观察者</b>
+                <span class="vi-time">2026-09-22 16:43:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">601318 中国平安受长端利率下行拖累，寿险估值承压。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">000333</span>
+        <span class="sc-name"><b>美的集团</b></span>
+        <span class="sc-corp">美的集团股份有限公司</span>
+        <span class="stk-board">深市主板</span>
+        <span class="sc-count">多 1 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">家电价值</b>
+                <span class="vi-time">2026-09-22 16:15:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">000333 美的集团出海顺利、现金流优秀，长拿无忧。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">尾盘狙击</b>
+                <span class="vi-time">2026-09-22 17:53:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">卖出 000333 美的集团 500股 @65.2，落袋为安。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">000725</span>
+        <span class="sc-name"><b>京东方A</b></span>
+        <span class="sc-corp">京东方科技集团股份有限公司</span>
+        <span class="stk-board">深市主板</span>
+        <span class="sc-count">多 1 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">面板老兵</b>
+                <span class="vi-time">2026-09-22 17:04:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">000725 京东方A 面板价格周期触底回升，稼动率改善，困境反转。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">韭菜日记</b>
+                <span class="vi-time">2026-09-22 18:35:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">000725 京东方A 又跌停，割肉离场，太惨了。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">002230</span>
+        <span class="sc-name"><b>科大讯飞</b></span>
+        <span class="sc-corp">科大讯飞股份有限公司</span>
+        <span class="stk-board">深市主板</span>
+        <span class="sc-count">多 2 · 空 0 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（2）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">题材挖掘</b>
+                <span class="vi-time">2026-09-22 18:00:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">人形机器人概念升温，002230 科大讯飞受关注。</div></div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">AI前沿</b>
+                <span class="vi-time">2026-09-22 16:22:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">002230 科大讯飞大模型商业化落地加速，订单可见度提升。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（0）—— 谁看淡、为什么</div><div class="vg-empty">（无）</div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">002594</span>
+        <span class="sc-name"><b>比亚迪</b></span>
+        <span class="sc-corp">比亚迪股份有限公司</span>
+        <span class="stk-board">深市主板</span>
+        <span class="sc-count">多 1 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">打板客小李</b>
+                <span class="vi-time">2026-09-22 18:49:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">今日买入 002594 比亚迪 1000股 @28.6，准备做一波主升。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">车市透视</b>
+                <span class="vi-time">2026-09-22 16:57:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">002594 比亚迪价格战压缩利润，短期承压，等拐点。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">300750</span>
+        <span class="sc-name"><b>宁德时代</b></span>
+        <span class="sc-corp">宁德时代新能源科技股份有限公司</span>
+        <span class="stk-board">创业板</span>
+        <span class="sc-count">多 1 · 空 1 · 中性 1</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">新能源观察</b>
+                <span class="vi-time">2026-09-22 17:25:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">300750 宁德时代一季报超预期，海外订单饱满，趋势向上。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">量化小张</b>
+                <span class="vi-time">2026-09-22 17:18:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">300750 宁德时代估值高位、机构拥挤，谨防获利盘踩踏。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（1）</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">趋势猎人</b>
+                <span class="vi-time">2026-09-22 18:56:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">我更看好 300750 宁德时代，新能源回暖，但 000858 五粮液有点套牢风险，谨慎。</div></div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">603259</span>
+        <span class="sc-name"><b>药明康德</b></span>
+        <span class="sc-corp">无锡药明康德新药开发股份有限公司</span>
+        <span class="stk-board">沪市主板</span>
+        <span class="sc-count">多 1 · 空 1 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">盘中快讯</b>
+                <span class="vi-time">2026-09-22 18:28:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">603259 药明康德盘中异动拉升，资金流入明显。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">CXO跟踪</b>
+                <span class="vi-time">2026-09-22 16:36:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">603259 药明康德海外政策扰动仍未出清，反弹当减仓。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">000858</span>
+        <span class="sc-name"><b>五粮液</b></span>
+        <span class="sc-corp">宜宾五粮液股份有限公司</span>
+        <span class="stk-board">深市主板</span>
+        <span class="sc-count">多 0 · 空 1 · 中性 1</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（0）—— 谁看好、为什么</div><div class="vg-empty">（无）</div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（1）—— 谁看淡、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">老股民陈叔</b>
+                <span class="vi-time">2026-09-22 17:11:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">000858 五粮液高端需求稳健，但渠道库存偏高，观望为宜。</div></div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（1）</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">趋势猎人</b>
+                <span class="vi-time">2026-09-22 18:56:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">我更看好 300750 宁德时代，新能源回暖，但 000858 五粮液有点套牢风险，谨慎。</div></div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">300059</span>
+        <span class="sc-name"><b>东方财富</b></span>
+        <span class="sc-corp">东方财富信息股份有限公司</span>
+        <span class="stk-board">创业板</span>
+        <span class="sc-count">多 1 · 空 0 · 中性 1</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">资金流向</b>
+                <span class="vi-time">2026-09-22 16:29:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">300059 东方财富成交额持续放大，牛市旗手弹性最大。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（0）—— 谁看淡、为什么</div><div class="vg-empty">（无）</div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（1）</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">量化小张</b>
+                <span class="vi-time">2026-09-22 18:21:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">300059 东方财富放量突破，短线机会，注意回踩风险。</div></div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">600036</span>
+        <span class="sc-name"><b>招商银行</b></span>
+        <span class="sc-corp">招商银行股份有限公司</span>
+        <span class="stk-board">沪市主板</span>
+        <span class="sc-count">多 1 · 空 0 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">老股民陈叔</b>
+                <span class="vi-time">2026-09-22 18:14:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">600036 招商银行稳健，分红香，长期看好。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（0）—— 谁看淡、为什么</div><div class="vg-empty">（无）</div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+    <div class="stock-card">
+      <div class="sc-head">
+        <span class="stk-code">603501</span>
+        <span class="sc-name"><b>豪威集团</b></span>
+        <span class="sc-corp">豪威集成电路(集团)股份有限公司</span>
+        <span class="stk-board">沪市主板</span>
+        <span class="sc-count">多 1 · 空 0 · 中性 0</span>
+      </div>
+      <div class="views">
+        <div class="view-group v-bull"><div class="vg-head">看多（1）—— 谁看好、为什么</div><div class="view-item">
+              <div class="vi-head"><b class="vi-author">复盘笔记</b>
+                <span class="vi-time">2026-09-22 17:46:24</span>
+                <span class="vi-site">taoguba</span></div>
+              <div class="vi-reason">本周主线在AI与新能源，603501 韦尔股份强势。</div></div></div>
+        <div class="view-group v-bear"><div class="vg-head">看空（0）—— 谁看淡、为什么</div><div class="vg-empty">（无）</div></div>
+        <div class="view-group v-neu"><div class="vg-head">中性 / 未定（0）</div><div class="vg-empty">（无）</div></div>
+      </div>
+    </div>
+
+<h2>四、数据口径与诚实说明</h2>
+<div class="card">
+  <h3>口径</h3>
+  <ul>
+    <li><b>多空判定层级：</b>情绪标签打在<b>帖子</b>上（作者在该帖的整体立场），再按"帖子提及了哪只股票"归到对应票。因此一帖若同时提多只票（如"看好宁德、警惕五粮液"），其立场会同时计入相关各票。</li>
+    <li><b>"谁"是谁：</b>指发帖人的<b>公开署名昵称</b>（如"短线作手老王"），属公开发帖披露内容，非隐私抓取。</li>
+    <li><b>"为什么"从哪来：</b>直接取自该帖原文，未做改写；若原文只是情绪词（"割肉离场"）而无展开论证，明细中也如实呈现短句。</li>
+    <li><b>当前为示例数据：</b>以上帖子为演示库内置样本，用于展示"谁看多/看空 + 理由"的结构。接入真实淘股吧抓取后，此处会自动替换为真实发帖人与原话。</li>
+  </ul>
+  <h3>如何查看实时数据</h3>
+  <p>刷新 <code>http://127.0.0.1:8765</code> → 「情绪地图」面板点击任意股票卡 → 抽屉内「③ 多空观点明细」即展示与本文一致的逐条 WHO/WHAT/WHY。冷门代码若显示"名称待补全"，点面板顶部「补全股票名称」即可联网补齐。</p>
+</div>
+
+<div class="foot">本报告由查看器数据自动生成 · 与界面同源 · 多空立场以发帖原文为准</div>
+</div></body></html>

@@ -1,0 +1,358 @@
+defaults:
+  respect_robots: true
+  rate_limit_per_min: 15
+  timeout: 15
+  retry_max: 3
+  user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+    like Gecko) Chrome/124.0 Safari/537.36
+sites:
+  taoguba:
+    name: 淘股吧
+    base_url: https://www.tgb.cn
+    requires_login: true
+    register_url: https://www.tgb.cn/
+    login:
+      auth_mode: cookie
+      login_url: ''
+      method: POST
+      form:
+        username_field: username
+        password_field: password
+        csrf_field: null
+        extra_fields: {}
+      success_marker: null
+      verify:
+        url: https://www.tgb.cn/user/getMoreListAction
+        must_contain:
+        - 个人中心
+        - 超级动态
+        must_not_contain:
+        - hd_unlogin
+        - 扫码登录
+    selectors:
+      news_item: li, div.news-item
+      news_title: a
+      news_time: .time, .date, span.time
+      post_item: div.post-item, div.feed-item, li.feed-item, div.article
+      post_author: .author, .user-name, .nickname, a.author
+      post_time: .time, .post-time, span.time
+      post_text: .content, .post-content, .text, .body
+      player_item: tr.rank-item, div.rank-item, li.rank-item, div.user-item
+      player_name: .name, .nickname, .user-name, a.author
+      player_rank: .rank, .index, .no
+      player_score: .score, .profit, .win-rate, .yield
+    trade_patterns:
+    - (?P<action>买入|卖出|建仓|清仓|减仓|加仓|平仓|止盈|止损|持仓)[\s,，。、:：]*(?:(?P<symbol>\d{6})|(?P<name>[\u4e00-\u9fa5]{2,6}))[\s,，。、:：]*(?:@|股价|价格|成交价)?[\s,，。、:：]*(?P<price>\d+\.\d{2})?[\s,，。、:：]*(?P<qty>\d+)?[\s,，。、:：]*(?:股|手|万股|万手)?
+    - (?P<action>买入|卖出|建仓|清仓|减仓|加仓|平仓|止盈|止损|持仓)[\s,，。、:：]*(?:(?P<symbol>\d{6})|(?P<name>[\u4e00-\u9fa5]{2,6}))[\s,，。、:：]*(?P<qty>\d+)?[\s,，。、:：]*(?:股|手|万股|万手)?[\s,，。、:：]*(?:@|股价|价格|成交价)?[\s,，。、:：]*(?P<price>\d+\.\d{2})?
+    position_patterns:
+    - (?P<action>买入|卖出|建仓|清仓|减仓|加仓|平仓|止盈|止损|持仓)[\s,，。、:：]*(?:(?P<symbol>\d{6})|(?P<name>[\u4e00-\u9fa5]{2,6}))[\s\S]*?(?:仓位|持仓|舱位)[^\d]{0,4}(\d{1,3}(?:\.\d+)?)\s*%
+    current_price_patterns:
+    - (?:(?:现价|最新价|当前价|实时价)[\s:：]*?)(\d+\.\d{2})
+    access_rules:
+    - contains: 付费
+      level: paid
+      hint: 该实盘明细需付费解锁，充值后可查看完整买卖价与成本
+    - contains: 充值
+      level: paid
+      hint: 该实盘明细需付费解锁，充值后可查看完整买卖价与成本
+    - contains: 购买
+      level: paid
+      hint: 该实盘明细需付费购买后方可查看
+    - contains: 积分
+      level: points
+      hint: 该实盘明细需消耗积分，积分足够后可查看完整买卖价与成本
+    - contains: 扣积分
+      level: points
+      hint: 该实盘明细需消耗积分，积分足够后可查看完整买卖价与成本
+    - contains: 无权限
+      level: locked
+      hint: 无权限查看，需相应会员或权限后方可查看
+    - contains: 无权查看
+      level: locked
+      hint: 无权限查看，需相应会员或权限后方可查看
+    - contains: 权限不足
+      level: locked
+      hint: 权限不足，需相应会员或权限后方可查看
+    - contains: 开通会员
+      level: locked
+      hint: 需开通会员后方可查看完整实盘买卖明细
+    - contains: 会员专享
+      level: locked
+      hint: 会员专享内容，需开通会员后方可查看
+    top_players:
+      top_n: 200
+      top_pct: 0.5
+    selection:
+      require_verifiable: true
+      certify_auto_include: true
+      min_score: null
+      active_within_days: null
+      top_n: 200
+      top_pct: 0.5
+    certify_keywords:
+    - 认证
+    - 实盘认证
+    - 官方认证
+    - 示范
+    - 实盘示范
+    - 实盘大赛
+    - 大赛
+    - 认证选手
+    channel_keywords:
+      A:
+      - 实盘大赛
+      - 大赛
+      - 比赛
+      - 擂台
+      - 挑战赛
+      B:
+      - 直播
+      - 直播间
+      C:
+      - 专栏
+      - 作家
+      - 特约
+      - 名家
+      D:
+      - 人气
+      - 热度
+      - 新锐
+      - 榜单
+      E:
+      - 主播
+      - 大V
+      - 大v
+      - UP主
+      - 博主
+      - 视频
+      - 频道
+      - 认证大V
+      F:
+      - 观察
+      - 长尾
+      - 新人
+      - 潜水
+      - 路人
+    player_pool:
+      target_total: 600
+      platforms:
+      - key: taoguba
+        name: 淘股吧
+        enabled: true
+        requires_login: true
+        weight: 1.0
+      - key: eastmoney
+        name: 东方财富股吧
+        enabled: true
+        requires_login: false
+        weight: 0.85
+      - key: xueqiu
+        name: 雪球
+        enabled: true
+        requires_login: false
+        weight: 0.8
+      - key: ths
+        name: 同花顺
+        enabled: true
+        requires_login: false
+        weight: 0.7
+      - key: sina
+        name: 新浪股吧
+        enabled: true
+        requires_login: false
+        weight: 0.75
+      retain_influential:
+        enabled: true
+        influence_threshold: 60
+        followers_threshold: 50000
+        never_hide: true
+    channel_rules:
+    - match_by: source_url
+      contains: match
+      channel: A
+    - match_by: source_url
+      contains: live
+      channel: B
+    - match_by: source_url
+      contains: blog
+      channel: C
+    - match_by: source_url
+      contains: user
+      channel: D
+    # ---- 选手榜 / 持仓采集（2026-10-05 报告 建议4：把半启用状态写清楚，别让它悄悄空跑）----
+    # players（列表页）：collect_players 逐个抓**选手排行榜**页面并解析名次/认证/收益。
+    #   留空 → 跳过选手筛选，日志只打一条 warning；此时选手池只能靠 rebuild_player_pool
+    #   从 posts/trades/positions 的**行为反推**，前端「选手池」面板会标「仅行为反推」。
+    #   淘股吧可用的就是下面这两类列表页（当前已启用）：
+    #     https://www.tgb.cn/                        （首页混排，含大赛榜）
+    #     https://www.tgb.cn/talk/talkSeq/14088      （实盘/大赛列表页）
+    # player_page_tpl（选手持仓页）：单个选手的持仓页 URL 模板，{name} / {username} 两个占位符都支持。
+    #   留空 → collect_positions 直接跳过（日志 warning: 未配置 player_page_tpl，跳过持仓采集）；
+    #   填上 → 逐人抓取持仓比例入库（「持仓记录」面板的数据来源就靠它）。
+    #   示例（按站点真实页面改，改完去掉注释即可生效）：
+    #     player_page_tpl: https://www.tgb.cn/talk/talkSeq/{name}
+    #   ⚠ 注意这两个是**不同**采集器：players 管「谁上榜」，player_page_tpl 管「上了榜之后 exposures 多少」。
+    player_page_tpl: ''
+    targets:
+      news:
+      - https://www.tgb.cn/
+      trades:
+      - https://www.tgb.cn/talk/talkSeq/14088
+      posts:
+      - https://www.tgb.cn/talk/talkSeq/14088
+      players:
+      - https://www.tgb.cn/
+      - https://www.tgb.cn/talk/talkSeq/14088
+  eastmoney:
+    name: 东方财富股吧
+    base_url: https://guba.eastmoney.com
+    requires_login: false
+    respect_robots: false
+    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+      like Gecko) Chrome/124.0 Safari/537.36
+    rate_limit_per_min: 6
+    extra_headers:
+      Referer: https://guba.eastmoney.com/
+      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+      Accept-Language: zh-CN,zh;q=0.9
+      Accept-Encoding: gzip, deflate, br
+    register_url: ''
+    login:
+      auth_mode: none
+      login_url: ''
+      verify:
+        url: ''
+        must_contain: []
+        must_not_contain: []
+    list_url_tpl: https://guba.eastmoney.com/list,{symbol}.html
+    # 2026-10-05（报告建议4）：东财股吧**没有公开选手排行榜**，parser 里 parse_players
+    # 也是显式放弃的（会返回空）。下面 targets.players 留着只是为了抓取配置完整，
+    # 实际不出选手榜数据 —— 选手池靠行为反推，前端会标「仅行为反推」。
+    # 同理 player_page_tpl 不填（东财无稳定的个人持仓页），「持仓记录」以淘股吧为主源。
+    target_symbols:
+    - 600519
+    - 1
+    - 300750
+    - 601318
+    - 600036
+    - 000858
+    targets:
+      news:
+      - https://guba.eastmoney.com/list,600519.html
+      - https://guba.eastmoney.com/list,000001.html
+      - https://guba.eastmoney.com/list,300750.html
+      - https://guba.eastmoney.com/list,601318.html
+      trades:
+      - https://guba.eastmoney.com/list,600519.html
+      - https://guba.eastmoney.com/list,000001.html
+      - https://guba.eastmoney.com/list,300750.html
+      - https://guba.eastmoney.com/list,601318.html
+      players:
+      - https://guba.eastmoney.com/list,600519.html
+  xueqiu:
+    name: 雪球
+    base_url: https://xueqiu.com
+    requires_login: false
+    respect_robots: false
+    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+      like Gecko) Chrome/124.0 Safari/537.36
+    rate_limit_per_min: 6
+    search_count: 10
+    extra_headers:
+      Referer: https://xueqiu.com/
+      Accept: application/json, text/plain, */*; q=0.8
+      Cookie: ''
+    login:
+      auth_mode: cookie
+      login_url: ''
+      verify:
+        url: ''
+        must_contain: []
+        must_not_contain: []
+    targets:
+      posts:
+      - https://xueqiu.com/k?q=600519
+      - https://xueqiu.com/k?q=000001
+      - https://xueqiu.com/k?q=300750
+      - https://xueqiu.com/k?q=601318
+      news:
+      - https://xueqiu.com/k?q=600519
+      trades:
+      - https://xueqiu.com/k?q=600519
+      - https://xueqiu.com/k?q=000001
+      - https://xueqiu.com/k?q=300750
+      - https://xueqiu.com/k?q=601318
+  ths:
+    name: 同花顺股吧
+    base_url: http://t.10jqka.com.cn
+    requires_login: false
+    respect_robots: false
+    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+      like Gecko) Chrome/124.0 Safari/537.36
+    rate_limit_per_min: 6
+    extra_headers:
+      Referer: http://t.10jqka.com.cn/
+      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+      Accept-Language: zh-CN,zh;q=0.9
+    login:
+      auth_mode: none
+      login_url: ''
+      verify:
+        url: ''
+        must_contain: []
+        must_not_contain: []
+    targets:
+      news:
+      - http://t.10jqka.com.cn/
+      posts:
+      - http://t.10jqka.com.cn/
+      trades:
+      - http://t.10jqka.com.cn/
+      - http://stockpage.10jqka.com.cn/600519/
+      - http://stockpage.10jqka.com.cn/000001/
+  sina:
+    name: 新浪股吧
+    base_url: https://guba.sina.com.cn
+    requires_login: false
+    respect_robots: false
+    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+      like Gecko) Chrome/124.0 Safari/537.36
+    rate_limit_per_min: 6
+    extra_headers:
+      Referer: https://guba.sina.com.cn/
+      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+      Accept-Language: zh-CN,zh;q=0.9
+    register_url: ''
+    login:
+      auth_mode: none
+      login_url: ''
+      verify:
+        url: ''
+        must_contain: []
+        must_not_contain: []
+    bar_url_tpl: https://guba.sina.com.cn/?s=bar&name={symbol}
+    target_symbols:
+    - sh600519
+    - sz000001
+    - sz300750
+    - sh601318
+    - sh600036
+    - sz000858
+    targets:
+      players:
+      - https://guba.sina.com.cn/
+      posts:
+      - https://guba.sina.com.cn/?s=bar&name=sh600519
+      - https://guba.sina.com.cn/?s=bar&name=sz000001
+      - https://guba.sina.com.cn/?s=bar&name=sz300750
+      - https://guba.sina.com.cn/?s=bar&name=sh601318
+      - https://guba.sina.com.cn/?s=bar&name=sh600036
+      - https://guba.sina.com.cn/?s=bar&name=sz000858
+      trades:
+      - https://guba.sina.com.cn/?s=bar&name=sh600519
+      - https://guba.sina.com.cn/?s=bar&name=sz000001
+      - https://guba.sina.com.cn/?s=bar&name=sz300750
+      - https://guba.sina.com.cn/?s=bar&name=sh601318
+      news:
+      - https://guba.sina.com.cn/?s=bar&name=sh600519
+      - https://guba.sina.com.cn/?s=bar&name=sz000001

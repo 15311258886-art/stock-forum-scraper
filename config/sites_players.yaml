@@ -1,0 +1,98 @@
+# 选手个人主页采集配置（新增能力，2026-10-09）。
+#
+# 与 config/sites.yaml 的关系：
+#   · sites.yaml  = 站点「列表页」采集（按股票代码/话题抓，线上在跑）——**本文件不改动它**；
+#   · 本文件      = 站点「选手个人主页」采集所需的站点参数（登录 / header / 限速 / 解析口径）。
+#   二者结构一致，均可被 scraper.config.load_config() 读取；目标 URL 不写死在 yaml 里，
+#   而由 tools/collect_players.py 从选手名单 CSV 动态装载（换名单只需换 CSV，配置不漂移）。
+#
+# 名单 CSV 列：序号,选手昵称,来源站点,层级,是否头部,论坛主页URL
+# 站点分布（2026-10-09 实测）：taoguba 139 / sina 52 / xueqiu 33 / jisilu 3（jisilu 无 parser，跳过）。
+defaults:
+  respect_robots: true
+  rate_limit_per_min: 15
+  timeout: 20
+  retry_max: 3
+  user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+    like Gecko) Chrome/124.0 Safari/537.36
+
+# 选手名单来源（可被 CLI --csv 覆盖）
+player_sources:
+  csv: F:\AI Agent部署知识库\2026-10-07-14-13-22\.workbuddy\douyin\名单B_选手主页URL.csv
+  # CSV 里的「来源站点」取值 → 本项目站点 key（无 parser 的站点在此缺席，装载时自动跳过）
+  site_map:
+    taoguba: taoguba
+    sina: sina
+    xueqiu: xueqiu
+
+sites:
+  taoguba:
+    name: 淘股吧
+    base_url: https://www.tgb.cn
+    # 选手博客页 /blog/<id> 需登录态（与列表页一致，走本地加密 Cookie）
+    requires_login: true
+    register_url: https://www.tgb.cn/
+    # 个人主页形态：/blog/<id>（列表，仅标题+时间）→ 逐篇 /a/<id> 详情页取正文
+    home_url_patterns:
+      - /blog/
+      - /a/
+    login:
+      auth_mode: cookie
+      login_url: ''
+      method: POST
+      form:
+        username_field: username
+        password_field: password
+        csrf_field: null
+        extra_fields: {}
+      success_marker: null
+      verify:
+        url: https://www.tgb.cn/user/getMoreListAction
+        must_contain:
+          - 个人中心
+          - 超级动态
+        must_not_contain:
+          - hd_unlogin
+          - 扫码登录
+    # 选手主页（本次新增）用的选择器，独立于列表页选择器，互不影响
+    home_selectors:
+      blog_list: div.article_tittle                       # 博客列表行（wrapper 有无都能命中）
+      blog_title: .tittle_data a[href*='/a/']              # 标题 + /a/<id> 链接
+      blog_time: .tittle_fbshijian                         # 发表时间（date-only）
+      blog_views: .tittle_llhf                             # 浏览/回复
+      article_body: div.article-text                       # 详情页正文容器
+      article_title: div.article-tittle
+    targets:
+      posts: []
+  sina:
+    name: 新浪股吧
+    base_url: https://guba.sina.com.cn
+    requires_login: false
+    respect_robots: false
+    extra_headers:
+      Referer: https://guba.sina.com.cn/
+      Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+      Accept-Language: zh-CN,zh;q=0.9
+    # 个人主页形态：/u/<uid> 用户中心「主贴」列表（div 结构，非 <tr>）
+    home_url_patterns:
+      - /u/
+    home_selectors:
+      item: div.item_list          # 单条主贴（带 tid/bid 属性）
+      author: .ilt_name a
+      title: h4.ilt_tit a[href*=tid]
+      text: p.ilt_p
+      time: .ilt_panel .fl_left span a
+    targets:
+      posts: []
+  xueqiu:
+    name: 雪球
+    base_url: https://xueqiu.com
+    requires_login: false
+    respect_robots: false
+    # 雪球被阿里云 WAF 拦截，必须用真实浏览器渲染（scraper/browser_fetch.browser_get）
+    fetch_via_browser: true
+    # 个人主页形态：/u/<uid>（与搜索页同构 article.timeline__item，直接复用 XueqiuParser）
+    home_url_patterns:
+      - /u/
+    targets:
+      posts: []

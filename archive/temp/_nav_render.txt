@@ -1,0 +1,33 @@
+TOTAL 4017
+
+=== 所有 NAV 相关引用 ===
+ 3281: const NAV = [
+ 3309: let CURRENT = { cat: NAV[0].key, tab: NAV[0].items[0].tab };
+ 3311: function catOf(tab) { return NAV.find((c) => c.items.some((i) => i.tab === tab)); }
+ 3320:   side.innerHTML = `<div class="rail-head">导航</div>` + NAV.map((c) => {
+ 3323:     return `<a class="nav-item${open ? " active" : ""}" data-cat="${escAttr(c.key)}" ` +
+ 3329:   $$("#sidenav .nav-item").forEach((a) => {
+ 3347:     `<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" ` +
+ 3355:   $$("#subnav .sub-tab").forEach((a) => {
+ 3356:     a.onclick = (e) => { e.preventDefault(); selectNav(cat.key, a.dataset.tab, true); };
+ 3365:   const cat = NAV.find((c) => c.key === catKey) || NAV[0];
+ 3416:   const cat = NAV.find((x) => x.key === c);
+ 3424:   else selectNav(NAV[0].key, NAV[0].items[0].tab, true);
+ 3494:       const cat = NAV.find((c) => c.key === "learn");
+
+=== selectNav / switchTab 类函数 ===
+ 2164: function coholdTable(d, group) {
+ 2529: function clampDrawerToViewport(d) {
+ 2957: function refreshAcquirePanels() {
+ 3317: function renderNav() {
+ 3342: function paintSubnav(cat, tab) {
+ 3364: function selectNav(catKey, tabKey, push) {
+ 3413: function navFromHash() {
+ 3420: function initNav() {
+ 3431: function showTab(tab) {
+ 3459: function ensurePanel(tab) {
+ 3740: function markWideTables(scope) {
+ 3749: function mdTable(t) {
+ 3837: function renderSourcesPanel(summary) {
+ 3882: function renderArchivePanel() {
+ 3916: function renderFetchLogPanel(summary) {

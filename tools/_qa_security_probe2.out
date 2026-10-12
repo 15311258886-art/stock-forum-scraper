@@ -1,0 +1,30 @@
+==============================================================================
+[D] 路径穿越 · 正文片段取证（只读；不打印任何凭据内容）
+==============================================================================
+  /static/../server.py
+      -> HTTP/1.0 200 OK  bytes_read=31482
+      body[0:200] = '"""本地 Web 服务（仅标准库）：为可视化查看器提供静态页与 JSON API。 \\n  \\n 运行：python viewer/server.py  （默认 http://127.0.0.1:8765） \\n - 纯本地、个人使用、无需�'
+  /static/../app.db
+      -> HTTP/1.0 200 OK  bytes_read=65280
+      body[0:16] = b'SQLite format 3\x00'  （仅文件头，未取任何内容）
+  /static/../../.venv/pyvenv.cfg
+      -> HTTP/1.0 200 OK  bytes_read=394
+      body[0:200] = 'home = C:\\Users\\野比&大熊\\.workbuddy\\binaries\\python\\versions\\3.13.12 \\n include-system-site-packages = false \\n version = 3.13.14 \\n executable = C:\\Users\\野比&大熊\\.workbuddy\\binaries\\python\\versi'
+  /static/../../.browser-profile/Default/Network/Cookies
+      -> HTTP/1.0 200 OK  bytes_read=28672
+      body[0:16] = b'SQLite format 3\x00'  （仅文件头，未取任何内容）
+  /static/../../main.py
+      -> HTTP/1.0 200 OK  bytes_read=9988
+      （仅记录状态码，正文未取样）
+  /static/../../../Windows/win.ini
+      -> HTTP/1.0 404 Not Found  bytes_read=330
+      （仅记录状态码，正文未取样）
+  /static/../C:/Windows/win.ini
+      -> HTTP/1.0 404 Not Found  bytes_read=330
+      （仅记录状态码，正文未取样）
+
+==============================================================================
+[E] 对照：不存在的文件 / 编码变体（预期 404）
+==============================================================================
+  /static/../__not_exist__.py                  -> HTTP/1.0 404 Not Found
+  /static/%2e%2e%2fserver.py                   -> HTTP/1.0 404 Not Found

@@ -1,0 +1,6 @@
+/                          HTTP 200     3788 bytes  text/html; charset=utf-8
+/index.html                HTTP 200     3788 bytes  text/html; charset=utf-8
+/static/app.js             HTTP 200    70434 bytes  application/javascript; charset=utf-8
+/static/app.css            HTTP 200    24354 bytes  text/css; charset=utf-8
+/static/nonexistent.js     <HTTPError 404: 'Not Found'>
+/static/                   <HTTPError 404: 'Not Found'>

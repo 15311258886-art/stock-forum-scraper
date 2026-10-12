@@ -1,0 +1,120 @@
+# 知识库来源声明
+#
+# 一个 kb_sources 条目 = 左侧导航里的一个横向子板块（track）。
+#   group → 挂在哪一级分类下（缺省 learn）
+#   order → 在该分类横条内的排位，数值小的靠前（缺省 0；同值时保持库内既有顺序）
+# 2026-09-26：原「知识获取(acquire)」与「跟我学习(learn)」两个一级分类已合并为一个
+# （前端显示名「学习中心」，NAV key 仍沿用 learn），故所有轨道 group 统一写 learn；
+# 「排第一个」这类诉求改由 order 控制，不再依赖库内吸取先后。
+# 上游（豆包 / 其他工具）每天把 md 文件**覆盖写出**，本程序按「内容哈希」判断要不要重吸取：
+# 内容没变就跳过，不做任何写库动作；变了才整篇重建。因此本文件只需声明「去哪找文件」，
+# 不必关心更新频率——上游怎么覆盖都不会产生无意义重建。
+#
+# 定位顺序：先试 path（精确路径），不存在再试 path_glob（取其中**最新修改**的一个）。
+# 之所以两者都写：上游按「日期目录 + 版本号命名」导出，换日期换版本时 path 会失效，
+# path_glob 能自动跟上，不必每次改配置。
+kb_sources:
+  - doc_key: zdx_stock          # 库内主键，稳定不改（学习进度等引用它）
+    track: 中短线炒股            # 横向子板块名（「学习中心」下的横向导航项）
+    title: 抖音中短线炒股博主知识库
+    group: learn
+    order: 2                     # 排在「基础常识」之后
+    enabled: true
+    # 当前实际文件（2026-09-23 实测存在）
+    path: C:\Users\野比&大熊\DoubaoWork\chats\2026-09-22\new-chat\抖音中短线炒股博主知识库_v5.0_最终完整版.md
+    # 兜底：任意日期目录 / 任意版本号，取最新修改的一份
+    path_glob: C:/Users/野比&大熊/DoubaoWork/chats/**/抖音*中短线炒股*知识库*.md
+
+  # 新增学习轨道时按同样结构追加一条即可（例如「价值投资」「可转债」），
+  # 前端「学习中心」的横向导航会自动多出一个子板块，无需改前端代码。
+  # - doc_key: value_investing
+  #   track: 价值投资
+  #   title: 价值投资知识库
+  #   enabled: false
+  #   path: C:\path\to\value_investing.md
+
+  # 2026-09-26 新增：价值投资基础常识（词条型）
+  # 与上面那条的差别只在 kind ——
+  #   report   = 研究报告型（核心结论 / 流派 / 回测 / 风险），一个主题一段论述；
+  #   glossary = 词条型（一个词条一张卡：定义 / 怎么算 / 为什么重要）。
+  # 不写 kind 也能用：解析器会按记号自动判定（同时出现 `### 词条` 与 `- **定义**：`
+  # 就按 glossary 处理）。这里显式写出，是为了避免以后改文档结构时判定失效。
+  #
+  # group/order 说明见文件开头。本项 order=1，故在横条里排第一。
+  - doc_key: value_basics
+    track: 基础常识
+    title: 价值投资基础常识
+    group: learn
+    order: 1                     # 排第一
+    kind: glossary
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\knowledge\价值投资基础常识_v1.1.md
+    # 兜底：换版本号 / 换目录时自动跟上最新一份
+    path_glob: F:/AI Agent部署知识库/**/knowledge/价值投资基础常识_v*.md
+
+  # ===== 2026-10-11 新增：B站投资 UP 主知识沉淀（来源标注 @B站@UP名，区别于 top8/雪球/同花顺/豆包抖音）=====
+  # 6 个 UP 主各一个横向子板块，按知识体系组织；李大霄(order8) 列表补齐后追加。
+  - doc_key: bili_tusi
+    track: 土斯·价值投资
+    title: "@B站@土斯土耶夫斯基 价值投资体系"
+    group: learn
+    order: 3
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_土斯土耶夫斯基_价值投资体系.md
+
+  - doc_key: bili_niujin
+    track: 牛筋丸·价值投资
+    title: "@B站@吃素的牛筋丸 价值投资体系"
+    group: learn
+    order: 4
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_吃素的牛筋丸_价值投资体系.md
+
+  - doc_key: bili_shuyouzi
+    track: 鼠柚子·短线技术
+    title: "@B站@鼠柚子Aura 短线技术与基金理财"
+    group: learn
+    order: 5
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_鼠柚子Aura_短线技术与基金理财.md
+
+  - doc_key: bili_tudou
+    track: 土豆·财报拆解
+    title: "@B站@土豆看财报 单公司深度拆解"
+    group: learn
+    order: 6
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_土豆看财报_单公司深度拆解.md
+
+  - doc_key: bili_zhuan1yi
+    track: 赚1亿·交易心性
+    title: "@B站@赚1亿的进度条 交易心性体系"
+    group: learn
+    order: 7
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_赚1亿的进度条_交易心性体系.md
+
+  - doc_key: bili_lidaxiao
+    track: 李大霄·散户保护
+    title: "@B站@李大霄 散户保护/政策情绪派体系"
+    group: learn
+    order: 8
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_李大霄_散户保护政策情绪派.md
+
+  # 2026-10-11 新增：知行图表交易（技术·全量，图表形态+自研指标+量化回测，教方法非喊单）
+  - doc_key: bili_zhixing
+    track: 知行·图表技术
+    title: "@B站@知行图表交易 图表技术与量化交易体系"
+    group: learn
+    order: 9
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_知行图表交易_图表技术与量化交易体系.md
+

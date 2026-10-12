@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>外部参考板块 · 使用与数据说明</title>
+<style>
+  :root{
+    --bg:#FBF9F4; --panel:#FFFFFF; --ink:#1C1C1C; --muted:#6B6B6B;
+    --accent:#0E7490; --gold:#C9A86A; --line:#E7E1D6;
+    --bull:#C0392B; --bear:#1E8449; --warn:#B7791F;
+    --ok:#E8F3EF; --key:#FBF1DD; --ban:#FBEAEA;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    line-height:1.75;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 28px 64px}
+  header{border-bottom:3px solid var(--accent);padding-bottom:18px;margin-bottom:8px}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .tag{display:inline-block;margin-top:12px;font-size:12px;color:var(--accent);
+    border:1px solid var(--accent);border-radius:999px;padding:3px 12px}
+  h2{font-size:19px;margin:38px 0 14px;color:var(--accent);
+    border-left:4px solid var(--accent);padding-left:12px}
+  h3{font-size:15px;margin:18px 0 8px}
+  p{margin:8px 0;font-size:14.5px}
+  .lead{font-size:15px;color:#333}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .qa{display:flex;gap:14px;align-items:flex-start;margin:10px 0}
+  .q{flex:0 0 40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+  .a{flex:1}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+  .ch{border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13.5px}
+  .ch.ok{background:var(--ok);border-color:#BFE0D5}
+  .ch.key{background:var(--key);border-color:#EAD9B0}
+  .ch.ban{background:var(--ban);border-color:#ECC9C9}
+  .ch b{display:block;margin-bottom:4px;font-size:14px}
+  .ic{font-size:17px;margin-right:6px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#F3EFE6;color:#444;font-weight:700}
+  code{background:#F1EEE7;padding:1px 6px;border-radius:5px;font-size:12.5px;color:#9a4b2f}
+  .pill{display:inline-block;font-size:11.5px;border-radius:999px;padding:2px 9px;
+    border:1px solid var(--line);color:var(--muted);margin-right:6px}
+  .pill.a{color:var(--accent);background:#E8F1F4}
+  .pill.b{color:var(--gold);background:var(--key)}
+  .note{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);
+    padding-top:8px;margin-top:10px}
+  .warnline{border-left:4px solid var(--warn);background:#FCF6EA;padding:10px 14px;
+    border-radius:0 8px 8px 0;font-size:13.5px;margin:14px 0}
+  .kbd{font-family:ui-monospace,monospace;background:#1C1C1C;color:#fff;border-radius:5px;
+    padding:2px 8px;font-size:12px}
+  footer{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;
+    font-size:12px;color:var(--muted);text-align:center}
+  .stat{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0}
+  .stat div{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:10px 16px;text-align:center;min-width:96px}
+  .stat b{display:block;font-size:22px;color:var(--accent)}
+  .stat span{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>外部参考板块 · 使用与数据说明</h1>
+    <p class="sub">「股票论坛可视化查看器」外部参考模块：它解决什么、信息怎么接住、点开能看到什么、为什么之前显示「样本不足」。</p>
+    <span class="tag">交付说明 · 中性可复用</span>
+  </header>
+
+  <p class="lead">外部参考，是把<b>第三方公开判断信号</b>（券商/投顾软件荐股、股吧人气榜、社区共识等）汇聚进你的查看器，
+  并叠加<b>自动回测</b>，让你判断「这条外面的声音，到底靠不靠谱」。下面按你提的四个疑问逐条说明。</p>
+
+  <div class="stat">
+    <div><b>33</b><span>信源档案</span></div>
+    <div><b>29</b><span>已入库信号（随采集增长）</span></div>
+    <div><b>8</b><span>已自动回填收益</span></div>
+    <div><b>2</b><span>取数通道已打通</span></div>
+  </div>
+
+  <h2>① 你的四个疑问，逐条解答</h2>
+
+  <div class="card">
+    <div class="qa"><div class="q">Q1</div><div class="a">
+      <h3 style="margin-top:0">信息什么时候能接住 / 抓取？</h3>
+      <p>分三档，已在软件「<b>软件荐股雷达</b>」面板底部用「取数通道与可行性」区块实时展示，并配了<b>一键采集 / 一键回测</b>按钮：</p>
+      <div class="grid3">
+        <div class="ch ok"><b><span class="ic">✅</span>已直连采集</b>东方财富股吧人气榜——免登录、免 cookie，一次请求即得全榜。点「采集公开榜单」立即入库。</div>
+        <div class="ch key"><b><span class="ic">🔑</span>需授权接入</b>持牌机构 App（问财/妙想/九方/指南针）注册导出；数据平台 MCP（iFinD/万得/东财妙想/通达信/恒生聚源）申请密钥。</div>
+        <div class="ch ban"><b><span class="ic">⛔</span>暂未接入</b>雪球（WAF 拦截需 cookie 握手）；淘股吧热股榜、交易所龙虎榜（下一批补）。</div>
+      </div>
+      <p class="note">结论：<b>不是「接不住」，是分步走</b>。人气榜这类公开数据已经能实时抓；需要账号/密钥的通道，按上面路径开通后即同结构入库，不回写任何既有数据表。</p>
+    </div></div>
+
+    <div class="qa"><div class="q">Q2</div><div class="a">
+      <h3 style="margin-top:0">点开一条「看多星网锐捷」之类的信号，能看到什么？</h3>
+      <p>点任意一条<b>信号卡</b> → 弹出详情抽屉，分四块，直接回答你要的「简介 / 收益 / 分析报告」：</p>
+      <table>
+        <tr><th style="width:150px">区块</th><th>内容</th></tr>
+        <tr><td>① 信号逻辑</td><td>推荐理由 + 原始口径（来自被引用方，<b>非本项目判断</b>）+ 可点外链。</td></tr>
+        <tr><td>② 事后收益</td><td>自动回测的 <b>T+1 / T+5 / T+10</b> 收益%（涨红跌绿），并标注回填状态。</td></tr>
+        <tr><td>③ 信源档案</td><td>这条信号出自哪个信源、它的<b>作用 / 价值 / 接入路径</b>。</td></tr>
+        <tr><td>④ 本项目自采参照</td><td>同一只股票，<b>本项目自己采集的持仓 / 讨论</b>（单独分区、明确标注，不混入外部信号）。</td></tr>
+      </table>
+      <p class="note">还有「查看该股行情 / K线 / 持仓选手 ›」按钮，直接钻取到完整的个股研判。</p>
+    </div></div>
+
+    <div class="qa"><div class="q">Q3</div><div class="a">
+      <h3 style="margin-top:0">东方财富人气榜那条，点开有什么详细信息？</h3>
+      <p>点信源表里「东方财富股吧 · 人气榜」整行 → 弹出<b>信源详情抽屉</b>，说明它的：</p>
+      <p><span class="pill a">作用</span><span class="pill b">价值 / 局限</span><span class="pill">接入路径</span></p>
+      <p>并列出该信源<b>已入库的全部信号</b>（含方向、标的、逻辑、发布日、T+5 收益），以及已回填 / 待回填计数。
+      这条通道<b>已经真实采集并入库 24 条</b>人气榜快照——不是空名单。</p>
+      <div class="warnline"><b>诚实口径：</b>人气榜是「散户关注度」排名，<b>不等于看多</b>。采集时方向一律记「中性」，不直接当买点；方向由后续规则 / 人工另判。</div>
+    </div></div>
+
+    <div class="qa"><div class="q">Q4</div><div class="a">
+      <h3 style="margin-top:0">之前显示「样本不足」，是不是因为信息没接入？</h3>
+      <p><b>不是没接入，是「还没到出数字的时候」。</b>此前 8 条种子信号都还处在<b>待回填</b>状态，胜率榜只统计已回填（窗口走完）的信号，所以一律显示「样本不足」。</p>
+      <p>本轮已打通<b>采集 + 自动回测</b>：</p>
+      <ul style="margin:6px 0;font-size:14px">
+        <li>公开榜单已能真实入库（人气榜 24 条）；</li>
+        <li>自动回测按「发布日收盘为基准、前复权日K」回填 T+1/T+5/T+10，<b>现已回填 8 条真实收益</b>；</li>
+        <li>窗口未走完的保持 <b>pending</b>、取不到行情的记 <b>na</b>，<b>绝不写 0</b>（0 会被误读成「零收益」）；</li>
+        <li>样本 &lt;5 条时不给胜率，但<b>仍显示算出的数字</b>并标注「未达门槛 · 仅供参考」。</li>
+      </ul>
+      <p class="note">所以「样本不足」现在是有据可查的判断依据，而非「没接住」的回避。</p>
+    </div></div>
+  </div>
+
+  <h2>② 数据隔离纪律（为什么能放心接外部数据）</h2>
+  <div class="card">
+    <p>外部参考自成体系，只有两张表 <code>extref_sources</code> / <code>extref_signals</code>，<b>零 JOIN、零外键</b>，
+    与你的帖子 / 实盘 / 龙虎榜 / 国际局势任何表都不联查。外部信号与你项目自采数据的关联，
+    只靠「约定的 6 位 A 股代码」在前端做<b>展示层分区标注</b>——外部信源在左，本项目自采参照在右，视觉与数据都隔离。</p>
+    <p>一句话：外部声音进来，但<b>不污染</b>你已沉淀的论坛研判；同时也明确标注「这是别人的观点，不是本项目的判断，不构成投资建议」。</p>
+  </div>
+
+  <h2>③ 在软件里怎么用</h2>
+  <div class="card">
+    <p><b>看内容：</b>在三个外部参考面板里，<span class="kbd">点信源表任意一行</span> 看信源档案；<span class="kbd">点信号卡</span> 看信号详情；键盘 <span class="kbd">Enter</span> 也可打开。</p>
+    <p><b>接数据：</b>在「软件荐股雷达」面板底部，点 <span class="kbd">采集公开榜单</span> 实时抓取人气榜；点 <span class="kbd">运行自动回测</span> 给窗口走完的信号回填真实收益。两者都会刷新统计。</p>
+    <p><b>判价值：</b>看「信源胜率榜」——按 5 日胜率排序，样本达 5 条才给胜率，未达门槛明确标注。</p>
+  </div>
+
+  <div class="warnline">
+    <b>交付后的一次性操作：</b>本次新增了「信号详情 / 信源详情 / 采集 / 回测」四个后端接口与前端点击闭环。
+    若你的查看器窗口是本次改动<b>之前</b>打开的，需要<b>关闭窗口、重新双击桌面快捷方式</b>一次，让新后端接口加载生效；
+    前端（点开功能）在刷新后即生效。
+  </div>
+
+  <footer>外部参考模块使用说明 · 内容中性可复用 · 不含任何出品方署名</footer>
+</div>
+</body>
+</html>

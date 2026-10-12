@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据回填 · 演示步骤指南</title>
+<style>
+  :root{
+    --bg:#FAF7F0; --panel:#FFFFFF; --ink:#1F2933; --muted:#6B7280;
+    --gold:#C9A45C; --accent:#0E7490; --accent-soft:#E0F2F7;
+    --ok:#15803D; --warn:#B45309; --line:#E7E2D6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif;line-height:1.7;padding:32px 16px}
+  .wrap{max-width:860px;margin:0 auto}
+  header{border-left:6px solid var(--accent);padding-left:18px;margin-bottom:8px}
+  h1{font-size:26px;letter-spacing:1px}
+  .sub{color:var(--muted);font-size:14px;margin-top:4px}
+  .principle{background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin:22px 0;font-size:15px}
+  .principle b{color:var(--accent)}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:18px 0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .step-head{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+  .badge{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-size:20px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+  .badge.gold{background:var(--gold)}
+  .step-head h2{font-size:19px}
+  .step-head .file{display:inline-block;background:#F4F1E8;border:1px solid var(--line);border-radius:6px;padding:1px 10px;font-size:13px;color:var(--ink);font-family:Consolas,monospace}
+  ol{padding-left:24px;margin:8px 0}
+  li{margin:7px 0}
+  .see{background:#F8F6EF;border-left:4px solid var(--gold);padding:10px 14px;border-radius:0 8px 8px 0;font-size:14px;margin-top:10px}
+  .see b{color:var(--gold)}
+  .code{background:#2B2F36;color:#E8E3D5;border-radius:8px;padding:10px 14px;font-family:Consolas,monospace;font-size:13px;margin:8px 0;overflow-x:auto}
+  .tip{color:var(--muted);font-size:13px;margin-top:8px}
+  .trouble{background:#FDF6EC;border:1px solid #F0DDBB;border-radius:10px;padding:14px 18px;margin:14px 0;font-size:14px}
+  .trouble h3{color:var(--warn);font-size:14px;margin-bottom:8px}
+  .trouble p{margin:4px 0}
+  footer{color:var(--muted);font-size:13px;text-align:center;margin-top:28px}
+  .arrow{ text-align:center;font-size:24px;color:var(--gold);margin:2px 0}
+  kbd{background:#EFF1F3;border:1px solid #CBD2D9;border-bottom-width:2px;border-radius:5px;padding:0 7px;font-family:Consolas,monospace;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>数据回填 · 演示步骤指南</h1>
+  <div class="sub">总共就 3 步 · 每步都是"双击一个文件" · 预计 20 分钟内完成</div>
+</header>
+
+<div class="principle">
+  <b>先记住一句话：</b>你只需要在文件夹里<b>双击文件</b>，剩下的窗口会自己提示你。不用登录雪球、不用敲命令、不用改任何代码。
+</div>
+
+<div class="arrow">▼</div>
+
+<!-- 第0步 -->
+<div class="step">
+  <div class="step-head"><div class="badge gold">0</div>
+    <h2>准备：打开代理软件（1 分钟）</h2>
+  </div>
+  <ol>
+    <li>打开你平时用的代理 / VPN 软件；</li>
+    <li>确认<b>系统代理</b>已开启（就是你平时访问外网的那个开关）。</li>
+  </ol>
+  <div class="see"><b>为什么要开：</b>雪球网站会拦截海外/机房访问，必须通过你本机的代理（127.0.0.1:53269）访问，才能把数据抓下来。不开也能跑，但雪球部分会是 0。</div>
+</div>
+
+<div class="arrow">▼</div>
+
+<!-- 第1步 -->
+<div class="step">
+  <div class="step-head"><div class="badge">1</div>
+    <h2>双击「第1步-开始回填.bat」—— 先跑起来</h2>
+    <span class="file">在文件夹 stock-forum-scraper 里</span>
+  </div>
+  <ol>
+    <li>打开文件夹：<b>F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper</b></li>
+    <li>找到 <b>第1步-开始回填.bat</b>，双击它；</li>
+    <li>弹出一个黑色窗口，它会自动检查代理、自动开始抓数据（约 5~15 分钟）；</li>
+    <li>中途<b>不要关这个黑窗口</b>，等它显示"全部结束"。</li>
+  </ol>
+  <div class="see"><b>这一步会补上什么：</b>雪球的<b>讨论 / 交易 / 帖子</b>（不需要任何登录），以及全站数据刷新。<b>不存 cookie 也照样能跑</b>——所以你就算什么都不配，先跑这一步就能看到数据进来。</div>
+  <div class="see"><b>你会看到：</b>黑窗口里一行行滚动的文字，类似 <span class="code">xueqiu ... OK</span> 或进度提示。看到 <span class="code">组合持仓 已跳过（未检测到 cookies）</span> 之类的提示是正常的——那正是第 2 步要解决的。</div>
+</div>
+
+<div class="arrow">▼</div>
+
+<!-- 第2步 -->
+<div class="step">
+  <div class="step-head"><div class="badge">2</div>
+    <h2>双击「第2步-保存雪球Cookie.bat」—— 存登录凭证</h2>
+    <span class="file">不用登录，就是复制粘贴</span>
+  </div>
+  <p>之前你发给我的那一大段雪球 Cookie 文本（里面有 <b>xq_a_token</b> 字样的那段英文数字）就是登录凭证，它 10 月才过期，<b>现在还能用</b>。这个工具就是帮你把那段文本存成系统能读的文件。</p>
+  <ol>
+    <li>打开你和我的对话窗口，<b>往上翻</b>，找到你发雪球 Cookie 的那条消息（特征：一大段英文数字，里有 <b>xq_a_token</b> 这个词）；</li>
+    <li>把那一整段<b>全选、复制</b>（<kbd>Ctrl</kbd>+<kbd>C</kbd>）；</li>
+    <li>双击 <b>第2步-保存雪球Cookie.bat</b>，弹出黑窗口后，按提示<b>按回车</b>；</li>
+    <li>它会自动从剪贴板读取、检查、保存，显示 <b>[成功]</b> 就完成。</li>
+  </ol>
+  <div class="see"><b>你会看到：</b><span class="code">[成功] 已保存到：...\stock-forum-scraper\cookies.txt</span><br>如果显示 [失败]，按窗口里的中文提示重新复制再试即可，不会有任何破坏性。</div>
+  <div class="tip">找不到那段文本了？也没关系：用浏览器登录雪球后按老办法重新复制一份 cookie 发给我或直接复制后走本工具，效果一样。</div>
+</div>
+
+<div class="arrow">▼</div>
+
+<!-- 第3步 -->
+<div class="step">
+  <div class="step-head"><div class="badge">3</div>
+    <h2>再跑一次「第1步-开始回填.bat」—— 补组合持仓</h2>
+  </div>
+  <ol>
+    <li>确保代理还开着；</li>
+    <li>再次双击 <b>第1步-开始回填.bat</b>；</li>
+    <li>这次它会自动检测到 cookies.txt，把 <b>34 位雪球选手的组合真实持仓</b>一并抓回来。</li>
+  </ol>
+  <div class="see"><b>跑完后必须做：</b>关闭「股票论坛可视化查看器」的窗口，重新双击桌面上的「股票论坛可视化查看器」图标——查看器不会自动刷新，不重启看不到新数据。</div>
+</div>
+
+<div class="arrow">▼</div>
+
+<!-- 第4步 -->
+<div class="step">
+  <div class="step-head"><div class="badge">4</div>
+    <h2>把黑窗口日志截图发给我</h2>
+  </div>
+  <p>跑完后像这次一样<b>截图发我</b>。我看日志就能判断：哪些数据补上了、"名字搜 uid"有没有搜错人、还有没有卡点——然后我来做收尾校准。</p>
+</div>
+
+<!-- 常见问题 -->
+<div class="trouble" style="margin-top:26px">
+  <h3>常见问题</h3>
+  <p><b>Q：双击 bat 后黑窗口一闪就没了？</b><br>说明没跑到。确认你双击的是 stock-forum-scraper 文件夹里的文件；如果还是闪退，右键该 bat → 编辑，截图内容发我。</p>
+  <p><b>Q：第 1 步显示"没检测到代理"？</b><br>先开代理软件，回到黑窗口按任意键继续。实在没法确认就直接让它跑，只是雪球部分可能为 0。</p>
+  <p><b>Q：摩尔（moer_targets.json）那步要不要管？</b><br>不用管。没配置它会自动跳过、不影响其他数据。等雪球跑通了，你把摩尔"实盘/组合"页面的网址发我，我来配。</p>
+  <p><b>Q：跑了但数据没变化？</b><br>九成是没重启查看器——关掉窗口，重新双击桌面的查看器图标。</p>
+</div>
+
+<footer>指南对应脚本：第1步-开始回填.bat → 第2步-保存雪球Cookie.bat → run_backfill_local.bat · 2026-09-25</footer>
+</div>
+</body>
+</html>

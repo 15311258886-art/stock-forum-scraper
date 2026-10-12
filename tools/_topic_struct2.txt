@@ -1,0 +1,96 @@
+包裹容器: <div class='-'>  直接子元素 20 个
+==============================================================================
+---- 帖子 1  outerHTML ----
+<div style="width: 880px">
+<div class="topic-new">
+<a href="/blog/14985794" target="_blank">
+<img class="topic-head" src="https://image.tgb.cn/img/2026/07/22/oaz77qr10s3a.jpeg_60wh.png"/></a>
+<a href="/blog/14985794" target="_blank">
+<!-- 话题发起人-->
+<span style="float: left; font-weight: bolder">没钱炒股2006</span></a>
+</div>
+<div style="display: flex ;padding-bottom: 30px">
+<div style="flex: 1">
+<a href="/a/2viYHaiXnt2" style="color: #333; text-decoration: none" target="_blank">
+<p style="font-weight: bold;font-size: 16px;margin-bottom: 5px;word-break: break-all;">实盘 复盘</p></a>
+<a href="/a/2viYHaiXnt2" style="color: #333; text-decoration: none" target="_blank">
+<p class="topic-info">［图片］［图片］</p>
+</a>
+</div>
+<div style="width: 187px;">
+<div style="padding-left: 16px;border-radius: 5px;width: 100%;height: 105px;background-size: 100% auto;background-position-y: 50%;cursor: pointer; background-image: url(https://image.tgb.cn/img/2026/09/22/b91qpiklesly.jpeg_220h.png);"></div>
+</div>
+</div>
+<div style="height: 24px;line-height: 24px;padding-bottom:10px;">
+<span style="background: #efefef;font-size: 12px;color: #666; padding: 6px 12px; border-radius: 99px;">
+<a href="/talk/talkSeq/14088" target="_blanK"><span style="color: #4793f1"># </span>实盘</a>
+</span>
+</div>
+<div class="topic-end">
+<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">
+<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>
+<span style="float: left; cursor: pointer">淘股论坛</span></a>
+<span style="float: left">  · 1阅读数 · 09-22 21:39</span>
+</div>
+</div>
+
+---- 帖子 2  outerHTML ----
+<div style="width: 880px">
+<div class="topic-new">
+<a href="/blog/15172121" target="_blank">
+<img class="topic-head" src="https://image.tgb.cn/img/2026/08/28/up2st6v8kkca.jpg_60wh.png"/></a>
+<a href="/blog/15172121" target="_blank">
+<!-- 话题发起人-->
+<span style="float: left; font-weight: bolder">微风吹拂西海岸</span></a>
+</div>
+<div style="display: flex ;padding-bottom: 30px">
+<div style="flex: 1">
+<a href="/a/2viYaffGZNy" style="color: #333; text-decoration: none" target="_blank">
+<p style="font-weight: bold;font-size: 16px;margin-bottom: 5px;word-break: break-all;">实盘第十七天</p></a>
+<a href="/a/2viYaffGZNy" style="color: #333; text-decoration: none" target="_blank">
+<p class="topic-info">买入 华金资本 二进三失败看明天反包卖出 国芳 金健 云南旅游 加仓 东瑞猪 ［图片］￼</p>
+</a>
+</div>
+<div style="width: 187px;">
+<div style="padding-left: 16px;border-radius: 5px;width: 100%;height: 105px;background-size: 100% auto;background-position-y: 50%;cursor: pointer; background-image: url(https://image.tgb.cn/img/2026/09/22/n1ty4reg6ysm.png_220h.png);"></div>
+</div>
+</div>
+<div style="height: 24px;line-height: 24px;padding-bottom:10px;">
+<span style="background: #efefef;font-size: 12px;color: #666; padding: 6px 12px; border-radius: 99px;">
+<a href="/talk/talkSeq/14088" target="_blanK"><span style="color: #4793f1"># </span>实盘</a>
+</span>
+</div>
+<div class="topic-end">
+<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">
+<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>
+<span style="float: left; cursor: pointer">淘股论坛</span></a>
+<span style="float: left">  · 7阅读数 · 09-22 21:31</span>
+</div>
+</div>
+
+==============================================================================
+【结构化提取测试】
+1) 标题='实盘 复盘'
+   链接=/a/2viYHaiXnt2
+   作者=''  uid=14985794
+   尾部='淘股论坛 · 1阅读数 · 09-22 21:39'
+2) 标题='实盘第十七天'
+   链接=/a/2viYaffGZNy
+   作者=''  uid=15172121
+   尾部='淘股论坛 · 7阅读数 · 09-22 21:31'
+3) 标题='只做龙头，8W本金，能否年前做到100W？第13天，贤丰成功封板！'
+   链接=/a/2viTTJMwcTe
+   作者=''  uid=14423318
+   尾部='淘股论坛 · 10阅读数 · 09-22 20:32'
+4) 标题='20260922'
+   链接=/a/2viSPc8yXzo
+   作者=''  uid=13524192
+   尾部='淘股论坛 · 12阅读数 · 09-22 20:17'
+5) 标题='远凡的读书笔记和投资实盘第236天总盈亏：12.83% 你是什么时候发现，这个世界其实就是一个巨大的草台班子？'
+   链接=/a/2viRD6d14oB
+   作者=''  uid=12656230
+   尾部='淘股论坛 · 7阅读数 · 09-22 20:00'
+6) 标题='强势回归，极限挑战倒计时！2w全仓一只，只做短线！目标88w，第22天'
+   链接=/a/2viRcfyIm9R
+   作者=''  uid=15204155
+   尾部='淘股论坛 · 2阅读数 · 09-22 19:54'

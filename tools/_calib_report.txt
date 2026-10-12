@@ -1,0 +1,121 @@
+==============================================================================
+### u0  https://www.tgb.cn/talk/talkSeq/14088
+  HTTP=200 final=https://www.tgb.cn/talk/talkSeq/14088 len=121835
+  -- 链接模式 TOP15 --
+      41  /blog/N
+      20  /talk/talkSeq/N
+       2  https://www.tgb.cn/
+       2  https://www.tgb.cn/bbs/
+       2  https://www.tgb.cn/feeds/qryFeedsViewPointView
+       2  https://shuo.tgb.cn/video/toVideoPage
+       2  https://shuo.tgb.cn/newsFlash/
+       2  /a/NviYHaiXntN
+       2  /a/NviYaffGZNy
+       2  /a/NviTTJMwcTe
+       2  /a/NviSPcNyXzo
+       2  /a/NviRDNdNoB
+       2  /a/NviRcfyImNR
+       2  /a/NviQEFRpAcM
+       2  /a/NviQwqqMMNT
+  -- class 频次 TOP30 --
+      26  clear
+      20  topic-new
+      20  topic-head
+      20  topic-info
+      20  topic-end
+      17  header-list-title3
+      10  license-shot.left
+       8  header-a
+       8  ngbRadio.left
+       8  radioText.left
+       7  ReasonItem.left
+       5  header-list.left.chooseItem
+       5  header-list-title2
+       5  left
+       4  footer_title
+       4  footer_link
+       3  footer_code
+       3  img_icon.left
+       3  Footer_code.left
+       3  img_qrCode
+       3  license-long.left
+       3  report-subjectName
+       2  header-list.left
+       2  right
+       2  other-report
+       1  Nheader
+       1  jr-img
+       1  Nheader-items
+       1  headerlogo.left
+       1  chooseItem
+  -- 候选列表容器（含 >=5 个链接的重复结构）--
+    links=130  textlen=3177   <div class='(no class)'>
+    links=102  textlen=3006   <div class='topic-content.left'>
+    links=5    textlen=548    <div class='footer2_container'>
+  -- 帖子样例（前 6 条）--
+    [［图片］［图片］] /a/2viYHaiXnt2
+    [买入 华金资本 二进三失败看明天反包卖出 国芳 金健 云南旅游 加仓 东瑞猪 ［图片］￼] /a/2viYaffGZNy
+    [只做龙头，8W本金，能否年前做到100W？第13天，贤丰成功封板！] /a/2viTTJMwcTe
+    [20260922] /a/2viSPc8yXzo
+    [继续在知行合一的路上修行吧，道阻且长。［图片］] /a/2viSPc8yXzo
+    [远凡的读书笔记和投资实盘第236天总盈亏：12.83% 你是什么时候发现，这个世界其实就] /a/2viRD6d14oB
+==============================================================================
+### u1  https://www.tgb.cn/
+  HTTP=200 final=https://www.tgb.cn/ len=93355
+  -- 链接模式 TOP15 --
+      20  /blog/N?sy_dr
+       7  https://www.taoguba.com.cn/blog/N
+       6  /quotes/shN
+       4  /quotes/szN
+       3  https://shuo.tgb.cn/newsFlash/
+       3  /talk/talkSeq/N
+       2  https://www.tgb.cn/
+       2  https://www.tgb.cn/bbs/
+       2  https://www.tgb.cn/feeds/qryFeedsViewPointView
+       2  https://shuo.tgb.cn/video/toVideoPage
+       2  https://www.tgb.cn/aboutus/initShowTgbFLs?flFlag=F
+       2  
+       1  https://www.tgb.cn/zongban/
+       1  https://www.tgb.cn/jinghua/
+       1  https://shuo.tgb.cn/shuo/shuoindex
+  -- class 频次 TOP30 --
+      53  clear
+      17  header-list-title3
+      16  yqljItem
+      11  defaultContainerRight-weekUp-7weiguan.right
+      10  defaultContainerRight-weekUp-item
+      10  defaultContainerRight-weekUp-portrait.left
+      10  img1
+      10  defaultContainerRight-weekUp-Info.left
+      10  defaultContainerRight-weekUp-info1
+      10  defaultContainerRight-weekUp-userName.left
+      10  defaultContainerRight-weekUp-fensi
+      10  license-shot.left
+       8  header-a
+       8  defaultContainerRight-weekUp-vip.left
+       8  ngbRadio.left
+       8  radioText.left
+       7  img2
+       7  ReasonItem.left
+       6  nav-list.cursor.classgio
+       5  header-list.left.chooseItem
+       5  header-list-title2
+       5  box-gio
+       5  defaultContainerRight-stock-item
+       5  defaultContainerRight-stock-name.left
+       5  left.defaultContainerRight-stock-Rate
+       5  rise
+       5  right.defaultContainerRight-stock-7discuss
+       4  left
+       4  footer_title
+       4  footer_link
+  -- 候选列表容器（含 >=5 个链接的重复结构）--
+    links=13   textlen=933    <div class='(no class)'>
+    links=37   textlen=582    <div class='right'>
+    links=5    textlen=548    <div class='footer2_container'>
+    links=20   textlen=306    <div class='defaultContainerRight-weekUp'>
+    links=20   textlen=291    <div class='defaultContainerRight-weekUp-items'>
+  -- 帖子样例（前 6 条）--
+    [九龙御市米开朗巅峰赛] /talk/talkSeq/190344
+    [第二届算力概念研股比赛] /talk/talkSeq/188464
+    [女神夺金挑战赛全民助力瓜分奖池] /talk/talkSeq/187669

@@ -1,0 +1,68 @@
+== players.axis distribution ==
+   {'axis': '(null)', 'n': 100}
+   {'axis': 'person', 'n': 106}
+   {'axis': 'person_id', 'n': 20}
+   {'axis': 'post', 'n': 100}
+
+== Tier A players: axis + bot judgement ==
+   JoeJohn          axis=None   bot=False 
+   Sina财经产          axis=person_id bot=True NAMES
+   Supershort       axis=person bot=False 
+   zarili           axis=person bot=False 
+   zhang放下          axis=post   bot=False 
+   三友化工小            axis=person_id bot=False 
+   三晋才子             axis=person bot=False 
+   作手Z哥             axis=person bot=False 
+   南海庙祝             axis=None   bot=False 
+   嘉华睿投             axis=post   bot=False 
+   坚强地黄药师           axis=post   bot=False 
+   夏春秋A             axis=post   bot=False 
+   大师兄取经            axis=person bot=False 
+   大舅马              axis=person bot=False 
+   小明你走开            axis=person bot=False 
+   巳土               axis=person bot=False 
+   平安银行资讯           axis=post   bot=True PAT:^(?:新浪|Sina|sina|腾讯|网易|搜狐|凤凰|和讯|财联社|证券之星
+   彼岸优乐             axis=person bot=False 
+   悦全               axis=person bot=False 
+   我也有过梦想           axis=person bot=False 
+   我是无为先生           axis=person bot=False 
+   摸鱼后喂养纳指          axis=post   bot=False 
+   撕幕操盘手            axis=post   bot=False 
+   新浪财经客            axis=person_id bot=True NAMES
+   机工战略             axis=None   bot=True NAMES
+   机敏善良的            axis=None   bot=False 
+   松间存月             axis=person bot=False 
+   梦易醒              axis=person bot=False 
+   比对分析回报率          axis=post   bot=False 
+   汇金有道-            axis=person_id bot=False 
+   波候补              axis=person bot=False 
+   涅槃回本             axis=post   bot=False 
+   红利实战             axis=person_id bot=False 
+   股友38691HI336     axis=post   bot=False 
+   股友86Q5390Z69     axis=post   bot=False 
+   股友QQNY0P         axis=post   bot=False 
+   股友谊译             axis=post   bot=False 
+   股市的鲨鱼辣椒          axis=person bot=False 
+   股田的守望者           axis=post   bot=False 
+   蓝神时与空            axis=person bot=False 
+   蔡小美              axis=post   bot=False 
+   轩畅               axis=person bot=False 
+   逍遥图腾             axis=None   bot=False 
+   郑书航              axis=person bot=False 
+
+== distinct author names appearing in trades / positions, with bot judgement ==
+   total distinct authors: 251 | judged bot: 6
+   BOT  中信证券资讯             PAT:^.{0,8}(?:资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|
+   BOT  中国平安资讯             PAT:^.{0,8}(?:资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|
+   BOT  宁德时代资讯             PAT:^.{0,8}(?:资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|
+   BOT  工业富联资讯             PAT:^.{0,8}(?:资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|
+   BOT  平安银行资讯             PAT:^(?:新浪|Sina|sina|腾讯|网易|搜狐|凤凰|和讯|财联社|证券之星
+   BOT  贵州茅台资讯             PAT:^.{0,8}(?:资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|
+
+== of those bots, how many have players.axis set? ==
+   中信证券资讯             tier=- axis=-
+   中国平安资讯             tier=- axis=-
+   宁德时代资讯             tier=D axis=post
+   工业富联资讯             tier=- axis=-
+   平安银行资讯             tier=A axis=post
+   贵州茅台资讯             tier=- axis=-

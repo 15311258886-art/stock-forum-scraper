@@ -1,0 +1,652 @@
+{
+  "port": "8765",
+  "mode": "before",
+  "ts": "2026-09-24T20:04:53.287Z",
+  "total": 44,
+  "pass": 41,
+  "fail": 3,
+  "failedIds": [
+    "C6 共识「覆盖渠道」列：渠道缺失时给出占位而非留空白格",
+    "C4 共识「持仓选手明细」渠道缺失时不留空角标",
+    "S1 「真实」角标不套用「示例」样式类（应为 .chip-real，非琥珀虚底）"
+  ],
+  "blockedRequests": [],
+  "guardLog": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "themes": [
+    {
+      "theme": "light-tech",
+      "href": "static/themes/light-tech.css",
+      "bodyBg": "rgb(250, 247, 240)",
+      "sampled": [
+        {
+          "what": "顶栏标题",
+          "ratio": 17.4
+        },
+        {
+          "what": "一级导航文字",
+          "ratio": 5.36
+        },
+        {
+          "what": "子导航当前项",
+          "ratio": 5.36
+        },
+        {
+          "what": "说明文字",
+          "ratio": 4.1
+        },
+        {
+          "what": "表格表头",
+          "ratio": 4.83
+        },
+        {
+          "what": "卡片/正文",
+          "ratio": 4.1
+        }
+      ],
+      "low": [],
+      "overlapTopSide": false,
+      "overlapSideContent": false,
+      "errs": {
+        "console": [],
+        "page": []
+      }
+    },
+    {
+      "theme": "dark-dashboard",
+      "href": "static/themes/dark-dashboard.css",
+      "bodyBg": "rgb(11, 14, 20)",
+      "sampled": [
+        {
+          "what": "顶栏标题",
+          "ratio": 14.74
+        },
+        {
+          "what": "一级导航文字",
+          "ratio": 10.05
+        },
+        {
+          "what": "子导航当前项",
+          "ratio": 10.05
+        },
+        {
+          "what": "说明文字",
+          "ratio": 5.27
+        },
+        {
+          "what": "表格表头",
+          "ratio": 6.03
+        },
+        {
+          "what": "卡片/正文",
+          "ratio": 5.27
+        }
+      ],
+      "low": [],
+      "overlapTopSide": false,
+      "overlapSideContent": false,
+      "errs": {
+        "console": [],
+        "page": []
+      }
+    },
+    {
+      "theme": "minimal-report",
+      "href": "static/themes/minimal-report.css",
+      "bodyBg": "rgb(255, 255, 255)",
+      "sampled": [
+        {
+          "what": "顶栏标题",
+          "ratio": 13.98
+        },
+        {
+          "what": "一级导航文字",
+          "ratio": 10.35
+        },
+        {
+          "what": "子导航当前项",
+          "ratio": 10.35
+        },
+        {
+          "what": "说明文字",
+          "ratio": 4.34
+        },
+        {
+          "what": "表格表头",
+          "ratio": 4.55
+        },
+        {
+          "what": "卡片/正文",
+          "ratio": 4.34
+        }
+      ],
+      "low": [],
+      "overlapTopSide": false,
+      "overlapSideContent": false,
+      "errs": {
+        "console": [],
+        "page": []
+      }
+    },
+    {
+      "theme": "card-warm",
+      "href": "static/themes/card-warm.css",
+      "bodyBg": "rgb(255, 247, 237)",
+      "sampled": [
+        {
+          "what": "顶栏标题",
+          "ratio": 12.69
+        },
+        {
+          "what": "一级导航文字",
+          "ratio": 4.56
+        },
+        {
+          "what": "子导航当前项",
+          "ratio": 4.56
+        },
+        {
+          "what": "说明文字",
+          "ratio": 3.75
+        },
+        {
+          "what": "表格表头",
+          "ratio": 4.04
+        },
+        {
+          "what": "卡片/正文",
+          "ratio": 3.75
+        }
+      ],
+      "low": [],
+      "overlapTopSide": false,
+      "overlapSideContent": false,
+      "errs": {
+        "console": [],
+        "page": []
+      }
+    }
+  ],
+  "badgeScan": [
+    {
+      "tab": "summary",
+      "chips": 0,
+      "demoText": 0,
+      "other": 0,
+      "realText": 0,
+      "realWithDemoClass": 0,
+      "realWithRealClass": 0,
+      "realChipStyle": null,
+      "samples": [],
+      "banner": ""
+    },
+    {
+      "tab": "stocks",
+      "chips": 0,
+      "demoText": 0,
+      "other": 0,
+      "realText": 0,
+      "realWithDemoClass": 0,
+      "realWithRealClass": 0,
+      "realChipStyle": null,
+      "samples": [],
+      "banner": ""
+    },
+    {
+      "tab": "players",
+      "chips": 0,
+      "demoText": 0,
+      "other": 0,
+      "realText": 0,
+      "realWithDemoClass": 0,
+      "realWithRealClass": 0,
+      "realChipStyle": null,
+      "samples": [],
+      "banner": "真实抓取 68 条 / 示例 0 条"
+    },
+    {
+      "tab": "operating",
+      "chips": 200,
+      "demoText": 0,
+      "other": 200,
+      "realText": 200,
+      "realWithDemoClass": 200,
+      "realWithRealClass": 0,
+      "realChipStyle": {
+        "text": "真实",
+        "cls": "chip-s chip-demo",
+        "bg": "rgb(254, 243, 199)",
+        "color": "rgb(146, 64, 14)",
+        "border": "1px dashed rgb(251, 191, 36)"
+      },
+      "samples": [
+        "真实",
+        "真实",
+        "真实"
+      ],
+      "banner": "真实抓取 200 条 / 示例 0 条（来源：taoguba, eastmoney）"
+    },
+    {
+      "tab": "consensus",
+      "chips": 0,
+      "demoText": 0,
+      "other": 0,
+      "realText": 0,
+      "realWithDemoClass": 0,
+      "realWithRealClass": 0,
+      "realChipStyle": null,
+      "samples": [],
+      "banner": ""
+    }
+  ],
+  "consensusDiag": {
+    "text": "按「同时持仓人数」降序排列；共识基数已扩大到 100+ 选手池（覆盖淘股吧/东财/雪球/同花顺 4 平台）。新增「层级加权共识度」：在 A/B/C/D 原权重基础上纳入 E/F 低层级（权重递减但仍计数），比单纯人数更代表真实共识强度；「层级」列展示跨 A~F 覆盖，「平台」列展示跨平台分布。「最后更新」列为该行来源站点最近一次成功刷新的时刻；超过 10 分钟未成功更新时，该行会标红 ⚠ 告警（灰色「未纳入刷新」表示该来源不在当前抓取配置内，不计入超时）。\n展开说明 ▾\n股票\t共同持仓\t加权共识\t层级覆盖\t覆盖渠道\t热度/平台\t持仓选手明细\t来源\t最后更新\n平安银行\n000001 平安银行股份有限公司\t4 人\t加权 1.8\tD 人气榜\t\t讨论热度 119\n平台 1\t 股友谊译 买入 坚强地黄药师 买入 平安银行资讯 买入 夏春秋A 买入\t↗ ↗ ↗ ↗\t⚠ 02:22:18\n1 小时前 未更新\n\n宁德时代\n300750 宁德时代新能源科技股份有限公司\t4 人\t加权 1.8\tD 人气榜\t\t讨论热度 57\n平台 1\t 股友86Q5390Z69 买入 zhang放下 买入 蔡小美 买入 涅槃回本 买入\t↗ ↗ ↗ ↗\t⚠ 02:22:18\n1 小时前 未更新\n\n中国平安\n601318 中国平安保险(集团)股份有限公司\t2 人\t加权 0.9\tD 人气榜\t\t讨论热度 44\n平台 1\t 股田的守望者 买入 股友38691HI336 买入\t↗ ↗\t⚠ 02:22:18\n1 小时前 未更新",
+    "rows": [
+      {
+        "sym": "000001",
+        "cells": [
+          "平安银行\n000001 平安银行股份有限公司",
+          "4 人",
+          "加权 1.8",
+          "D 人气榜",
+          "",
+          "讨论热度 119\n平台 1",
+          "股友谊译 买入 坚强地黄药师 买入 平安银行资讯 买入 夏春秋A 买入",
+          "↗ ↗ ↗ ↗",
+          "⚠ 02:22:18\n1 小时前 未更新"
+        ]
+      },
+      {
+        "sym": "300750",
+        "cells": [
+          "宁德时代\n300750 宁德时代新能源科技股份有限公司",
+          "4 人",
+          "加权 1.8",
+          "D 人气榜",
+          "",
+          "讨论热度 57\n平台 1",
+          "股友86Q5390Z69 买入 zhang放下 买入 蔡小美 买入 涅槃回本 买入",
+          "↗ ↗ ↗ ↗",
+          "⚠ 02:22:18\n1 小时前 未更新"
+        ]
+      },
+      {
+        "sym": "601318",
+        "cells": [
+          "中国平安\n601318 中国平安保险(集团)股份有限公司",
+          "2 人",
+          "加权 0.9",
+          "D 人气榜",
+          "",
+          "讨论热度 44\n平台 1",
+          "股田的守望者 买入 股友38691HI336 买入",
+          "↗ ↗",
+          "⚠ 02:22:18\n1 小时前 未更新"
+        ]
+      }
+    ],
+    "rowCount": 3,
+    "hasUndef": false,
+    "hasNaN": false,
+    "emptyBadges": 10,
+    "playerBadges": 20,
+    "playerRows": 10,
+    "emptyCells": 3,
+    "banner": "hint-present"
+  },
+  "results": [
+    {
+      "id": "G0",
+      "name": "破坏性按钮存在但不点",
+      "expected": "在 DOM 中存在即视为已识别，全程不点击",
+      "actual": "btnDemo=false btnOverseas=true btnFetch=true",
+      "pass": true,
+      "evidence": "拦截器已装 | 已 abort: 0 条"
+    },
+    {
+      "id": "N0",
+      "name": "一级导航渲染 5 个大类",
+      "expected": "5 个 .nav-item",
+      "actual": "5 个: 总览(1) / 知识获取(3) / 行情研判(5) / 实盘操作(5) / 跟我学习(2)",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 总览 › 汇总",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=4555 textLen=1495",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 知识获取 › 数据源",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=17923 textLen=2060",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 知识获取 › 原始存档",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=43721 textLen=7869",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 知识获取 › 抓取与登录记录",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=1977 textLen=541",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 行情研判 › 当前讨论股票",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=1968 textLen=359",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 行情研判 › 舆论情绪",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=2539 textLen=507",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 行情研判 › 近期热点",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=35205 textLen=6733",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 行情研判 › 美股港股舆情",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=52256 textLen=7837",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 行情研判 › 国外驱动热点",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=94976 textLen=16731",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 实盘操作 › 正在操作股票",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=115369 textLen=15647",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 实盘操作 › 实盘选手(渠道)",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=45508 textLen=4348",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 实盘操作 › 共同持仓共识",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=4922 textLen=647",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 实盘操作 › 近5日共同买入",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=2375 textLen=771",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 实盘操作 › 相关人物",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=27475 textLen=3333",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 跟我学习 › 中短线炒股",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=47738 textLen=11739",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N1",
+      "name": "导航 跟我学习 › 学习轨道管理",
+      "expected": "面板 active + 有内容 + 无报错",
+      "actual": "active=true htmlLen=1405 textLen=444",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "N2",
+      "name": "子类覆盖数",
+      "expected": ">= 16 个子类全部可点",
+      "actual": "共遍历 16 个子类: 汇总,数据源,原始存档,抓取与登录记录,当前讨论股票,舆论情绪,近期热点,美股港股舆情,国外驱动热点,正在操作股票,实盘选手(渠道),共同持仓共识,近5日共同买入,相关人物,中短线炒股,学习轨道管理",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "C1",
+      "name": "共同持仓共识：positions=0 时仍渲染 3 只股",
+      "expected": "3 行，无 undefined/NaN",
+      "actual": "行数=3 含undefined=false 含NaN=false",
+      "pass": true,
+      "evidence": "表头 | hint-present"
+    },
+    {
+      "id": "C2",
+      "name": "共识股票代码与人数正确",
+      "expected": "000001/4人, 300750/4人, 601318/2人",
+      "actual": "000001:4 人 | 300750:4 人 | 601318:2 人",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "C3",
+      "name": "共识行字段齐全（名称/公司/层级/平台/热度/来源非空）",
+      "expected": "每行关键列非空",
+      "actual": "[000001] 名称=平安银行\n000001 平安银行股份有限公司 加权=加权 1.8 层级=D 人气榜 渠道= 热度=讨论热度 119\n平台 1 ‖ [300750] 名称=宁德时代\n300750 宁德时代新能源科技股份有限公司 加权=加权 1.8 层级=D 人气榜 渠道= 热度=讨论热度 57\n平台 1 ‖ [601318] 名称=中国平安\n601318 中国平安保险(集团)股份有限公司 加权=加权 0.9 层级=D 人气榜 渠道= 热度=讨论热度 44\n平台 1",
+      "pass": true,
+      "evidence": "空单元格数 | 3"
+    },
+    {
+      "id": "C6",
+      "name": "共识「覆盖渠道」列：渠道缺失时给出占位而非留空白格",
+      "expected": "真空白单元格 = 0，且缺失行有占位（— / 暂无 / 渠道未标注）",
+      "actual": "覆盖渠道列真空白行数 = 3/3，占位行数 = 0",
+      "pass": false,
+      "evidence": "该列取值 | 000001:\"\" | 300750:\"\" | 601318:\"\""
+    },
+    {
+      "id": "C4",
+      "name": "共识「持仓选手明细」渠道缺失时不留空角标",
+      "expected": "不应出现无文字的空 badge",
+      "actual": "空 badge 数 = 10（明细内 badge 总数 20）",
+      "pass": false,
+      "evidence": "修法 | app.js:962-968 把渠道角标改为「channel 为空则整段不渲染」，非空时仍输出紧凑字母角标"
+    },
+    {
+      "id": "C5",
+      "name": "近5日共同买入：空窗口不崩、有明确空态",
+      "expected": "无 undefined/NaN，有空态或窗口条",
+      "actual": "html 文本长=771 空态=true 窗口条=true",
+      "pass": true,
+      "evidence": "摘要 | 按「窗口内 ≥2 位选手同向操作同一标的」聚合，共买（红）与共卖（绿）分两组列出。 与左侧「共同持仓共识」口径不同：共识看的是现在还持有（持仓快照），本板块看的是最近 5 天谁同时动手（动作发生时点）—— 所以本板块能露出「窗口内已卖出」这"
+    },
+    {
+      "id": "P1",
+      "name": "operating 面板：空 positions 下无 undefined/NaN/null",
+      "expected": "无异常字样",
+      "actual": "文本长=15647 行=200 undefined=false NaN=false null=false",
+      "pass": true,
+      "evidence": "摘要 | 真实抓取 200 条 / 示例 0 条（来源：taoguba, eastmoney） 每个选手均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺） + 所属层级（A~F）。标的列格式为「股票简称 "
+    },
+    {
+      "id": "P1",
+      "name": "players 面板：空 positions 下无 undefined/NaN/null",
+      "expected": "无异常字样",
+      "actual": "文本长=4348 行=68 undefined=false NaN=false null=false",
+      "pass": true,
+      "evidence": "摘要 | 真实抓取 68 条 / 示例 0 条 多层级人物覆盖：在原有 A/B/C/D 渠道基础上新增 E 主播大V（热度不高但影响力突出）与 F 长尾观察 两层。低层级权重递减，但一律露出（is_visibl"
+    },
+    {
+      "id": "P1",
+      "name": "stocks 面板：空 positions 下无 undefined/NaN/null",
+      "expected": "无异常字样",
+      "actual": "文本长=359 行=0 undefined=false NaN=false null=false",
+      "pass": true,
+      "evidence": "摘要 | 卡片第一行是股票简称，第二行是股票代码 + 公司全称，点击任意卡片可查看该股的持仓选手（持仓起始日期 / 买入价 / 当前股价）、相关实盘交易与讨论帖。当前有 2 个代码未识别名称，点下方「补全股票名"
+    },
+    {
+      "id": "P1",
+      "name": "summary 面板：空 positions 下无 undefined/NaN/null",
+      "expected": "无异常字样",
+      "actual": "文本长=1495 行=20 undefined=false NaN=false null=false",
+      "pass": true,
+      "evidence": "摘要 | 最后抓取：2026-09-25 02:22:18 ｜ 接入站点：taoguba、eastmoney、xueqiu、ths 登录态检测 淘股吧 已登录 登录态可用（Cookie）：命中已登录标志「个人中"
+    },
+    {
+      "id": "E1",
+      "name": "summary 示例角标误标检查（按文本）",
+      "expected": "真实数据 → 文本为「示例」的角标数 = 0",
+      "actual": "chip-demo 总数=0（文本「示例」=0、其他=0）；「真实」角标=0（.chip-real=0，误用 .chip-demo=0）",
+      "pass": true,
+      "evidence": "横幅 | 无"
+    },
+    {
+      "id": "E1",
+      "name": "stocks 示例角标误标检查（按文本）",
+      "expected": "真实数据 → 文本为「示例」的角标数 = 0",
+      "actual": "chip-demo 总数=0（文本「示例」=0、其他=0）；「真实」角标=0（.chip-real=0，误用 .chip-demo=0）",
+      "pass": true,
+      "evidence": "横幅 | 无"
+    },
+    {
+      "id": "E1",
+      "name": "players 示例角标误标检查（按文本）",
+      "expected": "真实数据 → 文本为「示例」的角标数 = 0",
+      "actual": "chip-demo 总数=0（文本「示例」=0、其他=0）；「真实」角标=0（.chip-real=0，误用 .chip-demo=0）",
+      "pass": true,
+      "evidence": "横幅 | 真实抓取 68 条 / 示例 0 条"
+    },
+    {
+      "id": "E1",
+      "name": "operating 示例角标误标检查（按文本）",
+      "expected": "真实数据 → 文本为「示例」的角标数 = 0",
+      "actual": "chip-demo 总数=200（文本「示例」=0、其他=200）；「真实」角标=200（.chip-real=0，误用 .chip-demo=200）",
+      "pass": true,
+      "evidence": "横幅 | 真实抓取 200 条 / 示例 0 条（来源：taoguba, eastmoney）"
+    },
+    {
+      "id": "E1",
+      "name": "consensus 示例角标误标检查（按文本）",
+      "expected": "真实数据 → 文本为「示例」的角标数 = 0",
+      "actual": "chip-demo 总数=0（文本「示例」=0、其他=0）；「真实」角标=0（.chip-real=0，误用 .chip-demo=0）",
+      "pass": true,
+      "evidence": "横幅 | 无"
+    },
+    {
+      "id": "S1",
+      "name": "「真实」角标不套用「示例」样式类（应为 .chip-real，非琥珀虚底）",
+      "expected": "带 .chip-demo 的「真实」角标 = 0，且「真实」全部使用 .chip-real",
+      "actual": "「真实」角标 200 个：.chip-real=0，误用 .chip-demo=200",
+      "pass": false,
+      "evidence": "实渲样式 | 真实 cls=\"chip-s chip-demo\" bg=rgb(254, 243, 199) color=rgb(146, 64, 14) border=1px dashed rgb(251, 191, 36)口径 | 示例 = 琥珀底+虚线框(.chip-demo)；真实 = 弱绿实底+实线框(.chip-real)"
+    },
+    {
+      "id": "T0",
+      "name": "主题选择器含 4 套方案",
+      "expected": "4 个 chip",
+      "actual": "4 个: light-tech(A 浅色科技风) / dark-dashboard(B 深色数据大屏) / minimal-report(C 简约报表风) / card-warm(D 卡片暖色)",
+      "pass": true,
+      "evidence": "可用性备注 | 色块无文字标签，仅靠 title 提示（hover 才可见），弱可用性但非 BUG"
+    },
+    {
+      "id": "T1",
+      "name": "主题 light-tech 生效+可读+无重叠",
+      "expected": "theme-link 切换 + 对比度>=2.5 + 无重叠 + 无报错",
+      "actual": "href=static/themes/light-tech.css bg=rgb(250, 247, 240) 低对比元素=无 顶栏∩侧栏=false 侧栏∩内容=false 报错=0",
+      "pass": true,
+      "evidence": "对比度采样 | 顶栏标题=17.4 一级导航文字=5.36 子导航当前项=5.36 说明文字=4.1 表格表头=4.83 卡片/正文=4.1"
+    },
+    {
+      "id": "T1",
+      "name": "主题 dark-dashboard 生效+可读+无重叠",
+      "expected": "theme-link 切换 + 对比度>=2.5 + 无重叠 + 无报错",
+      "actual": "href=static/themes/dark-dashboard.css bg=rgb(11, 14, 20) 低对比元素=无 顶栏∩侧栏=false 侧栏∩内容=false 报错=0",
+      "pass": true,
+      "evidence": "对比度采样 | 顶栏标题=14.74 一级导航文字=10.05 子导航当前项=10.05 说明文字=5.27 表格表头=6.03 卡片/正文=5.27"
+    },
+    {
+      "id": "T1",
+      "name": "主题 minimal-report 生效+可读+无重叠",
+      "expected": "theme-link 切换 + 对比度>=2.5 + 无重叠 + 无报错",
+      "actual": "href=static/themes/minimal-report.css bg=rgb(255, 255, 255) 低对比元素=无 顶栏∩侧栏=false 侧栏∩内容=false 报错=0",
+      "pass": true,
+      "evidence": "对比度采样 | 顶栏标题=13.98 一级导航文字=10.35 子导航当前项=10.35 说明文字=4.34 表格表头=4.55 卡片/正文=4.34"
+    },
+    {
+      "id": "T1",
+      "name": "主题 card-warm 生效+可读+无重叠",
+      "expected": "theme-link 切换 + 对比度>=2.5 + 无重叠 + 无报错",
+      "actual": "href=static/themes/card-warm.css bg=rgb(255, 247, 237) 低对比元素=无 顶栏∩侧栏=false 侧栏∩内容=false 报错=0",
+      "pass": true,
+      "evidence": "对比度采样 | 顶栏标题=12.69 一级导航文字=4.56 子导航当前项=4.56 说明文字=3.75 表格表头=4.04 卡片/正文=3.75"
+    },
+    {
+      "id": "D1",
+      "name": "点击共识行弹出抽屉且内容完整",
+      "expected": "shown + 有内容 + 无 undefined/NaN",
+      "actual": "shown=true 文本长=464 undefined=false NaN=false",
+      "pass": true,
+      "evidence": "摘要 | 平安银行 000001 公司全称 平安银行股份有限公司 上市板块 深市主板 共同持仓人数 4 人 覆盖渠道 — 讨论热度 119 来源网址 https://guba.eastmoney.com/news,000001,1776681769."
+    },
+    {
+      "id": "D2",
+      "name": "Esc 关闭抽屉",
+      "expected": "closed",
+      "actual": "true",
+      "pass": true,
+      "evidence": ""
+    },
+    {
+      "id": "X1",
+      "name": "全程无未捕获异常 / console.error",
+      "expected": "0 条",
+      "actual": "console.error=0 pageerror=0",
+      "pass": true,
+      "evidence": "无"
+    },
+    {
+      "id": "X2",
+      "name": "本轮未发出任何破坏性请求",
+      "expected": "0 条 blocked",
+      "actual": "被拦截(即尝试发出但已 abort)=0: 无",
+      "pass": true,
+      "evidence": "confirm 被调用次数 | 0"
+    }
+  ]
+}

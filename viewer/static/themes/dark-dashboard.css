@@ -1,0 +1,48 @@
+/* 方案 B · 深色数据大屏（近黑底 / 霓虹青绿，大 KPI 卡片发光） */
+:root {
+  --bg:#0B0E14; --topbar:#11151F; --panel:#151A24; --text:#E5E7EB; --muted:#8B95A5;
+  --border:#232B38; --accent:#22D3EE; --accent2:#34D399; --tag:#1B2230; --hover:#1E2735;
+  --bull:#F87171; --bull-bg:#2A1414; --bear:#34D399; --bear-bg:#0F2A22;  /* 看多=红、看空=绿（A股惯例） */
+  /* 刷新时效：超时=琥珀（与涨红/跌绿区分开，避免误读为行情色） */
+  --warn:#FBBF24; --warn-bg:#3A2A0A; --err:#F87171;
+}
+.card, .box, .bar-card, table { box-shadow: 0 0 0 1px #22d3ee10, 0 8px 24px #0006; }
+/* ---- P2 语义令牌层（2026-09-23）：徽标 / 状态色不再写死，4 套主题各一套 ---- */
+:root {
+  --on-accent: #06181D;
+  --on-ok-strong: #06181D;
+  --c1-fg: #FCD34D;
+  --c1-bg: #3A2A0A;
+  --c2-fg: #93C5FD;
+  --c2-bg: #16263F;
+  --c3-fg: #6EE7B7;
+  --c3-bg: #10291F;
+  --c4-fg: #F0ABFC;
+  --c4-bg: #2C1436;
+  --c5-fg: #7DD3FC;
+  --c5-bg: #0C2A3A;
+  --c6-fg: #94A3B8;
+  --c6-bg: #232B38;
+  --c-orange-fg: #FDBA74;
+  --c-orange-bg: #3A2109;
+  --c-orange-line: #C2410C;
+  --c-violet-fg: #C4B5FD;
+  --c-violet-bg: #241A3D;
+  --c-violet-line: #8B5CF6;
+  --c-teal-fg: #5EEAD4;
+  --c-teal-bg: #0C2A28;
+  --c-teal-line: #14B8A6;
+  --ok: #34D399;
+  --ok-fg: #6EE7B7;
+  --ok-bg: #10291F;
+  --ok-strong: #34D399;
+  --warn-line: #FCD34D;
+  --warn-strong: #F59E0B;
+  --err-bg: #2A1414;
+  --err-line: #7F1D1D;
+  --err-strong: #EF4444;
+  --info: #38BDF8;
+  --neutral-fg: #94A3B8;
+  --neutral-bg: #1E2735;
+  --neutral-line: #3A4757;
+}

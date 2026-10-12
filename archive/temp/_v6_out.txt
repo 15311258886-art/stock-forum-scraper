@@ -1,0 +1,103 @@
+TOTAL 3953
+
+=== niusan 相关行 ===
+ 1633: /* ================= 牛散追踪 · 股东协同 =================
+ 1637:    两个视角：① 牛散榜（跨多只股建仓的自然人）② 协同股（多名牛散同持一只股）。 */
+ 1638: const NIUSAN = { data: null, scope: "free", minHold: 2 };
+ 1639: function loadNiusan() {
+ 1640:   const q = "?scope=" + encodeURIComponent(NIUSAN.scope) + "&min_hold=" + NIUSAN.minHold;
+ 1641:   return api("/api/niusan" + q).then((d) => { NIUSAN.data = d; renderNiusan(); });
+ 1643: function renderNiusan() {
+ 1644:   const box = $("#p-niusan");
+ 1646:   const d = NIUSAN.data;
+ 1647:   if (!d) { box.innerHTML = `<div class="empty">牛散数据加载中…</div>`; return; }
+ 1654:     `style="cursor:pointer;${v === NIUSAN.scope ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(t)}</span>`;
+ 1692:     <div class="detail-sub">① 牛散榜 —— 跨 ≥${s.min_hold || 2} 只股的自然人（按持股只数排序；点击股票名看详情）</div>
+ 1693:     ${inv ? `<table><thead><tr><th>牛散</th><th class="num">持股数</th><th class="num">合计占流通</th>
+ 1695:       : "<span class='s'>暂无符合条件的牛散</span>"}
+ 1696:     <div class="detail-sub">② 股东协同 —— 多名<b>牛散</b>同时持有同一只股（已剔除家族 / 创始团队持股）</div>
+ 1697:     ${coh ? `<table><thead><tr><th>代码</th><th>名称</th><th class="num">牛散数</th>
+ 1698:       <th class="num">合计占流通</th><th>牛散名单</th></tr></thead><tbody>${coh}</tbody></table>`
+ 1699:       : "<span class='s'>暂无牛散协同持仓</span>"}
+ 1701:   $$("#p-niusan [data-ns-scope]").forEach((el) => {
+ 1703:       NIUSAN.scope = el.dataset.nsScope;
+ 1704:       loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+ 1717:  *   ③ 牛散共识（多位牛散同持的股）
+ 1775:   // ---- ③ 牛散共识 ----
+ 1809:     <div class="detail-sub">③ 牛散共识 —— 共 <b>${con.star_count == null ? "—" : con.star_count}</b> 位牛散（跨≥2只股票），多方同持的股：</div>
+ 1810:     ${coholdRows ? `<table><thead><tr><th>个股</th><th class="num">同持牛散</th><th>名单</th></tr></thead><tbody>${coholdRows}</tbody></table>` : `<div class="empty">暂无协同持股</div>`}
+ 3241:     { tab: "niusan", label: "牛散追踪" },
+ 3341:   // 牛散追踪：进入时按需（重）渲染
+ 3342:   if (tab === "niusan") {
+ 3343:     if (NIUSAN.data) renderNiusan();
+ 3344:     else loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+
+=== api_star_moves / star_moves 相关 ===
+
+=== renderNiusan 全文 ===
+function renderNiusan() {
+  const box = $("#p-niusan");
+  if (!box) return;
+  const d = NIUSAN.data;
+  if (!d) { box.innerHTML = `<div class="empty">牛散数据加载中…</div>`; return; }
+  const s = d.summary || {};
+  if (!(d.investors || []).length && !(d.cohold || []).length) {
+    box.innerHTML = `<div class="empty">暂无股东数据。该板块由 holders_fetch.py 抓取上市公司披露的自然人股东后生成。</div>`;
+    return;
+  }
+  const seg = (v, t) => `<span class="chip-s" role="button" data-ns-scope="${escAttr(v)}" ` +
+    `style="cursor:pointer;${v === NIUSAN.scope ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(t)}</span>`;
+  const inv = (d.investors || []).map((p) => {
+    const holds = (p.holdings || []).map((x) => {
+      const tip = (x.symbol_name || "") + " " + x.symbol +
+        " | 占流通 " + (x.ratio == null ? "—" : x.ratio + "%") +
+        " | " + (x.change || "变动未披露") + " | 披露期 " + (x.end_date || "—");
+      return `<span class="kline-chip chip-s" data-sym="${escAttr(x.symbol)}" style="margin:1px 3px 1px 0" ` +
+        `title="${escAttr(tip)} 点击看详情">${esc(x.symbol_name || x.symbol)}</span>`;
+    }).join("");
+    return `<tr>
+      <td><b>${esc(p.name)}</b></td>
+      <td class="num"><b>${p.stock_count}</b> 只</td>
+      <td class="num">${(p.total_ratio || 0).toFixed(2)}%</td>
+      <td class="num">${p.new_cnt ? `<span class="bull">${p.new_cnt}</span>` : "—"}</td>
+      <td class="num">${p.cut_cnt ? `<span class="bear">${p.cut_cnt}</span>` : "—"}</td>
+      <td>${holds || "—"}</td>
+    </tr>`;
+  }).join("");
+  const coh = (d.cohold || []).map((c) => {
+    const ps = (c.people || []).map((x) =>
+      `<span class="chip-s" style="margin:1px 3px 1px 0">${esc(x.name)}` +
+      `${x.ratio == null ? "" : " " + x.ratio.toFixed(2) + "%"}</span>`).join("");
+    return `<tr>
+      <td>${lhbSymChip(c.symbol)}</td>
+      <td><b>${esc(c.symbol_name || "")}</b></td>
+      <td class="num"><b class="bull">${c.people_count}</b> 位</td>
+      <td class="num">${(c.star_ratio_sum || 0).toFixed(2)}%</td>
+      <td>${ps}</td>
+    </tr>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="hint" style="margin-bottom:10px">
+      数据源：上市公司<b>定期报告 / 临时公告</b>披露的自然人十大股东（东财 F10）。
+      当前口径 <b>${esc(s.scope_label || "")}</b> · 最新披露期 <b>${esc(s.latest_date || "—")}</b> ·
+      自然人 <b>${s.person_total || 0}</b> 名 · 覆盖 <b>${s.stock_total || 0}</b> 只股。
+      <b>披露有时滞</b>（季报约 1 个月、临时公告约 1-2 日），仅作方向参考，不构成交易信号。
+      <br>口径切换：${seg("free", "十大流通股东")} ${seg("total", "十大股东")}
+    </div>
+    <div class="detail-sub">① 牛散榜 —— 跨 ≥${s.min_hold || 2} 只股的自然人（按持股只数排序；点击股票名看详情）</div>
+    ${inv ? `<table><thead><tr><th>牛散</th><th class="num">持股数</th><th class="num">合计占流通</th>
+      <th class="num">新进</th><th class="num">减持</th><th>持仓明细</th></tr></thead><tbody>${inv}</tbody></table>`
+      : "<span class='s'>暂无符合条件的牛散</span>"}
+    <div class="detail-sub">② 股东协同 —— 多名<b>牛散</b>同时持有同一只股（已剔除家族 / 创始团队持股）</div>
+    ${coh ? `<table><thead><tr><th>代码</th><th>名称</th><th class="num">牛散数</th>
+      <th class="num">合计占流通</th><th>牛散名单</th></tr></thead><tbody>${coh}</tbody></table>`
+      : "<span class='s'>暂无牛散协同持仓</span>"}
+    <div class="ks-src" style="margin-top:10px">${esc(d.basis || "")}</div>`;
+  $$("#p-niusan [data-ns-scope]").forEach((el) => {
+    el.onclick = () => {
+      NIUSAN.scope = el.dataset.nsScope;
+      loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+    };
+  });
+}
+const LBHS = { data: null };

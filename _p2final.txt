@@ -1,0 +1,18 @@
+总帖子 = 2473 {'sina': 810, 'xueqiu': 655, 'taoguba': 1008}
+  sina: 帖子 810，有帖选手 49，状态 {'ok': 48, 'empty': 3}
+  xueqiu: 帖子 655，有帖选手 33，状态 {'ok': 33}
+  taoguba: 帖子 1008，有帖选手 130，状态 {'ok': 130, 'empty': 6, 'partial': 3}
+
+-- taoguba 非 ok（empty/partial/error）清单 --
+  [empty] 大舅马 | https://www.tgb.cn/blog/9367632 | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+  [partial] 4世3公袁本初 | https://www.tgb.cn/blog/9104135 | HTTP=200 | 博客列表 30 篇，新增正文 0 篇，详情失败 10
+  [partial] 合肥颍上路 | https://www.tgb.cn/blog/12934554 | HTTP=200 | 博客列表 2 篇，新增正文 0 篇，详情失败 2
+  [empty] 圆小二 | https://www.tgb.cn/blog/12089754?sy_dr | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+  [empty] 小土堆爆金币 | https://www.tgb.cn/blog/9259508?sy_dr | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+  [empty] 微风吹拂西海岸 | https://www.tgb.cn/blog/15172121 | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+  [partial] 楽先生 | https://www.tgb.cn/blog/2979439 | HTTP=200 | 博客列表 30 篇，新增正文 0 篇，详情失败 10
+  [empty] 狼王行千里 | https://www.tgb.cn/blog/2747572?sy_dr | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+  [empty] 镀金梦想 | https://www.tgb.cn/blog/6532082?sy_dr | HTTP=200 | 博客列表 0 篇，新增正文 0 篇
+
+taoguba 每人帖数：有帖选手 130 ；<10 篇的有 50 人；=10 篇的有 80 人
+帖数最少的8人： [('WJDZ', 1), ('liantao88', 1), ('yywwq', 1), ('大手林山', 1), ('无妄炒家', 1), ('游任有余', 1), ('耐心从头开始', 1), ('自律投机', 1)]

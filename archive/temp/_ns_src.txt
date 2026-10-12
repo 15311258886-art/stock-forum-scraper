@@ -1,0 +1,51 @@
+s.append({
+            "name": nm, "stock_count": len(p["stocks"]),
+            "total_ratio": round(p["total_ratio"], 3),
+            "new_cnt": p["new_cnt"], "cut_cnt": p["cut_cnt"],
+            "latest_date": max((h["end_date"] or "" for h in hs), default=""),
+            "holdings": hs,
+        })
+    investors.sort(key=lambda x: (-x["stock_count"], -x["total_ratio"]))
+
+    # 协同 = 多名「牛散」（跨 >=min_hold 只股票者）同时持有一只股；
+    # 单纯"自然人扎堆"多为一家人/创始团队（如朱大庆=朱兴荣同族持股），必须排除。
+    star_names = {x["name"] for x in investors}
+    cohold = []
+    for sym, st in by_stock.items():
+        ps = [x for x in st["people"] if x["name"] in star_names]
+        if len(ps) < 2:
+            continue
+        ps = sorted(ps, key=lambda x: -(x["ratio"] or 0))
+        cohold.append({"symbol": sym, "symbol_name": st["symbol_name"],
+                       "end_date": st["end_date"], "people_count": len(ps), "people": ps,
+                       "star_ratio_sum": round(sum((x["ratio"] or 0) for x in ps), 3)})
+    cohold.sort(key=lambda x: (-x["people_count"], -x["star_ratio_sum"]))
+
+    # 名称补全（缺名/仅有名的用本地名称库补）
+    for x in investors:
+        for h in x["holdings"]:
+            n = _named(h["symbol"], h["symbol_name"])
+            h["symbol_name"] = n["name"]
+    for x in cohold:
+        n = _named(x["symbol"], x["symbol_name"])
+        x["symbol_name"] = n["name"]
+
+    latest_all = max((r["end_date"] or "" for r in rows), default="")
+    return {
+        "investors": investors,
+        "cohold": cohold,
+        "summary": {
+            "person_total": len(people), "investor_total": len(investors),
+            "cohold_total": len(cohold), "stock_total": len(by_stock),
+            "latest_date": latest_all, "scope": scope,
+            "scope_label": "十大流通股东" if scope == "free" else "十大股东",
+            "min_hold": min_hold,
+        },
+        "basis": ("自然人股东数据来自上市公司定期报告/临时公告披露（东财 F10）。"
+                  "「持股只数」= 该自然人在最新披露期中进入十大流通股东榜的股票数；"
+                  "多为长线牛散，披露有滞后（季报约 1 个月、临时公告约 1-2 日），"
+                  "仅作方向参考，不构成交易信号。"),
+    }
+
+
+

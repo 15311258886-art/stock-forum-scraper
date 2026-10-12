@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>股票舆情系统 · 代码系统性审查报告</title>
+<style>
+:root{
+  --bg:#FAF7F0; --panel:#FFFFFF; --text:#1A1A1A; --muted:#6B7280;
+  --border:#E5E0D5; --accent:#0E7490; --accent2:#B08D57; --tag:#F1ECE0; --hover:#F7F3E9;
+  --bull:#C81E1E; --bull-bg:#FDE7E6; --bear:#15803D; --bear-bg:#DEF3E3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;font-size:15px}
+.wrap{max-width:1120px;margin:0 auto;padding:32px 24px 80px}
+header{border-bottom:3px solid var(--accent);padding-bottom:18px;margin-bottom:28px}
+h1{font-size:27px;margin:0 0 8px;letter-spacing:.5px}
+.sub{color:var(--muted);font-size:13.5px}
+h2{font-size:20px;margin:38px 0 14px;padding-left:12px;border-left:5px solid var(--accent)}
+h3{font-size:16px;margin:24px 0 10px;color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:18px 0}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi .n{font-size:26px;font-weight:800;color:var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0}
+th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--tag);font-weight:700}
+code{background:var(--tag);padding:1px 5px;border-radius:4px;font-size:12.5px;
+  font-family:Consolas,Menlo,monospace;color:#0b5568}
+pre{background:#FBF9F4;border:1px solid var(--border);border-left:4px solid var(--accent2);
+  padding:10px 14px;border-radius:6px;overflow-x:auto;font-size:12.5px;
+  font-family:Consolas,Menlo,monospace;margin:8px 0}
+.sev{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.s-hi{background:#C81E1E}.s-md{background:#B45309}.s-lo{background:#6B7280}
+.fact{background:var(--bull-bg);border-left:4px solid var(--bull)}
+.judge{background:#FFF8E7;border-left:4px solid var(--accent2)}
+.evidence{background:var(--tag);border-radius:6px;padding:10px 14px;margin:8px 0;font-size:13px}
+.item{border:1px solid var(--border);border-left:5px solid var(--border);border-radius:8px;
+  background:var(--panel);padding:14px 18px;margin-bottom:12px}
+.item.hi{border-left-color:#C81E1E}
+.item.md{border-left-color:#B45309}
+.item.lo{border-left-color:#9CA3AF}
+.item h4{margin:0 0 6px;font-size:15.5px}
+.meta{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.b{font-weight:700}
+ul{margin:6px 0 6px 18px;padding:0}
+li{margin:3px 0}
+.tagline{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.chip{background:var(--tag);border:1px solid var(--border);border-radius:14px;
+  padding:3px 11px;font-size:12.5px;color:#0b5568}
+.flow{border:1px dashed var(--accent);border-radius:8px;padding:12px 16px;margin:10px 0;
+  background:#F4FAFB;font-size:13px}
+.ok{color:var(--bear)}.bad{color:var(--bull)}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--border);
+  color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>股票舆情与境外热点系统 · 系统性代码审查报告</h1>
+  <div class="sub">审查对象：<code>stock-forum-scraper</code>（Python 3.13 + SQLite + 原生前端）　|
+    审查方式：源码通读 + 静态扫描 + 实测取证脚本 <code>tools/audit_probe.py</code>　|
+    审查日期：2026-09-22</div>
+</header>
+
+<div class="grid">
+  <div class="kpi"><div class="n">32</div><div class="l">发现问题总数（高 11 / 中 14 / 低 7）</div></div>
+  <div class="kpi"><div class="n">3 条</div><div class="l">审查的数据链路（境外采集 / 境内采集 / 前端呈现）</div></div>
+  <div class="kpi"><div class="n">69%</div><div class="l">情绪计分子串误命中虚增比例（实测）</div></div>
+  <div class="kpi"><div class="n">不可用</div><div class="l">当前结论能否直接支撑投资决策</div></div>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">总体结论</h3>
+<p>系统<b>架构分层清晰、诚实状态机设计值得肯定</b>（源状态「已接入 / 待激活 / 示例模式」分级、写操作串行化、WAL 并发读），
+这说明前期工程是有质量意识的。但按生产可用标准衡量，当前版本属于<b>「演示形态完整、数据可信度不足」</b>：
+界面上每个数字都能显示，但支撑这些数字的三处核心算法（情绪打分、热度排序、时间归因）存在系统性偏差，
+且<b>示例数据与真实数据在库内混流、前端未逐条区分</b>。因此：</p>
+<ul>
+  <li><b>可作为</b>：框架演示、数据源连通性验证、传导逻辑的结构化表达。</li>
+  <li><b>不可作为</b>：任何真实的板块涨跌判断或投资参考——除非先完成本报告 P0 级修复。</li>
+</ul>
+<p><b>最大风险排序</b>：① 数据真实性（示例混入 + 情绪噪声 69%）＞ ② 数据持久性（无唯一约束 + 刷新即清表）＞ ③ 服务健壮性（GET 无异常兜底）＞ ④ 展示正确性（字段契约漂移）。</p>
+</div>
+
+<!-- ================= 第一部分 ================= -->
+<h2>一、程序设计：逻辑不严谨、边界缺失与潜在缺陷</h2>
+
+<div class="item hi">
+<h4>1. 情绪打分用裸子串匹配，财经常见词被系统性误判 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/lexicon.py:82-93</code>（<code>score_sentiment</code>）　对比：<code>lexicon.py:134-149</code>（<code>_count_kw</code> 已用词边界）</div>
+<p><b>问题</b>：<code>score_sentiment</code> 仍用 <code>low.count(w)</code> 统计英文情绪词，未走同一文件内已写好的词边界函数 <code>_count_kw</code>。
+于是 <code>cut</code> 命中 "exe<b>cut</b>ive"、<code>miss</code> 命中 "e<b>miss</b>ions / dis<b>miss</b>ed"、<code>ban</code> 命中 "u<b>rban</b> / aband<b>on</b>? / <b>ban</b>ner"、<code>loss</code> 命中 "g<b>loss</b>ary"、<code>fall</code> 命中 "water<b>fall</b>"。</p>
+<div class="evidence"><b>实测取证</b>（<code>tools/audit_probe.py</code>）：
+<pre>score=-1.00 看空 | Emissions target unveiled at climate summit
+score=-1.00 看空 | Urban housing plan announced by ministry
+score=-1.00 看空 | Company dismissed the report as inaccurate</pre>
+三条完全中性的句子全部被判「看空」。在 seed 41 条真实语料上：子串命中 93 次、词边界命中 55 次，<b>虚增 38 次（69.1%）</b>。</div>
+<p><b>原因</b>：修复 <code>classify_topic</code> 的子串误分类时（"war" 命中 "starwars"），改动只落在一个函数，未同步到情绪打分；同类缺陷在同一文件内重复存在。</p>
+<p><b>建议</b>：<code>score_sentiment</code> 内英文词全部改用 <code>_count_kw(low, w)</code>；并对 <code>cut/miss/ban/risk/sell/lower</code> 等高风险短词补否定与词性白名单（如 "cut" 仅在 "cut rate / cut guidance / job cut" 上下文计分）。修完用本脚本回归，要求虚增比例 &lt;5%。</p>
+</div>
+
+<div class="item hi">
+<h4>2. 「热度」不是真实热度，且无时间衰减 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/collect.py:47-49</code></div>
+<p><b>问题</b>：<code>heat = (|情绪分|×2 + 主题命中数×1.5 + 1.0) × 区域权重 × 10</code>。<b>与阅读量、评论数、点赞、转发、转载媒体数完全无关</b>；同时没有时间衰减项。</p>
+<div class="evidence"><b>实测取证</b>：三条 seed 条目 heat 分别 50 / 30 / 70，全部仅由情绪分值决定（主题命中数均为 0）。</div>
+<p><b>原因</b>：当前可用源（RSS/HTML）大多不暴露互动量，设计时用「情绪强度 × 主题密度」作为代理指标，但字段命名与界面文案仍叫「热度」，造成语义误导。后果：① 排序实质是「情绪激烈程度」而非「关注度」；② 三天前的旧闻与今天的新闻同权，「近期热点」可能全是旧闻。</p>
+<p><b>建议</b>：① 字段改名为 <code>salience</code>（显著度）并在界面注明口径；② 引入时间衰减 <code>exp(-Δt/τ)</code>（τ 建议 36h）；③ 对能拿到互动量的源（YouTube API、Reddit JSON、PeerTube views）接入真实互动数作为独立权重项；④ 「近期热点」增加 <code>publish_time</code> 下限过滤（如仅 72h 内）。</p>
+</div>
+
+<div class="item hi">
+<h4>3. 缺失时间一律用「现在」填充，污染全部时间口径 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/collect.py:55</code>、<code>scraper/parsers/taoguba.py:100</code></div>
+<p><b>问题</b>：解析不出发布时间时写入 <code>datetime.now()</code>。RSS 条目无时间、HTML 列表页无时间（<code>parse_html_list</code> 恒返回 <code>publish_time=""</code>，见 <code>sources.py:296</code>）时，这些条目全部被当成「刚刚发生」。</p>
+<p><b>原因</b>：为了让「按日趋势图」有数据而做的兜底，但没有打标记，导致趋势图中今天的数据被人为抬高、「近 5 日操作」虚高。</p>
+<p><b>建议</b>：写入 <code>NULL</code> 并加 <code>time_missing=1</code> 标记；趋势图与「近 N 日」统计<b>排除</b>该标记；界面显示「时间未知」。趋势图下方注明「N 条无时间戳未计入」。</p>
+</div>
+
+<div class="item hi">
+<h4>4. <code>first_seen</code> 空串参与 min()，事件起始时间恒为当前时间 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/hotspots.py:311</code></div>
+<p><b>问题</b>：<code>min(r.get("publish_time") or "" for r in rows)</code>——空字符串在任何非空时间之前，<b>只要簇内有一条无时间，min 就返回 ""</b>，随即被 <code>or datetime.now()</code> 顶替，真实最早时间丢失。</p>
+<div class="evidence"><b>实测取证</b>：rows = [2026-09-20, "", 2026-09-18]　现有写法 → <code>''</code>；正确写法 → <code>2026-09-18 08:00:00</code>。</div>
+<p><b>建议</b>：改为 <code>min((r.get("publish_time") or "") for r in rows if r.get("publish_time"))</code>，无值时再回落 now()。</p>
+</div>
+
+<div class="item hi">
+<h4>5. 示例数据与真实抓取混流，前端未逐条标注 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/collect.py:143-155</code>（默认 <code>include_seed=True</code>）、<code>viewer/static/app.js:447-452</code>（新闻渲染）、<code>app.js:489</code>（界面承诺文案）</div>
+<p><b>问题</b>：联网抓取成功后，41 条人工示例条目仍会作为补充写入同一张 <code>overseas_news</code> 表。界面提示语宣称「真实条目与示例并存、逐条可区分」，<b>但新闻列表渲染函数只输出 source_name 文本，没有任何针对「示例源·」前缀的视觉标记</b>（仅数据源状态页 <code>app.js:479</code> 有 <code>src-demo</code> 样式）。用户在新闻流、热点证据链里看到「示例源·Reuters」与真实 CNBC 条目外观完全一致。</p>
+<p><b>原因</b>：seed 设计时为离线兜底（合理），但未随联网能力上线同步补上「示例」隔离与标注，形成<b>实现与承诺不一致</b>——这是本系统最需要警惕的一类缺陷：它不会报错，只会让人误以为看到的是真实舆情。</p>
+<p><b>建议</b>：① 数据库加 <code>is_seed</code> 列；② 新闻卡与热点证据链对 <code>is_seed=1</code> 强制加橙色「示例」徽章与浅底色；③ 顶部常驻横幅显示「本次含示例 N 条 / 真实 M 条」；④ 增加开关 <code>include_seed</code>（联网成功时默认关闭示例）。</p>
+</div>
+
+<div class="item hi">
+<h4>6. 登录校验在配置缺失时「判定为成功」 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>scraper/auth.py:88-93</code>、<code>viewer/ingest.py:209</code></div>
+<p><b>问题</b>：<code>sites.yaml</code> 中 <code>success_marker: null</code> → <code>_looks_logged_in</code> 返回 <code>None</code>，而调用处只在 <code>verdict is False</code> 时报错，<b>None 被当作成功</b>。密码错误、被踢回登录页也报登录成功。更进一步：<code>ingest.py:209</code> 中 <code>sess = self._login(...) or RateLimitedSession()</code>，登录失败后<b>静默降级为匿名会话</b>，抓到的登录页 HTML 被当作正文存库。</p>
+<p><b>建议</b>：marker 缺失时用「响应是否含登录表单 / 是否 302 到 /login / 关键 Cookie 是否存在」判定；返回严格 True/False；登录失败<b>中止该站点</b>并写入 <code>login_status</code>，禁止降级匿名。</p>
+</div>
+
+<div class="item hi">
+<h4>7. 核心业务表无唯一约束，重复抓取必然重复入库 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>viewer/db.py:66-158</code>（<code>posts/trades/news/positions/raw_pages/stock_mentions</code> 建表）、<code>db.py:598-633</code>（均为裸 <code>INSERT</code>）</div>
+<p><b>问题</b>：只有 <code>players(name)</code>、<code>persons(name)</code>、<code>login_status(site)</code>、<code>overseas_news(url,title)</code>、<code>overseas_hotspots(key)</code> 有唯一键。国内链路五张表<b>无任何唯一约束</b>，每次点「抓取并更新」即全量重复累加；<code>raw_pages</code> 存整页 HTML，膨胀最快。<code>taoguba.py:189</code> 的 <code>_post_id</code> 在缺 id 时回退成 <code>page_url</code>，同页所有帖共用一个 id，叠加后导致存档只保留第一条。</p>
+<p><b>建议</b>：为 <code>trades(post_id,action,symbol)</code>、<code>posts(post_id)</code>、<code>news(url)</code>、<code>positions(player,symbol)</code> 建 UNIQUE 索引，写入改 <code>INSERT ... ON CONFLICT DO UPDATE</code>；<code>_post_id</code> 兜底改为 <code>page_url + md5(正文前200字)[:8]</code>。</p>
+</div>
+
+<div class="item hi">
+<h4>8. 刷新即清空历史：既无失败保护，也无法「持续追踪」 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/collect.py:126-127</code>（<code>reset=True</code> 清空新闻表）、<code>overseas/hotspots.py:177</code>（<code>clear_overseas_hotspots()</code> 全清重算）</div>
+<p><b>问题</b>：① 每次刷新先清空再写入，若本次网络波动只抓到 3 个源，<b>历史数据全部丢失</b>，没有「抓取结果过少则保留上一版」的保护；② 热点每次全清重算，<code>first_seen</code> 恒为本次时间，<b>无法回答「这个事件是新出现的还是持续了三天」</b>——与「持续追踪」的核心需求直接冲突。</p>
+<p><b>建议</b>：① 改为「写入临时表 → 校验条目数 ≥ 上次 ×50% → 原子 RENAME 替换」，失败则回滚保留上一版；② 热点改为 upsert 保留首次出现时间，并产出「新增 / 持续 / 消退」三类状态，界面给出事件生命周期。</p>
+</div>
+
+<div class="item hi">
+<h4>9. 时间解析跨年与相对时间失效 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>scraper/parsers/taoguba.py:311-329</code></div>
+<p><b>问题</b>：<code>"%m-%d %H:%M"</code> 无年份 → <code>strptime</code> 默认补 <b>1900 年</b>；「昨天 14:23」「3 分钟前」「前天」、纯日期格式一律返回 None，而上层无补齐逻辑。后果：<code>db.player_detail</code> 的「近 5 日操作」过滤直接失效。</p>
+<p><b>建议</b>：补齐 <code>%Y-%m-%d</code>、<code>今天/昨天/前天 HH:MM</code>、<code>N 分钟/小时/天前</code>；<code>%m-%d</code> 解析后显式补当前年，若结果 &gt; now 则回退上一年。</p>
+</div>
+
+<div class="item hi">
+<h4>10. GET 接口全部无异常兜底，一次异常即断连 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>viewer/server.py:496-568</code>（<code>do_GET</code>）、<code>:537/:542/:566</code>（<code>int()</code>）</div>
+<p><b>问题</b>：19 条 GET 路由<b>无一条 try-except</b>（POST 侧已有），且 <code>int(q.get("min_holders")[0])</code> 等直接在路由里转换，<code>?limit=abc</code> 即抛 <code>ValueError</code> → 请求无响应 → 前端拿到断连。与 POST 侧的处理风格不对称，显然是遗漏而非有意。</p>
+<p><b>建议</b>：<code>do_GET</code> 整体包 <code>try/except → {"error":..., 500}</code>；参数统一走 <code>_int(q, key, default)</code> 辅助函数。</p>
+</div>
+
+<div class="item hi">
+<h4>11. 全局关闭 SSL 证书校验 <span class="sev s-hi">高</span></h4>
+<div class="meta">位置：<code>overseas/sources.py:35-37</code></div>
+<p><b>问题</b>：<code>_SSL.check_hostname=False; _SSL.verify_mode=CERT_NONE</code> 作用于<b>所有</b>境外请求（含带 GitHub/YouTube Token 的私密请求）。任何中间人都可篡改返回的新闻内容，进而污染整个舆情结论，也可截获请求头中的 Token。</p>
+<p><b>建议</b>：默认开启校验；仅对个别确需放宽的源在 YAML 里加 <code>insecure: true</code> 并单独构造 context；Token 请求强制严格校验。</p>
+</div>
+
+<div class="item md">
+<h4>12. <code>/api/person</code> 提及股票写死 12 个代码 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>viewer/server.py:424-427</code></div>
+<div class="evidence"><b>实测取证</b>：硬编码列表 = 600519 / 300750 / 000858 / 002594 / 601318 / 000725 / 603259 / 300059 / 600036 / 002230 / 000333 / 603501。</div>
+<p><b>问题</b>：人物详情的「提及过的股票」只在这 12 个代码中做字符串匹配，库里所有其他股票一概不出现——界面看起来像「此人只提过这几只」。</p>
+<p><b>建议</b>：改为从 <code>stock_mentions</code> 表按 <code>author</code> 聚合（该表本就按帖子记录了提及关系）。</p>
+</div>
+
+<div class="item md">
+<h4>13. 前端请求无状态校验、无失败兜底，异常即空白面板 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>viewer/static/app.js:11-13</code>（<code>api()</code>）、25 处 fetch 调用点仅 3 处有 catch</div>
+<p><b>问题</b>：<code>fetch().then(r => r.json())</code> 不检查 <code>r.ok</code>；后端 404/500 返回 HTML 时 <code>r.json()</code> 抛错，面板停在上一状态或空白，<b>没有任何报错提示</b>。<code>loadAll()</code> 的 10 个并行请求全部裸奔。</p>
+<p><b>建议</b>：<code>api()</code> 改 async + <code>if(!r.ok) throw</code>；封装 <code>safeRender(panel, fn, emptyText)</code> 统一 catch 并渲染「加载失败+重试」。</p>
+</div>
+
+<div class="item md">
+<h4>14. 转义函数不处理引号，属性位存在注入面 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>viewer/static/app.js:19-21</code>（<code>esc</code> 仅替换 <code>&amp; &lt; &gt;</code>）、<code>:321/:450</code>（<code>href="${esc(url)}"</code>）</div>
+<p><b>问题</b>：抓取源可控的 <code>url/title</code> 若含双引号即可闭合属性注入事件（<code>x" onerror="</code>）。正文文本位是安全的，属性位不安全。云中继（relay_json）内容来自第三方仓库，风险更高。</p>
+<p><b>建议</b>：<code>esc</code> 补 <code>" → &amp;quot;</code>、<code>' → &amp;#39;</code>；<code>href</code> 输出前校验 <code>/^https?:/i</code>，否则渲染为 <code>#</code>。</p>
+</div>
+
+<div class="item md">
+<h4>15. 字段契约漂移：同一含义三处口径不一致 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>server.py:114-127</code>（<code>api_operating</code> 未调用 <code>_named()</code>）对比 <code>:84</code>、<code>:341</code></div>
+<p><b>问题</b>：<code>/api/stocks</code>、<code>/api/consensus</code> 都走 <code>_named()</code> 补全股票名称，<code>/api/operating</code> 没走 → 同一只股票在操作页显示「名称待补全」而在股票页正常。另有死字段（<code>label</code>、<code>view_summary</code>、<code>heat_total</code>、<code>topics</code>）与三条从未被调用的路由（<code>/api/positions</code>、<code>/api/login_status</code>、<code>/api/stock_names</code>）。</p>
+<p><b>建议</b>：<code>api_operating</code> 复用 <code>_named()</code>；清理死字段与死路由，或补前端消费，避免契约继续漂移。</p>
+</div>
+
+<div class="item md">
+<h4>16. 排序与截断的边界处理 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>server.py:323</code>、<code>server.py:132</code> + <code>app.js:239</code>、<code>app.js:266</code></div>
+<ul>
+<li><code>ORDER BY rank_position ASC</code>：SQLite 中 NULL 排最前 → 无名次选手占据榜首显示「-」。</li>
+<li><code>api_persons</code> LIMIT 100，前端 <code>slice(0,80)</code> → 静默丢弃 20 条且无提示。</li>
+<li><code>Math.max(...list.map(t=>t.weight),1)</code>：weight 为 null 得 NaN → 进度条宽度 <code>NaN%</code>。</li>
+</ul>
+<p><b>建议</b>：<code>ORDER BY rank_position IS NULL, rank_position</code>；截断处返回 <code>total</code> 并在界面提示「显示前 80 / 共 N 条」；数值一律 <code>Number(x) ?? 0</code>。</p>
+</div>
+
+<div class="item md">
+<h4>17. 采集端缺少状态码检查与编码指定 <span class="sev s-md">中</span></h4>
+<div class="meta">位置：<code>scraper/pipeline.py:95</code>、<code>viewer/ingest.py:230</code>、<code>scraper/session.py:70</code></div>
+<ul>
+<li>三处取到响应后直接使用 <code>resp.text</code>，<b>无 <code>raise_for_status()</code></b> → 403/404/500/反爬页照常入库并计为成功。</li>
+<li>未设置 <code>resp.encoding</code>，requests 对无 charset 响应默认 ISO-8859-1 → GBK 站点正文乱码，依赖中文的买卖模式（"买入/卖出"）100% 命中不了，表现为「抓到页面但 0 条记录」。</li>
+<li>robots 拉取 <code>rp.read()</code> 无超时，且失败即放行、无负缓存。</li>
+</ul>
+<p><b>建议</b>：统一状态码检查；按 <code>apparent_encoding</code> 设置编码；robots 改用带超时的 requests 请求 + 失败负缓存。</p>
+</div>
+
+<div class="item lo">
+<h4>18. 其他低优先级缺陷 <span class="sev s-lo">低</span></h4>
+<ul>
+<li><code>collect.py:64</code>：<code>_daily_series(days=14)</code> 的 days 参数<b>从未使用</b>，趋势图可能混入很早的日期。</li>
+<li><code>server.py:486</code>：静态文件路径检查用字符串前缀且未 <code>resolve()</code>，理论上存在 <code>/static/../../</code> 穿越隐患（本地服务，风险有限）。</li>
+<li><code>sources.py:106-110</code>：PyYAML 解析报错时静默降级到 <code>_mini_yaml</code>，配置语法错误会被掩盖（此前 note 冒号事故即此类）。建议改为解析失败直接抛错并提示行号。</li>
+<li><code>db.py</code> 所有 <code>save_*</code> 单条 commit，707 条新闻 = 707 次提交，无批量事务、无回滚，中途失败留下部分写入的脏数据。</li>
+<li><code>sources.py:566</code>：8 线程并发无全局限速，GitHub 匿名 API 限额 60 次/小时，频繁刷新会 403；建议加每主机限流与 ETag 缓存。</li>
+<li><code>app.js:453</code>：异步渲染数据源面板无 generation 令牌，快速切换 tab 可能写入已被替换的 DOM；<code>btnDemo/btnLogin</code> 无 disabled 防抖。</li>
+</ul>
+</div>
+
+<!-- ================= 第二部分 ================= -->
+<h2>二、数据调取流程：贯通性核查</h2>
+
+<h3>链路 A · 境外舆情（模块一 + 模块二）</h3>
+<div class="flow">
+<code>config/overseas_sources.yaml</code> → <code>load_overseas_config()</code> → <code>fetch_all()</code>（8 线程并发，41 源）
+→ <code>analyze_item()</code>（情绪 / 主题 / 标的 / 板块）→ <code>save_overseas_news()</code>（逐条 commit）
+→ <code>replace_overseas_daily()</code> → <code>build_hotspots()</code>（全清重算）→ <code>/api/overseas_*</code> → 前端渲染
+</div>
+<table>
+<tr><th style="width:26%">环节</th><th style="width:12%">状态</th><th>说明</th></tr>
+<tr><td>YAML 配置加载</td><td class="bad">有断点</td><td>PyYAML 报错静默降级到 _mini_yaml，配置错误被掩盖；此前 note 冒号事故即此类。</td></tr>
+<tr><td>源抓取</td><td class="bad">部分未通</td><td>24 个源因被墙/需 Key 恒为「待激活」；云中继（<code>.github/workflows/overseas-relay.yml</code>）已写好但<b>未部署</b>，YouTube/Reddit/Reuters/BBC/arXiv 实际永远无数据。</td></tr>
+<tr><td>时间解析</td><td class="bad">有断点</td><td>HTML 类源恒返回空时间（<code>sources.py:296</code>），随后被 now() 填充 → 趋势图口径失真。</td></tr>
+<tr><td>入库</td><td class="ok">通</td><td><code>overseas_news(url,title)</code> 有唯一约束 + upsert，去重正确。</td></tr>
+<tr><td>示例补充</td><td class="bad">污染</td><td>41 条示例与真实条目同表混流，前端未逐条标注（见问题 5）。</td></tr>
+<tr><td>热点生成</td><td class="bad">有断点</td><td>每次全清重算，无法做事件生命周期追踪；<code>first_seen</code> 计算有误（问题 4）。</td></tr>
+<tr><td>API → 前端</td><td class="ok">通</td><td>字段完整，结构化三段（概述/变量/涨跌板块）已贯通，实测 11/11 卡片正常。</td></tr>
+</table>
+
+<h3>链路 B · 境内论坛采集</h3>
+<div class="flow">
+<code>main.py</code>（CLI）或 <code>server.py POST /api/fetch</code>（界面）→ <code>Ingestor.ingest()</code>
+→ <code>RateLimitedSession</code> → <code>TaogubaParser.parse_*</code> → <code>db.save_*</code> → <code>viewer/app.db</code> → 前端
+</div>
+<table>
+<tr><th style="width:26%">环节</th><th style="width:12%">状态</th><th>说明</th></tr>
+<tr><td><b>CLI ↔ 界面双通道</b></td><td class="bad">断裂</td><td><b>最严重的贯通问题</b>：<code>main.py:121</code> 把结果写入 <code>./data/{site}_{mode}.db</code>，<b>从不写 <code>viewer/app.db</code></b>，而前端只读 app.db。命令行抓到的数据界面永远看不到，两条链路各写各的库。</td></tr>
+<tr><td>登录</td><td class="bad">未通</td><td>marker 缺失判为成功（问题 6）；失败后降级匿名继续抓，登录页被当正文存库。</td></tr>
+<tr><td>响应校验</td><td class="bad">缺失</td><td>无状态码检查，反爬页照常入库计为成功。</td></tr>
+<tr><td>解析</td><td class="bad">脆弱</td><td>时间（问题 9）、post_id 退化、数量正则不支持「1.2万股/1,000股/整数价」；单页解析异常可中断整条流水线（<code>pipeline.py:101</code> 生成器迭代处无 try）。</td></tr>
+<tr><td>入库</td><td class="bad">无保护</td><td>五张表无唯一约束，重复抓取翻倍；无事务、无回滚。</td></tr>
+<tr><td>字段一致性</td><td class="bad">错位</td><td><code>trades.position_ratio</code> 有列有读取但 <code>save_trade</code> 从不写入，恒为 NULL。</td></tr>
+</table>
+
+<h3>链路 C · 前端呈现</h3>
+<table>
+<tr><th style="width:26%">环节</th><th style="width:12%">状态</th><th>说明</th></tr>
+<tr><td>请求</td><td class="bad">无兜底</td><td>25 处 fetch 中 22 处无 catch，<code>api()</code> 不校验 <code>r.ok</code>（问题 13）。</td></tr>
+<tr><td>服务端响应</td><td class="bad">无兜底</td><td>GET 侧 19 条路由无 try-except（问题 10）。两者叠加：一次异常 = 面板静默空白，用户无法判断是「没数据」还是「出错了」。</td></tr>
+<tr><td>字段渲染</td><td class="ok">基本通</td><td>主要面板字段齐全；存在契约漂移（问题 15）与空值未兜底（<code>bull/bear/heat/confidence</code> 未 <code>??0</code>）。</td></tr>
+<tr><td>交互回归</td><td class="ok">通</td><td>已有 4 个 UI 测试共 40 项断言通过（来源 6 / 海外 17 / 渠道 6 / 传导链 11）。</td></tr>
+</table>
+
+<!-- ================= 第三部分 ================= -->
+<h2>三、需要补充、优化与完善的内容</h2>
+
+<h3>P0 · 影响数据可信度，建议立即修复（约 1 个工作日）</h3>
+<table>
+<tr><th style="width:6%">#</th><th style="width:30%">动作</th><th style="width:34%">具体改法</th><th>验收标准</th></tr>
+<tr><td>1</td><td>修情绪词边界</td><td><code>lexicon.py:82-93</code> 改用 <code>_count_kw</code>；短词加上下文白名单</td><td>audit_probe 虚增比例 &lt;5%；三条中性句判为中性</td></tr>
+<tr><td>2</td><td>隔离示例数据</td><td><code>overseas_news</code> 加 <code>is_seed</code> 列；<code>app.js:447</code> 加「示例」徽章；联网成功时 <code>include_seed=False</code></td><td>界面上任何示例条目肉眼可辨；顶部显示「真实 N / 示例 M」</td></tr>
+<tr><td>3</td><td>修时间归因</td><td><code>collect.py:55</code> 改 NULL + <code>time_missing</code>；<code>hotspots.py:311</code> 过滤空串后再 min</td><td>趋势图排除无时间条目；<code>first_seen</code> 取到真实最早时间</td></tr>
+<tr><td>4</td><td>热度口径正名</td><td>字段改名 <code>salience</code>，加时间衰减 <code>exp(-Δt/36h)</code>，界面注明口径</td><td>「近期热点」不再出现 3 天前条目排在今天前面</td></tr>
+<tr><td>5</td><td>服务异常兜底</td><td><code>do_GET</code> 包 try-except；<code>int()</code> 走 <code>_int(q,k,def)</code>；<code>api()</code> 校验 <code>r.ok</code> + <code>safeRender</code></td><td>任意接口报错返回 500 JSON 且面板显示「加载失败」，不再空白</td></tr>
+</table>
+
+<h3>P1 · 影响数据正确性与持久性（约 2 个工作日）</h3>
+<table>
+<tr><th style="width:6%">#</th><th style="width:30%">动作</th><th>具体改法</th></tr>
+<tr><td>6</td><td>合并 CLI 与界面两条链路</td><td><code>main.py</code> 增加 <code>--to-viewer-db</code>，复用 <code>viewer.ingest.Ingestor</code> 直写 <code>app.db</code>，消除两张皮</td></tr>
+<tr><td>7</td><td>补唯一约束 + upsert</td><td>trades/posts/news/positions 建 UNIQUE；<code>save_*</code> 改 <code>ON CONFLICT DO UPDATE</code>；<code>_post_id</code> 兜底加内容 hash</td></tr>
+<tr><td>8</td><td>刷新保护 + 事件生命周期</td><td>写临时表校验后原子替换；热点改 upsert 保留 first_seen，输出「新增/持续/消退」</td></tr>
+<tr><td>9</td><td>登录与抓取校验</td><td>marker 缺失时用登录表单/302/Cookie 判定；禁止降级匿名；全局加 <code>raise_for_status()</code> 与编码设置</td></tr>
+<tr><td>10</td><td>时间解析补齐</td><td><code>taoguba._parse_time</code> 支持相对时间、纯日期、跨年补年</td></tr>
+<tr><td>11</td><td>开启 SSL 校验</td><td>默认校验，个别源用 YAML <code>insecure</code> 单独放宽；Token 请求强制校验</td></tr>
+<tr><td>12</td><td>消除硬编码</td><td><code>api_person</code> 提及股票改从 <code>stock_mentions</code> 聚合</td></tr>
+</table>
+
+<h3>P2 · 工程质量与可维护性（约 2 个工作日）</h3>
+<table>
+<tr><th style="width:6%">#</th><th style="width:30%">动作</th><th>具体改法</th></tr>
+<tr><td>13</td><td>批量事务</td><td>db 层加 <code>@transaction</code> 装饰器，批量写入一次 commit，异常 rollback</td></tr>
+<tr><td>14</td><td>契约清理</td><td>统一 <code>_named()</code> 口径；删除死字段与三条死路由；空值 <code>??0</code> 全量兜底</td></tr>
+<tr><td>15</td><td>配置解析失败显式化</td><td>YAML 报错直接抛错并提示行号，不再静默降级 <code>_mini_yaml</code></td></tr>
+<tr><td>16</td><td>并发与限流</td><td>每主机限流 + ETag 缓存；前端 loadAll 加 generation 令牌；按钮防抖</td></tr>
+<tr><td>17</td><td>补自动化测试</td><td>新增 10 个用例：GBK 编码页、昨天/分钟前时间、1.2万股、post_id 缺失、单页解析抛异常、重复入库两次、中性句情绪、空时间热点、GET 参数非法、并发写冲突</td></tr>
+<tr><td>18</td><td>部署云中继</td><td>需提供 GitHub Token（repo+workflow）或本机境外代理地址，解锁 YouTube/Reddit/Reuters/BBC/arXiv 等 24 个源</td></tr>
+</table>
+
+<h3>能力层面的补充建议</h3>
+<div class="tagline">
+<span class="chip">热度真实化：接入互动量指标</span>
+<span class="chip">事件生命周期：新增 / 持续 / 消退</span>
+<span class="chip">结论可回溯：每条结论标注依据条目</span>
+<span class="chip">采集健康度看板：源成功率 / 延迟 / 失败原因</span>
+<span class="chip">数据快照与回滚</span>
+<span class="chip">情绪词典版本化</span>
+</div>
+<p>其中<b>「结论可回溯」</b>建议优先做：热点卡已有 evidence 条目，但界面未把「概述/变量/板块预判」与具体条目建立点击关联。
+把每条结论挂到它赖以生成的 2-3 条原文上，用户一眼能判断这条结论是「有据」还是「规则外推」——这是把系统从「看起来专业」推向「可核查」的关键一步。</p>
+
+<footer>
+方法与边界说明：本报告结论来自三部分——① 源码通读（server.py / db.py / overseas 四模块 / scraper 全量）；② 静态扫描（except 分布、timeout 覆盖、事务与唯一约束）；③ 实测取证脚本 <code>tools/audit_probe.py</code>（情绪误判、热度公式、first_seen、硬编码代码）。
+标注「实测取证」的数据为脚本运行结果；其余为源码分析结论。未做的工作：实际联网抓一轮验证端到端、性能压测、浏览器交互回归（已有 40 项断言的既有测试未重跑）。
+</footer>
+
+</div>
+</body>
+</html>

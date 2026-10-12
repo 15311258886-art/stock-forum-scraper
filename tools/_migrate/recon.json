@@ -1,0 +1,213 @@
+{
+  "trades_rows": 348,
+  "trades_v2_rows": 956,
+  "staging_rows": 956,
+  "trades_distinct_author": 210,
+  "trades_v2_distinct_author": 89,
+  "trades_distinct_symbol": 91,
+  "trades_v2_distinct_symbol": 372,
+  "trades_action": {
+    "BUY": 168,
+    "SELL": 97,
+    "HOLD": 83
+  },
+  "trades_v2_action": {
+    "SELL": 578,
+    "BUY": 311,
+    "HOLD": 67
+  },
+  "trades_site": {
+    "eastmoney": 156,
+    "taoguba": 117,
+    "sina": 43,
+    "xueqiu": 32
+  },
+  "trades_v2_site": {
+    "taoguba": 946,
+    "xueqiu": 10
+  },
+  "trades_conc": {
+    "rows_with_symbol": 348,
+    "distinct": 91,
+    "top": [
+      [
+        "300750",
+        "宁德时代",
+        76,
+        21.8
+      ],
+      [
+        "600519",
+        "贵州茅台",
+        55,
+        15.8
+      ],
+      [
+        "601318",
+        "中国平安",
+        46,
+        13.2
+      ],
+      [
+        "000001",
+        "平安银行",
+        45,
+        12.9
+      ],
+      [
+        "600127",
+        "金健米业",
+        6,
+        1.7
+      ]
+    ],
+    "top1_pct": 21.8,
+    "top5_pct": 65.4
+  },
+  "trades_v2_conc": {
+    "rows_with_symbol": 956,
+    "distinct": 372,
+    "top": [
+      [
+        "600825",
+        "新华传媒",
+        37,
+        3.9
+      ],
+      [
+        "600127",
+        "金健米业",
+        25,
+        2.6
+      ],
+      [
+        "300532",
+        "今天国际",
+        21,
+        2.2
+      ],
+      [
+        "000993",
+        "闽东电力",
+        19,
+        2.0
+      ],
+      [
+        "001216",
+        "华瓷股份",
+        17,
+        1.8
+      ]
+    ],
+    "top1_pct": 3.9,
+    "top5_pct": 12.5
+  },
+  "post_time_distinct": 1,
+  "join": {
+    "players_total": 326,
+    "authors_total": 89,
+    "matched_rows": 956,
+    "matched_names": 89,
+    "unmatched_rows": 0,
+    "unmatched_names": 0,
+    "unmatched_top": [],
+    "tier": {
+      "available": true,
+      "players_by_tier": {
+        "C": 137,
+        "D": 126,
+        "A": 44,
+        "B": 16,
+        "社区晒盘": 3
+      },
+      "trades_v2_rows_in_tierA": 110,
+      "trades_v2_authors_in_tierA": 11,
+      "tierA_players": 44
+    },
+    "axis": {
+      "players_has_axis": true,
+      "trades_v2_has_axis": true,
+      "trades_v2_rows_with_axis": 0
+    }
+  },
+  "completeness": {
+    "total_rows": 956,
+    "null_symbol_rows": 0,
+    "six_digit_rows": 956,
+    "non_six_digit": [],
+    "null_name_rows": 2,
+    "name_samples": {
+      "600519": {
+        "expect": "贵州茅台",
+        "got": "贵州茅台",
+        "rows": 1,
+        "ok": true
+      },
+      "300750": {
+        "expect": "宁德时代",
+        "got": "宁德时代",
+        "rows": 2,
+        "ok": true
+      },
+      "601318": {
+        "expect": "中国平安",
+        "got": null,
+        "rows": 0,
+        "ok": false
+      },
+      "000001": {
+        "expect": "平安银行",
+        "got": "平安银行",
+        "rows": 1,
+        "ok": true
+      }
+    },
+    "distinct_post_time": 1,
+    "distinct_post_url": 399,
+    "post_time_top": [
+      [
+        "2026-09-24 15:54:00",
+        956
+      ]
+    ],
+    "dirty_name_rows": 9,
+    "dirty_name_top": [
+      [
+        "000688",
+        "科创50",
+        "国城矿业",
+        4
+      ],
+      [
+        "000001",
+        "上证指数",
+        "平安银行",
+        1
+      ],
+      [
+        "000020",
+        "深华发A",
+        "深华发Ａ",
+        1
+      ],
+      [
+        "000061",
+        "农产品",
+        "农 产 品",
+        1
+      ],
+      [
+        "000402",
+        "金融街",
+        "金 融 街",
+        1
+      ],
+      [
+        "000726",
+        "鲁泰A",
+        "鲁 泰Ａ",
+        1
+      ]
+    ]
+  }
+}

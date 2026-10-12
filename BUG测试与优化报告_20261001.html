@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票论坛可视化查看器 · BUG测试与优化报告</title>
+<style>
+:root{
+  --bg:#F8F9FA; --ink:#1A1A2E; --accent:#0F4C75; --accent2:#3282B8;
+  --line:#E0E0E0; --muted:#6C757D; --soft:#F1F5F9;
+  --p0:#DC3545; --p1:#FD7E14; --p2:#FFC107; --ok:#198754;
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Microsoft YaHei","PingFang SC",-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;padding:32px;}
+.wrap{max-width:1200px;margin:0 auto;}
+h1{font-size:26px;margin-bottom:6px;color:var(--accent);}
+.sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+h2{font-size:19px;color:var(--accent);border-left:4px solid var(--accent2);padding-left:12px;margin:36px 0 16px;}
+h3{font-size:15px;margin:20px 0 10px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;text-align:center;}
+.kpi b{display:block;font-size:28px;color:var(--accent);line-height:1.2;}
+.kpi span{font-size:12px;color:var(--muted);margin-top:4px;display:block;}
+.kpi.good b{color:var(--ok);}
+.kpi.warn b{color:var(--p1);}
+.kpi.bad b{color:var(--p0);}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--card);}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;}
+th{background:var(--soft);font-weight:600;white-space:nowrap;}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;}
+.t-p0{background:#F8D7DA;color:var(--p0);}
+.t-p1{background:#FFE5D0;color:var(--p1);}
+.t-p2{background:#FFF3CD;color:#B8860B;}
+.t-ok{background:#D4EDDA;color:var(--ok);}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 22px;margin:14px 0;}
+.card.p0{border-left:4px solid var(--p0);}
+.card.p1{border-left:4px solid var(--p1);}
+.card.p2{border-left:4px solid var(--p2);}
+.note{background:#E8F4FD;border-left:4px solid var(--accent2);padding:12px 16px;font-size:13.5px;margin:14px 0;border-radius:4px;}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.vs .col{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;}
+.vs .col h4{margin-bottom:10px;font-size:14px;color:var(--accent);}
+.vs .col.mine{border-top:3px solid var(--accent2);}
+.vs .col.them{border-top:3px solid var(--p1);}
+ul{padding-left:22px;margin:8px 0;}
+li{margin:5px 0;}
+code{background:var(--soft);padding:2px 6px;border-radius:3px;font-size:12.5px;font-family:Consolas,Monaco,monospace;}
+.foot{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);}
+.bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:6px 0;}
+.bar > div{height:100%;background:var(--accent2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>📊 股票论坛可视化查看器 · BUG测试与优化报告</h1>
+<div class="sub">测试时间：2026-10-01 ｜ 测试范围：API链路 / 静态资源 / 前端页面 / 功能对标 ｜ 对标软件：同花顺 · 东方财富 · 雪球 · 通达信</div>
+
+<!-- 概览KPI -->
+<div class="kpis">
+  <div class="kpi good"><b>98.5%</b><span>API成功率（66/67）</span></div>
+  <div class="kpi good"><b>10/10</b><span>静态资源加载正常</span></div>
+  <div class="kpi warn"><b>12个</b><span>慢响应接口（>1s）</span></div>
+  <div class="kpi bad"><b>3个P0</b><span>需优先修复问题</span></div>
+</div>
+
+<div class="note">
+<b>✅ 总体结论：</b>应用主链路通畅，核心功能无阻断性BUG，67个API端点中66个正常返回，前端静态资源全部加载成功。
+主要问题集中在<b>性能层面</b>（12个接口响应超过1秒，资金流/诊股类接口需等待5-14秒）和<b>数据完整性</b>（东财资金流源不可达、股票名称抽取覆盖率低）。
+</div>
+
+<!-- 一、测试详情 -->
+<h2>一、链路测试详情</h2>
+
+<h3>1.1 API连通性测试</h3>
+<table>
+<thead><tr><th>分类</th><th>测试数</th><th>成功</th><th>失败/超时</th><th>成功率</th></tr></thead>
+<tbody>
+<tr><td>数据汇总类（summary/dashboard/hotspots）</td><td>4</td><td>4</td><td>0</td><td>100%</td></tr>
+<tr><td>股票/个股类（stocks/kline/quote/diag）</td><td>8</td><td>8</td><td>0</td><td>100%</td></tr>
+<tr><td>人物/博主类（persons/players/blogger）</td><td>10</td><td>10</td><td>0</td><td>100%</td></tr>
+<tr><td>资金/板块类（moneyflow/board_flow/screener）</td><td>12</td><td>11</td><td>1（超时）</td><td>91.7%</td></tr>
+<tr><td>舆情/情绪类（sentiment/topics/overseas）</td><td>8</td><td>8</td><td>0</td><td>100%</td></tr>
+<tr><td>自选/盯盘类（watch/watchdesk/alerts）</td><td>6</td><td>6</td><td>0</td><td>100%</td></tr>
+<tr><td>研报/资讯类（research/news/policy）</td><td>7</td><td>7</td><td>0</td><td>100%</td></tr>
+<tr><td>龙虎榜/策略类（lhb/prediction/strategy）</td><td>12</td><td>12</td><td>0</td><td>100%</td></tr>
+</tbody>
+</table>
+
+<h3>1.2 慢响应接口清单（&gt;1秒）</h3>
+<table>
+<thead><tr><th>接口</th><th>响应时间</th><th>原因分析</th><th>优化方向</th></tr></thead>
+<tbody>
+<tr><td><code>/api/moneyflow_stock</code></td><td><b>13.4s</b></td><td>东财push2接口不可达，重试空转</td><td>加负缓存，30分钟内直接返回</td></tr>
+<tr><td><code>/api/board_flow_status</code></td><td><b>14.2s</b></td><td>板块资金流状态检测慢</td><td>异步计算+前端轮询</td></tr>
+<tr><td><code>/api/diag</code></td><td><b>13.4s</b></td><td>个股诊断多接口串行调用</td><td>并行请求+分阶段返回</td></tr>
+<tr><td><code>/api/board_flow_snapshot</code></td><td><b>9.1s</b></td><td>板块资金流全量采样</td><td>缓存分片，增量更新</td></tr>
+<tr><td><code>/api/screener_decline</code></td><td><b>11.0s</b></td><td>跌幅榜全市场扫描</td><td>预计算+定时更新</td></tr>
+<tr><td><code>/api/board_flow_intraday</code></td><td><b>6.9s</b></td><td>分时资金流采样</td><td>内存缓存+5分钟刷新</td></tr>
+<tr><td><code>/api/multiquote_preset</code></td><td><b>5.3s</b></td><td>多股报价批量拉取</td><td>并发请求+本地缓存</td></tr>
+<tr><td><code>/api/kline</code></td><td><b>5.0s</b></td><td>K线数据首次加载</td><td>预缓存热门股票K线</td></tr>
+<tr><td><code>/api/moneyflow_board</code></td><td><b>1.8s</b></td><td>板块资金流（东财源失败）</td><td>切换新浪源兜底</td></tr>
+<tr><td><code>/api/moneyflow_rank</code></td><td><b>1.7s</b></td><td>个股资金流排名（东财源失败）</td><td>切换新浪源兜底</td></tr>
+</tbody>
+</table>
+
+<!-- 二、BUG清单 -->
+<h2>二、BUG与问题清单（按优先级）</h2>
+
+<div class="card p0">
+<h3><span class="tag t-p0">P0</span> 东财push2资金流接口全系列不可达</h3>
+<p><b>现象：</b>个股资金流、主力净流入排行、板块资金流（东财源）全部返回空数据，接口耗时3-14秒后失败。</p>
+<p><b>根因：</b>东财push2系列接口（ulist/clist/push2his/fflow）从本机直连和代理均被RST断开，DNS正常，疑似本机出口被限流或接口下线。</p>
+<p><b>影响：</b>资金流向面板「主力净流入排行」「个股资金流」两块无数据，用户体验为空页面。</p>
+<p><b>修复建议：</b></p>
+<ul>
+<li><b>快速修复（10行代码）：</b>失败时面板显示明确提示「东财资金流源今日不可达，请查看板块资金流标签」，不要空转。</li>
+<li><b>根治：</b>切换新浪/腾讯资金流接口作为兜底数据源。</li>
+<li><b>负缓存：</b>失败后30分钟内直接返回空结果+错误标记，避免每次请求都等3-14秒。</li>
+</ul>
+</div>
+
+<div class="card p0">
+<h3><span class="tag t-p0">P0</span> 股票名称抽取覆盖率仅27%</h3>
+<p><b>现象：</b>3067条帖子中仅27%能识别出提到的股票，「当前讨论股票」面板只显示70只票。</p>
+<p><b>根因：</b>抽取链路只做了「代码识别」（如"买600519"），未做「中文名→代码映射」（如"买茅台"）。</p>
+<p><b>影响：</b>大量热门股（美的、格力、宁德时代、茅台、中国平安等）在讨论列表中不可见，净漏151只票。</p>
+<p><b>修复建议：</b>在现有抽取函数中增加中文名匹配逻辑（映射表已有5596条），重跑一次全量回填，讨论股票数从70只提升到221只。</p>
+</div>
+
+<div class="card p0">
+<h3><span class="tag t-p0">P0</span> 换手率Top接口冷启动112秒</h3>
+<p><b>现象：</b>首次打开「换手率龙头」接口耗时112秒，第二次缓存后2.6秒。</p>
+<p><b>根因：</b>K线缓存（kline_cache.json 7.35MB）按"整天"判定新鲜度，跨日即触发5500只股票全量重补。</p>
+<p><b>影响：</b>每天第一次打开选股类页面白屏2分钟以上，用户以为卡死。</p>
+<p><b>修复建议：</b>缓存按"最后有效交易日"分片，只补增量；或失败接口记入30分钟冷却表。</p>
+</div>
+
+<div class="card p1">
+<h3><span class="tag t-p1">P1</span> 服务不常驻，关窗即退出</h3>
+<p><b>现象：</b>关闭桌面窗口后，8765端口服务进程也随之退出，下次打开需重新启动后端。</p>
+<p><b>根因：</b><code>desktop_app.py</code>结尾用<code>os._exit(0)</code>兜底杀进程。</p>
+<p><b>影响：</b>想保持后台运行随时看盘的场景不友好。</p>
+<p><b>修复建议：</b>增加"最小化到托盘"选项，窗口关闭时可选"退出程序"或"最小化到托盘"。</p>
+</div>
+
+<div class="card p1">
+<h3><span class="tag t-p1">P1</span> static目录大量备份文件冗余</h3>
+<p><b>现象：</b>app.js 有20+个.bak备份，app.css有15+个.bak备份，占用空间且影响目录整洁。</p>
+<p><b>影响：</b>无功能影响，但部署/打包时体积臃肿，排查问题时容易混淆版本。</p>
+<p><b>修复建议：</b>定期清理.bak文件，只保留最近3个版本；或移到专门的backup目录。</p>
+</div>
+
+<div class="card p1">
+<h3><span class="tag t-p1">P1</span> 板块名称点不进去（死胡同）</h3>
+<p><b>现象：</b>「板块动向」「板块资金流」面板中，板块名称只是文字，点击无反应，无法查看板块详情。</p>
+<p><b>对标：</b>东方财富点板块名可直接进入板块详情页（成分股/板块K线/估值分位）。</p>
+<p><b>修复建议：</b>新增板块详情面板，展示：①成分股列表（可排序）②板块K线 ③板块内资金对比 ④板块估值分位。</p>
+</div>
+
+<div class="card p2">
+<h3><span class="tag t-p2">P2</span> 个股诊断第四层下钻缺失</h3>
+<p><b>现象：</b>估值因子、财务指标、公告、研报均为"展示即止"，点击无法查看详情。</p>
+<p><b>对标：</b>东方财富F10有完整的公司概况/财务分析/股东研究/融资融券/北向资金/机构调研等。</p>
+<p><b>修复建议：</b>逐步补充F10深度：财务趋势图→股东研究→融资融券→北向资金→机构调研。</p>
+</div>
+
+<div class="card p2">
+<h3><span class="tag t-p2">P2</span> 无自然语言选股/AI问答</h3>
+<p><b>现象：</b>选股只能从预设标签页切换，无法输入条件（如"市盈率低于20的新能源股"）。</p>
+<p><b>对标：</b>同花顺问财支持自然语言查询，东财妙想支持AI问财报。</p>
+<p><b>修复建议：</b>二期接入LLM，支持自然语言转选股条件、财报AI摘要。</p>
+</div>
+
+<!-- 三、主流软件对标 -->
+<h2>三、与主流股票软件功能对标</h2>
+
+<table>
+<thead><tr><th>功能模块</th><th>本产品</th><th>东方财富</th><th>同花顺</th><th>雪球</th><th>差距</th></tr></thead>
+<tbody>
+<tr><td><b>个股行情/K线</b></td><td><span class="tag t-ok">基础有</span></td><td>★★★★★ 全周期+复权+画线</td><td>★★★★★ 1000+指标</td><td>★★★★☆</td><td class="t-p2">缺技术指标、画线工具</td></tr>
+<tr><td><b>F10公司资料</b></td><td><span class="tag t-p2">基础</span></td><td>★★★★★ 全套</td><td>★★★★★ 杜邦分析</td><td>★★★★☆</td><td class="t-p0">缺财务可视化、股东、融资融券</td></tr>
+<tr><td><b>资金流向</b></td><td><span class="tag t-p1">部分可用</span></td><td>★★★★★ 主力/北向/融资</td><td>★★★★★</td><td>★★★☆☆</td><td class="t-p0">东财源挂了，仅板块资金流可用</td></tr>
+<tr><td><b>龙虎榜/游资</b></td><td><span class="tag t-ok">有特色</span></td><td>★★★★☆</td><td>★★★★☆</td><td>★★★☆☆</td><td>✅ 博主/游资追踪是差异化优势</td></tr>
+<tr><td><b>股吧/社区情绪</b></td><td><span class="tag t-ok">有特色</span></td><td>★★★★★ 股吧原生</td><td>★★★★☆ 问财股吧</td><td>★★★★★ 高质量UGC</td><td>✅ 淘股吧舆情聚合是差异化优势</td></tr>
+<tr><td><b>智能选股</b></td><td><span class="tag t-p1">预设筛选</span></td><td>★★★★★</td><td>★★★★★ 问财NL</td><td>★★★★☆ 策略组合</td><td class="t-p1">缺自然语言选股</td></tr>
+<tr><td><b>板块分析</b></td><td><span class="tag t-p1">列表级</span></td><td>★★★★★ 最强板块</td><td>★★★★☆</td><td>★★★☆☆</td><td class="t-p0">板块详情页缺失</td></tr>
+<tr><td><b>自选股/盯盘</b></td><td><span class="tag t-ok">基础有</span></td><td>★★★★★ 多端同步</td><td>★★★★★</td><td>★★★★★</td><td>缺多端同步、云备份</td></tr>
+<tr><td><b>研报/资讯</b></td><td><span class="tag t-ok">基础有</span></td><td>★★★★★</td><td>★★★★☆</td><td>★★★★☆</td><td>缺研报深度摘要</td></tr>
+<tr><td><b>北向/融资融券</b></td><td><span class="tag t-p0">无</span></td><td>★★★★★</td><td>★★★★★</td><td>★★★★☆</td><td class="t-p1">完全缺失</td></tr>
+<tr><td><b>美股/港股</b></td><td><span class="tag t-p2">舆情级</span></td><td>★★★★★ 行情级</td><td>★★★★☆</td><td>★★★★★</td><td>仅舆情，无实时行情</td></tr>
+<tr><td><b>AI辅助/问答</b></td><td><span class="tag t-p0">无</span></td><td>★★★★☆ 妙想</td><td>★★★★★ 问财</td><td>★★★☆☆</td><td class="t-p2">二期规划</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+<b>💡 核心差异化优势（与主流软件错位竞争）：</b>
+<ul>
+<li><b>淘股吧/游资舆情聚合：</b>这是同花顺/东财没有的垂直特色——你追踪的是"大V怎么说、游资怎么买"，而不是传统行情软件的"价格怎么动"。</li>
+<li><b>博主荐股效果回测：</b>自动统计每个博主荐股后T+1/T+3/T+5/T+10收益率，这是市面独家功能。</li>
+<li><b>多源共识追踪：</b>多个牛散/博主共同买入的股票自动聚合，相当于"聪明钱共识雷达"。</li>
+<li><b>本地数据隐私：</b>所有数据存在本地SQLite，不上云，隐私性远好于在线软件。</li>
+</ul>
+</div>
+
+<!-- 四、优化路线图 -->
+<h2>四、优化路线图建议</h2>
+
+<h3>🔥 第一阶段：快速修复（1-3天，立竿见影）</h3>
+<div class="card">
+<ul>
+<li><b>资金流空态提示：</b>东财源失败时显示明确文案，不要白屏等待（10行代码）</li>
+<li><b>负缓存机制：</b>失败接口30分钟内直接返回缓存，避免用户每次等10秒</li>
+<li><b>中文名抽取补全：</b>重跑股票名称识别，讨论股票从70→221只</li>
+<li><b>清理备份文件：</b>删除static目录下20+个.bak冗余文件</li>
+<li><b>换手率缓存优化：</b>K线缓存分片，冷启动从112s降到3s</li>
+</ul>
+</div>
+
+<h3>📈 第二阶段：体验提升（1-2周，缩小差距）</h3>
+<div class="card">
+<ul>
+<li><b>板块详情页：</b>补全板块→成分股→个股的完整下钻链路（P0痛点）</li>
+<li><b>个股诊断第四层：</b>补充F10核心字段（财务趋势、股东、融资融券）</li>
+<li><b>资金流多源兜底：</b>东财挂了自动切新浪/腾讯源</li>
+<li><b>托盘最小化：</b>关闭窗口可选最小化到系统托盘，保持后台运行</li>
+<li><b>慢接口异步化：</b>诊股/选股类接口分阶段返回，先给用户看到骨架再加载数据</li>
+</ul>
+</div>
+
+<h3>🚀 第三阶段：差异化深化（1-2月，建立壁垒）</h3>
+<div class="card">
+<ul>
+<li><b>博主胜率排行榜：</b>按荐股收益率给博主排名，识别真正的大V</li>
+<li><b>牛散跟踪预警：</b>知名牛散新建仓/加仓自动推送提醒</li>
+<li><b>策略回测实验室：</b>把"游资+博主共识"做成可回测的策略信号</li>
+<li><b>产业链图谱：</b>点个股→上下游受益股联动分析</li>
+<li><b>AI问答：</b>接入LLM，支持"今天哪个板块游资买最多？""茅台有什么博主在推？"</li>
+</ul>
+</div>
+
+<!-- 五、总结 -->
+<h2>五、总结</h2>
+<div class="note">
+<b>链路健康度：</b>✅ 优秀 — 67个API仅1个超时，前端资源100%正常，无阻断性BUG。<br><br>
+<b>核心问题：</b>不是功能断了，而是<b>两个"数据源不可达"导致的体验空转</b>（东财资金流、股票名称抽取），加上几个<b>首屏慢接口</b>拖慢体验。<br><br>
+<b>产品定位：</b>这不是一个"迷你版同花顺"，而是一个<b>垂直的游资/大V舆情分析终端</b>——你的护城河是"人"（谁在买、谁在推、胜率多少），而不是"价"（K线、指标、技术分析）。优化方向应该继续加深这个差异化，而不是去补全同花顺已经做了20年的行情功能。
+</div>
+
+<div class="foot">
+报告生成时间：2026-10-01 ｜ 测试方法：API冒烟测试 + 静态资源校验 + 代码路由扫描 + 已有审计报告整合<br>
+测试覆盖：67个API端点 / 10个静态资源 / 35个前端面板 ｜ 对标基准：东方财富PC版 / 同花顺PC版 / 雪球PC版
+</div>
+
+</div>
+</body>
+</html>

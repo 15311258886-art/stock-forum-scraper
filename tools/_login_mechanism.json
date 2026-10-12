@@ -1,0 +1,119 @@
+{
+  "gated_anonymous": {
+    "label": "匿名（无 Cookie）",
+    "results": [
+      {
+        "url": "https://www.tgb.cn/user/getMoreListAction",
+        "status": 200,
+        "final_url": "https://sso.tgb.cn/web/login/index?url=https://www.tgb.cn/super/spefocus/toMoreListAction",
+        "len": 30062,
+        "markers": [
+          "登录/注册"
+        ],
+        "looks_gated": true
+      },
+      {
+        "url": "https://www.tgb.cn/user/getSelfInfo",
+        "status": 200,
+        "final_url": "https://sso.tgb.cn/web/login/index?url=https://www.tgb.cn/user/getSelfInfo",
+        "len": 30062,
+        "markers": [
+          "登录/注册"
+        ],
+        "looks_gated": true
+      },
+      {
+        "url": "https://www.tgb.cn/user/center",
+        "status": 404,
+        "final_url": "https://www.tgb.cn/user/center",
+        "len": 3725,
+        "markers": [],
+        "looks_gated": false
+      }
+    ]
+  },
+  "gated_with_tgbuser": {
+    "label": "仅带 tgbuser=15299129 + loginStatus=qrcode",
+    "results": [
+      {
+        "url": "https://www.tgb.cn/user/getMoreListAction",
+        "status": 200,
+        "final_url": "https://sso.tgb.cn/web/login/index?url=https://www.tgb.cn/super/spefocus/toMoreListAction",
+        "len": 30062,
+        "markers": [
+          "登录/注册"
+        ],
+        "looks_gated": true
+      },
+      {
+        "url": "https://www.tgb.cn/user/getSelfInfo",
+        "status": 200,
+        "final_url": "https://sso.tgb.cn/web/login/index?url=https://www.tgb.cn/user/getSelfInfo",
+        "len": 30062,
+        "markers": [
+          "登录/注册"
+        ],
+        "looks_gated": true
+      },
+      {
+        "url": "https://www.tgb.cn/user/center",
+        "status": 404,
+        "final_url": "https://www.tgb.cn/user/center",
+        "len": 3725,
+        "markers": [],
+        "looks_gated": false
+      }
+    ]
+  },
+  "js_scan": {
+    "script_count": 29,
+    "js_urls": [
+      "https://g.alicdn.com/frontend-lib/frontend-lib/2.3.74/antidom.js",
+      "https://o.alicdn.com/frontend-lib/common-lib/jquery.min.js",
+      "https://js.tgb.cn/js/common.js",
+      "https://js.tgb.cn/js/tc.js",
+      "https://js.tgb.cn/js/weibo/weibo.js",
+      "https://js.tgb.cn/js/cnzz_util.js",
+      "https://js.tgb.cn/js/echarts.js",
+      "https://js.tgb.cn/res/js/common/hqUrl.js",
+      "https://js.tgb.cn/js/userTips.js",
+      "https://js.tgb.cn/js/jsloder.js",
+      "https://js.tgb.cn/js/comment.js",
+      "https://js.tgb.cn/js/jquery/jquery.js",
+      "https://js.tgb.cn/js/dom-drag.js",
+      "https://js.tgb.cn/js/store-min.js",
+      "https://js.tgb.cn/js/dateUtil.js",
+      "https://js.tgb.cn/js/xmlhttp-jq.js",
+      "https://js.tgb.cn/res/config.js",
+      "https://js.tgb.cn/js/msgcount_util.js",
+      "https://js.tgb.cn/js/xdomain.min.js",
+      "https://js.tgb.cn/js/gio/commongio.js",
+      "https://js.tgb.cn/res/lib/gio.js",
+      "https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js",
+      "https://js.tgb.cn/res/libs/require.min.js",
+      "https://js.tgb.cn/js/jquery/jquery.alerts.js",
+      "https://js.tgb.cn/res/js/tgbcnzz.js",
+      "https://js.tgb.cn/res/js/header.js",
+      "https://js.tgb.cn/js/gio/newIndexGio.js",
+      "https://css.tgb.cn/res/js/shuo/cropper.min.js",
+      "https://js.tgb.cn/res/js/disclaimer.js"
+    ],
+    "findings": [
+      {
+        "js": "https://js.tgb.cn/res/config.js",
+        "kw": "qrcode",
+        "snippet": "/clsVipInfo_cls.min.065c5985.js\",     \"jquery_cls\": \"//js.tgb.cn/res/js/cls/jquery.min_cls.7668b29e.js\",     \"qrcode_cls\": \"//js.tgb.cn/res/js/cls/qrcode.min_cls.5326803c.js\",     \"common\": \"//js.tgb.cn/res/js/common.min.bcfc968f.js\",     \""
+      },
+      {
+        "js": "https://js.tgb.cn/js/msgcount_util.js",
+        "kw": "loginStatus",
+        "snippet": "\t\t\tif (data.errorCode === 15){ \t\t\t\t\t\t\t\t\twindow.location.href = data.dto; \t\t\t\t\t\t\t\t} \t\t\t\t\t\t\t} \t\t\t\t\t\t\tsetCookie(\"loginStatus\",\"account\"); \t\t\t\t\t\t\tgio(\"è´¦å·å¯ç ç»å½\"); \t\t\t\t\t\t}else{ \t\t\t\t\t\t\tshowAlert(data.errorMessage, function(){ \t\t\t\t\t\t\t\tin"
+      },
+      {
+        "js": "https://js.tgb.cn/js/msgcount_util.js",
+        "kw": "qrcode",
+        "snippet": "n-popup-left left\">' + \t\t' <div class=\"login-popup-tittle\">æéç»å½'; \tif(!loginStatus || loginStatus != \"qrcode\"){ \t\tdeom+='<img src=\"https://css.tgb.cn/images/2022/new/dlgfb.png\" style=\"margin: 0 0 -4px 5px;\">'; \t} \tdeom+='</div>' + \t"
+      }
+    ]
+  }
+}

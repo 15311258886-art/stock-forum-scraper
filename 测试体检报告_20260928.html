@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN" style="margin:0;padding:0;">
+<head>
+<meta charset="utf-8">
+<title>股票论坛可视化查看器 测试体检报告</title>
+<style>
+  body{margin:0;padding:24px;background:#f5f7fa;font-family:"Microsoft YaHei",system-ui,sans-serif;color:#1f2937;}
+  .wrap{max-width:980px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 4px;color:#0f172a;}
+  .sub{font-size:14px;color:#64748b;margin-bottom:20px;}
+  .pass{margin-bottom:20px;}
+  .pass .head{font-size:15px;font-weight:600;color:#15803d;margin-bottom:10px;}
+  .passgrid{display:flex;flex-wrap:wrap;gap:10px;}
+  .pcard{flex:1 1 190px;background:#fff;border:1px solid #dcfce7;border-left:4px solid #16a34a;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.55;}
+  .pcard b{font-size:15px;color:#166534;display:block;margin-bottom:2px;}
+  .issues h2{font-size:16px;margin:0 0 12px;color:#0f172a;}
+  .item{background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:10px;border:1px solid #e2e8f0;border-left-width:5px;display:flex;gap:14px;align-items:flex-start;}
+  .p0{border-left-color:#dc2626;}
+  .p1{border-left-color:#ea580c;}
+  .p2{border-left-color:#ca8a04;}
+  .p3{border-left-color:#94a3b8;}
+  .badge{flex:0 0 52px;font-size:13px;font-weight:700;color:#fff;border-radius:6px;text-align:center;padding:5px 0;margin-top:2px;}
+  .p0 .badge{background:#dc2626;}
+  .p1 .badge{background:#ea580c;}
+  .p2 .badge{background:#ca8a04;}
+  .p3 .badge{background:#64748b;}
+  .body{flex:1;min-width:0;}
+  .body .t{font-size:15px;font-weight:600;margin:0 0 4px;}
+  .body .d{font-size:13px;color:#334155;line-height:1.6;margin:0 0 6px;}
+  .body .ev{font-size:12px;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;padding:6px 8px;margin:0 0 6px;line-height:1.55;}
+  .body .fx{font-size:13px;color:#166534;}
+  .fx b{color:#15803d;}
+  .route{margin-top:20px;}
+  .route h2{font-size:16px;margin:0 0 12px;color:#0f172a;}
+  .rg{display:flex;gap:10px;flex-wrap:wrap;}
+  .r{flex:1 1 200px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;}
+  .r .rt{font-size:14px;font-weight:700;margin-bottom:6px;}
+  .r ul{margin:0;padding-left:16px;font-size:12.5px;color:#334155;line-height:1.65;}
+  .r1 .rt{color:#dc2626;}.r2 .rt{color:#ea580c;}.r3 .rt{color:#15803d;}
+  .foot{font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>股票论坛可视化查看器 · 测试体检与修复优先级</h1>
+  <div class="sub">测试日期 2026-09-28 23:40 · 测试对象 viewer/server.py + desktop_app.py（127.0.0.1:8765）</div>
+
+  <div class="pass">
+    <div class="head">✓ 通过项（应用主体健康）</div>
+    <div class="passgrid">
+      <div class="pcard"><b>37+ 接口</b>核心 API 全部 200：看板 / 龙虎榜 / 情绪 / 热点 / 预测 / 自选 / 海外 / 策略 / 共识 / K线 / 个股详情</div>
+      <div class="pcard"><b>数据库</b>48 张表 · 40.5MB · integrity=ok · WAL · 今日数据已入库（lhb 2026-09-28）</div>
+      <div class="pcard"><b>页面渲染</b>浏览器打开 127.0.0.1:8765 正常显示导航/统计/按钮，无 JS 报错</div>
+      <div class="pcard"><b>桌面窗口</b>desktop_app 单实例锁与端口复用逻辑正常，进程/窗口均创建成功</div>
+    </div>
+  </div>
+
+  <div class="issues">
+    <h2>发现的问题（按优先级）</h2>
+
+    <div class="item p0">
+      <div class="badge">P0</div>
+      <div class="body">
+        <p class="t">原生窗口疑似白屏：WebView2 运行时多版本并存</p>
+        <p class="d">桌面窗口进程和窗口句柄都创建成功，但渲染进程无主窗口句柄、窗口抓图近乎全白；同一页面用浏览器打开则完全正常。本机 WebView2 存在 153.0.4234.48 与 154.0.4258.37 两个版本目录并存，历史上还出现过「msedgewebview2 has stopped working」崩溃弹框。疑似渲染层加载异常（有 6+ 个历史 msedgewebview2 残留进程）。</p>
+        <p class="ev">证据：%LOCALAPPDATA%\Microsoft\EdgeWebView\Application 下两个版本目录；所有 msedgewebview2 进程 MainWindowHandle=0；PrintWindow 抓图全白；同一 URL 浏览器渲染正常。</p>
+        <p class="fx"><b>建议：</b>修复/重装 WebView2 Evergreen 运行时（仅保留最新版），清理残留进程；desktop_app 增加「加载超时自检 → 自动回退默认浏览器」。</p>
+      </div>
+    </div>
+
+    <div class="item p0">
+      <div class="badge">P0</div>
+      <div class="body">
+        <p class="t">两个 viewer.server 进程并存（同命令 34088 / 45604）</p>
+        <p class="d">当前有父子两个「python -m viewer.server」进程同时存在，虽 SO_EXCLUSIVEADDRUSE 已阻止双端口绑定（仅 34088 在监听），但残留父进程占用资源，且任何重复启动路径都可能让新旧代码进程并存，出现「改了代码不生效 / 数据跳变」。</p>
+        <p class="ev">证据：Get-CimInstance 显示 PID 45604（父）→ 34088（子），均启动于 21:59:22，命令行相同。</p>
+        <p class="fx"><b>建议：</b>server 进程级也加互斥/去重（如命令行启动时检测已有实例）；排查 45604 的启动来源（WorkBuddy 调度或重复双击），停掉残留父进程。</p>
+      </div>
+    </div>
+
+    <div class="item p1">
+      <div class="badge">P1</div>
+      <div class="body">
+        <p class="t">资金流（moneyflow）系列无兜底，当前全部空数据</p>
+        <p class="d">moneyflow_stock / moneyflow_rank / moneyflow_board 均返回 ok:false（东财 push2 接口不可达）。同页面 quote 已有「腾讯行情兜底」能正常出数，但资金流没有兜底，前端显示空态。</p>
+        <p class="ev">证据：/api/moneyflow_rank → "未取到资金流排行（东财 push2 接口不可达）"；/api/quote → "腾讯行情（东财 push2 不可用，已自动兜底）"。</p>
+        <p class="fx"><b>建议：</b>为资金流增加备用数据源（腾讯/新浪/同花顺）或超时降级提示，避免页面空白。</p>
+      </div>
+    </div>
+
+    <div class="item p1">
+      <div class="badge">P1</div>
+      <div class="body">
+        <p class="t">日志丢失 + 中文乱码</p>
+        <p class="d">server.log 最后写入 09-26 04:22（当前运行实例未落盘——pythonw 无控制台，print/logging 输出被丢弃，出问题无法排查）；auto_update.log 等文件中文全部乱码（UTF-8 内容被按 GBK 写入/读取，编码不一致）。</p>
+        <p class="ev">证据：server.log mtime=2026/9/26 4:22:46 且内容为乱码；auto_update_status.json 中中文乱码；desktop_app.py 无日志文件输出。</p>
+        <p class="fx"><b>建议：</b>日志统一落盘 viewer/logs/server-YYYYMMDD.log，强制 UTF-8 编码；desktop 启动路径同样生效；旧乱码日志归档。</p>
+      </div>
+    </div>
+
+    <div class="item p2">
+      <div class="badge">P2</div>
+      <div class="body">
+        <p class="t">工程卫生：临时脚本与备份大量堆积</p>
+        <p class="d">项目根目录有 200+ 个 _*.py 临时脚本、数百张 *_shot/*.png 截图、40+ 个 app.db 备份（每个 42MB）、static 目录 40+ 个 .bak 文件，累计占用数百 MB，并拖慢目录扫描与备份。</p>
+        <p class="ev">证据：根目录清单；app.db.bak.* 14 份 × 42MB；static/*.bak 40 份。</p>
+        <p class="fx"><b>建议：</b>临时脚本/截图归入 archive/，旧 DB 备份按日期保留最近 5 份，其余删除或压缩；.bak 统一移出 static。</p>
+      </div>
+    </div>
+
+    <div class="item p2">
+      <div class="badge">P2</div>
+      <div class="body">
+        <p class="t">requirements.txt 未包含 pywebview</p>
+        <p class="d">桌面窗口依赖 pywebview 6.2.1（venv 已装），但 requirements.txt 只有 5 个包，换机/重建环境会因缺依赖无法启动桌面版。</p>
+        <p class="ev">证据：requirements.txt 内容 vs venv pip list。</p>
+        <p class="fx"><b>建议：</b>补 pywebview>=6.0 到 requirements.txt，另加 logging 相关（标准库无需）。</p>
+      </div>
+    </div>
+
+    <div class="item p3">
+      <div class="badge">P3</div>
+      <div class="body">
+        <p class="t">盘中无自动刷新</p>
+        <p class="d">自动调度每天 09:00 跑一次，最新刷新停留在 18:08（5 小时前）；「实时刷新(5分钟)」需手动点击，盘中数据时效不足。</p>
+        <p class="ev">证据：/api/scheduler/status next_run 2026-09-29 09:00；refresh_status last_ok_at 18:08:40。</p>
+        <p class="fx"><b>建议：</b>增加盘中（09:30–15:00）可选 5–10 分钟增量刷新开关。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="route">
+    <h2>建议修复路线</h2>
+    <div class="rg">
+      <div class="r r1"><div class="rt">立即（P0）</div><ul><li>修复 WebView2 运行时 / 清理残留进程</li><li>desktop_app 加渲染自检+浏览器回退</li><li>停掉 45604 残留实例，查重复启动来源</li></ul></div>
+      <div class="r r2"><div class="rt">本周（P1）</div><ul><li>资金流多源兜底</li><li>日志落盘 + UTF-8 统一</li></ul></div>
+      <div class="r r3"><div class="rt">本月（P2/P3）</div><ul><li>临时脚本/备份归档清理</li><li>requirements 补全</li><li>盘中自动刷新开关</li></ul></div>
+    </div>
+  </div>
+
+  <div class="foot">说明：测试过程未改动任何项目文件；8765 服务（PID 34088）全程保持运行。P0 中「白屏」结论基于窗口句柄/抓图/浏览器对照的强证据推断，最终以真实屏幕肉眼确认为准。</div>
+</div>
+</body>
+</html>

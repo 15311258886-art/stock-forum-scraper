@@ -1,0 +1,106 @@
+============================================================
+api_consensus (1369-1384)
+============================================================
+ 1369: def api_consensus(min_holders: int = 2, symbol: str | None = None) -> list[dict]:
+ 1370:     """多人共同持仓共识：各股被多少人（跨渠道/平台）共同持有，按人数降序，
+ 1371:     融合讨论热度作为辅助参考。symbol 指定时只返回单只，避免每次点击重算全量。"""
+ 1372:     out = DB.consensus_stocks(min_holders=min_holders)
+ 1373:     for x in out:
+ 1374:         n = _named(x["symbol"], x.get("symbol_name") or "")
+ 1375:         x["symbol_name"] = n["name"]
+ 1376:         x["company"] = n["company"]
+ 1377:         x["market"] = n["market"]
+ 1378:         x["name_missing"] = n["name_missing"]
+ 1379:     if symbol:
+ 1380:         out = [x for x in out if x["symbol"] == symbol]
+ 1381:     return out
+ 1382: 
+ 1383: 
+ 1384: def api_cohold_recent(days: int = 5, min_holders: int = 2,
+
+============================================================
+api_cohold_recent (1384-1408)
+============================================================
+ 1384: def api_cohold_recent(days: int = 5, min_holders: int = 2,
+ 1385:                       anchor: str | None = None) -> dict:
+ 1386:     """近 N 日「多人同向操作」：共买 / 共卖两组，附买入时间、价格、数量、浮盈与持有状态。
+ 1387: 
+ 1388:     与 /api/consensus 的区别：那边看的是**当前持仓快照**（现在还有多少人拿着），
+ 1389:     这边看的是**最近 N 天谁同时动手了**（动作发生时点）。两者互补，不可互替。
+ 1390: 
+ 1391:     名称补全在服务端统一做（与其它接口一致），避免前端各自回退出不一致的显示名。
+ 1392:     """
+ 1393:     d = DB.cohold_recent(days=days, min_holders=min_holders, anchor=anchor)
+ 1394:     for grp in ("buy", "sell"):
+ 1395:         for x in d.get(grp) or []:
+ 1396:             n = _named(x["symbol"], x.get("symbol_name") or "")
+ 1397:             x["symbol_name"] = n["name"]
+ 1398:             x["company"] = n["company"]
+ 1399:             x["market"] = n["market"]
+ 1400:             x["name_missing"] = n["name_missing"]
+ 1401:             if n["name"]:
+ 1402:                 x["label"] = f"{n['name']}（{x['symbol']}）"
+ 1403:             for p in x.get("players") or []:
+ 1404:                 p["symbol_name"] = n["name"] or x["symbol_name"] or ""
+ 1405:     return d
+ 1406: 
+ 1407: 
+ 1408: def api_stock(symbol: str) -> dict:
+
+============================================================
+trades SELL 全部明细
+============================================================
+  id=4819 eastmoney  先让脑子看见     300750  宁德时代     2026-09-25 05:41:02
+     url=https://guba.eastmoney.com/news,300750,1777754287.html
+     raw=8.30预设紫金33元底线9.11跌破纪律清仓昨日最低砸至29.998.30预警 
+  id=4471 taoguba    靳兔         605058  华瓷股份     2026-09-24 15:20:00
+     url=https://www.tgb.cn/a/2vlRrTnt4hF
+     raw=$澳弘电子(sh605058)$$华瓷股份(sz001216)$今天操作:澳弘电子，B。华瓷股份，S。［图片］
+  id=4185 eastmoney  摸鱼后喂养纳指    600519  贵州茅台     
+     url=https://guba.eastmoney.com/news,600519,1777421797.html
+     raw=减仓到了100股，让暴风雨来的更猛烈一些吧，跌到1100附近，我们再见 
+  id=4190 eastmoney  比对分析回报率    000001  平安银行     
+     url=https://guba.eastmoney.com/news,000001,1766128176.html
+     raw=凹凸银行欠稳预期“经营捣蛋折腾，操纵分红”逢高卖出。。。 
+  id=4191 eastmoney  撕幕操盘手      000001  平安银行     
+     url=https://guba.eastmoney.com/news,000001,1777256379.html
+     raw=内部消息，发出主力出逃信号，果断卖出300手。 
+  id=4193 eastmoney  股友QQNY0P   000001  平安银行     
+     url=https://guba.eastmoney.com/news,000001,1777312444.html
+     raw=分红分了个寂寞，卖出交五分钱红利禾兑 
+  id=4467 taoguba    TAndyT     600186  莲花控股     
+     url=https://www.tgb.cn/a/2vlStn1xw63
+     raw=今天大盘又跌回到了911的3888点！特发信息(000070)尾盘买进，测试新买点！兴欣新材(001358)早盘冲高买进，结果一路下跌，跌到了止损位！等开盘直接止损吧！莲花控股(600186)出剩二手，等开盘再接回来！
+  id=4776 eastmoney  夜的欢歌       600519  贵州茅台     
+     url=https://guba.eastmoney.com/news,600519,1777545603.html
+     raw=景顺出货刘彦春时期的茅台库底子，叠加过节资金避险，这就是下跌的原因。但是买入茅台 
+  id=4787 eastmoney  湘零道人001禁言  300750  宁德时代     
+     url=https://guba.eastmoney.com/news,601318,1777744185.html
+     raw=赶在三季报前，卖出宁德时代，预计三季报后宁德时代再下一城，回到200。中报看已经 
+  id=4792 eastmoney  湘零道人001禁言  601318  中国平安     
+     url=https://guba.eastmoney.com/news,601318,1777744185.html
+     raw=赶在三季报前，卖出宁德时代，预计三季报后宁德时代再下一城，回到200。中报看已经 
+
+=== trades 全部（含 BUY）按 symbol 聚合 ===
+  000001  平安银行       BUY   9人 11次 | 股友谊译,坚强地黄药师,平安银行资讯,夏春秋A,用户6901149448,用户6901149448,交行1318,不暴跌
+  601318  中国平安       BUY   9人 9次 | 股田的守望者,股友38691HI336,ru行,紫菜不加蛋花汤,我命由我不由天999,城市寄居蟹,基民5965l1209
+  300750  宁德时代       BUY   7人 7次 | 涅槃回本,股友86Q5390Z69,zhang放下,蔡小美,股友0f6v670753,肃静的安以陌,基民0k3Q9822
+  000001  平安银行       HOLD  5人 6次 | 爱学yzwls2179,股友6K77v62673,价值best,两亿分之一强,no_gamble,no_gamble
+  600519  贵州茅台       BUY   4人 4次 | 嘉华睿投,千里眼5110700,贵州茅台资讯,股友SsJWJY
+  601318  中国平安       HOLD  3人 4次 | 星空你亏钱了吗,中国平安资讯,no_gamble,no_gamble
+  600519  贵州茅台       HOLD  3人 3次 | 股友平常心处之,一个游戏,黄老邪财经
+  000001  平安银行       SELL  3人 3次 | 比对分析回报率,撕幕操盘手,股友QQNY0P
+  600519  贵州茅台       SELL  2人 2次 | 摸鱼后喂养纳指,夜的欢歌
+  300750  宁德时代       SELL  2人 2次 | 湘零道人001禁言,先让脑子看见
+  300750  宁德时代       HOLD  2人 2次 | 新浪财经客户端,股友7L21976y05
+  605058  华瓷股份       SELL  1人 1次 | 靳兔
+  605058  澳弘电子       BUY   1人 1次 | 靳兔
+  601318  中国平安       SELL  1人 1次 | 湘零道人001禁言
+  601088  中国神华       HOLD  1人 1次 | 静安一朵花
+  600926             HOLD  1人 1次 | 静安一朵花
+  600887  伊利股份       HOLD  1人 1次 | no_gamble
+  600186  莲花控股       SELL  1人 1次 | TAndyT
+  600127  金健米业       HOLD  1人 1次 | 牛转钱坤8888
+  002304  洋河股份       HOLD  1人 1次 | 黄老邪财经
+  001358  兴欣新材       BUY   1人 1次 | TAndyT
+  000070  特发信息       BUY   1人 1次 | TAndyT

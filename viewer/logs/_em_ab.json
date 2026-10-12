@@ -1,0 +1,98 @@
+[
+  {
+    "i": 0,
+    "tag": "long",
+    "ok": true,
+    "f92": 200.9897548
+  },
+  {
+    "i": 0,
+    "tag": "short",
+    "ok": true,
+    "f92": null
+  },
+  {
+    "i": 1,
+    "tag": "long",
+    "ok": true,
+    "f92": 200.9897548
+  },
+  {
+    "i": 1,
+    "tag": "short",
+    "ok": true,
+    "f92": null
+  },
+  {
+    "i": 2,
+    "tag": "long",
+    "ok": true,
+    "f92": 200.9897548
+  },
+  {
+    "i": 2,
+    "tag": "short",
+    "ok": true,
+    "f92": null
+  },
+  {
+    "i": 3,
+    "tag": "long",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 3,
+    "tag": "short",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 4,
+    "tag": "long",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 4,
+    "tag": "short",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 5,
+    "tag": "long",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 5,
+    "tag": "short",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 0,
+    "tag": "long_slow",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 1,
+    "tag": "long_slow",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 2,
+    "tag": "long_slow",
+    "ok": false,
+    "f92": null
+  },
+  {
+    "i": 3,
+    "tag": "long_slow",
+    "ok": false,
+    "f92": null
+  }
+]

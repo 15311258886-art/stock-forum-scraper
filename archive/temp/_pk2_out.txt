@@ -1,0 +1,117 @@
+===== learnSubItems 全文 =====
+function learnSubItems(fallback) {
+  const tracks = toArr(KB.tracks && KB.tracks.docs);
+  if (!tracks.length) return fallback;
+  const items = tracks.map((d) => ({
+    tab: "learn_" + d.doc_key,
+    label: d.track || d.title || d.doc_key,
+    docKey: d.doc_key,
+  }));
+  items.push({ tab: "learn_tracks", label: "学习轨道管理" });
+  return items;
+}
+/* 动态学习轨道面板在 index.html 里没有预置容器 → 首次进入时按需补一个。
+   容器由 .main 改为 .content（2026-09-23 外壳改造后，.wrap/.layout/.main 已合并为 .shell/.content）。 */
+
+
+===== 按需渲染分支 (3405-3430) =====
+ 3405:   const cat = NAV.find((c) => c.key === catKey) || NAV[0];
+ 3406:   const tab = (tabKey && cat.items.some((i) => i.tab === tabKey)) ? tabKey : cat.items[0].tab;
+ 3407:   CURRENT = { cat: cat.key, tab };
+ 3408:   if (push) {
+ 3409:     const h = "#" + cat.key + "/" + tab;
+ 3410:     if (location.hash !== h) { location.hash = h; return; }   // hashchange 会回调本函数
+ 3411:   }
+ 3412:   renderNav();            // 左栏只随「当前大类」高亮变化
+ 3413:   paintSubnav(cat, tab);  // 内容区顶部横条：按大类换一批子项，并高亮当前项
+ 3414:   $$(".panel").forEach((p) => p.classList.remove("active"));
+ 3415:   const panel = ensurePanel(tab);
+ 3416:   if (panel) panel.classList.add("active");
+ 3417:   // 知识库正文约 250KB：只有真正进入该子板块才拉（懒加载）
+ 3418:   if (cat.key === "learn" && !KB.tracks) loadKbTracks();
+ 3419:   if (tab === "learn_zdx_stock") ensureKbDoc();
+ 3420:   if (tab === "learn_tracks") renderKbTracks();
+ 3421:   // 今日看板：决策入口（默认落地页）——进入时按需（重）渲染，兜住"先拿数据、后面板才建"的时序
+ 3422:   if (tab === "dashboard") {
+ 3423:     if (DASH.data) renderDashboard();
+ 3424:     else loadDashboard().catch((e) => reportLoadError("今日看板", e));
+ 3425:   }
+ 3426:   // 知识获取三块：进入时按需渲染（archive 会打接口，故只在进入时拉）
+ 3427:   if (tab === "sources") renderSourcesPanel(SUMMARY.data);
+ 3428:   if (tab === "archive") renderArchivePanel();
+ 3429:   if (tab === "fetchlog") renderFetchLogPanel(SUMMARY.data);
+ 3430:   // 游资龙虎榜：进入该子板块时按需（重）渲染 —— 双保险。
+
+===== renderCohold 全文 (2266+) =====
+----- span 107697-108962 -----
+function renderCohold(d) {
+  const box = $("#p-cohold");
+  if (!box) return;
+  if (!d || typeof d !== "object" || Array.isArray(d)) {
+    box.innerHTML = `<div class="empty">近5日共同买入：接口返回类型不符，已降级为空。</div>`;
+    return;
+  }
+  COHOLD.data = d;
+  box.innerHTML = `
+    <div class="hint" style="margin-bottom:10px">
+      按「窗口内 ≥<b>${esc(d.min_holders ?? COHOLD.min)}</b> 位选手<b>同向操作</b>同一标的」聚合，<b>共买</b>（红）与<b>共卖</b>（绿）分两组列出。
+      与左侧「共同持仓共识」<b>口径不同</b>：共识看的是<b>现在还持有</b>（持仓快照），本板块看的是<b>最近 ${esc(d.days)} 天谁同时动手</b>（动作发生时点）——
+      所以本板块能露出「窗口内已卖出」这类共识板块看不到的行。数据合并 <b>positions</b>（仓位占比/买价/现价）与 <b>trades</b>（<b>成交数量</b>、更精确的成交时刻）两张表。
+    </div>
+    ${coholdWindowBar(d)}
+    <div class="coh-legend">
+      <span class="badge bull">共同买入</span> <span class="coh-lbl">红 = 买（A股惯例）</span>
+      <span class="coh-sep"></span>
+      <span class="badge bear">共同卖出</span> <span class="coh-lbl">绿 = 卖</span>
+    </div>
+    ${coholdTable(d, "buy")}
+    ${coholdTable(d, "sell")}
+    <div class="hint" style="margin-top:12px">
+      <b>数量</b>来自 trades 表的成交记录——positions 表没有这一列，所以只有持仓快照、没有成交明细的行会显示「—」，<b>不会用 0 或估算值顶替</b>。
+      <b>浮盈</b>用同一笔的买价与现价计算，不跨笔混算。<b>持有状态</b>取「买点之后是否存在该选手对该标的的卖出记录」，有则记为「买入后已卖出」。
+      ${freshLegend()}
+    </div>`;
+  bindCohold();
+  applyFreshness();
+}
+
+
+
+===== server.py 中 SELL / sell 聚合 =====
+  629:         "FROM trades WHERE action IN ('BUY','SELL','HOLD') ORDER BY post_time DESC LIMIT 200"
+  978:             "buy": 0.0, "sell": 0.0, "net": 0.0,
+  985:         a["sell"] += r["act_sell"] or 0.0
+ 1010:             "buy": a["buy"], "sell": a["sell"], "net": a["net"],
+ 1097:                   SUM(CASE WHEN side='SELL' THEN net ELSE 0 END) AS sell_net
+ 1369: def api_consensus(min_holders: int = 2, symbol: str | None = None) -> list[dict]:
+ 1384: def api_cohold_recent(days: int = 5, min_holders: int = 2,
+ 1394:     for grp in ("buy", "sell"):
+ 1450:         if (it.get("action") or "").upper() == "SELL":
+ 2192:         is_sell = _act(it) == "SELL"
+
+===== api_cohold_recent 全文 =====
+----- span 56112-57024 -----
+def api_cohold_recent(days: int = 5, min_holders: int = 2,
+                      anchor: str | None = None) -> dict:
+    """近 N 日「多人同向操作」：共买 / 共卖两组，附买入时间、价格、数量、浮盈与持有状态。
+
+    与 /api/consensus 的区别：那边看的是**当前持仓快照**（现在还有多少人拿着），
+    这边看的是**最近 N 天谁同时动手了**（动作发生时点）。两者互补，不可互替。
+
+    名称补全在服务端统一做（与其它接口一致），避免前端各自回退出不一致的显示名。
+    """
+    d = DB.cohold_recent(days=days, min_holders=min_holders, anchor=anchor)
+    for grp in ("buy", "sell"):
+        for x in d.get(grp) or []:
+            n = _named(x["symbol"], x.get("symbol_name") or "")
+            x["symbol_name"] = n["name"]
+            x["company"] = n["company"]
+            x["market"] = n["market"]
+            x["name_missing"] = n["name_missing"]
+            if n["name"]:
+                x["label"] = f"{n['name']}（{x['symbol']}）"
+            for p in x.get("players") or []:
+                p["symbol_name"] = n["name"] or x["symbol_name"] or ""
+    return d
+
+

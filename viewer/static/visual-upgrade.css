@@ -1,0 +1,371 @@
+/* =============================================================================
+   股票查看器 · 视觉升级层（2026-09-25）
+   设计目标：在不动 4 套配色 / 不改 HTML 结构 / 不碰任何 JS 的前提下，
+   给整套界面叠加「层次 · 质感 · 品牌感 · 动效」。
+   所有新令牌都基于现有主题变量 + color-mix 派生，4 套主题自动继承。
+   加载顺序：必须位于 app.css 之后（index.html 已保证）。
+   ============================================================================= */
+:root {
+  /* 品牌渐变：主色 → 主色与辅色混合，给按钮 / 徽标 / 激活态增加温度与个性 */
+  --vz-grad: linear-gradient(135deg,
+      var(--accent) 0%,
+      color-mix(in srgb, var(--accent) 52%, var(--accent2)) 100%);
+  /* 分层阴影：近实阴影 + 远柔阴影，取代原先单薄的 1px 边框感 */
+  --vz-sh-sm: 0 1px 2px color-mix(in srgb, var(--text) 10%, transparent),
+              0 2px 8px color-mix(in srgb, var(--text) 6%, transparent);
+  --vz-sh-md: 0 2px 6px color-mix(in srgb, var(--text) 9%, transparent),
+              0 10px 28px color-mix(in srgb, var(--text) 8%, transparent);
+  --vz-sh-lg: 0 8px 24px color-mix(in srgb, var(--text) 14%, transparent),
+              0 24px 60px color-mix(in srgb, var(--text) 12%, transparent);
+  /* 主色辉光：用于悬停浮起 / 激活态的彩色投影 */
+  --vz-glow: 0 8px 26px color-mix(in srgb, var(--accent) 26%, transparent);
+  /* 圆角与节奏（在 app.css 令牌基础上补足装饰性令牌） */
+  --vz-r-xl: 16px;
+  --vz-r-2xl: 20px;
+}
+
+/* ===================== 环境背景：给扁平底色增加纵深 ===================== */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(900px 520px at 12% -8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(820px 620px at 100% 0%, color-mix(in srgb, var(--accent2) 10%, transparent), transparent 55%),
+    radial-gradient(700px 700px at 88% 108%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%);
+}
+/* 顶栏底部一道极细的渐变分隔，建立「品牌条」印象 */
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: var(--vz-grad); opacity: .9;
+}
+
+/* ===================== 顶栏：玻璃质感 + 品牌标识 ===================== */
+.topbar {
+  background: color-mix(in srgb, var(--topbar) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 80%, transparent),
+              0 6px 22px color-mix(in srgb, var(--text) 6%, transparent);
+}
+.topbar h1 {
+  position: relative; padding-left: 40px; letter-spacing: .2px;
+  font-size: 16px; background: var(--vz-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.topbar h1::before {                 /* 品牌方块 */
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; border-radius: 10px; background: var(--vz-grad);
+  box-shadow: var(--vz-glow);
+}
+.topbar h1::after {                  /* 品牌符号：向上折线 + 顶点 */
+  content: ""; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+  width: 16px; height: 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3,17 9,10 13,13 21,5'/%3E%3Ccircle cx='21' cy='5' r='2.1' fill='white' stroke='none'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ===================== 左侧导航：激活态渐变胶囊 + 细节 ===================== */
+.rail-head {
+  font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase;
+  color: color-mix(in srgb, var(--muted) 80%, var(--text));
+  padding: 2px 11px 12px; font-weight: 700;
+}
+.nav-item { font-weight: 500; transition: background .18s, color .18s, transform .18s; }
+.nav-item:hover { transform: translateX(2px); }
+.nav-item.active {
+  background: var(--vz-grad); color: var(--on-accent, #fff);
+  box-shadow: var(--vz-glow);
+  font-weight: 700;
+}
+.nav-item.active .ni-ico { opacity: 1; }
+/* 导航滚动条：细、主色淡染 */
+.sidenav::-webkit-scrollbar { width: 8px; }
+.sidenav::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 999px; }
+.sidenav::-webkit-scrollbar-track { background: transparent; }
+
+/* ===================== 通用卡片：分层阴影 + 浮起 ===================== */
+.card, .box, .bar-card {
+  box-shadow: var(--vz-sh-sm);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.box:hover {
+  box-shadow: var(--vz-sh-md), var(--vz-glow);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+/* 卡片顶部一条渐变细线，强化「设计感」而非纯边框 */
+.card::before, .bar-card::before {
+  content: ""; display: block; height: 3px; margin: -16px -16px 12px; border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--vz-grad); opacity: .85;
+}
+/* 圆角统一为更柔和的装饰令牌（仅作用于卡片类，不影响表格/抽屉） */
+.card, .bar-card { border-radius: var(--vz-r-xl); }
+.box { border-radius: var(--vz-r-lg); }
+
+/* ===================== 顶部统计卡：渐变数字 + 入场动效 + 浮起 ===================== */
+#cards .card {
+  box-shadow: var(--vz-sh-sm);
+  position: relative; overflow: hidden;
+  animation: vz-rise .55s cubic-bezier(.2,.7,.2,1) both;
+}
+#cards .card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--vz-sh-md), var(--vz-glow);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+/* 入场错峰，制造节奏感（最多覆盖 12 张） */
+#cards .card:nth-child(1) { animation-delay: .02s; }
+#cards .card:nth-child(2) { animation-delay: .06s; }
+#cards .card:nth-child(3) { animation-delay: .10s; }
+#cards .card:nth-child(4) { animation-delay: .14s; }
+#cards .card:nth-child(5) { animation-delay: .18s; }
+#cards .card:nth-child(6) { animation-delay: .22s; }
+#cards .card:nth-child(7) { animation-delay: .26s; }
+#cards .card:nth-child(8) { animation-delay: .30s; }
+#cards .card:nth-child(9) { animation-delay: .34s; }
+#cards .card:nth-child(n+10) { animation-delay: .38s; }
+#cards .card .n {
+  background: var(--vz-grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+  letter-spacing: -.5px;
+}
+#cards .card .l { font-weight: 500; }
+
+@keyframes vz-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ===================== 表格：圆角容器 + 粘性玻璃头 + 斑马纹 ===================== */
+table {
+  border-radius: var(--vz-r-lg); overflow: hidden;
+  box-shadow: var(--vz-sh-sm); border: 1px solid var(--border);
+}
+thead th, th {
+  position: sticky; top: 0; z-index: 2;
+  background: color-mix(in srgb, var(--topbar) 88%, var(--accent) 4%);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  font-size: 12px; letter-spacing: .3px;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--tag) 60%, transparent); }
+tr:hover td {
+  background: color-mix(in srgb, var(--accent) 10%, var(--hover)) !important;
+  transition: background .12s;
+}
+td, th { padding: 11px 13px; }
+td.num, th.num { font-variant-numeric: tabular-nums; letter-spacing: .2px; }
+/* 链接单元格强调色 */
+td a, .tbl-detail a { color: var(--accent); font-weight: 600; }
+
+/* ===================== 按钮：渐变主按钮 + 细腻交互 ===================== */
+.btn {
+  border-radius: var(--r-md); font-weight: 600; letter-spacing: .2px;
+  box-shadow: var(--vz-sh-sm); transition: transform .15s, box-shadow .15s, border-color .15s, color .15s, filter .15s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--vz-sh-md); }
+.btn:active { transform: translateY(0); }
+.btn.primary {
+  background: var(--vz-grad); border-color: transparent;
+  box-shadow: var(--vz-glow);
+}
+.btn.primary:hover { filter: brightness(1.06) saturate(1.05); color: #fff; }
+.topbar .btn { box-shadow: none; }
+.topbar .btn:hover { box-shadow: var(--vz-glow); }
+
+/* 次级导航 / 筛选按钮：激活态渐变 */
+.sub-tab.active { box-shadow: var(--vz-glow); }
+.fbtn.active { box-shadow: var(--vz-glow); }
+
+/* ===================== 徽章 / 标签：微小浮起 + 过渡 ===================== */
+.badge, .chip-s, .stk, .stk-mini, .src-tag, .chip-demo, .chip-real, .kb-tag, .ov-driver, .kbtn {
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.chip-s:hover, .stk:hover, .kbtn:hover { box-shadow: var(--vz-sh-sm); }
+/* 来源「实盘」小徽章更精致 */
+.src-tag {
+  background: var(--vz-grad); color: var(--on-accent, #fff);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  letter-spacing: .3px;
+}
+
+/* ===================== 详情抽屉：渐变头 + 更深层次 ===================== */
+.drawer {
+  border-radius: var(--vz-r-2xl);
+  box-shadow: var(--vz-sh-lg);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, var(--accent) 12%);
+}
+.drawer-head {
+  background: var(--vz-grad); color: var(--on-accent, #fff);
+  border-bottom: none; border-radius: var(--vz-r-2xl) var(--vz-r-2xl) 0 0;
+}
+.drawer-title { color: var(--on-accent, #fff); font-weight: 800; letter-spacing: .3px; }
+.drawer-head .dbtn {
+  background: color-mix(in srgb, #fff 16%, transparent);
+  border-color: color-mix(in srgb, #fff 30%, transparent);
+  color: var(--on-accent, #fff);
+}
+.drawer-head .dbtn:hover { background: color-mix(in srgb, #fff 28%, transparent); color: #fff; border-color: #fff; }
+.drawer-head .dbtn.close:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
+.drawer-head .dbtn.on { background: #fff; color: var(--accent); border-color: #fff; }
+.drawer-resize { opacity: .35; }
+
+/* ===================== 章节标题：渐变左条 + 大写感 ===================== */
+.hs-layer-hd, .coh-h, .kb-sec-h, .ov-mood-head, .detail-sub, .ov-hs-sub,
+.kb-block-h, .kb-bt-h, .hs-fc .hs-sub, .ov-hs-fc-grp-hd, .kb-school-h {
+  border-left: none !important; position: relative; padding-left: 14px;
+}
+.hs-layer-hd::before, .coh-h::before, .kb-sec-h::before, .ov-mood-head::before,
+.detail-sub::before, .ov-hs-sub::before, .kb-block-h::before, .kb-bt-h::before,
+.hs-fc .hs-sub::before, .ov-hs-fc-grp-hd::before, .kb-school-h::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 5px; height: 1.05em; border-radius: 999px; background: var(--vz-grad);
+  box-shadow: var(--vz-glow);
+}
+.hs-layer-hd, .coh-h, .kb-sec-h, .kb-block-h, .kb-bt-h, .kb-school-h, .ov-hs-fc-grp-hd {
+  font-weight: 800; letter-spacing: .3px;
+}
+.coh-h { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+/* 状态色徽标（涨跌/牛熊）增加一点内描边，避免平涂死板 */
+.badge.buy, .badge.sell, .badge.bull, .badge.bear, .badge.hold,
+.badge.ch-A, .badge.ch-B, .badge.ch-C, .badge.ch-D,
+.badge.p-taoguba, .badge.p-eastmoney, .badge.p-xueqiu, .badge.p-ths {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+/* ===================== K 线区：更柔和的容器与按钮 ===================== */
+.kline-canvas-wrap {
+  border-radius: var(--vz-r-lg); box-shadow: var(--vz-sh-sm);
+  background: color-mix(in srgb, var(--panel) 75%, var(--tag));
+}
+.kline-snap .ks-price { letter-spacing: -.5px; }
+.kbtn.active { box-shadow: var(--vz-glow); }
+.kline-tip {
+  border-radius: 10px; box-shadow: var(--vz-sh-md);
+  background: color-mix(in srgb, var(--topbar) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===================== 提示条 / 横幅：更克制优雅 ===================== */
+.hint, .banner {
+  border-radius: var(--vz-r-lg);
+  box-shadow: var(--vz-sh-sm);
+  line-height: 1.7;
+}
+.banner-info { box-shadow: inset 0 0 0 1px #93C5FD, var(--vz-sh-sm); }
+.banner-warn { box-shadow: inset 0 0 0 1px #FBBF24, var(--vz-sh-sm); }
+
+/* ===================== 全局滚动条（内容区 / 抽屉 / 表格滚动） ===================== */
+.content::-webkit-scrollbar, .drawer-body::-webkit-scrollbar,
+.kb-scroll::-webkit-scrollbar, .drawer-body table::-webkit-scrollbar {
+  width: 9px; height: 9px;
+}
+.content::-webkit-scrollbar-thumb, .drawer-body::-webkit-scrollbar-thumb,
+.kb-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: 999px; border: 2px solid transparent; background-clip: content-box;
+}
+.content::-webkit-scrollbar-thumb:hover, .drawer-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 50%, var(--border));
+  background-clip: content-box;
+}
+
+/* ===================== 主题切换器：圆形样品更精致 ===================== */
+.theme-pick .chip {
+  box-shadow: inset 0 0 0 2px #0001, var(--vz-sh-sm);
+  transition: transform .15s, border-color .15s;
+}
+.theme-pick .chip:hover { transform: scale(1.08); }
+.theme-pick .chip.active { border-color: var(--accent); box-shadow: var(--vz-glow); }
+
+/* ===================== 登录状态点 / 状态圆点：加辉光 ===================== */
+.rs-dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 8%, transparent); }
+.status-dot { box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent); }
+
+/* ===================== 加载错误条：更精致 ===================== */
+.api-error-bar.show {
+  box-shadow: var(--vz-sh-md);
+  border-radius: var(--vz-r-lg);
+}
+
+/* ===================== 进场：尊重「减少动效」偏好 ===================== */
+@media (prefers-reduced-motion: reduce) {
+  #cards .card { animation: none !important; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* ===================== 跟我学习 · 基础常识（词条式知识库） =====================
+   2026-09-26 新增。与「中短线炒股」判读视图共用一套外壳（.kb-head / .kb-sec / .kb-toc），
+   只是把正文换成「一个词条一张卡」。配色全部走主题变量，4 套皮肤自动跟随。 */
+.kb-terms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+.kb-term {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  padding: 12px 14px;
+  box-shadow: var(--vz-sh-sm);
+  transition: box-shadow .15s, border-color .15s;
+}
+.kb-term:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.kb-term-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.kb-term-n { font-size: 15px; color: var(--text); letter-spacing: .01em; }
+.kb-term-en { font-size: 11px; color: var(--muted); letter-spacing: .03em; text-transform: none; }
+/* 一句话定义：左侧主题色竖条压边，扫读时先落到这句 */
+.kb-term-one {
+  font-size: 13px; line-height: 1.7; color: var(--text);
+  background: var(--tag);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-sm, 6px) var(--r-sm, 6px) 0;
+  padding: 6px 10px; margin-bottom: 8px;
+}
+.kb-kv { margin: 0; }
+.kb-kv-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 5px 0; border-top: 1px dashed var(--border);
+  font-size: 13px; line-height: 1.7;
+}
+.kb-kv-row:first-child { border-top: 0; padding-top: 2px; }
+.kb-kv-k { flex: 0 0 72px; color: var(--muted); font-size: 12px; padding-top: 1px; }
+.kb-kv-v { margin: 0; color: var(--text); flex: 1 1 auto; word-break: break-word; }
+/* 「常见误读」是纠错项：整行取警示色，避免被当成又一条正向说明 */
+.kb-kv-warn .kb-kv-k, .kb-kv-warn .kb-kv-v { color: var(--warn); }
+.kb-tip {
+  margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border);
+  font-size: 12px; line-height: 1.7; color: var(--muted);
+}
+.kb-term .kb-ul { margin: 6px 0 0 18px; font-size: 13px; }
+.kb-ul-lead { margin-bottom: 12px; }
+.kb-sec-h .kb-hint { font-weight: 400; }
+
+/* ===================== 相关人物评分面板（2026-09-25 增量） =====================
+   新增：分档徽章（A/B/C）、证据徽章、非自然人折行。沿用本文件既有的 CSS 变量，
+   不引入新配色，保证与全站视觉一致；非自然人用浅灰底 + 降透明度"压到后排"。 */
+.psec {
+  margin: 10px 0; border: 1px solid var(--border);
+  border-radius: var(--vz-r-lg); overflow: hidden;
+}
+.psec > summary {
+  cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 13px;
+  background: color-mix(in srgb, var(--topbar) 90%, var(--accent) 5%);
+  border-bottom: 1px solid var(--border);
+}
+.psec[open] > summary { border-bottom-color: color-mix(in srgb, var(--accent) 32%, var(--border)); }
+.psec > table { border-radius: 0; border: 0; box-shadow: none; }
+.sc-val { font-size: 15px; font-variant-numeric: tabular-nums; margin-right: 4px; }
+.badge.sc-A { background: #fef3c7; color: #b45309; }
+.badge.sc-B { background: #dbeafe; color: #1d4ed8; }
+.chip-s.sc-none { background: transparent; border: 1px dashed var(--muted); color: var(--muted); }
+.badge.ev-a { background: #dcfce7; color: #15803d; }
+.badge.ev-b { background: #dbeafe; color: #1d4ed8; }
+.badge.ev-c { background: #fef3c7; color: #b45309; }
+.badge.ev-d { background: #f1f5f9; color: #475569; }
+.rec-pub { color: var(--accent); font-weight: 600; }
+.rec-pub a { font-weight: 700; }
+.rec-meas { font-variant-numeric: tabular-nums; }
+/* 非自然人：浅灰底 + 稍降透明度，明确"不占真人榜单前排" */
+tr.pnat-row td { background: color-mix(in srgb, var(--muted) 9%, transparent) !important; opacity: .82; }
+tr.pnat-row:hover td { background: color-mix(in srgb, var(--accent) 10%, var(--hover)) !important; opacity: 1; }
+.chip-s.pnat-tag { background: #f1f5f9; color: #64748b; margin-left: 4px; }
+

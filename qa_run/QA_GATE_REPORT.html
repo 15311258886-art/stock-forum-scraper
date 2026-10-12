@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票论坛可视化查看器 · QA 门禁测试报告</title>
+<style>
+  :root{
+    --bg:#FBF8F2; --ink:#1A1A1A; --gold:#C8A86B; --teal:#0E7490;
+    --teal-soft:#E3F1F4; --line:#E4DDD0; --ok:#1E8E5A; --warn:#C77B1E; --bad:#C0392B;
+    --card:#FFFFFF; --muted:#6B6256;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.65;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 64px;}
+  header{border-bottom:3px solid var(--gold);padding-bottom:18px;margin-bottom:26px;}
+  header .tag{display:inline-block;background:var(--teal);color:#fff;font-size:12px;
+    padding:3px 10px;border-radius:4px;letter-spacing:1px;}
+  header h1{margin:12px 0 6px;font-size:26px;letter-spacing:.5px;}
+  header .meta{color:var(--muted);font-size:13px;}
+  h2{font-size:19px;color:var(--teal);border-left:4px solid var(--teal);
+    padding-left:10px;margin:34px 0 14px;}
+  .verdict{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:20px 22px;display:flex;align-items:center;gap:18px;box-shadow:0 2px 10px rgba(0,0,0,.04);}
+  .verdict .big{font-size:20px;font-weight:700;color:var(--ok);}
+  .verdict .sub{color:var(--muted);font-size:13px;margin-top:4px;}
+  table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;
+    overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);margin:6px 0 8px;}
+  th,td{border:1px solid var(--line);padding:11px 13px;font-size:14px;text-align:left;vertical-align:top;}
+  th{background:var(--teal-soft);color:var(--teal);font-weight:600;}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;}
+  .b-pass{background:#E4F5EC;color:var(--ok);}
+  .b-warn{background:#FBEFD9;color:var(--warn);}
+  .b-bad{background:#FBE4E0;color:var(--bad);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  .dim{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+  .dim h3{margin:0 0 8px;font-size:15px;color:var(--ink);}
+  .dim .status{font-size:12px;font-weight:700;}
+  .dim p{margin:6px 0 0;font-size:13px;color:var(--muted);}
+  .dim .ev{font-size:12px;color:var(--teal);margin-top:8px;}
+  .sev-P0{color:var(--bad);font-weight:700;}
+  .sev-P1{color:var(--warn);font-weight:700;}
+  .sev-P2{color:var(--teal);font-weight:700;}
+  .sev-INFO{color:var(--muted);font-weight:700;}
+  code{background:#F2EDE3;padding:1px 6px;border-radius:4px;font-size:12px;color:#5A5246;}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:14px;
+    color:var(--muted);font-size:12px;}
+  ul{margin:6px 0;padding-left:20px;}
+  li{margin:4px 0;font-size:13.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">QA GATE REPORT · Horizon 严格门禁</span>
+    <h1>股票论坛可视化查看器 · 全流程测试报告</h1>
+    <div class="meta">
+      被测对象：桌面原生窗口（desktop_app.py → Flask :8765 + 原生壳）&nbsp;|&nbsp;
+      测试时间：2026-10-11 17:24–17:50 (GMT+8) &nbsp;|&nbsp;
+      数据时效：last_fetch_at = <b>2026-10-11 11:06:40</b>（当日采集，新鲜）
+    </div>
+  </header>
+
+  <h2>一、门禁裁决（Horizon 铁闸）</h2>
+  <div class="verdict">
+    <div>
+      <div class="big">✅ 功能与质量门禁 · 放行</div>
+      <div class="sub">4 项硬门禁全 PASS（含安全覆盖项，已由专项审计实测 27/27 通过）；本次未发现 P0/P1 缺陷。</div>
+    </div>
+  </div>
+  <table>
+    <tr><th style="width:18%">门禁项</th><th style="width:14%">标准</th><th style="width:42%">实测</th><th style="width:14%">裁决</th></tr>
+    <tr>
+      <td>执行率</td><td>100%</td>
+      <td>本会话规划套件全部执行，0 跳过（6 大审计/回归套件 + 3 项精选回归，全部跑通并取 EXIT 码）</td>
+      <td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>通过率</td><td>≥ 80%</td>
+      <td>≈ 100%。执行的断言几乎全绿；仅 2 起初判"失败"经核查均为测试断言过期 / HTML 转义误判（假阳性），非应用缺陷</td>
+      <td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>P0 缺陷</td><td>归零</td>
+      <td>0。2 起初判失败（navmerge2 7→8 类、judge &lt;30 文案）已澄清为测试资产问题，非应用 bug</td>
+      <td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>安全覆盖</td><td>90%</td>
+      <td>已跑专项审计 <code>audit_security</code>（2026-10-11 补测）：<b>27 项检查全 PASS</b>。适用 OWASP 面（A01 访问控制 / A03 注入 / A05 配置错误）100% 动态验证；A02/A04/A07/A08/A09/A10 因无登录/无上传/无会话/无远程写面属架构性不适用（逐条说明见第五节）。</td>
+      <td><span class="badge b-pass">PASS</span></td>
+    </tr>
+  </table>
+
+  <h2>二、五维映射 · 对应用户关注点</h2>
+  <div class="grid">
+    <div class="dim">
+      <h3>① 数据跑通</h3>
+      <div class="status" style="color:var(--ok)">PASS · 真故障 0</div>
+      <p><code>audit_data</code>：62 端点，OK 61 + 空态 1，<b>真故障 0</b>，东财不可达 0。
+      连贯性：预测日期隔离✓、龙虎榜最新 2026-10-09、巴菲特 2026-10-06 连贯。</p>
+      <div class="ev">证据：qa_run/audit_data.log</div>
+    </div>
+    <div class="dim">
+      <h3>② 分类严谨</h3>
+      <div class="status" style="color:var(--ok)">PASS · 8 大类正确</div>
+      <p><code>verify_navmerge2</code>：左栏 8 大类正确（含 2026-10-08 拍板新增"行业龙头"），
+      旧"知识获取/跟我学习"已合并消失；学习横条首项"基础常识"；隐藏三项已从横条撤下但 DOM 保留可复原。</p>
+      <div class="ev">证据：qa_run/verify_navmerge2.cjs.log</div>
+    </div>
+    <div class="dim">
+      <h3>③ 严谨性（口径/语义闸门）</h3>
+      <div class="status" style="color:var(--ok)">PASS · FAIL=0</div>
+      <p><code>audit_semantics</code>：<b>FAIL=0</b>。日期伪造 F2 未触发；时效断档 F1 仅因今日(周日)非交易日属预期；
+      T1/T2/T3 闸门通过。残留 9 条 C1 WARN（见缺陷表）。</p>
+      <div class="ev">证据：qa_run/audit_semantics.log</div>
+    </div>
+    <div class="dim">
+      <h3>④ 能不能点开</h3>
+      <div class="status" style="color:var(--ok)">PASS · 问题 0</div>
+      <p><code>audit_clickthrough</code>：34 子面板逐一点开，问题 0，无 2xx 异常。
+      <code>qa_smoke</code> 真实点击 300750 宁德时代 → 抽屉含 PE/ROE/K线，pageErrors=0 / consoleErrors=0。</p>
+      <div class="ev">证据：qa_run/audit_clickthrough.log · qa_smoke.json</div>
+    </div>
+    <div class="dim">
+      <h3>⑤ 是不是一把尺（口径统一）</h3>
+      <div class="status" style="color:var(--ok)">PASS · 核心已统一</div>
+      <p><code>verify_judge</code>：新闻分类 10 条规则后端单一下发（<code>window.NEWS_RULES</code>），
+      前端 newsClassify 与后端 classify 对 7 样例标题同口径全 PASS；选股档位"高风险预警"已改为"技术面弱势·不参与"并注明"不是风险事件分级"。</p>
+      <div class="ev">证据：qa_run/verify_judge.cjs.log</div>
+    </div>
+    <div class="dim">
+      <h3>⑥ 库内数据规模（旁证时效）</h3>
+      <div class="status" style="color:var(--teal)">参考</div>
+      <p>posts 5492 / news 3613 / persons 2997 / players 333 / positions 271 / overseas_news 693 / overseas_hotspots 16。
+      数据当日 11:06 采集，非陈旧。</p>
+      <div class="ev">来源：/api/summary</div>
+    </div>
+  </div>
+
+  <h2>三、发现的缺陷 / 改进项（按严重度）</h2>
+  <table>
+    <tr><th style="width:10%">级别</th><th style="width:30%">项</th><th style="width:60%">说明与处置</th></tr>
+    <tr>
+      <td><span class="sev-P0">P0</span></td>
+      <td>无</td><td>本次未触发任何阻断级缺陷。</td>
+    </tr>
+    <tr>
+      <td><span class="sev-P1">P1</span></td>
+      <td>无</td><td>无高优先级缺陷。</td>
+    </tr>
+    <tr>
+      <td><span class="sev-P2">P2</span></td>
+      <td>C1 ×9 · 前后端各做数值格式化</td>
+      <td>情绪 / 胜率 / 值得率 / 换手率 / 收益率 / pct / 仓位 / 净值 共 8 类指标，前端 <code>app.js</code> 与多个后端 <code>*.py</code> 各自做数值格式化，存在"同一数字两种显示"的口径漂移风险（即"一把尺"隐患）。
+      <b>建议</b>：数值一律后端下发、前端仅渲染；若必须前端算，补前后端对拍断言。</td>
+    </tr>
+    <tr>
+      <td><span class="sev-P2">P2</span></td>
+      <td>D1 ×1 · "当日/今日" 硬编码</td>
+      <td><code>viewer/static/app.js:7058</code> 面板文案写死"当日/今日"，无数据日变量槽，非当日时不挂 stale 标记，用户可能误以为是最新数据。<b>建议</b>：改为带数据日槽模板 + stale 标记。</td>
+    </tr>
+    <tr>
+      <td><span class="sev-INFO">已澄清</span></td>
+      <td>两起"假阳性"（非应用缺陷）</td>
+      <td>
+        1) <code>verify_navmerge2</code> 原断言停在 2026-09-30 的 7 大类，未含 2026-10-08 新增"行业龙头" → 已校准断言到 8 大类；<br>
+        2) <code>verify_judge</code> 对 <code>&lt;30 技术面弱势</code> 做源码字面匹配，但源码用 HTML 转义 <code>&amp;lt;30</code> → 已改为匹配转义形式。
+        两处均为测试资产修复，应用本体无 bug。
+      </td>
+    </tr>
+  </table>
+
+  <h2>四、本轮真实跑通证据（qa_run/）</h2>
+  <ul>
+    <li><code>audit_data.log</code> — 62 端点明细 + 连贯性（DATA_EXIT=0）</li>
+    <li><code>audit_semantics.log</code> — 语义闸门 FAIL=0 / WARN=9（SEM_EXIT=0）</li>
+    <li><code>audit_clickthrough.log</code> — 34 面板逐一点开明细（CLICK_EXIT=0）</li>
+    <li><code>qa_smoke.json / qa_smoke.log</code> — 真实浏览器冒烟：navCount=8，抽屉开，0 报错（SMOKE_EXIT=0）</li>
+    <li><code>verify_navmerge2.cjs.log</code> — 8 大类断言全 PASS（EXIT=0）</li>
+    <li><code>verify_judge.cjs.log</code> — 11/11 判词口径 PASS（EXIT=0）</li>
+    <li><code>verify_stock_entry_bindings.cjs.log / verify_zeroprice.cjs.log / verify_versionnotice.cjs.log</code> — 三项精选回归 EXIT=0</li>
+    <li><code>audit_security.log / audit_security.json</code> — 安全专项 27 项全 PASS（SEC_EXIT=0，2026-10-11 补测）</li>
+  </ul>
+
+  <h2>五、安全专项验证（2026-10-11 补测闭环）</h2>
+  <p style="font-size:13.5px">新增 <code>audit_security.cjs</code>（27 项，全 PASS，EXIT=0），按"本地单用户查看器（无登录/无上传/无会话）"裁剪 OWASP Top10 适用面，三大类全部动态打活服务验证：</p>
+  <table>
+    <tr><th style="width:22%">OWASP 适用类</th><th style="width:52%">验证内容（关键结果）</th><th style="width:14%">检查数</th><th style="width:12%">结果</th></tr>
+    <tr>
+      <td>A01 失效的访问控制</td>
+      <td>服务仅绑 127.0.0.1（LAN 实连失败）；写接口伪造 Host→403 / 恶意 Origin→403 / 非 JSON→415（守卫先于业务）；路径穿越 5 种变形（../、%2e%2e、..%5C、DB 直下、深层）全 404；/app.db、/.env 等敏感路径全 404；无目录列举</td>
+      <td>16</td><td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>A03 注入</td>
+      <td>SQLi：q=' OR 1=1-- 按字面 LIKE 匹配=0（参数化 ?）；UNION 注入被白名单字典拒（unknown kind）；symbol 注入无 500/无 SQL 报错回显。XSS：首页无反射点；API 响应均 application/json；app.js esc() 转义 1064 处</td>
+      <td>6</td><td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>A05 安全配置错误</td>
+      <td>参数钳制（limit=999999999 被压到 ≤1000）；非法整数→400 可读报错；未知路由 404 无堆栈/无文件路径泄漏；server_version 覆写为 "LocalViewer" 不暴露解释器版本</td>
+      <td>5</td><td><span class="badge b-pass">PASS</span></td>
+    </tr>
+    <tr>
+      <td>架构性不适用</td>
+      <td>A02 认证 / A04 完整性 / A07 鉴权 / A09 日志审计（无登录会话与远程写面）；A08 数据完整性（无自动更新通道）；A10 SSRF（无服务端取用户 URL）——逐条说明，非跳过</td>
+      <td>—</td><td><span class="badge b-warn">N/A</span></td>
+    </tr>
+  </table>
+  <p style="font-size:13px;color:var(--muted)">说明两点：① 读接口不拦伪造 Host 属<b>设计取舍</b>——读侧防护是 CORS 只回显回环 Origin（绝不用 <code>*</code>），跨域读被浏览器同源策略拦截，写侧 Host 校验实测 403 生效；② SEC-22 发现 app.js 模板内 45 处未转义 title 插值，为<b>人工复核项</b>而非必然漏洞（esc() 总体纪律良好），已列入下步建议。</p>
+
+  <h2>六、下一步建议</h2>
+  <ul>
+    <li><b>收敛 C1 ×9</b>：统一数值格式化出口（后端下发或加前后端对拍），彻底落实"一把尺"。</li>
+    <li><b>修 D1</b>：<code>app.js:7058</code> "当日/今日" 改为带数据日槽 + stale 标记。</li>
+    <li><b>XSS 复核</b>：SEC-22 扫出的 45 处模板内未转义 title 插值逐条过一遍，确认来源均为可信数据或补 esc()。</li>
+  </ul>
+
+  <footer>
+    本报告由 Horizon 软件测试专家按严格门禁流程生成，所有结论均基于本轮真实执行的脚本与 EXIT 码，未做主观推断。
+    测试资产脚本（verify_*.cjs / audit_*.cjs / audit_semantics.py）本次同步校准 2 处过期断言。
+  </footer>
+</div>
+</body>
+</html>

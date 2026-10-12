@@ -173,10 +173,11 @@ def market_list(skip_adjustable: bool = True) -> list[dict]:
     return rows, skipped
 
 
-def sample_trade_date() -> str | None:
-    """抽样 5 只读腾讯 qt 行情时间戳字段 [30] → 数据真正对应的交易日（YYYY-MM-DD）。
+def _sample_quote_date() -> str | None:
+    """抽样 5 只读腾讯 qt 行情时间戳字段 [30] → 行情当前**实际**对应的交易日（YYYY-MM-DD）。
 
-    防错关键：跑在盘后/休市日时，行情里装的是上一交易日。取众数，少数停牌股滞后也带不偏。
+    只取众数、不做任何「今天应该是哪天」的推断：跑在盘后/休市日时它天然 = 上一交易日（≠今天）；
+    交易日盘中 = 今天。少数停牌股滞后也带不偏（取众数）。
     """
     codes = ["sh600000", "sz000001", "sh600519", "sz300009", "sh601318"]
     try:
@@ -193,7 +194,34 @@ def sample_trade_date() -> str | None:
     if not days:
         return None
     top = max(set(days), key=days.count)
-    sampled = "%s-%s-%s" % (top[:4], top[4:6], top[6:8])
+    return "%s-%s-%s" % (top[:4], top[4:6], top[6:8])
+
+
+_LIVE_DATE_CACHE: dict = {"date": None, "ts": 0.0}
+_LIVE_DATE_TTL = 20  # 秒：行情时间戳抽样的缓存 TTL，避免 maybe_snapshot 每 ~10s 都打一次腾讯
+
+
+def live_quote_date(force: bool = False) -> str | None:
+    """行情源「现在到底在报哪一天」——腾讯 qt 时间戳抽样的带缓存封装。
+
+    交易日盘中/盘后 = 今天；休市日（周末/节假日）= 上一个交易日（≠今天）。
+    用于「今天是否真开市」的二次确认，且**不依赖日K**——日K盘中不含今日（2026-10-09 实录），
+    拿日K当开市判据会把真实交易日整段挡死。
+    """
+    now = time.time()
+    c = _LIVE_DATE_CACHE
+    if not force and c["date"] and now - c["ts"] < _LIVE_DATE_TTL:
+        return c["date"]
+    d = _sample_quote_date()
+    c.update({"date": d, "ts": now})
+    return d
+
+
+def sample_trade_date() -> str | None:
+    """数据真正对应的交易日（YYYY-MM-DD）：行情时间戳日期，落后于最近交易日时回落到最近交易日。"""
+    sampled = _sample_quote_date()
+    if not sampled:
+        return None
     # 防错关键：若抽到的行情时间戳日期落后于「真实最近交易日」（长假后首日的 9:15–9:25 早期窗口
     # 里行情还装着上一交易日，或源尚未刷新），不要把它当数据日——返回真实最近交易日，
     # 避免把 10-08 数据错打成 09-30 戳、进而被去重锁死在节前。
@@ -730,6 +758,10 @@ def _auto_backfill_task() -> None:
     """补采一次全市场日 K（实测要 7 分钟），**必须**甩到后台线程——
     直接跑在调度线程里会把资金流/政策/盯盘这些定时任务一起堵住几分钟。
     自己开连接：调用方是调度线程，sqlite 连接不能跨线程用。
+
+    注（2026-10-09）：maybe_snapshot 对「今天」已改用 _auto_today_task（collect 读 Market_Center）——
+    因为日K盘中无今日，用 backfill 补「今天」必然写不进去。本函数保留供「历史日缺口」补价复用
+    （手动 /api/auction?backfill=1 或未来接一个盘后历史补采），**不要**再拿它补「今天」。
     """
     global _AUTO_BUSY
     with _AUTO_LOCK:
@@ -746,12 +778,59 @@ def _auto_backfill_task() -> None:
         _AUTO_BUSY = False
 
 
-def _is_trading_day(d: str) -> bool:
-    """这天到底开没开盘？拿上证综指日 K 当日历（指数不停牌，休市日也不停 K 线）。"""
+# 2026-10-09 移除 `_is_trading_day`（原「Sina 日K-only」判据）：
+# 它只用上证综指日K判断「今天开没开市」，但日K**盘中不含今日**（当日K线要收盘后才印出），
+# 于是真实交易日的整个交易时段它恒返回 False，把 maybe_snapshot 的所有采集路径静默挡死——
+# 正是「集合竞价面板停在上一交易日」的根因（2026-10-09 实录）。
+# 现在「今天开没开市」一律走本项目唯一权威入口 is_trading_day / latest_trade_date
+# （Sina K线 + 2026 确定性日历兜底），禁止再自造日K判据（审计规则见本文件顶部注释）。
+
+
+_TODAY_BUSY = False
+_TODAY_LOCK = threading.Lock()
+_TODAY_LAST: dict = {}
+
+
+def _auto_today_task(today: str) -> None:
+    """盘中补存「今天」的竞价定盘价：后台线程跑 collect(force=True, date=today)。
+
+    为什么不能走 backfill：backfill 对每只股票取新浪日K，而日K盘中不含今日（2026-10-09 实录），
+    by_day.get(today)=None → 永远写不进今天。新浪 Market_Center 盘中即当日实时快照（今开/昨收），
+    才是「今天」的正确生产路径。全市场 ~5500 只一轮要数秒，必须甩后台线程，
+    别堵住调度线程里其它定时任务（同 _auto_backfill_task 的理由）。
+    口径：collect 在 9:15–9:35 窗口之外只写价格（今开/昨收/据此算的竞价涨幅），量/额一律 NULL——
+    「竞价总额」显示「—」是市场机制（盘中拿不到竞价量），不是缺数据。
+    """
+    global _TODAY_BUSY
+    with _TODAY_LOCK:
+        if _TODAY_BUSY:
+            return
+        _TODAY_BUSY = True
     try:
-        return d in {x["day"] for x in sina_kline_dates(_INDEX_SYMBOL, 6)}
-    except Exception:  # noqa: BLE001 —— 日历取不到时按「不开盘」处理，宁可漏采也不许假采
+        _TODAY_LAST.clear()
+        _TODAY_LAST.update(collect(force=True, date=today) or {})
+    except Exception as e:  # noqa: BLE001 —— 后台线程绝不能因补存崩掉
+        _TODAY_LAST.clear()
+        _TODAY_LAST.update({"ok": False, "reason": "盘中补存异常：%s" % str(e)[:120]})
+    finally:
+        _TODAY_BUSY = False
+
+
+def _today_collectable(today: str) -> bool:
+    """今天到底能不能采（交易日闸）——抽成独立函数以便回归测试。
+
+    ① 唯一权威入口 is_trading_day（Sina K线 + 2026 确定性日历兜底）**明确**判休市（False）→ 挡；
+       为 None（未知）时不擅自阻断。★ 绝不能只用日K当日历：日K盘中不含今日（当日K线收盘后才印出），
+       只信日K会把真实交易日的整个交易时段挡死（2026-10-09 实录）。
+    ② 再用「行情源现在是否在报今天」（live_quote_date，腾讯时间戳）二次确认——休市日里行情装的
+       是上一交易日的存量，拿它当今日竞价量写库是最害人的造假。行情源取不到（None）时不阻断。
+    """
+    if is_trading_day(today) is False:
         return False
+    lq = live_quote_date()
+    if lq is not None and lq != today:
+        return False
+    return True
 
 
 _RECON_GUARD: dict = {"date": None, "ts": 0.0}
@@ -763,7 +842,7 @@ def maybe_snapshot(conn=None, now: datetime | None = None) -> bool:
     ① 9:15–9:35 竞价窗口内，且当日还没采过 —— 这一次的量**就是**竞价量（9:30 之后量会滚进连续竞价，
        拿它存就是造假，所以这个窗口是唯一能拿到真竞价量的时机）。
     ② 9:36–14:59 当日一条记录都没有（典型：服务 9:35 后才起）—— 后台补存**竞价定盘价**
-       （修复后的 backfill 会自动向前追平到今天，长假后不再卡节前）。
+       （走 collect 读 Market_Center 的今开/昨收；backfill 逐只取日K、日K盘中无今日，对「今天」无效）。
     ③ 收盘后对账（>=15:00）：真实最近交易日(=今天)在库里缺失 → 补一次全市场价（每日最多一次）。
        只针对「今天」——绝不给过去的交易日盖今天的戳（避免日期错配造假）；force 透传 + 每日限一次，
        避免每 10s 轮询重复触发。
@@ -776,7 +855,11 @@ def maybe_snapshot(conn=None, now: datetime | None = None) -> bool:
     try:
         now = now or datetime.now()
         today = now.strftime("%Y-%m-%d")
-        if not _is_trading_day(today):      # 休市日：挡掉（此时刻行情全是上一交易日的存量）
+        # 交易日闸（2026-10-09 重写，详见 _today_collectable）：
+        # ★ 旧实现用「上证综指日K里有没有今天」当开市判据，但日K盘中不含今日（当日K线收盘后才印出），
+        #   于是真实交易日的整个交易时段闸恒为 False，把 maybe_snapshot 的所有采集路径静默挡死——
+        #   正是「集合竞价面板整整一天停在上一交易日」的根因。现改走唯一权威入口 + 行情源日期二次确认。
+        if not _today_collectable(today):
             return False
         # ① 9:15–9:35 竞价窗口：抓真竞价量
         if 9 * 60 + 15 <= now.hour * 60 + now.minute <= 9 * 60 + 35:
@@ -787,10 +870,12 @@ def maybe_snapshot(conn=None, now: datetime | None = None) -> bool:
                 _record_error(conn, "竞价窗口采集 %s 失败" % today)
             return ok
 
-        # ② 9:36–14:59：当天一条都没有 → 后台全市场补价（修复后的 backfill 会向前追平到今天）
+        # ② 9:36–14:59：当天一条都没有 → 后台补存「今天」的定盘价。
+        #    必须走 collect（读 Market_Center 今开/昨收），不能走 backfill：
+        #    backfill 逐只取新浪日K，而日K盘中不含今日 → by_day.get(today)=None → 永远写不进今天（2026-10-09 实录）。
         if now.hour * 60 + now.minute < 15 * 60:
             if snapshot_needed(conn, today):
-                threading.Thread(target=_auto_backfill_task, daemon=True).start()
+                threading.Thread(target=_auto_today_task, args=(today,), daemon=True).start()
                 return True
             return False
 

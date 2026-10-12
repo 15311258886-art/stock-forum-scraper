@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>巴菲特价值投资选股策略 · A股周度筛选研报（2026-09-29）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F8; --card:#FFFFFF; --ink:#1F2933; --ink2:#4A5568; --ink3:#718096;
+    --line:#E2E6EA; --teal:#0E7490; --teal-soft:#E6F2F5;
+    --up:#C62828; --down:#2E7D32; --warn:#C05621; --warn-bg:#FFF6EE;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",Arial,sans-serif;
+       line-height:1.75;font-size:15px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 60px;}
+  header.top{border-bottom:3px solid var(--teal);padding-bottom:18px;margin-bottom:26px;}
+  .eyebrow{font-size:12px;letter-spacing:2px;color:var(--teal);font-weight:700;}
+  h1{font-size:27px;margin:8px 0 6px;letter-spacing:.5px;}
+  .sub{color:var(--ink2);font-size:14px;}
+  .meta{color:var(--ink3);font-size:12.5px;margin-top:10px;}
+  h2{font-size:20px;margin:38px 0 14px;padding-left:12px;border-left:5px solid var(--teal);}
+  h3{font-size:16px;margin:24px 0 10px;color:var(--ink);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:16px;}
+  .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+  .kpi{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+  .kpi .n{font-size:30px;font-weight:800;color:var(--teal);line-height:1.2;}
+  .kpi .l{font-size:12.5px;color:var(--ink3);margin-top:2px;}
+  .kpi.core .n{color:#2B6CB0;} .kpi.watch .n{color:var(--warn);} .kpi.out .n{color:#718096;}
+  .tier-line{font-size:14px;margin:6px 0;}
+  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-right:6px;}
+  .t-core{background:#E8F0FE;color:#2B6CB0;}
+  .t-watch{background:var(--warn-bg);color:var(--warn);}
+  .t-out{background:#EDF0F2;color:#5A6472;}
+  ol.finds{margin:6px 0 0;padding-left:20px;}
+  ol.finds li{margin-bottom:9px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:center;}
+  th{background:#EEF2F5;font-weight:700;color:var(--ink2);font-size:12.5px;}
+  td.name{text-align:left;font-weight:600;}
+  td.code{font-family:Consolas,Menlo,monospace;color:var(--ink2);}
+  td.left{text-align:left;}
+  tbody tr:nth-child(even){background:#FAFBFC;}
+  .up{color:var(--up);font-weight:600;}
+  .down{color:var(--down);font-weight:600;}
+  .flat{color:var(--ink3);}
+  .note{background:var(--warn-bg);border-left:4px solid var(--warn);padding:12px 16px;font-size:13.2px;color:#5A3A18;border-radius:0 6px 6px 0;margin:12px 0;}
+  .note.info{background:var(--teal-soft);border-left-color:var(--teal);color:#14505F;}
+  .src{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.6;}
+  .chartbox{margin:14px 0 4px;}
+  .chart{width:100%;height:400px;}
+  .grid2{display:flex;gap:16px;flex-wrap:wrap;}
+  .grid2>div{flex:1;min-width:300px;}
+  .badge{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:4px;font-weight:700;}
+  .b-core{background:#2B6CB0;color:#fff;}
+  .b-watch{background:var(--warn);color:#fff;}
+  .b-out{background:#8A94A6;color:#fff;}
+  .b-new{background:var(--up);color:#fff;}
+  .b-same{background:#E2E6EA;color:#4A5568;}
+  .stock-block{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:#FCFDFD;}
+  .stock-block h4{margin:0 0 8px;font-size:15.5px;}
+  .kv{font-size:13.2px;color:var(--ink2);margin:3px 0;}
+  .kv b{color:var(--ink);}
+  .verdict{margin-top:8px;padding:8px 12px;background:#EEF2F5;border-radius:6px;font-size:13.2px;}
+  .grid3{display:flex;gap:14px;flex-wrap:wrap;}
+  .grid3>div{flex:1;min-width:280px;}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--ink3);}
+  .disc{margin-top:14px;background:#FFF9F9;border:1px solid #F0C9C9;border-radius:8px;padding:14px 18px;color:#6B2C2C;font-size:13px;}
+  @media(max-width:720px){ .kpi{min-width:120px;} .chart{height:340px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">WEEKLY QUANT SCREEN · VALUE INVESTING</div>
+  <h1>巴菲特价值投资选股策略 · A股周度筛选研报</h1>
+  <div class="sub">8 项量化指标取交集（TTM 口径）＋ 历史盈利稳定性核查（必做环节）</div>
+  <div class="meta">
+    报告日期：<b>2026-09-29（周二）</b>　·　财务数据基准日：<b>2026-06-30</b>（2026 年中报 TTM 口径）　·　历史核查区间：2023–2025 年度年报 ＋ 2026 年中报<br>
+    行情 / 估值快照：<b>2026-09-29 约 09:48 盘中快照（非当日收盘价）</b>；上期报告为 2026-09-22。A 股语境：红涨绿跌。
+  </div>
+</header>
+
+<!-- ① TL;DR -->
+<h2>一、TL;DR 结论卡</h2>
+<div class="kpis">
+  <div class="kpi"><div class="n">10</div><div class="l">量化入围标的数<br>（沪深 A 股全市场起点）</div></div>
+  <div class="kpi core"><div class="n">3</div><div class="l">核心推荐<br>盈利持续稳定</div></div>
+  <div class="kpi watch"><div class="n">3</div><div class="l">观察档<br>量化达标但处下行通道</div></div>
+  <div class="kpi out"><div class="n">4</div><div class="l">剔除档<br>历史不稳 / 指标失真</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">本周新进入 / 出池<br>名单与分档零变化</div></div>
+</div>
+
+<div class="tier-line"><span class="tag t-core">核心推荐 3</span>中国海油 600938 · 新和成 002001 · 三七互娱 002555</div>
+<div class="tier-line"><span class="tag t-watch">观察 3</span>泸州老窖 000568 · 迎驾贡酒 603198 · 伟星新材 002372</div>
+<div class="tier-line"><span class="tag t-out">剔除 4</span>巨人网络 002558 · 东方铁塔 002545 · 通化东宝 600867 · 九安医疗 002432</div>
+
+<div class="card">
+  <h3 style="margin-top:4px;">本周五点结论</h3>
+  <ol class="finds">
+    <li><b>名单与分档连续两期零变化</b>：新进入 0 只、出池 0 只、升档/降档 0 只。原因是 A 股 2026 年三季报要到 10 月下旬才披露，<b>财务基准仍是 2026 年中报（2026-06-30）</b>，8 项财务指标的 TTM 数值与上期逐项一致——这是口径未更新导致的<b>事实</b>，不是筛选失效。</li>
+    <li><b>本期唯一实质性边际变化来自分红</b>：巨人网络 002558 于 <b>2026-09-22 除权实施中期分红 10 派 8.00 元</b>（单次派现 15.15 亿元），叠加 2025 年度 10 派 1.90 元，使其股息率（TTM）由上期的 <b>1.37% 跃升至 4.41%（+3.04pct）</b>——这是全池本周变化幅度最大的单项指标，也是它此前"逼近 1% 阈值下限"这一弱项的实质性修复。</li>
+    <li><b>估值端整体下移</b>：10 只中有 8 只 PE（TTM）较上期回落，回落最多的是东方铁塔（11.77→10.15）、巨人网络（15.09→13.62，含除权影响）、泸州老窖（14.16→13.72）。东方铁塔 PB 由 1.92 降至 1.65，近 20 日跌 23.02%、年内跌 24.08%，为全池走势最弱者。</li>
+    <li><b>剔除档的两处 export 风险点本期得到更多证据</b>：通化东宝 600867 的动态 PE 高达 <b>25.60 倍</b>（对 2026H1 主业盈利年化），远超其 TTM PE 11.65 倍——即按当期真实主业盈利年化，它已<b>超出本策略 25 倍上限</b>；九安医疗 002432 的 TTM 净利率仍为 <b>390.91%</b>，利润是主营收入的 1.66 倍，属最严重的指标失真。</li>
+    <li><b>核心档的现金流与分红纪律本期获进一步验证</b>：中国海油 600938 2026H1 经营活动现金流净额 1,416.31 亿元（TTM 2,414.91 亿元）、自由现金流 1,239.69 亿元，PB 1.85 为核心档最低；三七互娱 002555 一年内已实施 5 次现金分红，分红频次为全池最高，股息率 5.35% 为核心档最高。</li>
+  </ol>
+  <div class="src">数据来源：westock-screener 条件选股（8 项阈值 intersect），取数 2026-09-29；行情 / PE / PB / 股息率 / 市值来自 westock-data quote 接口，取数 2026-09-29 约 09:48（<b>盘中快照，非收盘价</b>）；财务明细来自 westock-data finance（报告期 2026-06-30，2026 年中报）与公司 2024 / 2025 年度报告。分红实施记录来自 westock-data dividend 接口。</div>
+</div>
+
+<!-- ② 筛选口径 -->
+<h2>二、筛选口径表</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:20%">指标</th><th style="width:16%">阈值</th><th>口径说明与筛选意图</th></tr></thead>
+    <tbody>
+      <tr><td class="left">净资产收益率 ROE</td><td>&gt; 15%</td><td class="left">TTM 口径。价值投资最看重的单指标，衡量股东资本的真实回报率</td></tr>
+      <tr><td class="left">毛利率</td><td>&gt; 40%</td><td class="left">TTM 口径。高毛利率是护城河（定价权 / 成本壁垒）的直接体现</td></tr>
+      <tr><td class="left">净利率</td><td>&gt; 15%</td><td class="left">TTM 口径。剔除高毛利但费用失控的"纸面优质"公司</td></tr>
+      <tr><td class="left">资产负债率</td><td>&lt; 50%</td><td class="left">最新报告期（2026-06-30）。财务安全垫，规避高杠杆放大 ROE 的假象</td></tr>
+      <tr><td class="left">市盈率 PE</td><td>0 ~ 25 倍</td><td class="left">TTM，剔除负值（&gt;0 且 &lt;25）。不为成长支付过高价格</td></tr>
+      <tr><td class="left">市净率 PB</td><td>0 ~ 3 倍</td><td class="left">LF，剔除负值（&gt;0 且 &lt;3）。资产端的估值纪律</td></tr>
+      <tr><td class="left">股息率</td><td>&gt; 1%</td><td class="left">TTM。股东回报的真实兑现，而非账面利润</td></tr>
+      <tr><td class="left">总市值</td><td>&gt; 100 亿元</td><td class="left">流动性与抗风险能力门槛，规避小市值流动性陷阱</td></tr>
+      <tr><td class="left"><b>历史盈利稳定性核查</b></td><td>定性否决项</td><td class="left"><b>必做环节</b>：逐只核对近 2 年年度 ROE 与归母净利润走势，剔除靠一次性损益扭亏、或盈利剧烈波动 / 当期指标失真的标的</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="grid3">
+  <div class="card">
+    <h3 style="margin-top:0;">漏斗过程</h3>
+    <table>
+      <thead><tr><th>步骤</th><th>剩余</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="left">沪深 A 股全市场</td><td>全池</td><td class="left">筛选起点</td></tr>
+        <tr><td class="left">8 项量化取交集</td><td><b>19</b></td><td class="left">筛选器原始返回</td></tr>
+        <tr><td class="left">叠加市值 &gt;100 亿</td><td><b>10</b></td><td class="left">9 只因子市值不达标出局</td></tr>
+        <tr><td class="left">历史稳定性核查</td><td><b>核心3/观察3/剔除4</b></td><td class="left">量化达标 ≠ 盈利可持续</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;">差一步落榜（市值不足 100 亿，9 只）</h3>
+    <p style="font-size:13.2px;color:var(--ink2);margin:0 0 8px;">下列标的<b>已通过全部 8 项财务/估值阈值</b>，仅因子总市值不足 100 亿元被剔除，供下一资金量级参考：</p>
+    <p style="font-size:13px;color:var(--ink2);margin:0;line-height:1.9;">
+      佐力药业 300181（91.0 亿）· 黔源电力 002039（83.5 亿）· 承德露露 000848（81.5 亿）· 新媒股份 300770（80.2 亿）· 长高电气 002452（70.2 亿）· 中际联合 605305（63.3 亿）· 华特达因 000915（55.3 亿）· 方盛制药 603998（45.8 亿）· 亚联机械 001395（34.6 亿）
+    </p>
+    <div class="src">数据来源：westock-screener，取数 2026-09-29；市值为盘中快照。</div>
+  </div>
+</div>
+
+<div class="note info">
+  <b>本期数据质量与口径校正（透明披露）</b><br>
+  ① 本周筛选器表达式<b>未内嵌市值条件</b>，原始返回 19 条；由本报告按「总市值 &gt;100 亿元」二次过滤后得 10 只，与上期（筛选器内嵌 <code>TotalMV&gt;1e10</code> 直接返回 10 条）名单<b>完全一致</b>，互为交叉验证。<br>
+  ② 检索过程中，检索代理曾在其总结里额外列出<b>迈瑞医疗 300760、海康威视 002415</b> 两只标的，但它们<b>并未出现在筛选器的交集返回结果中</b>。以两者约 1,900 亿 / 2,950 亿的市值体量，若通过筛选必排在全池第 2、第 3 位（按市值降序），缺席即意味着至少有一项阈值未通过（最可能是股息率或资产负债率口径）。<b>本报告以筛选器交集结果为准，不将二者计入入围名单</b>，此处存档以备追溯。<br>
+  ③ 三七互娱 002555 的<b>2024 年度 ROE 未在本期与上期检索中返回</b>，历史稳定性图表中该项留空，其余年份数据完整。
+</div>
+
+<!-- ③ 指标表 -->
+<h2>三、全部入围标的指标表（10 只）</h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>代码</th><th>名称</th><th>分档</th>
+        <th>ROE<br>(TTM)</th><th>毛利率<br>(TTM)</th><th>净利率<br>(TTM)</th><th>资产负债率</th>
+        <th>PE<br>(TTM)</th><th>PB<br>(LF)</th><th>股息率<br>(TTM)</th>
+        <th>总市值<br>(亿元)</th><th>最新价<br>(元)</th><th>日涨跌</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="code">600938</td><td class="name">中国海油</td><td><span class="badge b-core">核心</span></td>
+        <td>16.16%</td><td>51.63%</td><td>31.95%</td><td>28.60%</td><td>11.44</td><td>1.85</td><td>3.44%</td><td>15,832.23</td><td>33.31</td><td class="down">-0.57%</td>
+      </tr>
+      <tr>
+        <td class="code">000568</td><td class="name">泸州老窖</td><td><span class="badge b-watch">观察</span></td>
+        <td>16.41%</td><td>85.56%</td><td>38.24%</td><td>28.67%</td><td>13.72</td><td>2.25</td><td><b>8.25%</b></td><td>1,030.18</td><td>69.99</td><td class="up">+0.04%</td>
+      </tr>
+      <tr>
+        <td class="code">002001</td><td class="name">新和成</td><td><span class="badge b-core">核心</span></td>
+        <td>20.56%</td><td>43.87%</td><td>29.69%</td><td>24.96%</td><td>10.87</td><td>2.23</td><td>3.94%</td><td>779.42</td><td>25.36</td><td class="down">-0.70%</td>
+      </tr>
+      <tr>
+        <td class="code">002558</td><td class="name">巨人网络</td><td><span class="badge b-out">剔除</span></td>
+        <td>18.55%</td><td>93.85%</td><td>40.53%</td><td>17.05%</td><td>13.62</td><td>2.78</td><td>4.41%</td><td>425.16</td><td>22.37</td><td class="up">+0.86%</td>
+      </tr>
+      <tr>
+        <td class="code">002555</td><td class="name">三七互娱</td><td><span class="badge b-core">核心</span></td>
+        <td><b>23.18%</b></td><td>76.17%</td><td>22.10%</td><td>38.09%</td><td>11.58</td><td>2.73</td><td>5.35%</td><td>378.07</td><td>17.09</td><td class="up">+0.23%</td>
+      </tr>
+      <tr>
+        <td class="code">603198</td><td class="name">迎驾贡酒</td><td><span class="badge b-watch">观察</span></td>
+        <td>19.04%</td><td>72.83%</td><td>32.20%</td><td>20.42%</td><td>14.73</td><td>2.80</td><td>4.04%</td><td>297.20</td><td>37.15</td><td class="up">+0.13%</td>
+      </tr>
+      <tr>
+        <td class="code">002432</td><td class="name">九安医疗</td><td><span class="badge b-out">剔除</span></td>
+        <td>19.09%</td><td>64.14%</td><td><b style="color:var(--warn)">390.91%</b></td><td>30.87%</td><td>6.28</td><td>1.20</td><td>2.50%</td><td>277.19</td><td>59.46</td><td class="up">+0.47%</td>
+      </tr>
+      <tr>
+        <td class="code">002545</td><td class="name">东方铁塔</td><td><span class="badge b-out">剔除</span></td>
+        <td>16.29%</td><td>44.68%</td><td>29.18%</td><td>30.64%</td><td>10.15</td><td>1.65</td><td>2.18%</td><td>171.43</td><td>13.78</td><td class="down">-0.29%</td>
+      </tr>
+      <tr>
+        <td class="code">600867</td><td class="name">通化东宝</td><td><span class="badge b-out">剔除</span></td>
+        <td>19.01%</td><td>70.53%</td><td>40.64%</td><td><b>12.95%</b></td><td>11.65</td><td>2.22</td><td>3.88%</td><td>151.40</td><td>7.73</td><td class="flat">0.00%</td>
+      </tr>
+      <tr>
+        <td class="code">002372</td><td class="name">伟星新材</td><td><span class="badge b-watch">观察</span></td>
+        <td>18.22%</td><td><b>41.44%</b></td><td><b>16.39%</b></td><td>22.85%</td><td>15.15</td><td>2.76</td><td>5.43%</td><td>130.23</td><td>8.18</td><td class="up">+1.11%</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <b>两处读数警示（必须先看）</b><br>
+    ① <b>九安医疗 002432</b>：TTM 净利率 390.91% 为严重失真值——2025 年营收仅 13.66 亿元、归母净利润 22.67 亿元，利润是收入的 1.66 倍，主要来自投资收益与交易性金融资产公允价值变动（合计约 28.3 亿元）。它能通过"净利率 &gt;15%"纯属财务结构失真，<b>不构成主业盈利能力证据</b>。<br>
+    ② <b>通化东宝 600867</b>：TTM PE 11.65 倍看似便宜，但按 2026H1 主业盈利年化的<b>动态 PE 高达 25.60 倍</b>，已超出本策略 25 倍上限。两者差异源于 2025 年含 8.44 亿元一次性股权处置收益，不可混用口径。
+  </div>
+  <div class="src">数据来源：财务类字段（ROE / 毛利率 / 净利率 / 资产负债率）来自 westock-screener 条件选股与 westock-data finance，报告期 <b>2026-06-30（2026 年中报）TTM 口径</b>；PE / PB / 股息率 / 总市值 / 最新价来自 westock-data quote，取数 <b>2026-09-29 约 09:48 盘中快照</b>（东方铁塔、通化东宝经 westock-data 与 neodata 双源交叉核对，差异 &lt;0.3%）。A 股语境红涨绿跌。</div>
+</div>
+
+<!-- ⑤ 图表 -->
+<h2>四、量化图表（ECharts）</h2>
+
+<div class="card chartbox">
+  <h3 style="margin-top:0;">图 1 · ROE（TTM）对比：10 只入围标的 vs 15% 阈值</h3>
+  <div id="chart-roe" class="chart"></div>
+  <div class="src">数据来源：westock-screener，报告期 2026-06-30 TTM 口径，取数 2026-09-29。虚线为 15% 筛选阈值；蓝色=核心档，橙色=观察档，灰色=剔除档。</div>
+</div>
+
+<div class="card chartbox">
+  <h3 style="margin-top:0;">图 2 · 历史年度 ROE 稳定性：2024 / 2025 年报 vs 最新 TTM</h3>
+  <div id="chart-hist" class="chart"></div>
+  <div class="src">数据来源：2024 / 2025 年度报告（各自披露于次年度 3–4 月）与公司 2026 年中报（TTM），经 westock-data finance 与公司年报交叉核对。虚线为 15% 阈值。<b>注：三七互娱 002555 的 2024 年度 ROE 未检索到，该柱留空</b>；通化东宝 2024 年为负值（-0.67%），柱体在零轴下方。</div>
+</div>
+
+<div class="card chartbox">
+  <h3 style="margin-top:0;">图 3 · PE（TTM）与 PB（LF）估值双轴图</h3>
+  <div id="chart-val" class="chart"></div>
+  <div class="src">数据来源：westock-data quote，取数 2026-09-29 约 09:48 盘中快照。左轴 PE（柱），右轴 PB（折线）；虚线分别为 PE 25 倍上限与 PB 3 倍上限。</div>
+</div>
+
+<div class="card chartbox">
+  <h3 style="margin-top:0;">图 4 · 股息率（TTM）周环比：本期 vs 上期（2026-09-22）</h3>
+  <div id="chart-div" class="chart"></div>
+  <div class="src">数据来源：westock-data quote（dividend_ratio_ttm）与 dividend 分红实施记录；上期值取自 2026-09-22 周报同源口径。虚线为 1% 筛选阈值。巨人网络 002558 的跳升源于 2026-09-22 除权实施的中期分红 10 派 8.00 元。</div>
+</div>
+
+<!-- ④ 分档详解 -->
+<h2>五、历史盈利稳定性分档详解</h2>
+<div class="card">
+  <b>分档依据（可量化，四条硬标准）：</b>
+  <div class="kv">① 近 2 年（2024 / 2025）年度 ROE 是否稳定站上 15%；</div>
+  <div class="kv">② 年度归母净利润是否出现亏损，或 &gt;±50% 的剧烈摆动；</div>
+  <div class="kv">③ 扣非归母与归母的背离幅度（背离 &gt;20% 视为存在一次性损益扰动）；</div>
+  <div class="kv">④ 2026H1 扣非同比方向作为最新验证。</div>
+</div>
+
+<h3><span class="tag t-core">核心推荐 3 只</span>量化达标 ＋ 近两年盈利持续稳定，2026H1 无恶化信号</h3>
+
+<div class="stock-block">
+  <h4>中国海油 <span class="code">600938.SH</span>　<span class="badge b-core">核心</span></h4>
+  <div class="kv">年度归母净利润：2023 年 1,238.4 亿 → 2024 年 1,379.4 亿（+11.4%）→ 2025 年 1,220.8 亿（<b>-11.5%</b>）</div>
+  <div class="kv">年度 ROE：2024 年 <b>18.45%</b> → 2025 年 <b>15.21%</b>（加权 15.64%）；最新 TTM <b>16.16%</b></div>
+  <div class="kv">2026H1：营收 2,426.60 亿元（+16.88%），归母 858.18 亿元（<b class="up">+23.42%</b>），毛利率 53.46%，半年加权 ROE 10.21%</div>
+  <div class="kv"><b>本期新增核查</b>：2026H1 经营活动现金流净额 <b>1,416.31 亿元</b>（TTM 2,414.91 亿元），自由现金流 FCFF 1,239.69 亿元；资产负债率 28.60%，有息负债 680.88 亿元，货币资金 3,143.78 亿元——净现金状态。</div>
+  <div class="verdict"><b>判定：维持核心。</b>扣非 857.33 亿元与归母 858.18 亿元基本重合，无一次性损益粉饰；2025 年的下滑已在 2026H1 逆转（-11.5% → +23.4%）。核心档中 PB 最低（1.85）、市值最大、现金流最强。唯一主要变量仍是国际油价——2025 年 ROE 回落至 15.21% 已逼近视界线，属周期性而非结构性风险。</div>
+</div>
+
+<div class="stock-block">
+  <h4>新和成 <span class="code">002001.SZ</span>　<span class="badge b-core">核心</span></h4>
+  <div class="kv">年度归母净利润：2023 年 27.0 亿 → 2024 年 58.7 亿（+117.0%）→ 2025 年 67.6 亿（<b>+15.3%</b>）</div>
+  <div class="kv">年度 ROE：2024 年 <b>20.01%</b> → 2025 年 <b>20.62%</b>（加权 21.87%）；最新 TTM <b>20.56%</b></div>
+  <div class="kv">2026H1：营收 131.29 亿元（+18.28%），归母 40.11 亿元（<b class="up">+11.31%</b>），扣非 39.19 亿元，毛利率 44.22%</div>
+  <div class="kv">扣非增速 +39.32%（三年复合口径）与归母高度一致；2024 年翻倍源于维生素 / 香精香料周期回暖的量价齐升，<b>非一次性损益</b>。</div>
+  <div class="verdict"><b>判定：维持核心。</b>连续两年年度 ROE 稳定站上 20%，2026H1 延续增长，是本次核心档中我最放心的盈利曲线。核心档 PE 最低（10.87）。<b>风险点</b>：毛利率 43.87% 为核心档最低且贴近 40% 阈值，维生素价格一旦回落，向下弹性也最大。</div>
+</div>
+
+<div class="stock-block">
+  <h4>三七互娱 <span class="code">002555.SZ</span>　<span class="badge b-core">核心</span></h4>
+  <div class="kv">年度归母净利润：2023 年 26.7 亿 → 2024 年约 26.7 亿 → 2025 年 29.0 亿（<b>+8.5%</b>），三年无亏损、无剧烈摆动</div>
+  <div class="kv">年度 ROE：2025 年 <b>21.43%</b>（年报口径）；最新 ROE(TTM) <b>23.18%</b>，为全池最高。<b>（2024 年度 ROE 本期未检索到，图中留空）</b></div>
+  <div class="kv">2025 年扣非 28.5 亿 ≈ 归母 29.0 亿，盈利质量干净；轻资产、高毛利（76.17%）</div>
+  <div class="kv"><b>本期新增核查</b>：近一年已实施 <b>5 次现金分红</b>（10 派 2.10 ×3、10 派 4.00、10 派 1.00），分红频次为全池最高；股息率 5.35% 为核心档最高。</div>
+  <div class="verdict"><b>判定：维持核心。</b>三年归母净利润曲线最平（26.7 / 26.7 / 29.0 亿），ROE(TTM) 高于 2025 年报口径，<b>推断</b>为 2026H1 盈利继续改善所致（该推断尚未由中报明细直接验证）。年内股价 -25.35%、近 60 日 -9.20%，估值处于自身偏低位置。<b>需留意</b>：买量成本波动与单品周期。</div>
+</div>
+
+<h3><span class="tag t-watch">观察档 3 只</span>量化达标，但盈利处于下行通道或存在口径背离</h3>
+
+<div class="stock-block">
+  <h4>泸州老窖 <span class="code">000568.SZ</span>　<span class="badge b-watch">观察</span></h4>
+  <div class="kv">年度归母净利润：2023 年 132.5 亿 → 2024 年 134.7 亿（+1.7%）→ 2025 年 108.3 亿（<b>-19.6%</b>）</div>
+  <div class="kv">年度 ROE：2024 年 <b>28.43%</b> → 2025 年 <b>21.76%</b>（加权 22.66%）；最新 TTM 已降至 <b>16.41%</b>，2026H1 加权 ROE 仅 8.62%</div>
+  <div class="kv">2026H1：营收 104.72 亿元（<b>-36.35%</b>），归母 43.39 亿元（<b class="down">-43.37%</b>），扣非 42.91 亿元（-43.90%）</div>
+  <div class="kv">26Q2 单季进一步恶化：营收 24.47 亿元（-65.54%），归母 6.31 亿元（<b class="down">-79.45%</b>）；中高档酒类销量 -42.5%、吨价 +6.4%（控量保价）</div>
+  <div class="verdict"><b>判定：维持观察，下行未止（本周无新增恶化信号，但亦无改善证据）。</b>盈利质量本身干净（扣非降幅仅略大于归母），下滑源于行业需求与主动去库，非财务粉饰。安全边际仍在：毛利率 85.56% 全池最高、股息率 8.25% 全池最高且较上期抬升、PB 2.25 较上期回落。<b>观察触发条件</b>：2026 年报或 2027H1 营收与归母同比转正。</div>
+</div>
+
+<div class="stock-block">
+  <h4>迎驾贡酒 <span class="code">603198.SH</span>　<span class="badge b-watch">观察</span></h4>
+  <div class="kv">年度归母净利润：2023 年 22.8 亿 → 2024 年 25.9 亿（+13.4%）→ 2025 年 19.9 亿（<b>-23.3%</b>）</div>
+  <div class="kv">年度 ROE：2024 年 <b>26.30%</b> → 2025 年 <b>18.67%</b>（加权 19.40%）；最新 TTM <b>19.04%</b></div>
+  <div class="kv">2026H1 转正：营收 34.16 亿元（<b class="up">+8.08%</b>），归母 11.62 亿元（<b class="up">+2.79%</b>），扣非 11.21 亿元（+2.49%）；26Q2 单季归母 3.27 亿元（+8.44%）</div>
+  <div class="kv">隐忧：销售费用 +24.95%（广告宣传费 +41.46%），利润增速显著跑输营收，属"以费换销"；正面项是经营现金流 10.75 亿元（+239.52%）</div>
+  <div class="verdict"><b>判定：维持观察，边际企稳。</b>由 2025 全年 -23.3% 转为 2026H1 +2.79%，下行通道中止，是全池边际改善最明确的一只。但 2026H1 加权 ROE 仅 10.74%（同比 -1.53pct），企稳成色仍需 2026 年报验证；<b>PB 2.80 已逼近 3 倍上限，为观察档最高</b>，估值容错空间最小。</div>
+</div>
+
+<div class="stock-block">
+  <h4>伟星新材 <span class="code">002372.SZ</span>　<span class="badge b-watch">观察</span></h4>
+  <div class="kv">年度归母净利润：2023 年 14.35 亿 → 2024 年约 9.5 亿 → 2025 年 7.41 亿（<b>-22.2%</b>），<b>连续两年下滑</b></div>
+  <div class="kv">年度 ROE：2024 年 <b>15.16%</b> → 2025 年 <b>15.16%</b>（加权 14.90%）；最新 TTM 18.22%</div>
+  <div class="kv">2026H1 严重口径背离：归母 3.90 亿元（<b class="up">+43.90%</b>），扣非仅 2.15 亿元（<b class="down">-19.65%</b>）</div>
+  <div class="kv">背离来源：投资净收益 1.37 亿元构成归母主要增量；营收 18.97 亿元（-8.71%），加权 ROE 7.82%，<b>扣非 ROE 仅 4.57%</b></div>
+  <div class="verdict"><b>判定：维持观察，风险等级保持高位。</b>归母 +43.90% 是<b>假象</b>，扣非 -19.65% 才反映主业真实趋势（地产链需求走弱）。这是全池唯一"归母与扣非方向相反"的标的。量化口径上仍达标（且本周毛利率 41.44%、净利率 16.39% 双双贴近阈值下沿），但扣非 ROE 仅 4.57%，主业盈利能力实际已远弱于阈值隐含水平。<b>观察触发条件</b>：2026 年报扣非同比转正、净利率守住 15%。</div>
+</div>
+
+<h3><span class="tag t-out">剔除档 4 只</span>历史盈利不稳定，或当期指标失真</h3>
+
+<div class="stock-block">
+  <h4>巨人网络 <span class="code">002558.SZ</span>　<span class="badge b-out">剔除</span>　<span class="badge b-new">本周边际改善</span></h4>
+  <div class="kv">年度归母净利润：2023 年 10.86 亿 → 2024 年 14.25 亿（+31.2%）→ 2025 年 17.55 亿（+23.1%）</div>
+  <div class="kv">年度 ROE：2024 年 <b>11.11%</b> → 2025 年 <b>11.40%</b>（加权 12.45%），<b>连续两年低于 15% 阈值</b>；但最新 TTM 已升至 18.55%，与年报口径存在约 6pct 背离</div>
+  <div class="kv">2026H1 爆发：营收 46.89 亿元（<b>+182.08%</b>），归母 21.44 亿元（<b class="up">+175.96%</b>），扣非 22.36 亿元（+177.23%），毛利率 95.79%，半年加权 ROE 13.22%</div>
+  <div class="kv"><b>本期重大变化（分红）</b>：<b>2026-09-22 除权实施中期分红 10 派 8.00 元</b>，单次派现 15.15 亿元，叠加 2025 年度 10 派 1.90 元，<b>股息率（TTM）由上期 1.37% 跃升至 4.41%（+3.04pct）</b>——此前"股息率逼近 1% 阈值下限"这一最大弱项已实质修复，且分红率已达 70.65%。</div>
+  <div class="verdict"><b>判定：维持剔除，但必须将"量化达标度改善"记录在案。</b>剔除理由仍是历史年度 ROE 连续两年不达标（11.11% / 11.40%），属历史不稳定。但需明确指出：2026H1 扣非 22.36 亿 &gt; 归母 21.44 亿，利润几乎全部由主业贡献，质量扎实；半年加权 ROE 13.22% 已超过过去两年全年水平；叠加本次大额分红，<b>量化层面只剩下"历史年度 ROE"一条未过关</b>。<b>升档条件</b>：2026 年报 ROE 站上 15% 且扣非维持高于归母，下期可直接升入观察档评估。风险点：单品依赖度高（《超自然行动组》），游戏行业单品周期波动大；年内股价 -47.12%，为全池跌幅之首。</div>
+</div>
+
+<div class="stock-block">
+  <h4>东方铁塔 <span class="code">002545.SZ</span>　<span class="badge b-out">剔除</span></h4>
+  <div class="kv">年度归母净利润：2023 年 6.34 亿（-23.1%）→ 2024 年 5.64 亿（-11.0%）→ 2025 年 12.06 亿（<b>+113.8%</b>）</div>
+  <div class="kv">年度 ROE：2024 年 <b>6.34%</b> → 2025 年 <b>12.36%</b>；最新 TTM 16.29%</div>
+  <div class="kv">2026H1 继续爆发：营收 30.51 亿元（+42.03%），归母 9.76 亿元（<b>+97.84%</b>），扣非 9.64 亿元（+100.88%），毛利率 47.48%（+2.80pct）</div>
+  <div class="kv">扣非增速（+100.88%）略高于归母（+97.84%），非经常项影响很小，业绩确由主营驱动——<b>问题不在质量，在可预测性</b></div>
+  <div class="verdict"><b>判定：维持剔除（强周期剧烈波动）。</b>2023–2024 连续两年下滑后，2025 与 2026H1 连续翻倍式增长，盈利随氯化钾（老挝钾肥资产）价格大起大落，摆动幅度远超"稳定"的定义，无法用价值投资式的"可预测性"框架定价。<b>本期估值变动</b>：PE 由 11.77 降至 10.15、PB 由 1.92 降至 1.65，近 20 日 -23.02%、年内 -24.08%，为全池走势最弱——市场已在为其周期见顶定价。风险点：钾肥价格回落时利润弹性向下；含商誉 4.34 亿元、有息负债 8.27 亿元。</div>
+</div>
+
+<div class="stock-block">
+  <h4>通化东宝 <span class="code">600867.SH</span>　<span class="badge b-out">剔除</span></h4>
+  <div class="kv">年度归母净利润：2023 年 11.68 亿 → <b>2024 年 -0.42 亿（近 20 年首次年度亏损）</b> → 2025 年 12.19 亿（+3,005.6%）</div>
+  <div class="kv">年度 ROE：2024 年 <b class="down">-0.67%</b> → 2025 年 17.16%（加权 18.36%）；最新 TTM 19.01%</div>
+  <div class="kv"><b>扭亏真相</b>：2025 年归母 12.19 亿元中非经常性损益 8.44 亿元，占 <b>69.24%</b>，主要来自转让特宝生物（688278.SH）5.70% 股权的非流动性资产处置损益 10.96 亿元；扣非仅 3.75 亿元，为 2023 年 11.68 亿元的约三分之一</div>
+  <div class="kv">2026H1 主业修复：营收 15.53 亿元（+11.13%），归母 2.96 亿元（+37.32%），扣非 2.96 亿元（+35.55%），归母 ≈ 扣非，非经常项影响已基本消失</div>
+  <div class="kv"><b>本期新增核查（重要）</b>：其 <b>动态 PE 高达 25.60 倍</b>，而 TTM PE 仅 11.65 倍。差异源于按 2026H1 主业盈利年化后 EPS 大幅回落——换言之，<b>剥离一次性收益后，它按当期主业盈利计算已超出本策略 25 倍上限</b>。</div>
+  <div class="verdict"><b>判定：维持剔除。</b>剔除理由是 2024 年出现年度亏损 ＋ 2025 年扭亏 69% 依赖一次性股权处置，属典型的"历史不稳定"。本期维持的同时确认：2026H1 扣非 2.96 亿元已达 2025 全年扣非的 79%，胰岛素主业（门冬、甘精类似物放量 ＋ 出口）的修复是真实的。但动态 PE 25.60 倍提示估值优势在剔除一次性损益后并不成立。<b>升档条件</b>：2026 年报扣非持续正增长、非经常项占比回归正常，且动态 PE 回落至 25 倍以内。销售费用率偏高需继续跟踪。</div>
+</div>
+
+<div class="stock-block">
+  <h4>九安医疗 <span class="code">002432.SZ</span>　<span class="badge b-out">剔除</span></h4>
+  <div class="kv">年度归母净利润：2023 年 12.5 亿（-92.2%）→ 2024 年 16.7 亿（+33.3%）→ 2025 年 22.7 亿（+35.8%）</div>
+  <div class="kv">年度 ROE：2024 年 <b>8.05%</b> → 2025 年 <b>10.38%</b>（加权 10.75%），<b>连续两年低于 15%</b>；最新 TTM 19.09%（受 TTM 口径放大）</div>
+  <div class="kv"><b>核心异常</b>：TTM 净利率 <b>390.91%</b>。2025 年营收仅 13.66 亿元（-47.32%），归母净利润 22.67 亿元，利润是收入的 1.66 倍</div>
+  <div class="kv">利润来源：投资收益 + 交易性金融资产公允价值变动合计约 28.3 亿元，是主营收入的 2 倍以上；公司已确立"医疗健康 + 大类资产配置投资"双主业，投资业务按经常性损益列示（故扣非 22.92 亿反而略高于归母）</div>
+  <div class="kv">历史极端波动：2022 年靠新冠抗原试剂盒归母曾达 160.3 亿元、ROE 82%，2023 年随即暴跌 92%。2025 年经营活动现金流净额 <b>-1.67 亿元</b>（由正转负）</div>
+  <div class="verdict"><b>判定：剔除（指标失真，全池最严重一例）。</b>它之所以能同时通过"净利率 &gt;15%"与"ROE &gt;15%"，是因为利润主要来自资产管理浮盈而非主业，TTM 财务指标已严重失真，与"稳健高 ROE 价值股"的画像背离。这是本次筛选中<b>最容易被量化阈值误纳</b>的标的——本周其 PB 1.20、PE 6.28 仍是全池最低，年内涨幅 +54.22% 全池最高，价格层面的吸引力恰恰来自失真的账面利润。</div>
+</div>
+
+<!-- ⑥ 与上期对比 -->
+<h2>六、与上一期（2026-09-22）对比</h2>
+<div class="card">
+  <div class="kpis">
+    <div class="kpi"><div class="n">0</div><div class="l">新进入</div></div>
+    <div class="kpi"><div class="n">0</div><div class="l">剔除出池</div></div>
+    <div class="kpi"><div class="n">0</div><div class="l">升档 / 降档</div></div>
+    <div class="kpi"><div class="n">10/10</div><div class="l">名单保持一致</div></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>代码</th><th>名称</th><th>分档变化</th>
+        <th>PE 上期 → 本期</th><th>PB 上期 → 本期</th><th>股息率 上期 → 本期</th><th>总市值(亿) 上期 → 本期</th><th>本期关键变动</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="code">600938</td><td class="name">中国海油</td><td><span class="badge b-same">核心 · 不变</span></td><td>11.52 → 11.44</td><td>1.86 → 1.85</td><td>3.41% → 3.44%</td><td>15,941.55 → 15,832.23</td><td class="left">估值小幅下移，PB 核心档最低；新增 2026H1 现金流核查（经营现金流 1,416 亿）</td></tr>
+      <tr><td class="code">000568</td><td class="name">泸州老窖</td><td><span class="badge b-same">观察 · 不变</span></td><td>14.16 → 13.72</td><td>2.32 → 2.25</td><td>8.00% → <b>8.25%</b></td><td>1,062.71 → 1,030.18</td><td class="left">股息率升至全池最高；26Q2 归母 -79.45% 的恶化尚无新增反驳证据</td></tr>
+      <tr><td class="code">002001</td><td class="name">新和成</td><td><span class="badge b-same">核心 · 不变</span></td><td>11.47 → <b>10.87</b></td><td>2.36 → 2.23</td><td>3.73% → 3.94%</td><td>822.45 → 779.42</td><td class="left">PE 降至核心档最低，市值周内回落 5.2%</td></tr>
+      <tr><td class="code">002558</td><td class="name">巨人网络</td><td><span class="badge b-new">剔除 · 边际改善</span></td><td>15.09 → 13.62</td><td>2.80 → 2.78</td><td>1.37% → <b class="up">4.41%</b></td><td>471.15 → 425.16</td><td class="left"><b>本期最大变化</b>：9/22 除权实施 10 派 8.00 元，股息率跳升 3.04pct；分档不变，但达标度实质提升</td></tr>
+      <tr><td class="code">002555</td><td class="name">三七互娱</td><td><span class="badge b-same">核心 · 不变</span></td><td>12.01 → 11.58</td><td>2.83 → 2.73</td><td>5.16% → <b>5.35%</b></td><td>392.23 → 378.07</td><td class="left">新增分红频次核查：一年 5 次派现，全池最高</td></tr>
+      <tr><td class="code">603198</td><td class="name">迎驾贡酒</td><td><span class="badge b-same">观察 · 不变</span></td><td>15.38 → 14.73</td><td>2.93 → 2.80</td><td>3.87% → 4.04%</td><td>310.16 → 297.20</td><td class="left">PB 由逼近上限回落至 2.80；边际企稳判断维持</td></tr>
+      <tr><td class="code">002432</td><td class="name">九安医疗</td><td><span class="badge b-same">剔除 · 不变</span></td><td>6.73 → 6.28</td><td>1.28 → 1.20</td><td>2.33% → 2.50%</td><td>297.33 → 277.19</td><td class="left">TTM 净利率 390.91% 失真未改变；年内仍为全池涨幅最大（+54.22%）</td></tr>
+      <tr><td class="code">002545</td><td class="name">东方铁塔</td><td><span class="badge b-same">剔除 · 不变</span></td><td>11.77 → <b>10.15</b></td><td>1.92 → <b>1.65</b></td><td>1.88% → 2.18%</td><td>198.80 → 171.43</td><td class="left">估值降幅全池最大，近 20 日 -23.02%，周期见顶定价中</td></tr>
+      <tr><td class="code">600867</td><td class="name">通化东宝</td><td><span class="badge b-new">剔除 · 风险点升级</span></td><td>12.00 → 11.65</td><td>2.28 → 2.22</td><td>3.76% → 3.88%</td><td>155.90 → 151.40</td><td class="left"><b>本期新增</b>：动态 PE 25.60 倍，按主业盈利年化已超 25 倍上限</td></tr>
+      <tr><td class="code">002372</td><td class="name">伟星新材</td><td><span class="badge b-same">观察 · 不变</span></td><td>15.17 → 15.15</td><td>2.76 → 2.76</td><td>5.42% → 5.43%</td><td>130.39 → 130.23</td><td class="left">归母 / 扣非背离维持，扣非 ROE 4.57% 仍是主要扣分项</td></tr>
+    </tbody>
+  </table>
+  <div class="src">上期数据取自项目目录内 <code>巴菲特选股策略_2026-09-22周报.html</code>（同源、同口径）；本期数据取数 2026-09-29 约 09:48 盘中快照。</div>
+  <div class="note">
+    <b>为什么连续两期零变化——这是事实，不是筛选失效</b><br>
+    两期的财务基准同为 <b>2026 年中报（报告期 2026-06-30）</b>：A 股上市公司 2026 年三季报须在 10 月 31 日前披露，本周尚无新的定期报告，因此 8 项财务 / 估值阈值的 TTM 数值逐项未变，历史盈利稳定性核查的输入也未变 → 名单与分档自然保持一致。<br>
+    <b>本周真实的信息增量在三条</b>：① 巨人网络中期分红实施，股息率跳升；② 东方铁塔、通化东宝的估值结构变化（含动态 PE 口径风险暴露）；③ 中国海油、巨人网络、三七互娱的分红记录与现金流明细补齐。<br>
+    <b>预期下一次实质名单更新</b>：2026 年三季报披露期（10 月下旬），届时 TTM 财务口径整体前移一期。
+  </div>
+</div>
+
+<footer>
+  <div><b>数据来源与口径汇总</b></div>
+  <div>① 量化筛选：westock-screener 条件选股，表达式 <code>intersect([ROETTM&gt;15, GrossIncomeRatioTTM&gt;40, NetProfitRatioTTM&gt;15, DebtAssetsRatio&lt;50, PE_TTM&gt;0, PE_TTM&lt;25, PB&gt;0, PB&lt;3, DividendRatioTTM&gt;1])</code>，取数 <b>2026-09-29</b>；</div>
+  <div>② 行情 / 估值 / 股息率 / 市值：westock-data quote 接口，取数 <b>2026-09-29 约 09:48（盘中快照，非当日收盘价）</b>，东方铁塔、通化东宝经 neodata 估值接口交叉核对，差异 &lt;0.3%；</div>
+  <div>③ 财务明细：westock-data finance（利润表 / 资产负债表 / 现金流量表），报告期 <b>2026-06-30</b>，部分历史年度数据取自公司 2024 / 2025 年年度报告（披露日 2026-03 至 2026-04）；</div>
+  <div>④ 分红实施记录：westock-data dividend 接口；⑤ 本期引用 <b>2 次</b>金融检索，未使用任何本地缓存或记忆中的历史数值。</div>
+  <div style="margin-top:8px;"><b>口径不一致提示</b>：ROE 存在 TTM、年报加权、年报摊薄三种口径，本报告中 ROE(TTM)、历史年度 ROE、加权 ROE 已分别注明，<b>不可混用</b>；PE 同理区分 TTM / 动态 / 静态，通化东宝三者分别为 11.65 / 25.60 / 12.42 倍。</div>
+
+  <div class="disc">
+    <b>免责声明</b>：以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+  </div>
+  <div style="margin-top:10px;color:#A0AEC0;font-size:11.5px;">报告生成：2026-09-29 · 数据基准日见各章节标注 · 本报告为量化数据研究，输出客观筛选结果与数据核查，不含具体买卖价位建议。</div>
+</footer>
+
+</div>
+
+<script>
+var NAMES = ['中国海油 600938', '泸州老窖 000568', '新和成 002001', '巨人网络 002558', '三七互娱 002555', '迎驾贡酒 603198', '九安医疗 002432', '东方铁塔 002545', '通化东宝 600867', '伟星新材 002372'];
+
+var ROE = [16.16, 16.41, 20.56, 18.55, 23.18, 19.04, 19.09, 16.29, 19.01, 18.22];
+var ROE_COLOR = ['#2B6CB0', '#DD6B20', '#2B6CB0', '#8A94A6', '#2B6CB0', '#DD6B20', '#8A94A6', '#8A94A6', '#8A94A6', '#DD6B20'];
+
+var H24 = [18.45, 28.43, 20.01, 11.11, null, 26.30, 8.05, 6.34, -0.67, 15.16];
+var H25 = [15.21, 21.76, 20.62, 11.40, 21.43, 18.67, 10.38, 12.36, 17.16, 15.16];
+var HTTM = [16.16, 16.41, 20.56, 18.55, 23.18, 19.04, 19.09, 16.29, 19.01, 18.22];
+
+var PE = [11.44, 13.72, 10.87, 13.62, 11.58, 14.73, 6.28, 10.15, 11.65, 15.15];
+var PB = [1.85, 2.25, 2.23, 2.78, 2.73, 2.80, 1.20, 1.65, 2.22, 2.76];
+
+var DIV_PREV = [3.41, 8.00, 3.73, 1.37, 5.16, 3.87, 2.33, 1.88, 3.76, 5.42];
+var DIV_NOW = [3.44, 8.25, 3.94, 4.41, 5.35, 4.04, 2.50, 2.18, 3.88, 5.43];
+
+var THRESH = {
+  symbol: 'none',
+  label: { fontSize: 10, color: '#C05621' },
+  lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 }
+};
+
+function buildRoeChart() {
+  var el = document.getElementById('chart-roe');
+  if (!el) { return; }
+  var data = ROE.map(function (v, i) {
+    return { value: v, itemStyle: { color: ROE_COLOR[i] } };
+  });
+  echarts.init(el).setOption({
+    tooltip: { trigger: 'item', formatter: '{b}<br/>ROE(TTM)：{c}%' },
+    grid: { left: 130, right: 80, top: 16, bottom: 24 },
+    xAxis: { type: 'value', name: 'ROE(TTM) %', max: 26, axisLabel: { formatter: '{value}%', fontSize: 11 }, splitLine: { lineStyle: { color: '#EDF0F2' } } },
+    yAxis: { type: 'category', data: NAMES, inverse: true, axisLabel: { fontSize: 11, color: '#1F2933' }, axisTick: { show: false } },
+    series: [{
+      type: 'bar',
+      data: data,
+      barWidth: '58%',
+      label: { show: true, position: 'right', formatter: '{c}%', fontSize: 11, color: '#4A5568' },
+      markLine: { silent: true, symbol: 'none', data: [{ xAxis: 15, label: { formatter: '15% 阈值', fontSize: 10, color: '#C05621' }, lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 } }] }
+    }]
+  });
+}
+
+function buildHistChart() {
+  var el = document.getElementById('chart-hist');
+  if (!el) { return; }
+  echarts.init(el).setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (v) { return (v === null) ? '无数据' : v + '%'; } },
+    legend: { data: ['2024 年报', '2025 年报', '最新 TTM (2026H1)'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 52, right: 18, top: 42, bottom: 88 },
+    xAxis: { type: 'category', data: NAMES, axisLabel: { interval: 0, rotate: 40, fontSize: 10, color: '#1F2933' } },
+    yAxis: { type: 'value', name: 'ROE %', axisLabel: { formatter: '{value}%', fontSize: 11 }, splitLine: { lineStyle: { color: '#EDF0F2' } } },
+    series: [
+      { name: '2024 年报', type: 'bar', data: H24, barWidth: '24%', itemStyle: { color: '#CBD5E0' } },
+      { name: '2025 年报', type: 'bar', data: H25, barWidth: '24%', itemStyle: { color: '#90A4C4' } },
+      { name: '最新 TTM (2026H1)', type: 'bar', data: HTTM, barWidth: '24%', itemStyle: { color: '#0E7490' }, markLine: { silent: true, symbol: 'none', data: [{ yAxis: 15, label: { formatter: '15% 阈值', fontSize: 10, color: '#C05621' }, lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 } }] } }
+    ]
+  });
+}
+
+function buildValChart() {
+  var el = document.getElementById('chart-val');
+  if (!el) { return; }
+  echarts.init(el).setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['PE(TTM)', 'PB(LF)'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 52, right: 52, top: 42, bottom: 88 },
+    xAxis: { type: 'category', data: NAMES, axisLabel: { interval: 0, rotate: 40, fontSize: 10, color: '#1F2933' } },
+    yAxis: [
+      { type: 'value', name: 'PE 倍', max: 28, axisLabel: { fontSize: 11 }, splitLine: { lineStyle: { color: '#EDF0F2' } } },
+      { type: 'value', name: 'PB 倍', max: 3.6, min: 0, axisLabel: { fontSize: 11 }, splitLine: { show: false } }
+    ],
+    series: [
+      { name: 'PE(TTM)', type: 'bar', data: PE, barWidth: '45%', itemStyle: { color: '#2B6CB0' }, label: { show: true, position: 'top', fontSize: 10, color: '#4A5568' }, markLine: { silent: true, symbol: 'none', data: [{ yAxis: 25, label: { formatter: 'PE 25', fontSize: 10, color: '#C05621' }, lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 } }] } },
+      { name: 'PB(LF)', type: 'line', yAxisIndex: 1, data: PB, symbol: 'circle', symbolSize: 8, itemStyle: { color: '#DD6B20' }, lineStyle: { color: '#DD6B20', width: 2 }, markLine: { silent: true, symbol: 'none', data: [{ yAxis: 3, label: { formatter: 'PB 3', fontSize: 10, color: '#C05621' }, lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 } }] } }
+    ]
+  });
+}
+
+function buildDivChart() {
+  var el = document.getElementById('chart-div');
+  if (!el) { return; }
+  echarts.init(el).setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (v) { return v + '%'; } },
+    legend: { data: ['上期 2026-09-22', '本期 2026-09-29'], top: 0, textStyle: { fontSize: 11 } },
+    grid: { left: 52, right: 18, top: 42, bottom: 88 },
+    xAxis: { type: 'category', data: NAMES, axisLabel: { interval: 0, rotate: 40, fontSize: 10, color: '#1F2933' } },
+    yAxis: { type: 'value', name: '股息率(TTM) %', axisLabel: { formatter: '{value}%', fontSize: 11 }, splitLine: { lineStyle: { color: '#EDF0F2' } } },
+    series: [
+      { name: '上期 2026-09-22', type: 'bar', data: DIV_PREV, barWidth: '32%', itemStyle: { color: '#E2E6EA' } },
+      { name: '本期 2026-09-29', type: 'bar', data: DIV_NOW, barWidth: '32%', itemStyle: { color: '#C62828' }, markLine: { silent: true, symbol: 'none', data: [{ yAxis: 1, label: { formatter: '1% 阈值', fontSize: 10, color: '#C05621' }, lineStyle: { color: '#C05621', type: 'dashed', width: 1.5 } }] } }
+    ]
+  });
+}
+
+function boot() {
+  buildRoeChart();
+  buildHistChart();
+  buildValChart();
+  buildDivChart();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+===== selectNav FULL =====
+function selectNav(catKey, tabKey, push) {
+  const cat = NAV.find((c) => c.key === catKey) || NAV[0];
+  const tab = (tabKey && cat.items.some((i) => i.tab === tabKey)) ? tabKey : cat.items[0].tab;
+  CURRENT = { cat: cat.key, tab };
+  if (push) {
+    const h = "#" + cat.key + "/" + tab;
+    if (location.hash !== h) { location.hash = h; return; }   // hashchange 会回调本函数
+  }
+  renderNav();            // 左栏只随「当前大类」高亮变化
+  paintSubnav(cat, tab);  // 内容区顶部横条：按大类换一批子项，并高亮当前项
+  $$(".panel").forEach((p) => p.classList.remove("active"));
+  const panel = ensurePanel(tab);
+  if (panel) panel.classList.add("active");
+  // 知识库正文约 250KB：只有真正进入该子板块才拉（懒加载）
+  if (cat.key === "learn" && !KB.tracks) loadKbTracks();
+  if (tab === "learn_zdx_stock") ensureKbDoc();
+  if (tab === "learn_tracks") renderKbTracks();
+  // 今日看板：决策入口（默认落地页）——进入时按需（重）渲染，兜住"先拿数据、后面板才建"的时序
+  if (tab === "dashboard") {
+    if (DASH.data) renderDashboard();
+    else loadDashboard().catch((e) => reportLoadError("今日看板", e));
+  }
+  // 知识获取三块：进入时按需渲染（archive 会打接口，故只在进入时拉）
+  if (tab === "sources") renderSourcesPanel(SUMMARY.data);
+  if (tab === "archive") renderArchivePanel();
+  if (tab === "fetchlog") renderFetchLogPanel(SUMMARY.data);
+  // 游资龙虎榜：进入该子板块时按需（重）渲染 —— 双保险。
+  // 面板已补进 index.html；这里再兜一层，确保「先拿到数据、后面板才创建」的时序也不会白屏。
+  if (tab === "lhb") {
+    if (LHB.data) renderLhb();
+    else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+  }
+  // 板块动向：独立视角，进入时按需（重）渲染
+  if (tab === "lhb_sectors") {
+    if (LBHS.data) renderLhbSectors();
+    else loadLhbSectors().catch((e) => reportLoadError("板块动向", e));
+  }
+  // 牛散追踪：进入时按需（重）渲染
+  if (tab === "niusan") {
+    if (NIUSAN.data) renderNiusan();
+    else loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+  }
+  if (tab === "star_moves") {
+    if (STARM.data) renderStarMoves();
+    else loadStarMoves().catch((e) => reportLoadError("牛散动向", e));
+  }
+}
+
+===== loadStarMoves =====
+function loadStarMoves() {
+  return api("/api/star_moves").then((d) => { STARM.data = d; STARM.sel = null; renderStarMoves(); });
+}
+
+===== loadNiusan =====
+function loadNiusan() {
+  const q = "?scope=" + encodeURIComponent(NIUSAN.scope) + "&min_hold=" + NIUSAN.minHold;
+  return api("/api/niusan" + q).then((d) => { NIUSAN.data = d; renderNiusan(); });
+}
+
+===== loadLhb =====
+function loadLhb(date, windowDays) {
+  const q = [];
+  if (date) q.push("date=" + encodeURIComponent(date));
+  if (windowDays) q.push("window_days=" + windowDays);
+  return api("/api/lhb" + (q.length ? "?" + q.join("&") : ""))
+    .then((d) => { LHB.data = d; LHB.sel = null; LHB.selDept = null; renderLhb(); });
+}
+
+===== loadLhbSectors =====
+function loadLhbSectors(date) {
+  const q = date ? "?date=" + encodeURIComponent(date) : "";
+  return api("/api/lhb_sectors" + q).then((d) => { LBHS.data = d; renderLhbSectors(); });
+}
+
+===== renderStocks =====
+function renderStocks(list) {
+  const items = toArr(list);
+  if (!items.length) { $("#p-stocks").innerHTML = `<div class="empty">暂无讨论股票数据</div>`; return; }
+  const missing = items.filter((x) => x && (x.name_missing || !(x.name || x.symbol_name))).length;
+  $("#p-stocks").innerHTML = `<div class="hint" style="margin-bottom:12px">卡片第一行是<b>股票简称</b>，第二行是<b>股票代码 + 公司全称</b>，点击任意卡片可查看该股的持仓选手（<b>持仓起始日期</b> / 买入价 / 当前股价）、相关实盘交易与讨论帖。${missing ? `当前有 <b>${missing}</b> 个代码未识别名称，点下方「补全股票名称」联网查询。` : ""}</div>
+    ${stockLegend({ name_covered: items.length - missing, name_total: items.length }, "mentions")}
+    <div class="grid">` + items.map((x) => stockCard(x, "mentions")).join("") + `</div>`;
+  bindStockCards("#p-stocks");
+  bindLegendSync();
+  applyFreshness();
+}
+
+===== renderSentiment =====
+function renderSentiment(d) {
+  // P3-7：/api/sentiment 若返回数组（类型不符），旧实现会把 Array.prototype.map 当数据用而抛错、
+  // 面板全空。这里先做类型校验并降级提示，不抛错。
+  if (!d || typeof d !== "object" || Array.isArray(d)) {
+    $("#p-sentiment").innerHTML = `<div class="empty">舆论情绪数据格式异常（接口返回类型不符），已降级显示。请检查 /api/sentiment 的返回结构。</div>`;
+    return;
+  }
+  const dist = (d.distribution && typeof d.distribution === "object") ? d.distribution : {};
+  const bars = [
+    ["看多", dist["看多"] || 0, "bull"], ["看空", dist["看空"] || 0, "bear"], ["中性", dist["中性"] || 0, "neu"],
+  ].map(([l, n, c]) => `<div class="bar-card"><div class="bar-val ${c}">${n}</div><div class="s" style="color:var(--muted)">${l}</div></div>`).join("");
+  const map = toArr(d.map).map((m) => stockCard(m, "sentiment")).join("");
+  const missing = Math.max(0, (Number(d.name_total) || 0) - (Number(d.name_covered) || 0));
+  $("#p-sentiment").innerHTML = `<div class="bars" style="margin-bottom:16px">${bars}</div>
+    <h3 style="margin:6px 0 10px">情绪地图（按股票聚合多空，点击卡片看持仓与交易明细）</h3>
+    ${stockLegend(d)}
+    ${missing > 0 ? `<div class="hint" style="margin-bottom:12px">有 <b>${missing}</b> 个代码未取到名称（多为冷门标的或网络未连通）。可点上方「补全股票名称」联网查询；也可在 <code>config/stock_names.yaml</code> 中手工补充，格式：<code>600519: [贵州茅台, 贵州茅台酒股份有限公司]</code>。</div>` : ""}
+    <div class="grid">${map || "<div class='empty'>暂无情绪分布</div>"}</div>`;
+  bindStockCards("#p-sentiment");
+  bindLegendSync();
+}
+
+===== subnav CSS =====
+.subnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.sub-tab { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--panel); color: var(--text); text-decoration: none;
+  font-size: 13px; line-height: 1.35; white-space: nowrap; }
+.sub-tab:hover { border-color: var(--accent); color: var(--accent); }
+.sub-tab.active { background: var(--accent); border-color: var(--accent);
+  color: var(--on-accent, #fff); font-weight: 600; }
+.subnav-spacer { flex: 1 1 auto; }
+  .subnav { margin-bottom: 12px; padding-bottom: 8px; }
+  .sub-tab { padding: 6px 11px; font-size: 12px; }
+
+subnav-group exists: False
+
+===== loadAll 中 niusan/star_moves/lhb 行 =====
+  21: if (!LHB.data) loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));

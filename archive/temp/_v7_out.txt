@@ -1,0 +1,149 @@
+================= 后端 =================
+  def api_star_moves                   1
+  route == "/api/star_moves"           1
+  def api_niusan                       1
+  route == "/api/niusan"               1
+  def api_dashboard                    1
+  route == "/api/dashboard"            1
+  def api_lhb_sectors                  1
+  route == "/api/lhb_sectors"          1
+
+================= 前端 =================
+  star_moves               app.js=0
+  renderStarMoves          app.js=0
+  loadStarMoves            app.js=0
+  p-star_moves             app.js=0
+  STARMOVES                app.js=0
+  niusan                   app.js=5
+  renderNiusan             app.js=3
+  p-niusan                 app.js=2
+  dashboard                app.js=7
+  renderDashboard          app.js=4
+  p-dashboard              app.js=2
+  index panels=20  p-niusan=True  p-dashboard=True  p-star_moves=False
+
+================= NAV 定义 =================
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+================= 数据库关键表 =================
+  players              226
+  positions            271
+  trades               64
+  posts                1059
+  news                 678
+  lhb_stocks           492
+  lhb_seats            3815
+  lhb_depts            3175
+  lhb_inst             269
+  stock_holders        23199
+  stock_holder_num     4854
+  lhb_sector_focus     28
+
+================= 根目录临时文件 =================
+  _ 前缀文件 134 个
+    _anch_dash.py                      1084
+    _anch_dash_out.txt                 4161
+    _anchor.txt                        300
+    _anchors.txt                       2059
+    _arch2.py                          2005
+    _arch2_out.txt                     3120
+    _arch_audit.py                     2557
+    _arch_out.txt                      4578
+    _backfill_time.py                  5234
+    _blog_dump.html                    70589
+    _bt_audit.py                       6479
+    _bt_audit_out.txt                  6649
+    _bt_live.py                        7767
+    _bt_live_out.txt                   1804
+    _c_persist.py                      526
+    _c_route.py                        870
+    _c_sec.py                          982
+    _chk1.txt                          4562
+    _chk2.txt                          121
+    _chk3.txt                          125
+    _chk4.txt                          232
+    _chk_board.txt                     157
+    _chk_dash.py                       1331
+    _chk_dash_out.txt                  1821
+    _chk_ns.py                         1113
+    _co.txt                            14049
+    _dash_out.txt                      1801
+    _dash_shot.png                     211913
+    _dash_src.txt                      4839
+    _dav_probe_out.txt                 459
+    _diag_api.txt                      352
+    _diag_sched.txt                    4264
+    _diag_sched2.txt                   2742
+    _diag_sec.txt                      8445
+    _diag_secapi.txt                   3798
+    _diag_sl.txt                       831
+    _diag_time.py                      3262
+    _dsrc.txt                          5459
+    _find_ai_out.txt                   17084
+    _fingerprint.py                    3943
+    _fingerprint_out.txt               1071
+    _fix_time.py                       5779
+    _gap.py                            2551
+    _gap_out.txt                       2423
+    _h.txt                             548
+    _hc.txt                            1821
+    _holders_run.txt                   210
+    _holders_run2.txt                  217
+    _holders_run_full.txt              971
+    _hpayload_out.txt                  668
+    _hs_cols.txt                       1802
+    _hs_dates.txt                      3385
+    _hs_stat.txt                       1987
+    _js_blog.js                        74511
+    _js_blognew.js                     69563
+    _minglu.txt                        7948
+    _nav2.txt                          4120
+    _nav3.txt                          1362
+    _nav_dump.txt                      4102
+    _nav_learn.txt                     7133
+    _ni2.txt                           5164
+    _ni3.txt                           2455
+    _ni_out.txt                        500
+    _ni_verify.txt                     873
+    _norm_time.py                      3129
+    _ns_full.txt                       5356
+    _ns_src.txt                        2464
+    _ov.py                             2808
+    _ov_out.txt                        2454
+    _plan_timefix.py                   4034
+    _probe_em_time.py                  2134
+    _probe_hld2.py                     2398
+    _probe_hld2_out.txt                2375
+    _probe_holders.py                  3174
+    _probe_holders_out.txt             8564
+    _probe_pos_time2.py                3691
+    _probe_sydr.py                     2477
+    _probe_sydr_out.txt                2211
+    _probe_tgb_live.py                 4521
+    _probe_tgb_live_out.txt            2352

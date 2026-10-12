@@ -1,0 +1,8 @@
+-rw-r--r-- 1 野比&大熊 197121 112385 Oct  9 22:44 viewer/db.py
+-rw-r--r-- 1 野比&大熊 197121 391015 Oct  9 22:15 viewer/server.py
+---grep---
+40:# 例外：_BOT_NAMES_VIEWER_EXTRA 是 viewer 侧**临时兜底**（当前仅「新浪财经客户端」1 个），
+61:_BOT_NAMES_VIEWER_EXTRA = {"新浪财经客户端"}
+86:    if n in _BOT_NAMES or n in _BOT_NAMES_VIEWER_EXTRA:
+848:    def consensus_stocks(self, min_holders: int = 2,
+1148:    def _cohold_group(self, action: str, lo: str, hi: str, min_holders: int,

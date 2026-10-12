@@ -1,0 +1,25 @@
+=== server 日志 Traceback/ERROR (最后300行) ===
+7:2026-10-09 14:34:29 ERROR: 调度抓取 taoguba 失败
+8:Traceback (most recent call last):
+49:2026-10-09 14:46:34 ERROR: 调度抓取 taoguba 失败
+50:Traceback (most recent call last):
+91:2026-10-09 14:58:42 ERROR: 调度抓取 taoguba 失败
+92:Traceback (most recent call last):
+123:2026-10-09 15:10:51 ERROR: 调度抓取 taoguba 失败
+124:Traceback (most recent call last):
+147:2026-10-09 15:22:57 ERROR: 调度抓取 taoguba 失败
+148:Traceback (most recent call last):
+249:2026-10-09 22:21:04 ERROR: GET /api/hotspots 处理失败
+250:Traceback (most recent call last):
+
+=== bot_filter.py BOT_NAMES/新名单 ===
+20:  BOT_NAMES                            -> 已确证名单（可被 quality_filter / tools 复用）
+32:BOT_NAMES = {
+43:    "新浪财经客户端": "客户端号：36 帖全为【公告】系、2 笔 HOLD（300750 宁德时代）系抄袭他人、零第一人称交易",
+52:_SUFFIX = (r"资讯|播报|快讯|日报|晚报|早报|午报|公告|情报|速递|时报|周刊|"
+57:_NICKNAME_PATTERNS = [
+58:    re.compile(rf"^(?:{_PLATFORM}).{{0,8}}(?:{_SUFFIX}|财经|观察|视点|焦点)$"),
+60:    re.compile(rf"^.{{0,8}}(?:{_SUFFIX})$"),
+86:    if n in BOT_NAMES:
+87:        return True, f"确证名单：{BOT_NAMES[n]}"
+88:    for rx in _NICKNAME_PATTERNS:

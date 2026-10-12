@@ -1,0 +1,18 @@
+============================================================
+### BEFORE  live :8765 (bot filter NOT yet deployed)  (base=http://127.0.0.1:8765)
+  consensus        rows=55  authors=194  BOT=['中信证券资讯', '中国平安资讯', '宁德时代资讯', '工业富联资讯', '平安银行资讯', '新浪财经客户端', '贵州茅台资讯']
+  consensus TierA  rows=7  authors=16  BOT=['平安银行资讯']
+  cohold           authors=53  BOT=['中信证券资讯', '中国平安资讯', '宁德时代资讯']
+  cohold   TierA   authors=0  BOT=[]
+============================================================
+### AFTER   isolated :8795 (current code with bot filter)  (base=http://127.0.0.1:8795)
+  consensus        rows=55  authors=187  BOT=[]
+  consensus TierA  rows=7  authors=15  BOT=[]
+  cohold           authors=50  BOT=[]
+  cohold   TierA   authors=0  BOT=[]
+
+### VERDICT
+  AFTER has zero bot authors in consensus(全量/TierA) & cohold(buy/sell/hold, 全量/TierA): True
+  BEFORE(A) bot authors in consensus:      ['中信证券资讯', '中国平安资讯', '宁德时代资讯', '工业富联资讯', '平安银行资讯', '新浪财经客户端', '贵州茅台资讯']
+  BEFORE(A) bot authors in consensus TierA: ['平安银行资讯']
+  BEFORE(A) bot authors in cohold:          ['中信证券资讯', '中国平安资讯', '宁德时代资讯']

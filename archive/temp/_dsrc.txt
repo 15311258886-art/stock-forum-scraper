@@ -1,0 +1,101 @@
+def api_dashboard() -> dict:
+    """今日看板：一屏给出「今天什么值得看」——资金主线 → 共识 → 数据新鲜度。
+    组织维度是「判断」而非「数据来源」，作为产品的决策入口（首页）。"""
+    out: dict = {"generated_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+
+    # ---- 1) 龙虎榜：最新交易日 ----
+    row = DB.conn.execute("SELECT MAX(trade_date) AS d FROM lhb_stocks").fetchone()
+    lhb_date = row["d"] if row else None
+    lhb: dict = {"date": lhb_date, "stock_count": 0, "net_total": 0.0,
+                 "top_stocks": [], "inst_top": [], "dept_top": []}
+    if lhb_date:
+        merged: dict = {}
+        for r in DB.conn.execute(
+                "SELECT security_code, security_name, change_rate, net_amt, reason "
+                "FROM lhb_stocks WHERE trade_date=?", (lhb_date,)).fetchall():
+            k = r["security_code"]
+            m = merged.get(k)
+            if m is None:
+                merged[k] = {"symbol": k, "name": r["security_name"],
+                             "change_rate": _num(r["change_rate"]),
+                             "net_amt": _num(r["net_amt"]) or 0.0,
+                             "reasons": [r["reason"]] if r["reason"] else []}
+            else:
+                m["net_amt"] += _num(r["net_amt"]) or 0.0
+                if r["reason"] and r["reason"] not in m["reasons"]:
+                    m["reasons"].append(r["reason"])
+        rows = sorted(merged.values(), key=lambda x: -x["net_amt"])
+        lhb["stock_count"] = len(rows)
+        lhb["net_total"] = round(sum(x["net_amt"] for x in rows), 2)
+        lhb["top_stocks"] = rows[:8]
+        lhb["inst_top"] = [
+            {"symbol": r["security_code"], "name": r["security_name"],
+             "net": _num(r["net_buy_amt"]), "buy_times": r["buy_times"],
+             "sell_times": r["sell_times"], "ratio": _num(r["ratio"])}
+            for r in DB.conn.execute(
+                "SELECT security_code, security_name, net_buy_amt, buy_times, sell_times, ratio "
+                "FROM lhb_inst WHERE trade_date=? AND net_buy_amt>0 "
+                "ORDER BY net_buy_amt DESC LIMIT 6", (lhb_date,)).fetchall()]
+        lhb["dept_top"] = [
+            {"name": (r["org_name"] or r["operate_name"]), "net": _num(r["net"]),
+             "stock_count": r["stk"], "appear": r["n"]}
+            for r in DB.conn.execute(
+                "SELECT operate_name, org_name, SUM(net_amt) AS net, "
+                "COUNT(DISTINCT security_code) AS stk, COUNT(*) AS n "
+                "FROM lhb_depts WHERE trade_date=? GROUP BY operate_name "
+                "ORDER BY net DESC LIMIT 6", (lhb_date,)).fetchall()]
+    out["lhb"] = lhb
+
+    # ---- 2) 板块动向：最新日的多点共振 ----
+    srow = DB.conn.execute("SELECT MAX(trade_date) AS d FROM lhb_sector_focus").fetchone()
+    sdate = srow["d"] if srow else None
+    sectors = []
+    if sdate:
+        for r in DB.conn.execute(
+                "SELECT sector, net_amt, onlist_n, t1_avg, t3_avg, t1_win, bench_t1, bench_t3 "
+                "FROM lhb_sector_focus WHERE trade_date=? "
+                "ORDER BY net_amt DESC LIMIT 6", (sdate,)).fetchall():
+            t1 = _num(r["t1_avg"])
+            b1 = _num(r["bench_t1"])
+            sectors.append({"sector": r["sector"], "net": _num(r["net_amt"]),
+                            "onlist_n": r["onlist_n"], "t1_avg": t1, "t3_avg": _num(r["t3_avg"]),
+                            "t1_win": _num(r["t1_win"]), "bench_t1": b1,
+                            "excess_t1": (round(t1 - b1, 2) if t1 is not None and b1 is not None else None)})
+    out["sectors"] = {"date": sdate, "rows": sectors}
+
+    # ---- 3) 共识：牛散同持 ----
+    try:
+        ni = api_niusan(min_hold=2, scope="free")
+        sm = ni.get("summary") or {}
+        out["consensus"] = {"star_count": sm.get("investor_total"),
+                            "person_total": sm.get("person_total"),
+                            "latest_date": sm.get("latest_date"),
+                            "rows": (ni.get("cohold") or [])[:6]}
+    except Exception:  # noqa: BLE001 —— 看板不应因单个模块失败而整体不可用
+        out["consensus"] = {"star_count": None, "rows": []}
+
+    # ---- 4) 数据新鲜度（一眼看出哪条数据陈旧） ----
+    # 口径说明：持仓（当前持仓）源站不提供建仓时间，故此处不展示"最新持仓日"
+    # （否则会拿少数带日期的社区帖冒充整体，造成误导）；改展示条数 + 最后抓取时间。
+    fresh = []
+    for label, sql in (
+        ("龙虎榜", "SELECT MAX(trade_date) FROM lhb_stocks"),
+        ("实盘交易", "SELECT MAX(post_time) FROM trades"),
+        ("讨论帖", "SELECT MAX(post_time) FROM posts"),
+        ("股东(季报)", "SELECT MAX(end_date) FROM stock_holders"),
+        ("最后抓取", "SELECT MAX(fetched_at) FROM raw_pages"),
+    ):
+        try:
+            v = DB.conn.execute(sql).fetchone()[0]
+        except Exception:  # noqa: BLE001
+            v = None
+        fresh.append({"label": label, "latest": str(v)[:19] if v else "—"})
+    try:
+        fresh.append({"label": "持仓条数", "latest": str(
+            DB.conn.execute("SELECT COUNT(*) FROM positions").fetchone()[0]) + " 条"})
+    except Exception:  # noqa: BLE001
+        pass
+    out["freshness"] = fresh
+    return out
+
+

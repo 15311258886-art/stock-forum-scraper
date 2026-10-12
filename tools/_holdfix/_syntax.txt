@@ -1,0 +1,2 @@
+py_compile OK
+node_check_exit=0

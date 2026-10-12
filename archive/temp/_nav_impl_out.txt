@@ -1,0 +1,274 @@
+=== paintSubnav 全文 ===
+## paintSubnav @ line 3342
+function paintSubnav(cat, tab) {
+  const bar = $("#subnav");
+  if (!bar) return;
+  const items = cat.key === "learn" ? learnSubItems(cat.items) : cat.items;
+  bar.innerHTML = items.map((i) =>
+    `<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" ` +
+    `href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`).join("") +
+    // 「跟我学习」横条右端保留知识库上下文（状态 chip + 立即吸取）——它们原先就在横条上
+    (cat.key === "learn"
+      ? `<span class="subnav-spacer"></span>` +
+        `<span class="chip-s chip-fresh" id="kbStateChip" title="知识库吸取状态">知识库：读取中…</span>` +
+        `<button class="btn sm" id="btnKbReload" title="重新解析来源文件（内容未变则自动跳过，不做无意义重建）">立即吸取</button>`
+      : "");
+  $$("#subnav .sub-tab").forEach((a) => {
+    a.onclick = (e) => { e.preventDefault(); selectNav(cat.key, a.dataset.tab, true); };
+  });
+  const rb = $("#btnKbReload");
+  if (rb) rb.onclick = kbReload;
+  renderKbStateChip();
+}
+
+/* 切换导航。push=true 时写 hash（由 hashchange 统一驱动渲染，避免两处逻辑分叉） */
+function selectNav(catKey, tabKey, push) {
+  const cat = NAV.find((c) => c.key === catKey) || NAV[0];
+  const tab = (tabKey && cat.items.some((i) => i.tab === tabKey)) ? tabKey : cat.items[0].tab;
+  CURRENT = { cat: cat.key, tab };
+  if (push) {
+    const h = "#" + cat.key + "/" + tab;
+    if (location.hash !== h) { location.hash = h; return; }   // hashchange 会回调本函数
+  }
+  renderNav();            // 左栏只随「当前大类」高亮变化
+  paintSubnav(cat, tab);  // 内容区顶部横条：按大类换一批子项，并高亮当前项
+  $$(".panel").forEach((p) => p.classList.remove("active"));
+  const panel = ensurePanel(tab);
+  if (panel) panel.classList.add("active");
+  // 知识库正文约 250KB：只有真正进入该子板块才拉（懒加载）
+  if (cat.key === "learn" && !KB.tracks) loadKbTracks();
+  if (tab === "learn_zdx_stock") ensureKbDoc();
+  if (tab === "learn_tracks") renderKbTracks();
+  // 今日看板：决策入口（默认落地页）——进入时按需（重）渲染，兜住"先拿数据、后面板才建"的时序
+  if (tab === "dashboard") {
+    if (DASH.data) renderDashboard();
+    else loadDashboard().catch((e) => reportLoadError("今日看板", e));
+  }
+  // 知识获取三块：进入时按需渲染（archive 会打接口，故只在进入时拉）
+  if (tab === "sources") renderSourcesPanel(SUMMARY.data);
+  if (tab === "archive") renderArchivePanel();
+  if (tab === "fetchlog") renderFetchLogPanel(SUMMARY.data);
+  // 游资龙虎榜：进入该子板块时按需（重）渲染 —— 双保险。
+  // 面板已补进 index.html；这里再兜一层，确保「先拿到数据、后面板才创建」的时序也不会白屏。
+  if (tab === "lhb") {
+    if (LHB.data) renderLhb();
+    else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+  }
+  // 板块动向：独立视角，进入时按需（重）渲染
+  if (tab === "lhb_sectors") {
+    if (LBHS.data) renderLhbSectors();
+    else loadLhbSectors().catch((e) => reportLoadError("板块动向", e));
+  }
+  // 牛散追踪：进入时按需（重）渲染
+  if (tab === "niusan") {
+    if (NIUSAN.data) renderNiusan();
+    else loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+  }
+  if (tab === "star_moves") {
+    if (STARM.data) renderStarMoves();
+    else loadStarMoves().catch((e) => reportLoadError("牛散动向", e));
+  }
+}
+
+/* 解析 `#大类/子类`；无 hash 时落到首项 */
+function navFromHash() {
+  const raw = (location.hash || "").replace(/^#/, "");
+  const [c, t] = raw.split("/");
+  const cat = NAV.find((x) => x.key === c);
+  if (!cat) return null;
+  return { cat: cat.key, tab: (t && cat.items.some((i) => i.tab === t)) ? t : cat.items[0].tab };
+}
+function initNav() {
+  renderNav
+
+=== renderNav 全文 ===
+## renderNav @ line 3317
+function renderNav() {
+  const side = $("#sidenav");
+  if (!side) return;
+  side.innerHTML = `<div class="rail-head">导航</div>` + NAV.map((c) => {
+    const open = c.key === CURRENT.cat;
+    const items = c.key === "learn" ? learnSubItems(c.items) : c.items;
+    return `<a class="nav-item${open ? " active" : ""}" data-cat="${escAttr(c.key)}" ` +
+      `href="#${escAttr(c.key)}/${escAttr(items[0].tab)}" title="${escAttr(c.label)}">` +
+      `<span class="ni-ico" aria-hidden="true">${esc(c.icon || "")}</span>` +
+      `<span class="ni-txt">${esc(c.label)}</span>` +
+      `<span class="ni-n">${items.length}</span></a>`;
+  }).join("");
+  $$("#sidenav .nav-item").forEach((a) => {
+    // 切大类时落到该类的第一个子板块；已是当前类则保持原选中项，避免"点一下跳回第一项"
+    a.onclick = (e) => {
+      e.preventDefault();
+      const keep = a.dataset.cat === CURRENT.cat ? CURRENT.tab : null;
+      selectNav(a.dataset.cat, keep, true);
+    };
+  });
+}
+
+/* ---------- 二级导航：内容区顶部的横向平铺子板块 ----------
+   只重绘横条，不碰面板、不写 hash。与 selectNav 分开是为了让「学习轨道列表异步到达
+   → 横条多出一项」这件事不会反向触发面板切换而形成递归。 */
+function paintSubnav(cat, tab) {
+  const bar = $("#subnav");
+  if (!bar) return;
+  const items = cat.key === "learn" ? learnSubItems(cat.items) : cat.items;
+  bar.innerHTML = items.map((i) =>
+    `<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" ` +
+    `href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`).join("") +
+    // 「跟我学习」横条右端保留知识库上下文（状态 chip + 立即吸取）——它们原先就在横条上
+    (cat.key === "learn"
+      ? `<span class="subnav-spacer"></span>` +
+        `<span class="chip-s chip-fresh" id="kbStateChip" title="知识库吸取状态">知识库：读取中…</span>` +
+        `<button class="btn sm" id="btnKbReload" title="重新解析来源文件（内容未变则自动跳过，不做无意义重建）">立即吸取</button>`
+      : "");
+  $$("#subnav .sub-tab").forEach((a) => {
+    a.onclick =
+
+=== initNav 全文 ===
+## initNav @ line 3420
+function initNav() {
+  renderNav();
+  const h = navFromHash();
+  if (h) selectNav(h.cat, h.tab, false);
+  else selectNav(NAV[0].key, NAV[0].items[0].tab, true);
+}
+window.addEventListener("hashchange", () => {
+  const h = navFromHash();
+  if (h) selectNav(h.cat, h.tab, false);
+});
+/* 供面板内空状态按钮等调用：跳到某个子板块 */
+function showTab(tab) {
+  const c = catOf(tab);
+  if (c) selectNav(c.key, tab, true);
+}
+
+/* ================= 跟我学习：知识库（中短线炒股） =================
+   数据来自 /api/kb/doc（后端把本地 md 解析成结构化 JSON 后落库）。
+   口径：① 单知识库以 kb_sources.yaml 的 doc_key 为准；② 内容哈希没变时后端
+   会跳过重写，前端据此显示「内容未变」而不是谎报「已更新」。 */
+const KB = {
+  key: "zdx_stock", doc: null, loading: false, error: "",
+  tracks: null, tracksLoading: false,
+  interval: 86400, stale: 172800,
+};
+/* 「跟我学习」的横向子类 = 固定的「学习轨道管理」+ kb_sources.yaml 声明的各条学习轨道 */
+function learnSubItems(fallback) {
+  const tracks = toArr(KB.tracks && KB.tracks.docs);
+  if (!tracks.length) return fallback;
+  const items = tracks.map((d) => ({
+    tab: "learn_" + d.doc_key,
+    label: d.track || d.title || d.doc_key,
+    docKey: d.doc_key,
+  }));
+  items.push({ tab: "learn_tracks", label: "学习轨道管理" });
+  return items;
+}
+/* 动态学习轨道面板在 index.html 里没有预置容器 → 首次进入时按需补一个。
+   容器由 .main 改为 .content（2026-09-23 外壳改造后，.wrap/.layout/.main 已合并为 .shell/.content）。 */
+function ensurePanel(tab) {
+  let p = $("#p-" + tab);
+  if (!p) {
+    p = document.createElement("div");
+    p.className = "panel";
+    p.id = "p-" + tab;
+    const host = document.querySelector(".content");
+    if (host) host.appendChild(p); else return null;
+  }
+  return p;
+}
+function ensureKbDoc(force) {
+  const box = ensurePanel("learn_zdx_stock");
+  if (!box) return;
+  if (KB.doc && !force) { renderKbDoc(); return; }
+  if (KB.loading) return;
+  KB.loading = true;
+  if (!KB.doc) box.innerHTML = `<div class="empty">正在读取知识库…</div>`;
+  api("/api/kb/doc?key=" + encodeURIComponent(KB.key))
+    .then((d) => { KB.doc = d; KB.error = ""; renderKbDoc(); })
+    .catch((e) => { KB.error = apiErrText(e); box.innerHTML = `<div class="empty">知识库读取失败：${esc(KB.error)}</div>`; })
+    .finally(() => { KB.loading = false; });
+}
+function loadKbTracks() {
+  const box = ensurePanel("learn_tracks");
+  if (!box) return;
+  if (KB.tracks && !KB.tracksLoading) { renderKbTracks(); return; }
+  if (KB.tracksLoading) return;
+  KB.tracksLoading = true;
+  api("/api/kb/list")
+    .then((d) => {
+      KB.tracks = d;
+      KB.interval = d.interval_seconds || KB.interval;
+      KB.stale = d.stale_seconds || KB.stale;
+      // 轨道条数可能变化 → 重绘内容区顶部的横向子板块条（paintSubnav 只画不跳，无递归风险）
+      const cat = NAV.find((c) => c.key === "learn");
+      if (c
+
+=== renderPersons 全文 ===
+## renderPersons @ line 1274
+function renderPersons(list) {
+  const all = toArr(list);
+  if (!all.length) { $("#p-persons").innerHTML = `<div class="empty">暂无人物数据</div>`; return; }
+  // P2-5：接口默认只回 100 条，此处再取前 80 条。文案必须如实说明截断，不能写「不遗漏任何一个名称」。
+  const total = all.length, shown = Math.min(total, 80);
+  const rows = all.slice(0, shown).map((p) => {
+    const plats = Array.isArray(p.sites) && p.sites.length ? p.sites : (p.platform ? [p.platform] : []);
+    return `<tr data-name="${escAttr(p.name)}" style="cursor:pointer"><td>${esc(p.name)}</td><td>${sourceChannel(plats, p.tier)}</td><td><span class="chip-s">${esc(p.role === "mention" ? "@提及" : "作者")}</span></td><td class="num">${p.mention_count ?? "—"}</td>${refCell(plats)}</tr>`;
+  }).join("");
+  $("#p-persons").innerHTML = `<div class="hint" style="margin-bottom:10px">每个名称均标注其<b>来源渠道</b>：<b>平台</b>（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + <b>所属层级</b>（A~F，入选选手才有）。按出现次数降序排列，<b>此处列出前 ${shown} 位</b>（本次接口共返回 ${total} 位）；完整名单请以数据库导出为准。${freshLegend()}</div>
+    <table><thead><tr><th>姓名/昵称</th><th>来源渠道（平台 · 层级）</th><th>角色</th><th class="num">出现次数</th><th>最后更新</th></tr></thead><tbody>${rows}</tbody></table>`;
+  bindRows();
+  applyFreshness();
+}
+
+function renderSentiment(d) {
+  // P3-7：/api/sentiment 若返回数组（类型不符），旧实现会把 Array.prototype.map 当数据用而抛错、
+  // 面板全空。这里先做类型校验并降级提示，不抛错。
+  if (!d || typeof d !== "object" || Array.isArray(d)) {
+    $("#p-sentiment").innerHTML = `<div class="empty">舆论情绪数据格式异常（接口返回类型不符），已降级显示。请检查 /api/sentiment 的返回结构。</div>`;
+    return;
+  }
+  const dist = (d.distribution && typeof d.distribution === "object") ? d.distribution : {};
+  const bars = [
+    ["看多", dist["看多"] || 0, "bull"], ["看空", dist["看空"] || 0, "bear"], ["中性", dist["中性"] || 0, "neu"],
+  ].map(([l, n, c]) => `<div class="bar-card"><div class="bar-val ${c}">${n}</div><div class="s" style="color:var(--muted)">${l}</div></div>`).join("");
+  const map = toArr(d.map).map((m) => stockCard(m, "sentiment")).join("");
+  const missing = Math.max(0, (Number(d.name_total) || 0) - (Number(d.name_covered) || 0));
+  $("#p-sentiment").innerHTML = `<div class="bars" style="margin-bottom:16px">${bars}</div>
+    <h3 style="margin:6px 0 10px">情绪地图（按股票聚合多空，点击卡片看持仓与交易明细）</h3>
+    ${stockLegend(d)}
+    ${m
+
+=== renderOperating 全文 ===
+## renderOperating @ line 1238
+function renderOperating(list) {
+  const items = toArr(list);
+  if (!items.length) { $("#p-operating").innerHTML = `<div class="empty">暂无实盘操作记录</div>`; return; }
+  // 2026-09-24：trades 同样区分 demo 与真实（demo URL 全是 example.local）。
+  // chip "东方财富/同花顺/雪球" 来自 demo_data 给选手预设的渠道，**不代表这些平台真的被抓取**——
+  // 当前 PARSER_REGISTRY 仅 taoguba，其它站需要单独写 HTML 解析器才能实时抓取。
+  const isDemoTrade = (t) => /example\.local/i.test(t.post_url || "") || /^demo-/i.test(t.post_id || "");
+  const demoN = items.filter(isDemoTrade).length;
+  const realN = items.length - demoN;
+  const sites = [...new Set(items.map(t => t.site || "?"))];
+  const rows = items.map((t) => {
+    const plat = t.author_platform || t.site;
+    const ch = sourceChannel(plat ? [plat] : [], t.author_tier);
+    const demo = isDemoTrade(t);
+    return `<tr data-kind="trade" data-id="${escAttr(t.id)}" ${demo ? 'data-demo="1"' : 'data-real="1"'}>
+      <td>${esc(t.author)} <span class="chip-s ${demo ? "chip-demo" : "chip-real"}">${demo ? "示例" : "真实"}</span><div class="src-line">${ch}</div></td>
+      <td>${t.post_time ? esc(fmtTimeText(t.post_time)) : "<span class='s'>未披露</span>"}</td>
+      <td>${actionBadge(t.action)}</td>
+      <td><b>${esc(t.symbol_name || "名称待补全")}</b> <span class="stk-code">${esc(t.symbol || "")}</span></td>
+      <td class="num">${t.price ?? "-"}</td>
+      <td class="num">${t.quantity ?? "-"}</td>
+      ${refCell([plat])}
+    </tr>`;
+  }).join("");
+  const banner = realN === 0
+    ? `<div class="banner banner-warn"><b>当前是示例数据</b>（${items.length} 条），trades 表里所有 URL 都是 <code>example.local/demo</code>。${sites.length === 1 && sites[0] === 'taoguba' ? `唯一已对接的真实抓取站是 <b>淘股吧</b>（需登录）；其他平台（东方财富/雪球/同花顺）尚未写解析器。` : "尚未对接任何真实抓取源。"}</div>`
+    : `<div class="banner banner-info">真实抓取 ${realN} 条 / 示例 ${demoN} 条（来源：${sites.join(", ")}）</div>`;
+  $("#p-operating").innerHTML = `
+    ${banner}
+    <div class="hint" style="margin-bottom:10px">每个选手均标注其<b>来源渠道</b>：<b>平台</b>（淘股吧/东方财富/雪球/同花顺） + <b>所属层级</b>（A~F）。标的列格式为「股票简称 + 股票代码」：代码是 6 位数字（如 600519），对应贵州茅台，不是序号。${freshLegend()}</div>
+    <div class="hint" style="margin-bottom:10px">「时间」是<b>选手发帖/操作的时间</b>，不是本系统的抓取时间。源站没给出时间的显示<b>未披露</b>——不会用抓取时刻冒充，避免误导判断。</div>
+    <table><thead><t

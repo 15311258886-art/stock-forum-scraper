@@ -1,0 +1,2 @@
+8765 UP {"version": "20261005-fix", "served_at": "2026-10-05 15:40:35", "pid": 36028}
+8766 DOWN (HTTP Error 404: File not found)

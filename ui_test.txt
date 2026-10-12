@@ -1,0 +1,17 @@
+PASS B4 估值分位路由(真实数据或诚实报错)  | pe_pct=undefined ok=false err=未获取到真实估值指标（PE/PB/PS）
+PASS B7 回测路由(真实数据或诚实报错)  | n=2 ok=true err=
+PASS B8 题材路由(真实数据或诚实报错)  | themes=0 ok=false
+PASS B6 自然语言路由(真实Key→结构化条件)  | screens=pe,pb,dy
+PASS B4-B8/B6 工具栏(.sc-extra)出现
+PASS B4 估值分位(弹层或诚实提示)
+PASS B7 回测面板(真实回测结果:总收益/年化/回撤/夏普+8坑位+幸存者)
+PASS B8 题材弹层(题材chips或诚实提示)
+PASS B6 自然语言(UI真实Key→已按)  | hint=已按：筛选低估值且股息率大于3%的白酒股
+PASS 设置弹层(DeepSeek)
+PASS 设置保存按钮(UI反馈)  | msg=已保存 ✓
+PASS 设置 Key 落盘后端可读  | configured=true
+PASS 控制台零 JS 错误
+
+==== 结果 13/13 PASS ====
+
+==== node exit code: 0 ====

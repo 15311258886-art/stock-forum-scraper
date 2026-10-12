@@ -1,0 +1,330 @@
+=== 待清理候选（293 个） ===
+  09-25 22:57      3010B  _anc2.txt
+  09-25 22:36      1084B  _anch_dash.py
+  09-25 22:36      4161B  _anch_dash_out.txt
+  09-25 22:10       300B  _anchor.txt
+  09-25 22:21      2059B  _anchors.txt
+  09-25 22:20      2005B  _arch2.py
+  09-25 22:20      3120B  _arch2_out.txt
+  09-25 22:19      2557B  _arch_audit.py
+  09-25 22:20      4578B  _arch_out.txt
+  09-25 23:04     10971B  _aud3.txt
+  09-25 23:40    105134B  _ax_sina.html
+  09-25 23:39     86741B  _ax_taoguba.html
+  09-25 23:40    224677B  _ax_xueqiu.html
+  09-25 23:38      4048B  _axis_audit.py
+  09-25 23:39      1938B  _axis_audit_out.txt
+  09-25 23:41      2618B  _axis_deep.py
+  09-25 23:41      5347B  _axis_deep_out.txt
+  09-25 23:41      1011B  _axis_html.py
+  09-25 23:42      2334B  _axis_html_out.txt
+  09-25 23:39      4547B  _axis_probe.py
+  09-25 23:40      2727B  _axis_probe_out.txt
+  09-25 23:41      1921B  _axis_struct.py
+  09-25 23:41      6218B  _axis_struct_out.txt
+  09-25 23:42      1859B  _axis_time.py
+  09-25 23:42      1133B  _axis_time_out.txt
+  09-25 21:30      5234B  _backfill_time.py
+  09-25 23:36      2423B  _bg2.py
+  09-25 23:36      1848B  _bg3.py
+  09-25 23:37      2768B  _bg4.py
+  09-25 23:37      1983B  _bg4_run.txt
+  09-25 23:37      2857B  _bg5.py
+  09-25 23:37       687B  _bg5_out.txt
+  09-25 23:35      3058B  _bg_audit.py
+  09-25 23:35      2329B  _bg_cmd.py
+  09-25 21:36     70589B  _blog_dump.html
+  09-25 21:55      6479B  _bt_audit.py
+  09-25 21:56      6649B  _bt_audit_out.txt
+  09-25 21:56      7767B  _bt_live.py
+  09-25 21:57      1804B  _bt_live_out.txt
+  09-25 22:58       857B  _c_panel.py
+  09-25 22:50       526B  _c_persist.py
+  09-25 22:51       870B  _c_route.py
+  09-25 22:50       982B  _c_sec.py
+  09-25 22:58      1127B  _c_sm.py
+  09-25 23:24       521B  _chain_run.txt
+  09-25 22:10      4562B  _chk1.txt
+  09-25 22:11       121B  _chk2.txt
+  09-25 22:14       125B  _chk3.txt
+  09-25 22:14       232B  _chk4.txt
+  09-25 22:22       157B  _chk_board.txt
+  09-25 22:28      1331B  _chk_dash.py
+  09-25 22:29      1821B  _chk_dash_out.txt
+  09-25 22:17      1113B  _chk_ns.py
+  09-25 23:44      2304B  _cleanup_all.py
+  09-25 23:44         0B  _cleanup_all_out.txt
+  09-25 22:15     14049B  _co.txt
+  09-25 22:22      1801B  _dash_out.txt
+  09-25 22:42    211913B  _dash_shot.png
+  09-25 22:23      4839B  _dash_src.txt
+  09-25 21:44       459B  _dav_probe_out.txt
+  09-25 21:58       352B  _diag_api.txt
+  09-25 21:58      4264B  _diag_sched.txt
+  09-25 21:58      2742B  _diag_sched2.txt
+  09-25 21:57      8445B  _diag_sec.txt
+  09-25 21:57      3798B  _diag_secapi.txt
+  09-25 21:58       831B  _diag_sl.txt
+  09-25 21:18      3262B  _diag_time.py
+  09-25 22:40      5459B  _dsrc.txt
+  09-25 23:22      5459B  _dsrc2.txt
+  09-25 22:26     17084B  _find_ai_out.txt
+  09-25 21:52      3943B  _fingerprint.py
+  09-25 21:52      1071B  _fingerprint_out.txt
+  09-25 21:22      5779B  _fix_time.py
+  09-25 22:57       426B  _fn_lines.txt
+  09-25 22:35      2551B  _gap.py
+  09-25 22:35      2423B  _gap_out.txt
+  09-25 22:21       548B  _h.txt
+  09-25 22:11      1821B  _hc.txt
+  09-25 21:54       210B  _holders_run.txt
+  09-25 22:02       217B  _holders_run2.txt
+  09-25 22:08       971B  _holders_run_full.txt
+  09-25 22:07       668B  _hpayload_out.txt
+  09-25 22:09      1802B  _hs_cols.txt
+  09-25 22:09      3385B  _hs_dates.txt
+  09-25 22:09      1987B  _hs_stat.txt
+  09-25 23:08      6662B  _init_audit.txt
+  09-25 21:37     74511B  _js_blog.js
+  09-25 21:37     69563B  _js_blognew.js
+  09-25 22:39      7948B  _minglu.txt
+  09-25 22:15      4120B  _nav2.txt
+  09-25 22:20      1362B  _nav3.txt
+  09-25 23:02      2487B  _nav_audit.py
+  09-25 23:05      2248B  _nav_audit2.py
+  09-25 23:05      7557B  _nav_audit2_out.txt
+  09-25 23:03      9438B  _nav_audit_out.txt
+  09-25 22:07      4102B  _nav_dump.txt
+  09-25 23:05      1799B  _nav_final.py
+  09-25 23:03      1461B  _nav_full.txt
+  09-25 23:06      1782B  _nav_g.py
+  09-25 23:06      3418B  _nav_g_out.txt
+  09-25 23:08      1110B  _nav_impl.py
+  09-25 23:08     15404B  _nav_impl_out.txt
+  09-25 22:10      7133B  _nav_learn.txt
+  09-25 23:08      1759B  _nav_now.py
+  09-25 23:09      6846B  _nav_now_out.txt
+  09-25 23:06       920B  _nav_render.py
+  09-25 23:06      1581B  _nav_render.txt
+  09-25 23:07      2159B  _nav_state.txt
+  09-25 23:03       209B  _navfn.txt
+  09-25 23:06       137B  _navfn2.txt
+  09-25 23:07       226B  _navfn3.txt
+  09-25 23:09      1653B  _navx.py
+  09-25 23:09      9624B  _navx_out.txt
+  09-25 22:14      5164B  _ni2.txt
+  09-25 22:15      2455B  _ni3.txt
+  09-25 22:14       500B  _ni_out.txt
+  09-25 22:17       873B  _ni_verify.txt
+  09-25 21:24      3129B  _norm_time.py
+  09-25 22:46      5356B  _ns_full.txt
+  09-25 22:57      1722B  _ns_lines.txt
+  09-25 22:23      2464B  _ns_src.txt
+  09-25 22:34      2808B  _ov.py
+  09-25 22:34      2454B  _ov_out.txt
+  09-25 23:43      2532B  _p1.py
+  09-25 23:43      2196B  _p1_out.txt
+  09-25 23:37      5861B  _p2.log
+  09-25 23:43      1625B  _p2.py
+  09-25 23:35      2362B  _p3.log
+  09-25 23:44      3313B  _p3.py
+  09-25 23:44       168B  _p3_out.txt
+  09-25 23:09      1164B  _paint.py
+  09-25 23:10      1511B  _paint2.py
+  09-25 23:10      7184B  _paint2_out.txt
+  09-25 23:09     10808B  _paint_out.txt
+  09-25 23:06      1276B  _panels.py
+  09-25 23:06      9753B  _panels_out.txt
+  09-25 23:31      3369B  _person_audit.py
+  09-25 23:31      5514B  _person_audit_out.txt
+  09-25 21:21      4034B  _plan_timefix.py
+  09-25 23:20      2309B  _probe_chain.py
+  09-25 23:21      3407B  _probe_chain2.py
+  09-25 23:21      6213B  _probe_chain2_out.txt
+  09-25 23:20      2171B  _probe_chain_out.txt
+  09-25 21:26      2134B  _probe_em_time.py
+  09-25 22:00      2398B  _probe_hld2.py
+  09-25 22:00      2375B  _probe_hld2_out.txt
+  09-25 21:53      3174B  _probe_holders.py
+  09-25 21:53      8564B  _probe_holders_out.txt
+  09-25 23:31      3385B  _probe_person.py
+  09-25 23:32      3662B  _probe_person2.py
+  09-25 23:37      4477B  _probe_person2_out.txt
+  09-25 23:34      3931B  _probe_person3.py
+  09-25 23:35      1856B  _probe_person3_out.txt
+  09-25 23:32      2013B  _probe_person_out.txt
+  09-25 21:39      3691B  _probe_pos_time2.py
+  09-25 21:40      2477B  _probe_sydr.py
+  09-25 21:44      2211B  _probe_sydr_out.txt
+  09-25 21:52      4521B  _probe_tgb_live.py
+  09-25 21:52      2352B  _probe_tgb_live_out.txt
+  09-25 21:39      3901B  _probe_tgb_time.py
+  09-25 23:03      1573B  _render_audit.py
+  09-25 23:03     27206B  _render_audit_out.txt
+  09-25 21:18      1645B  _replay_sina.py
+  09-25 22:07       814B  _routes_dump.txt
+  09-25 22:36       980B  _s1.py
+  09-25 22:36      1450B  _s1_out.txt
+  09-25 22:36       642B  _s2.py
+  09-25 22:37      6180B  _s2_out.txt
+  09-25 22:37      1418B  _s3.py
+  09-25 22:37      5493B  _s3_out.txt
+  09-25 22:37      1812B  _s4.py
+  09-25 22:37     10269B  _s4_out.txt
+  09-25 22:40      1261B  _s5.py
+  09-25 22:40      2636B  _s5_out.txt
+  09-25 22:40      1529B  _s6.py
+  09-25 22:40      2660B  _s7.py
+  09-25 22:40     16570B  _s7_out.txt
+  09-25 22:42      2144B  _s8.py
+  09-25 23:38      2774B  _s9.py
+  09-25 23:38      3731B  _s9_out.txt
+  09-25 22:27      1983B  _scan0.py
+  09-25 22:27     47076B  _scan0.txt
+  09-25 22:27        10B  _scan0_out.txt
+  09-25 22:21      3982B  _sch2.txt
+  09-25 22:20      2469B  _schema.txt
+  09-25 22:56      4163B  _sec_run.txt
+  09-25 22:57      3743B  _sm_src.txt
+  09-25 22:41      9937B  _splice_dash.py
+  09-25 22:41       644B  _splice_dash_out.txt
+  09-25 22:16      7762B  _splice_niusan.py
+  09-25 22:58      6336B  _splice_sm.py
+  09-25 22:39      1676B  _st.py
+  09-25 22:21      3637B  _sum.txt
+  09-25 21:44     74022B  _sydr_dump.html
+  09-25 22:46      1137B  _t_ns.py
+  09-25 22:49      2387B  _t_ns2.py
+  09-25 22:49      3145B  _t_ns2_out.txt
+  09-25 22:47       583B  _t_ns_out.txt
+  09-25 22:51       955B  _t_sm.py
+  09-25 22:56      1250B  _t_sm_out.txt
+  09-25 22:46      1831B  _tag_apply.txt
+  09-25 22:45      5790B  _tag_holders.py
+  09-25 22:45      3488B  _tag_out.txt
+  09-25 21:28      2011B  _test_parsers_time.py
+  09-25 21:28      2011B  _test_ths_live.py
+  09-25 22:43      5290B  _v2_state.py
+  09-25 22:44      5622B  _v2_state_out.txt
+  09-25 22:44      2396B  _v3.py
+  09-25 22:44      2829B  _v4.py
+  09-25 22:48      2822B  _v5.py
+  09-25 22:48      1900B  _v5_out.txt
+  09-25 22:56       888B  _v6.py
+  09-25 22:56      6697B  _v6_out.txt
+  09-25 22:56      2367B  _v7.py
+  09-25 22:57      6439B  _v7_out.txt
+  09-25 22:41      2937B  _verify_dash.cjs
+  09-25 21:19      1808B  _verify_time_fix.py
+  09-25 21:31      3664B  _verify_time_ui.cjs
+  09-25 21:52      5231B  _xmatch.py
+  09-25 21:52      1275B  _xmatch_out.txt
+  09-25 23:24      1993B  _xsrc.py
+  09-25 23:24      3781B  _xsrc2.py
+  09-25 23:25      2423B  _xsrc2_out.txt
+  09-25 23:25      1982B  _xsrc3.py
+  09-25 23:25       980B  _xsrc3_out.txt
+  09-25 23:25      1959B  _xsrc4.py
+  09-25 23:26       588B  _xsrc4_out.txt
+  09-25 23:26      2396B  _xsrc5.py
+  09-25 23:26       400B  _xsrc5_out.txt
+  09-25 23:26      2605B  _xsrc6.py
+  09-25 23:27      4466B  _xsrc6_out.txt
+  09-25 23:27      3240B  _xsrc7.py
+  09-25 23:28      2252B  _xsrc7_out.txt
+  09-25 23:24      5694B  _xsrc_out.txt
+  09-25 20:15       379B  auto_update.log
+  09-22 20:27    179806B  chain_card1.png
+  09-22 20:27    167965B  chain_card2.png
+  09-22 20:27    167965B  chain_card_food.png
+  09-22 21:53   1050673B  chain_hotspots.png
+  09-23 00:02    390129B  channels_operating.png
+  09-22 20:07    274690B  channels_operating_top.png
+  09-23 00:02    335324B  channels_persons.png
+  09-22 20:07    236452B  channels_persons_top.png
+  09-22 14:22       667B  credentials.example.yaml
+  09-22 23:47    173628B  drawer_fixed.png
+  09-22 18:03    158155B  fix_1_light.png
+  09-22 18:03    145189B  fix_2_dark_moved.png
+  09-22 19:52    584508B  full_consensus.png
+  09-22 20:56   3638150B  full_hotspots_live.png
+  09-22 19:52    490617B  full_overseas_hotspots.png
+  09-22 19:52    469507B  full_overseas_sentiment.png
+  09-22 19:52    874240B  full_players_tiers.png
+  09-22 20:56   1847732B  full_sources_live.png
+  09-22 19:03     11116B  gen_sentiment_report.py
+  09-22 21:52   1018789B  holdings_closed.png
+  09-22 21:52   1022358B  holdings_player.png
+  09-22 21:44      9988B  main.py
+  09-22 16:02       738B  make_shortcut.py
+  09-22 17:00       901B  make_viewer_shortcut.py
+  09-22 14:19        77B  requirements.txt
+  09-25 20:15     20330B  run_backfill_local.log
+  09-25 23:24     65060B  sector_chain_cache.json
+  09-25 20:55      7529B  sector_link_probe.py
+  09-25 22:53     47673B  sector_map_cache.json
+  09-22 15:55       679B  selftest.out
+  09-22 15:55      4176B  selftest.py
+  09-22 21:53    190526B  shot_consensus.png
+  09-22 19:06    200517B  shot_drawer_sentiment.png
+  09-22 21:28    249111B  shot_hold_buy.png
+  09-22 21:28    239195B  shot_hold_closed.png
+  09-22 21:28    237861B  shot_hold_sell.png
+  09-22 21:53    126633B  shot_overseas_hotspots.png
+  09-22 21:53     88651B  shot_overseas_sentiment.png
+  09-22 21:53    136700B  shot_players_tiers.png
+  09-22 21:52    184422B  shot_sentiment_dark.png
+  09-22 21:52    179127B  shot_sentiment_light.png
+  09-22 21:53     88651B  shot_sources_expanded.png
+  09-22 21:54     53974B  shot_src_consensus.png
+  09-22 21:54    381162B  shot_src_overseas.png
+  09-22 21:52    246219B  shot_stock_drawer.png
+  09-22 21:52    166610B  shot_stocks_light.png
+  09-22 20:56    343344B  sources_grid.png
+  09-23 00:38     18769B  stats_cards.png
+  09-23 00:39     85410B  stats_drawer_element.png
+  09-25 20:29        65B  viewer_restart.log
+  09-25 19:40      1953B  xueqiu_targets.json.bak_before-uidfill
+  09-25 20:06     94069B  个股详情_渲染预览_20260925.png
+  09-22 21:11     34025B  代码审查报告.html
+  09-22 19:04     25626B  情绪地图与多空观点明细报告.html
+  09-25 21:31    215208B  时间列_渲染验证.png
+  09-22 23:43     25426B  测试与优化方案.html
+  09-22 22:09     13960B  淘股吧登录诊断与配合清单.html
+  09-22 21:36     11226B  登录状态与配合清单.html
+合计 17.9 MB
+
+=== 保留清单 ===
+  OK   audit_health.py                            7366
+  OK   auto_update.py                             8607
+  OK   auto_update_status.json                    3833
+  OK   clip_to_cookie.py                          1107
+  OK   cookies.txt                                2474
+  OK   fill_xq_uids.py                            2303
+  OK   holders_fetch.py                           11805
+  OK   holders_tag.py                             7154
+  OK   lhb_fetch.py                               14945
+  OK   lhb_sector_link.py                         17383
+  OK   moer_crawler.cjs                           5884
+  OK   moer_load.py                               4873
+  OK   moer_targets.example.json                  117
+  OK   restart_viewer.py                          4600
+  OK   run_backfill_local.bat                     3373
+  OK   run_backfill_local.py                      4599
+  OK   save_cookie_tool.py                        2847
+  OK   sector_chain.py                            13363
+  OK   sector_link_result.json                    27439
+  OK   verify_kline_ui.cjs                        9993
+  OK   verify_lhb_ui.cjs                          5275
+  OK   verify_viewer_ui.cjs                       5181
+  OK   xueqiu_cube_crawler.cjs                    13560
+  OK   xueqiu_cube_load.py                        4328
+  OK   xueqiu_targets.example.json                149
+  OK   xueqiu_targets.json                        2283
+  OK   个股详情K线_渲染预览_20260925.png                   260630
+  OK   产品对标与优化名录_20260925.html                    15642
+  OK   回填操作指南_演示步骤.html                           8400
+  OK   数据完整性回测报告_20260925.html                    12124
+  OK   整体体检报告_20260925.html                       15631
+  OK   自动更新说明_20260925.html                       10479
+  OK   龙虎榜板块扩散分析_20260925.html                    8940

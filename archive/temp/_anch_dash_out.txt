@@ -1,0 +1,87 @@
+TOTAL 3835
+=== NAV 一级分组定义 ===
+ 3110: const NAV = [
+ 3111: { key: "overview", label: "总览", icon: "◎", items: [
+ 3113: { key: "acquire", label: "知识获取", icon: "⇣", items: [
+ 3117: { key: "research", label: "行情研判", icon: "▤", items: [
+ 3123: { key: "trade", label: "实盘操作", icon: "▦", items: [
+ 3132: { key: "learn", label: "跟我学习", icon: "✎", items: [
+
+=== 首个 nav 之后的 40 行 ===
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+let CURRENT = { cat: NAV[0].key, tab: NAV[0].items[0].tab };
+
+function catOf(tab) { return NAV.find((c) => c.items.some((i) => i.tab === tab)); }
+
+/* ---------- 一级导航：左栏只放大类 ----------
+   两级分工（2026-09-23 晚回调）：左栏负责「大类」，稳定不跳动、一眼看全；
+   子类移到内容区顶部横向平铺（见 paintSubnav），逐个点选更顺手。
+   renderNav() 只绑事件、不写 hash、不切面板，故可被异步数据随时安全调用（无递归风险）。 */
+function renderNav() {
+  const side = $("#sidenav");
+  if (!side) retu
+
+=== 按需渲染分支 ===
+ 3206: if (tab === "learn_zdx_stock") ensureKbDoc();
+ 3207: if (tab === "learn_tracks") renderKbTracks();
+ 3209: if (tab === "sources") renderSourcesPanel(SUMMARY.data);
+ 3210: if (tab === "archive") renderArchivePanel();
+ 3211: if (tab === "fetchlog") renderFetchLogPanel(SUMMARY.data);
+ 3214: if (tab === "lhb") {
+ 3219: if (tab === "lhb_sectors") {
+ 3224: if (tab === "niusan") {
+
+=== 状态变量与加载器定义 ===
+  230: function renderSummary(s) {
+ 1472: const LHB = { data: null, sel: null, selDept: null };
+ 1473: function loadLhb(date, windowDays) {
+ 1639: function loadNiusan() {
+ 1643: function renderNiusan() {
+ 1708: const LBHS = { data: null };
+ 1709: function loadLhbSectors(date) {
+ 2786: const SUMMARY = { data: null };
+
+=== index.html panels ===
+   52: <div class="panel" id="p-stocks"></div>
+   53: <div class="panel" id="p-operating"></div>
+   54: <div class="panel" id="p-players"></div>
+   58: <div class="panel" id="p-lhb"></div>
+   60: <div class="panel" id="p-lhb_sectors"></div>
+   61: <div class="panel" id="p-niusan"></div>
+   62: <div class="panel" id="p-consensus"></div>
+   65: <div class="panel" id="p-cohold"></div>
+   66: <div class="panel" id="p-persons"></div>
+   67: <div class="panel" id="p-sentiment"></div>
+   68: <div class="panel" id="p-topics"></div>
+   69: <div class="panel" id="p-overseas_sentiment"></div>
+   70: <div class="panel" id="p-overseas_hotspots"></div>
+   72: <div class="panel" id="p-sources"></div>
+   73: <div class="panel" id="p-archive"></div>
+   74: <div class="panel" id="p-fetchlog"></div>
+   76: <div class="panel" id="p-learn_zdx_stock"></div>
+   77: <div class="panel" id="p-learn_tracks"></div>

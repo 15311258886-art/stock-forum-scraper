@@ -1,0 +1,7 @@
+path                                                      HTTP   bytes      前 24 字节
+/static/../server.py                                      FAIL   <HTTPError 404: 'Not Found'>
+/static/../../viewer/app.db                               FAIL   <HTTPError 404: 'Not Found'>
+/static/../../tools/_cookies_latest.json                  FAIL   <HTTPError 404: 'Not Found'>
+/static/../../.browser-profile/Default/Network/Cookies    FAIL   <HTTPError 404: 'Not Found'>
+/static/%2e%2e%2fserver.py                                FAIL   <HTTPError 404: 'Not Found'>
+/api/summary                                              200    411        {"counts": {"posts": 185

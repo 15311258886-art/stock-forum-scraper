@@ -1,0 +1,46 @@
+[0] 已备份 -> app.db.bak.before-qualityfilter-20260926-000258 40.5 MB
+
+[1] 加标记列 axis / stale
+   + posts.axis
+   + posts.stale
+   + news.axis
+   + news.stale
+   + trades.axis
+   + trades.stale
+   + players.axis
+   + positions.axis / positions.stale
+
+[2] 打标（轴 + 时效）
+  posts   总=1059  保留=381   剔(非人轴)=495   剔(超期)=660  
+  news    总=678   保留=73    剔(非人轴)=511   剔(超期)=568  
+  trades  总=64    保留=5     剔(非人轴)=33    剔(超期)=55   
+
+[3] 打标 选手 与 持仓
+  positions: 总 271 | 时效可信 0 | 待补日期 271
+
+[4] 结果汇总（前端默认只看 axis in (person,person_id) 且 stale=0）
+  posts   总=1059  展示=381   隐藏=678
+      axis=person     stale=0  n=104
+      axis=person     stale=1  n=16
+      axis=person_id  stale=0  n=277
+      axis=person_id  stale=1  n=167
+      axis=post       stale=0  n=18
+      axis=post       stale=1  n=477
+  news    总=678   展示=73    隐藏=605
+      axis=person     stale=0  n=6
+      axis=person     stale=1  n=40
+      axis=person_id  stale=0  n=67
+      axis=person_id  stale=1  n=54
+      axis=post       stale=0  n=37
+      axis=post       stale=1  n=474
+  trades  总=64    展示=5     隐藏=59
+      axis=person     stale=0  n=4
+      axis=person     stale=1  n=16
+      axis=person_id  stale=0  n=1
+      axis=person_id  stale=1  n=10
+      axis=post       stale=0  n=4
+      axis=post       stale=1  n=29
+
+  基准日 = 2026-09-26  阈值 = 滞后 > 5 天视为噪声
+
+[OK] 完成

@@ -1,0 +1,32 @@
+﻿del  _qa_diag2.py
+del  _qa_diag2.txt
+del  _qa_diag2_log.txt
+del  _qa_kill.txt
+del  _qa_pid5208.txt
+del  _qa_second_launch.txt
+del  _qa_start.txt
+del  _qa_after_start.txt
+del  _probe_log3.txt
+del  _qa_live_probe_log2.txt
+del  _qa_shots.txt
+del  _qa_cleanup2.txt
+del  _qa_ui_prerestart.txt
+del  _qa_ui_final_log.txt
+del  _qa_ui_live_log.txt
+
+=== tools 现存 _qa_* （证据保留） ===
+_qa_cleanup.txt  1553B
+_qa_compile_out.txt  37B
+_qa_detail_out.txt  4586B
+_qa_live_probe.py  3505B
+_qa_live_probe.txt  1188B
+_qa_out.txt  288B
+_qa_popup_check.py  1094B
+_qa_probe.py  712B
+_qa_probe_out.txt  388B
+_qa_rebuild.txt  7797B
+_qa_sector_detail.py  7135B
+_qa_ui.txt  2851B
+_qa_ui_8766dev.txt  2851B
+_qa_verify_out.txt  1853B
+_qa_verify_sector_symbols.py  2953B

@@ -1,0 +1,143 @@
+{
+  "total": 27,
+  "pass": 27,
+  "fail": 0,
+  "results": [
+    {
+      "id": "SEC-01绑定",
+      "ok": true,
+      "msg": "服务绑定写死 127.0.0.1（源码级 create_server 默认回环）"
+    },
+    {
+      "id": "SEC-02外暴露",
+      "ok": true,
+      "msg": "从局域网地址 192.168.0.41:8765 连接失败（仅回环可达）"
+    },
+    {
+      "id": "SEC-03Host头-写",
+      "ok": true,
+      "msg": "写接口伪造 Host: evil.com → HTTP 403（期望 403 forbidden host，防 DNS rebinding）"
+    },
+    {
+      "id": "SEC-03bHost头-读",
+      "ok": true,
+      "msg": "读接口伪造 Host → HTTP 200（不拦，属设计取舍；读侧防护=CORS 只回显回环 Origin，跨域读被浏览器拦截）"
+    },
+    {
+      "id": "SEC-04Origin",
+      "ok": true,
+      "msg": "恶意 Origin POST → HTTP 403 {\"error\": \"forbidden origin\"}（期望 403 forbidden origin）"
+    },
+    {
+      "id": "SEC-05ContentType",
+      "ok": true,
+      "msg": "非 JSON Content-Type POST → HTTP 415（期望 415）"
+    },
+    {
+      "id": "SEC-06守卫顺序",
+      "ok": true,
+      "msg": "缺 Origin/Content-Type POST → HTTP 415（守卫先于业务，不会裸执行写操作）"
+    },
+    {
+      "id": "SEC-07穿越",
+      "ok": true,
+      "msg": "GET /static/../server.py → HTTP 404（期望 404，拒绝服务目录外文件）"
+    },
+    {
+      "id": "SEC-08编码",
+      "ok": true,
+      "msg": "GET /static/%2e%2e/server.py → HTTP 404（期望 404，拒绝服务目录外文件）"
+    },
+    {
+      "id": "SEC-09反斜杠",
+      "ok": true,
+      "msg": "GET /static/..%5Cserver.py → HTTP 404（期望 404，拒绝服务目录外文件）"
+    },
+    {
+      "id": "SEC-10DB直下",
+      "ok": true,
+      "msg": "GET /static/../viewer/app.db → HTTP 404（期望 404，拒绝服务目录外文件）"
+    },
+    {
+      "id": "SEC-11深层",
+      "ok": true,
+      "msg": "GET /static/../../2026-09-22-11-49-42/stock-forum-scraper/viewer/server.py → HTTP 404（期望 404，拒绝服务目录外文件）"
+    },
+    {
+      "id": "SEC-12appdb",
+      "ok": true,
+      "msg": "GET /app.db → HTTP 404（期望 404，无敏感下载/无目录列举）"
+    },
+    {
+      "id": "SEC-13vappdb",
+      "ok": true,
+      "msg": "GET /viewer/app.db → HTTP 404（期望 404，无敏感下载/无目录列举）"
+    },
+    {
+      "id": "SEC-14env",
+      "ok": true,
+      "msg": "GET /.env → HTTP 404（期望 404，无敏感下载/无目录列举）"
+    },
+    {
+      "id": "SEC-15报告",
+      "ok": true,
+      "msg": "GET /qa_run/QA_GATE_REPORT.html → HTTP 404（期望 404，无敏感下载/无目录列举）"
+    },
+    {
+      "id": "SEC-16目录",
+      "ok": true,
+      "msg": "GET /static/ → HTTP 404（期望 404，无敏感下载/无目录列举）"
+    },
+    {
+      "id": "SEC-17SQLi-查",
+      "ok": true,
+      "msg": "blogger_reco q=' OR 1=1-- → HTTP 200 total=0（参数化 ?，注入串按字面 LIKE 匹配=0）"
+    },
+    {
+      "id": "SEC-18SQLi-kind",
+      "ok": true,
+      "msg": "detail_list kind=UNION 注入 → HTTP 200（白名单字典，返回 unknown kind）"
+    },
+    {
+      "id": "SEC-19SQLi-个股",
+      "ok": true,
+      "msg": "stock symbol 带注入串 → HTTP 200（无 500/无 SQL 报错回显）"
+    },
+    {
+      "id": "SEC-20反射XSS",
+      "ok": true,
+      "msg": "首页不回显 query 中的 <script> 原文（静态 index，无反射点）"
+    },
+    {
+      "id": "SEC-21注入响应类型",
+      "ok": true,
+      "msg": "带 XSS payload 的 API 响应 Content-Type=application/json（JSON 非 HTML，不可直接执行）"
+    },
+    {
+      "id": "SEC-22存储XSS纪律",
+      "ok": true,
+      "msg": "app.js esc() 转义调用 1064 处（>200，DB 内容渲染走统一转义）——模板内未转义 title 插值 45 处（人工复核项，非必然漏洞）"
+    },
+    {
+      "id": "SEC-23参数钳制",
+      "ok": true,
+      "msg": "persons limit=999999999&offset=-5 → 200 且返回 ≤1000 条（钳制生效）"
+    },
+    {
+      "id": "SEC-24非法整数",
+      "ok": true,
+      "msg": "limit=abc → HTTP 400（期望 400 + 可读信息，不崩连接）"
+    },
+    {
+      "id": "SEC-25错误泄漏",
+      "ok": true,
+      "msg": "未知路由 → HTTP 404，无堆栈/无文件路径泄漏"
+    },
+    {
+      "id": "SEC-26JSON类型",
+      "ok": true,
+      "msg": "API Content-Type=application/json"
+    }
+  ],
+  "ts": "2026-10-11T10:37:35.415Z"
+}

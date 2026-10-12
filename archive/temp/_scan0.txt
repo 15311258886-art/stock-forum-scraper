@@ -1,0 +1,505 @@
+===== PROJECT-ROOT : F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper =====
+  <DIR>  .browser-profile
+  <DIR>  .github
+  <DIR>  .venv
+  <DIR>  .workbuddy
+  <DIR>  __pycache__
+        300 B  _anchor.txt
+       2059 B  _anchors.txt
+       2005 B  _arch2.py
+       3120 B  _arch2_out.txt
+       2557 B  _arch_audit.py
+       4578 B  _arch_out.txt
+       5234 B  _backfill_time.py
+      70589 B  _blog_dump.html
+       6479 B  _bt_audit.py
+       6649 B  _bt_audit_out.txt
+       7767 B  _bt_live.py
+       1804 B  _bt_live_out.txt
+       4562 B  _chk1.txt
+        121 B  _chk2.txt
+        125 B  _chk3.txt
+        232 B  _chk4.txt
+        157 B  _chk_board.txt
+       1113 B  _chk_ns.py
+      14049 B  _co.txt
+       1801 B  _dash_out.txt
+       4839 B  _dash_src.txt
+        459 B  _dav_probe_out.txt
+        352 B  _diag_api.txt
+       4264 B  _diag_sched.txt
+       2742 B  _diag_sched2.txt
+       8445 B  _diag_sec.txt
+       3798 B  _diag_secapi.txt
+        831 B  _diag_sl.txt
+       3262 B  _diag_time.py
+      17084 B  _find_ai_out.txt
+       3943 B  _fingerprint.py
+       1071 B  _fingerprint_out.txt
+       5779 B  _fix_time.py
+        548 B  _h.txt
+       1821 B  _hc.txt
+        210 B  _holders_run.txt
+        217 B  _holders_run2.txt
+        971 B  _holders_run_full.txt
+        668 B  _hpayload_out.txt
+       1802 B  _hs_cols.txt
+       3385 B  _hs_dates.txt
+       1987 B  _hs_stat.txt
+      74511 B  _js_blog.js
+      69563 B  _js_blognew.js
+       4120 B  _nav2.txt
+       1362 B  _nav3.txt
+       4102 B  _nav_dump.txt
+       7133 B  _nav_learn.txt
+       5164 B  _ni2.txt
+       2455 B  _ni3.txt
+        500 B  _ni_out.txt
+        873 B  _ni_verify.txt
+       3129 B  _norm_time.py
+       2464 B  _ns_src.txt
+       4034 B  _plan_timefix.py
+       2134 B  _probe_em_time.py
+       2398 B  _probe_hld2.py
+       2375 B  _probe_hld2_out.txt
+       3174 B  _probe_holders.py
+       8564 B  _probe_holders_out.txt
+       3691 B  _probe_pos_time2.py
+       2477 B  _probe_sydr.py
+       2211 B  _probe_sydr_out.txt
+       4521 B  _probe_tgb_live.py
+       2352 B  _probe_tgb_live_out.txt
+       3901 B  _probe_tgb_time.py
+       1645 B  _replay_sina.py
+        814 B  _routes_dump.txt
+       1983 B  _scan0.py
+          0 B  _scan0_out.txt
+       3982 B  _sch2.txt
+       2469 B  _schema.txt
+       7762 B  _splice_niusan.py
+       3637 B  _sum.txt
+      74022 B  _sydr_dump.html
+       2011 B  _test_parsers_time.py
+       2011 B  _test_ths_live.py
+       1808 B  _verify_time_fix.py
+       3664 B  _verify_time_ui.cjs
+       5231 B  _xmatch.py
+       1275 B  _xmatch_out.txt
+          0 B  app.db
+  <DIR>  archive
+  <DIR>  artifacts
+       7366 B  audit_health.py
+        379 B  auto_update.log
+       6273 B  auto_update.py
+       3833 B  auto_update_status.json
+     179806 B  chain_card1.png
+     167965 B  chain_card2.png
+     167965 B  chain_card_food.png
+    1050673 B  chain_hotspots.png
+     390129 B  channels_operating.png
+     274690 B  channels_operating_top.png
+     335324 B  channels_persons.png
+     236452 B  channels_persons_top.png
+       1107 B  clip_to_cookie.py
+  <DIR>  config
+       2474 B  cookies.txt
+        667 B  credentials.example.yaml
+  <DIR>  data
+  <DIR>  docs
+     173628 B  drawer_fixed.png
+       2303 B  fill_xq_uids.py
+     158155 B  fix_1_light.png
+     145189 B  fix_2_dark_moved.png
+     584508 B  full_consensus.png
+    3638150 B  full_hotspots_live.png
+     490617 B  full_overseas_hotspots.png
+     469507 B  full_overseas_sentiment.png
+     874240 B  full_players_tiers.png
+    1847732 B  full_sources_live.png
+      11116 B  gen_sentiment_report.py
+      11805 B  holders_fetch.py
+    1018789 B  holdings_closed.png
+    1022358 B  holdings_player.png
+      14945 B  lhb_fetch.py
+      16961 B  lhb_sector_link.py
+       9988 B  main.py
+        738 B  make_shortcut.py
+        901 B  make_viewer_shortcut.py
+       5884 B  moer_crawler.cjs
+       4873 B  moer_load.py
+        117 B  moer_targets.example.json
+  <DIR>  overseas
+  <DIR>  reports
+         77 B  requirements.txt
+       4600 B  restart_viewer.py
+       3373 B  run_backfill_local.bat
+      20330 B  run_backfill_local.log
+       4599 B  run_backfill_local.py
+       2847 B  save_cookie_tool.py
+  <DIR>  scraper
+       7529 B  sector_link_probe.py
+      22450 B  sector_link_result.json
+      47673 B  sector_map_cache.json
+        679 B  selftest.out
+       4176 B  selftest.py
+     190526 B  shot_consensus.png
+     200517 B  shot_drawer_sentiment.png
+     249111 B  shot_hold_buy.png
+     239195 B  shot_hold_closed.png
+     237861 B  shot_hold_sell.png
+     126633 B  shot_overseas_hotspots.png
+      88651 B  shot_overseas_sentiment.png
+     136700 B  shot_players_tiers.png
+     184422 B  shot_sentiment_dark.png
+     179127 B  shot_sentiment_light.png
+      88651 B  shot_sources_expanded.png
+      53974 B  shot_src_consensus.png
+     381162 B  shot_src_overseas.png
+     246219 B  shot_stock_drawer.png
+     166610 B  shot_stocks_light.png
+     343344 B  sources_grid.png
+      18769 B  stats_cards.png
+      85410 B  stats_drawer_element.png
+  <DIR>  tests
+  <DIR>  tools
+       9993 B  verify_kline_ui.cjs
+       5275 B  verify_lhb_ui.cjs
+       5181 B  verify_viewer_ui.cjs
+  <DIR>  viewer
+         65 B  viewer_restart.log
+      13560 B  xueqiu_cube_crawler.cjs
+       4328 B  xueqiu_cube_load.py
+       4779 B  xueqiu_cubes.json
+        149 B  xueqiu_targets.example.json
+       2283 B  xueqiu_targets.json
+       1953 B  xueqiu_targets.json.bak_before-uidfill
+     260630 B  个股详情K线_渲染预览_20260925.png
+      94069 B  个股详情_渲染预览_20260925.png
+      34025 B  代码审查报告.html
+       8400 B  回填操作指南_演示步骤.html
+      25626 B  情绪地图与多空观点明细报告.html
+      12124 B  数据完整性回测报告_20260925.html
+      15631 B  整体体检报告_20260925.html
+     215208 B  时间列_渲染验证.png
+      25426 B  测试与优化方案.html
+      13960 B  淘股吧登录诊断与配合清单.html
+      11226 B  登录状态与配合清单.html
+       1933 B  第1步-开始回填.bat
+        169 B  第2步-保存雪球Cookie.bat
+      10479 B  自动更新说明_20260925.html
+       8940 B  龙虎榜板块扩散分析_20260925.html
+
+===== VIEWER : F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\viewer =====
+         88 B  __init__.py
+  <DIR>  __pycache__
+       1014 B  _backtest_metrics_20260925-180035.json
+       4841 B  analytics.py
+   42471424 B  app.db
+      32768 B  app.db-shm
+    4713312 B  app.db-wal
+   42471424 B  app.db.bak.before-cleanup-20260925-180035
+   87306952 B  app.db.bak.before-cleanup-20260925-180035-wal
+   42471424 B  app.db.bak.before-lhbv2-20260925-202319
+   42471424 B  app.db.bak.before-timefix-20260925-212015
+   42471424 B  app.db.bak.before-uidfill-20260925-194058
+   42471424 B  app.db.bak.fixquality-20260925-200945
+   42471424 B  app.db.bak.fixquality-20260925-201001
+  <DIR>  backups
+      96533 B  db.py
+          0 B  db.sqlite3
+      29895 B  demo_data.py
+       8316 B  desktop_app.py
+      25760 B  hot_lexicon.py
+       7603 B  hotspots.py
+      26035 B  ingest.py
+      21511 B  kb.py
+       2307 B  launch.py
+      42646 B  server.log
+     155612 B  server.py
+  <DIR>  static
+      20483 B  stock_names.py
+
+===== 0-byte files =====
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\app.db
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\_scan0_out.txt
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\capture_login_taoguba.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\FirstLaunchAfterInstallation
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\first_party_sets.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Crashpad\metadata
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Affiliation Database-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\ExtensionActivityComp
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\ExtensionActivityEdge-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\heavy_ad_intervention_opt_out.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\HubApps Icons-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Login Data For Account-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Login Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network Action Predictor-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\ServerCertificate-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Shortcuts-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Top Sites-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Vpn Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Web Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\AutofillAiModelCache\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\AutofillAiModelCache\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\AutofillStrikeDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\AutofillStrikeDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\BudgetDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\BudgetDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\ClientCertificates\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\ClientCertificates\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Collections\collectionsSQLite-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\commerce_subscription_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\commerce_subscription_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\discounts_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\discounts_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\discount_infos_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\discount_infos_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\EdgeCoupons\coupons_data.db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\EdgeHubAppUsage\EdgeHubAppUsageSQLite.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\EdgePushStorageWithConnectTokenAndKey\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\EdgePushStorageWithConnectTokenAndKey\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\EdgePushStorageWithConnectTokenAndKey\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Extension Rules\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Extension Scripts\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Extension State\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\000003.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network\Cookies-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network\Reporting and NEL-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\optimization_guide_hint_cache_store\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\optimization_guide_hint_cache_store\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\parcel_tracking_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\parcel_tracking_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\PersistentOriginTrials\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\PersistentOriginTrials\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SegmentInfoDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SegmentInfoDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SignalDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SignalDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SignalStorageConfigDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Segmentation Platform\SignalStorageConfigDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Service Worker\Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Session Storage\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\shared_proto_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\shared_proto_db\metadata\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Site Characteristics Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Default\Sync Data\LevelDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db-wal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_dr\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\FirstLaunchAfterInstallation
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\first_party_sets.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Crashpad\metadata
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Affiliation Database-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ExtensionActivityComp
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ExtensionActivityEdge-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\heavy_ad_intervention_opt_out.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\HubApps Icons-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Login Data For Account-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Login Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network Action Predictor-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ServerCertificate-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Shortcuts-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Top Sites-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Vpn Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Web Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillAiModelCache\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillAiModelCache\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillAiModelCache\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillStrikeDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillStrikeDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\AutofillStrikeDatabase\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\BudgetDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\BudgetDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\BudgetDatabase\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ClientCertificates\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ClientCertificates\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\ClientCertificates\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Collections\collectionsSQLite-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\commerce_subscription_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\commerce_subscription_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\commerce_subscription_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discounts_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discounts_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discounts_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discount_infos_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discount_infos_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\discount_infos_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\EdgeCoupons\coupons_data.db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\EdgeHubAppUsage\EdgeHubAppUsageSQLite.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\EdgePushStorageWithConnectTokenAndKey\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\EdgePushStorageWithConnectTokenAndKey\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\EdgePushStorageWithConnectTokenAndKey\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Extension Rules\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Extension Scripts\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Extension State\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\000003.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network\Cookies-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network\Reporting and NEL-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\optimization_guide_hint_cache_store\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\optimization_guide_hint_cache_store\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\optimization_guide_hint_cache_store\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\parcel_tracking_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\parcel_tracking_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\parcel_tracking_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\PersistentOriginTrials\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\PersistentOriginTrials\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\PersistentOriginTrials\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SegmentInfoDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SegmentInfoDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SegmentInfoDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalStorageConfigDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalStorageConfigDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Segmentation Platform\SignalStorageConfigDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Service Worker\Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Session Storage\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\shared_proto_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\shared_proto_db\metadata\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Site Characteristics Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Default\Sync Data\LevelDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db-wal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_nav\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\FirstLaunchAfterInstallation
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\first_party_sets.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Crashpad\metadata
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Affiliation Database-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ExtensionActivityComp
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ExtensionActivityEdge-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\heavy_ad_intervention_opt_out.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\HubApps Icons-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Login Data For Account-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Login Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network Action Predictor-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ServerCertificate-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Shortcuts-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Top Sites-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Vpn Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Web Data-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillAiModelCache\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillAiModelCache\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillAiModelCache\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillStrikeDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillStrikeDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\AutofillStrikeDatabase\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\BudgetDatabase\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\BudgetDatabase\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\BudgetDatabase\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ClientCertificates\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ClientCertificates\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\ClientCertificates\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Collections\collectionsSQLite-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\commerce_subscription_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\commerce_subscription_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\commerce_subscription_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discounts_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discounts_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discounts_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discount_infos_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discount_infos_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\discount_infos_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\EdgeCoupons\coupons_data.db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\EdgeHubAppUsage\EdgeHubAppUsageSQLite.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\EdgePushStorageWithConnectTokenAndKey\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\EdgePushStorageWithConnectTokenAndKey\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\EdgePushStorageWithConnectTokenAndKey\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Extension Rules\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Extension Scripts\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Extension State\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\000003.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Local Extension Settings\jdiccldimpdaibmpdkjnbmckianbfold\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network\Cookies-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network\Reporting and NEL-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\optimization_guide_hint_cache_store\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\optimization_guide_hint_cache_store\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\optimization_guide_hint_cache_store\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\parcel_tracking_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\parcel_tracking_db\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\parcel_tracking_db\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\PersistentOriginTrials\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\PersistentOriginTrials\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\PersistentOriginTrials\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SegmentInfoDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SegmentInfoDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SegmentInfoDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalStorageConfigDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalStorageConfigDB\LOG
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Segmentation Platform\SignalStorageConfigDB\LOG.old
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Service Worker\Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Session Storage\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\shared_proto_db\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\shared_proto_db\metadata\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Site Characteristics Database\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\declarative_performance_observer.db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Local Storage\leveldb\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Device Bound Sessions-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\NetworkDataMigrated
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Network\Trust Tokens-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Session Storage\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Storage\ext\ihmafllikibpmigkcoadcmckbfhibefp\def\Shared Dictionary\db-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Default\Sync Data\LevelDB\LOCK
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.db-wal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\GPUPersistentCache\DawnGraphiteCache\ZBRSUVJ7IMDXK2RUP4UNAHPCKJL4BWQB\cache.journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\artifacts\_edgeprofile_shot\Nurturing\campaign_history-journal
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\tools\_bf_server8766.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\tools\_qa_fix_backend2_server.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\tools\_qa_fix_backend2_server_a.log
+  0B  F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\viewer\db.sqlite3
+  total=276
+
+===== basename starts with AI =====
+  0B       F:\\AI
+  DIR      F:\\AI Agent部署知识库
+  DIR      F:\\AI Agent閮ㄧ讲鐭ヨ瘑搴揬2026-09-07-00-40-50
+  DIR      F:\\AI-制作杂乱资料

@@ -1,0 +1,17 @@
+﻿--- listeners ---
+
+LocalPort OwningProcess
+--------- -------------
+     8766          3560
+     8765         35260
+
+
+--- python procs ---
+
+ProcessId CreationDate       CommandLine                                       
+--------- ------------       -----------                                       
+     3560 2026/10/5 13:53:24 C:\Users\野比&大熊\.workbuddy\binaries\python\versi...
+    36716 2026/10/5 14:36:09 "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-for...
+    35260 2026/10/5 14:36:10 "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-for...
+
+

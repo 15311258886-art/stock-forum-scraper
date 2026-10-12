@@ -1,0 +1,33 @@
+=== stock_holders 列 ===
+['id', 'symbol', 'symbol_name', 'end_date', 'notice_date', 'holder_rank', 'holder_name', 'holder_type', 'is_org', 'hold_num', 'hold_ratio', 'free_ratio', 'hold_change', 'change_ratio', 'scope']
+
+=== hold_change 取值分布 (Top12) ===
+  '不变'  10646
+  '新进'  5769
+  '100000'  26
+  '-1000000'  21
+  '-100000'  21
+  '-500000'  18
+  '-10000'  17
+  '-200000'  16
+  '-20000'  16
+  '-30000'  15
+  '200000'  14
+  '-50000'  13
+
+=== change_ratio 取值分布 (Top8) ===
+  None  16415
+  40.0  54
+  30.0  14
+  -25.0  10
+  48.0  6
+  25.0  6
+  29.99999871  4
+  13.63636364  4
+
+=== 样例 5 行 ===
+  {"symbol": "000066", "holder_name": "姜仕鹏", "holder_type": "自然人", "end_date": "2026-06-30", "scope": "free", "holder_rank": 4, "hold_num": 21355700.0, "hold_ratio": 0.662, "hold_change": "新进", "change_ratio": null}
+  {"symbol": "000066", "holder_name": "徐建东", "holder_type": "自然人", "end_date": "2026-06-30", "scope": "free", "holder_rank": 5, "hold_num": 9000055.0, "hold_ratio": 0.279, "hold_change": "-2999945", "change_ratio": -24.99954167}
+  {"symbol": "000066", "holder_name": "刘梅", "holder_type": "自然人", "end_date": "2026-06-30", "scope": "free", "holder_rank": 9, "hold_num": 6986302.0, "hold_ratio": 0.2166, "hold_change": "新进", "change_ratio": null}
+  {"symbol": "000066", "holder_name": "申小玲", "holder_type": "自然人", "end_date": "2026-06-30", "scope": "free", "holder_rank": 10, "hold_num": 6587100.0, "hold_ratio": 0.2042, "hold_change": "新进", "change_ratio": null}
+  {"symbol": "000066", "holder_name": "徐建东", "holder_type": "自然人", "end_date": "2026-03-31", "scope": "free", "holder_rank": 5, "hold_num": 12000000.0, "hold_ratio": 0.372, "hold_change": "-3000000", "change_ratio": -20.0}

@@ -1,0 +1,63 @@
+### app.js (3 hunks)
+--- b.js	2026-09-25 04:10:27.757823800 +0800
++++ a.js	2026-09-25 04:10:28.007582800 +0800
+@@ -661,7 +661,7 @@
+     const ch = sourceChannel(plat ? [plat] : [], t.author_tier);
+     const demo = isDemoTrade(t);
+     return `<tr data-kind="trade" data-id="${escAttr(t.id)}" ${demo ? 'data-demo="1"' : 'data-real="1"'}>
+-      <td>${esc(t.author)} <span class="chip-s chip-demo">${demo ? "示例" : "真实"}</span><div class="src-line">${ch}</div></td>
++      <td>${esc(t.author)} <span class="chip-s ${demo ? "chip-demo" : "chip-real"}">${demo ? "示例" : "真实"}</span><div class="src-line">${ch}</div></td>
+       <td>${esc(t.post_time)}</td>
+       <td>${actionBadge(t.action)}</td>
+       <td><b>${esc(t.symbol_name || "名称待补全")}</b> <span class="stk-code">${esc(t.symbol || "")}</span></td>
+@@ -956,10 +956,19 @@
+     return;
+   }
+   const rows = all.map((x) => {
+-    const players = toArr(x.players).map((pl) =>
+-      `<div class="chip-row"><span class="badge ch-${escAttr(pl.channel || 'A')}">${esc(pl.channel)}</span> ${esc(pl.player)} ${actionBadge(pl.action)} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}</div>`
+-    ).join("");
++    // channel 为空时不渲染角标：/api/consensus 的 trades 兜底源把 channel 置 NULL（db.py NULL AS channel），
++    // 而 ch-* 类自带背景色（app.css:207）——空文本 + 有色背景会渲染成一个无文字色块（UI 回归 C4）。
++    // 这里刻意沿用原「渠道字母」紧凑写法而非 channelBadge()：后者输出「A 实盘大赛」全称，
++    // 会把每行选手明细撑长，与本区块的紧凑排版不符。
++    const players = toArr(x.players).map((pl) => {
++      const chBadge = pl.channel
++        ? `<span class="badge ch-${escAttr(pl.channel)}">${esc(pl.channel)}</span> `
++        : "";
++      return `<div class="chip-row">${chBadge}${esc(pl.player)} ${actionBadge(pl.action)} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}</div>`;
++    }).join("");
+     const sources = toArr(x.sources).map((s) => srcLink(s, "↗", { arrow: false })).join(" ");
++    // 覆盖渠道为空数组时给占位「—」，与抽屉渲染（app.js:1149 `${... || "—"}`）口径统一（UI 回归 C6）
++    const channels = toArr(x.channels).filter(Boolean);
+     // 层级加权共识度（A/B/C/D 沿用原权重，E/F 递减但仍计数）→ 比单纯"人数"更能代表真实共识强度
+     const w = x.weighted_holders != null ? x.weighted_holders : x.holders;
+     return `<tr data-sym="${escAttr(x.symbol)}">
+@@ -967,7 +976,7 @@
+       <td><span class="badge bull">${x.holders ?? "—"} 人</span></td>
+       <td><span class="badge t-w" title="层级加权共识度（A~F 按权重求和）">加权 ${w ?? "—"}</span></td>
+       <td>${toArr(x.tiers).map(tierBadge).join(" ")}</td>
+-      <td>${toArr(x.channels).map(channelBadge).join(" ")}</td>
++      <td>${channels.length ? channels.map(channelBadge).join(" ") : "—"}</td>
+       <td><span class="chip-s">讨论热度 ${x.discuss_heat ?? "—"}</span><br/><span class="chip-s">平台 ${toArr(x.platforms).length}</span></td>
+       <td>${players}</td>
+       <td>${sources}</td>
+
+### app.css (1 hunk)
+--- b.css	2026-09-25 04:10:29.084733300 +0800
++++ a.css	2026-09-25 04:10:29.338162600 +0800
+@@ -646,6 +646,14 @@
+ /* 示例数据 chip（用在表格行内、紧贴选手名字） */
+ .chip-demo { background: #FEF3C7 !important; color: #92400E !important; border-color: #FBBF24 !important;
+   font-weight: 600; }
++/* 真实数据 chip —— 与上面的「示例」成对出现。
++   2026-09-25：原先「真实」和「示例」共用 .chip-demo，结果 200 个「真实」角标被画成琥珀底 + 虚线框
++   （琥珀/虚线是「示例」专属视觉语言），扫一眼容易把真实数据误判成示例（UI 回归 S1）。
++   此处给「真实」一个中性正向的弱绿色**实线**观感，与「示例」的琥珀**虚线**形成可辨差异。
++   色值硬编码（与 .chip-demo 同理）以保证四套主题下观感一致；前景/底色对比度 ≈ 6.5:1，高于「示例」chip 的 6.4:1。 */
++.chip-real { display:inline-block; margin-left:4px; padding:1px 6px; border:1px solid #86EFAC;
++  border-radius:6px; font-size:10px; font-weight:600; background:#DCFCE7 !important;
++  color:#166534 !important; vertical-align:middle; }
+ /* 表格行：示例行整行灰底（与正常行视觉差异明显，但不刺眼） */
+ #p-players tbody tr[data-demo] { background: #FAFAF9; }
+ #p-players tbody tr[data-demo]:hover { background: #F5F5F4; }

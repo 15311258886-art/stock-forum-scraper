@@ -1,0 +1,162 @@
+{
+  "ts": "2026-09-24T20:06:48.019Z",
+  "port": "8765",
+  "emptyBadgeCount": 0,
+  "playerRowCount": 10,
+  "playerRowsWithBadge": 10,
+  "emptyBadgeSample": [],
+  "badgeRowsSample": [
+    {
+      "hasBadge": true,
+      "text": "买入",
+      "cls": "badge buy",
+      "box": "38x21.6",
+      "rowText": "股友谊译 买入"
+    },
+    {
+      "hasBadge": true,
+      "text": "买入",
+      "cls": "badge buy",
+      "box": "38x21.6",
+      "rowText": "坚强地黄药师 买入"
+    },
+    {
+      "hasBadge": true,
+      "text": "买入",
+      "cls": "badge buy",
+      "box": "38x21.6",
+      "rowText": "平安银行资讯 买入"
+    },
+    {
+      "hasBadge": true,
+      "text": "买入",
+      "cls": "badge buy",
+      "box": "38x21.6",
+      "rowText": "夏春秋A 买入"
+    },
+    {
+      "hasBadge": true,
+      "text": "买入",
+      "cls": "badge buy",
+      "box": "38x21.6",
+      "rowText": "股友86Q5390Z69 买入"
+    }
+  ],
+  "channelCells": [
+    {
+      "sym": "000001",
+      "text": "—",
+      "innerHTML": "—",
+      "w": 65.8,
+      "h": 83.4,
+      "blank": false
+    },
+    {
+      "sym": "300750",
+      "text": "—",
+      "innerHTML": "—",
+      "w": 65.8,
+      "h": 83.6,
+      "blank": false
+    },
+    {
+      "sym": "601318",
+      "text": "—",
+      "innerHTML": "—",
+      "w": 65.8,
+      "h": 83.6,
+      "blank": false
+    }
+  ],
+  "realChip": {
+    "realCount": 200,
+    "demoCount": 0,
+    "realSample": {
+      "text": "真实",
+      "cls": "chip-s chip-real",
+      "bg": "rgb(220, 252, 231)",
+      "color": "rgb(22, 101, 52)",
+      "border": "1px solid rgb(134, 239, 172)",
+      "radius": "6px",
+      "fontSize": "10px",
+      "w": 34,
+      "h": 20
+    },
+    "demoSample": null,
+    "realTexts": [
+      "真实"
+    ]
+  },
+  "chipStyleCompare": {
+    "demoLiveCount": 9,
+    "declared": {
+      "demo": [
+        ".chip-demo { display: inline-block; margin-left: 4px; padding: 1px 6px; border: 1px dashed var(--muted); border-radius: 6px; font-size: 10px; color: var(--muted); background: transparent; vertical-align: middle; }",
+        ".chip-demo { font-weight: 600; background: rgb(254, 243, 199) !important; color: rgb(146, 64, 14) !important; border-color: rgb(251, 191, 36) !important; }"
+      ],
+      "real": [
+        ".chip-real { display: inline-block; margin-left: 4px; padding: 1px 6px; border: 1px solid rgb(134, 239, 172); border-radius: 6px; font-size: 10px; font-weight: 600; vertical-align: middle; background: rgb(220, 252, 231) "
+      ]
+    },
+    "computed": {
+      "demo": {
+        "bg": "rgb(254, 243, 199)",
+        "color": "rgb(146, 64, 14)",
+        "border": "1px dashed rgb(251, 191, 36)",
+        "w": 34,
+        "h": 20
+      },
+      "real": {
+        "bg": "rgb(220, 252, 231)",
+        "color": "rgb(22, 101, 52)",
+        "border": "1px solid rgb(134, 239, 172)",
+        "w": 34,
+        "h": 20
+      }
+    },
+    "note": "注入元素仅用于读取 .chip-demo / .chip-real 的计算样式，不写库"
+  },
+  "chipTheme": [
+    {
+      "theme": "light-tech",
+      "bodyBg": "rgb(250, 247, 240)",
+      "rowBg": "rgb(254, 243, 199)",
+      "chipBg": "rgb(220, 252, 231)",
+      "chipColor": "rgb(22, 101, 52)",
+      "textOnChip": 6.49,
+      "chipOnRow": 1.01,
+      "border": "1px solid rgb(134, 239, 172)"
+    },
+    {
+      "theme": "dark-dashboard",
+      "bodyBg": "rgb(11, 14, 20)",
+      "rowBg": "rgb(58, 42, 10)",
+      "chipBg": "rgb(220, 252, 231)",
+      "chipColor": "rgb(22, 101, 52)",
+      "textOnChip": 6.49,
+      "chipOnRow": 12.62,
+      "border": "1px solid rgb(134, 239, 172)"
+    },
+    {
+      "theme": "minimal-report",
+      "bodyBg": "rgb(255, 255, 255)",
+      "rowBg": "rgb(254, 243, 199)",
+      "chipBg": "rgb(220, 252, 231)",
+      "chipColor": "rgb(22, 101, 52)",
+      "textOnChip": 6.49,
+      "chipOnRow": 1.01,
+      "border": "1px solid rgb(134, 239, 172)"
+    },
+    {
+      "theme": "card-warm",
+      "bodyBg": "rgb(255, 247, 237)",
+      "rowBg": "rgb(254, 243, 199)",
+      "chipBg": "rgb(220, 252, 231)",
+      "chipColor": "rgb(22, 101, 52)",
+      "textOnChip": 6.49,
+      "chipOnRow": 1.01,
+      "border": "1px solid rgb(134, 239, 172)"
+    }
+  ],
+  "consoleErrors": []
+}

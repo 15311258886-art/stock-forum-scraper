@@ -1,0 +1,19 @@
+=== PID 8848 ===
+
+Ó³ÏñÃû³Æ:     pythonw.exe
+PID:          8848
+»á»°Ãû:       Console
+»á»°#   :     1
+ÄÚ´æÊ¹ÓÃ :    149,432 K
+
+=== python3* / pythonw ===
+"pythonw.exe","8212","Console","1","4,212 K"
+"python.exe","32232","Console","1","96 K"
+"python.exe","37060","Console","1","9,876 K"
+"pythonw.exe","40580","Console","1","56 K"
+"pythonw.exe","39712","Console","1","4,504 K"
+"pythonw.exe","44364","Console","1","5,584 K"
+"pythonw.exe","8848","Console","1","149,432 K"
+
+=== å…¨éƒ¨å« python çš„è·¯å¾„(é€šè¿‡ wmic) ===
+C:\Users\é‡æ¯”&å¤§ç†Š\.workbuddy\binaries\PortableGit\versions\1.2.0\bin\bash.exe: line 1: wmic: command not found

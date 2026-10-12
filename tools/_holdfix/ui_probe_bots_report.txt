@@ -1,0 +1,11 @@
+CONSENSUS default: bot hits = [] (panel len 12134) suspicious=["资讯/播报类运营号；规则与采集端"]
+CONSENSUS TierA  : bot hits = [] (panel len 1661) suspicious=["资讯/播报类运营号；规则与采集端"]
+COHOLD           : bot hits = [] (panel len 4055) suspicious=["资讯/播报号"]
+PANEL dashboard  #p-dashboard   exists=true len=2945 contains("集合竞价")=true head="集合竞价 2026-10-09 · 当日快照 涨停意图 6 家 竞价上涨 1616 / 全市场 5553 只 竞价下跌 "
+PANEL prediction #p-prediction  exists=true len=4680 head="每日预测 · 自我进化短线推荐 短线窗口 T+1 / T+3 / T+5 / T+10 · 历史沉淀 5 个预测日 重新"
+PANEL blogger    #p-blogger     exists=true len=6692 head="博主荐股 2026-10-09 20:52 更新 跟踪 21 位博主 · 已采到 7 位 「涨跌幅」为荐股发布后的区间收"
+PANEL news       #p-news        exists=true len=9279 head="个股快讯 / 公告 自动盯盘 200 只 · 上次扫描 2026-10-09 22:43:27 · 已停止（7 分钟前未"
+
+JS errors during load + tab switches: 0
+VERDICT bots-in-DOM: NONE (PASS)
+VERDICT js-errors: ZERO (PASS)

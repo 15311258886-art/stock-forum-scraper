@@ -57,13 +57,37 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
 DB = os.path.join(PROJ, "viewer", "app.db")
 
-# 博主荐股唯一真源：本机 Excel。
-XLSX = os.environ.get(
-    "BLOGGER_XLSX", r"F:\AI Agent部署知识库\独股九剑推荐股票追踪.xlsx")
+# ---- 源路径：**多候选 + 取最新**（2026-10-12 加） ----
+# 事故背景：2026-10-11 另一个 agent 的工作目录整体搬进 `豆包每日抓取\`，Excel 从知识库根目录
+# 挪到 `知识库根\豆包每日抓取\`；而这里写死旧路径 → 每日任务 rc=2（源 Excel 缺失）
+# → **连参赛股也一起断更**（viewer/logs/blogger_daily.log 里 10-11 08:30 连续 3 次 rc=2）。
+# 教训：源目录会搬家，写死单一路径 = 下次再搬又静默断更。改为候选列表 + 取 mtime 最新者。
+_XLSX_CANDIDATES = [
+    r"F:\AI Agent部署知识库\豆包每日抓取\独股九剑推荐股票追踪.xlsx",   # 2026-10-11 起的新位置
+    r"F:\AI Agent部署知识库\独股九剑推荐股票追踪.xlsx",               # 旧位置（保留兼容）
+]
+_CONTEST_CANDIDATES = [
+    r"F:\AI Agent部署知识库\豆包每日抓取\data\contest.json",                      # 2026-10-11 起
+    os.path.join(r"F:\AI Agent部署知识库", "博主数据查看台", "public", "data", "contest.json"),
+]
+
+
+def pick_newest(cands: list, env_key: str) -> str:
+    """从候选路径里挑「存在且最新」的一个；都不存在则返回首个（调用方会明确报缺失）。
+
+    环境变量优先，但**必须真实存在**才算数 —— 否则设错一个路径反而更难排查。
+    """
+    env = os.environ.get(env_key)
+    if env and os.path.exists(env):
+        return env
+    exist = [p for p in cands if os.path.exists(p)]
+    return max(exist, key=os.path.getmtime) if exist else cands[0]
+
+
+# 博主荐股唯一真源：本机 Excel（自动定位，勿再写死单一路径）。
+XLSX = pick_newest(_XLSX_CANDIDATES, "BLOGGER_XLSX")
 # 参赛股：静态 contest.json（文件在磁盘上，无需原 App 运行）。
-CONTEST_JSON = os.environ.get(
-    "BLOGGER_CONTEST_JSON",
-    os.path.join(r"F:\AI Agent部署知识库", "博主数据查看台", "public", "data", "contest.json"))
+CONTEST_JSON = pick_newest(_CONTEST_CANDIDATES, "BLOGGER_CONTEST_JSON")
 
 # 三个 sheet 名（与源表一致）。
 SHEET_RECO = "独股九剑推荐股票追踪"
@@ -344,22 +368,31 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--quiet", action="store_true", help="只输出一行汇总（供调度器）")
     args = ap.parse_args(argv)
 
-    if not os.path.exists(args.xlsx):
-        print("[import_bloggers_direct] 源 Excel 缺失：%s" % args.xlsx, file=sys.stderr)
-        return 2
+    # 两个数据源**解耦**（2026-10-12）：源 Excel 缺失只跳过「博主荐股三表」，**参赛股照灌**。
+    # 事故背景：Excel 被挪走后旧实现直接 return 2 → 参赛股也一起断更，界面上看着像"两边都旧"。
+    bloggers_ok = os.path.exists(args.xlsx)
+    if not bloggers_ok:
+        print("[import_bloggers_direct] ⚠ 源 Excel 缺失：%s" % args.xlsx, file=sys.stderr)
+        print("[import_bloggers_direct]   候选：%s" % " | ".join(_XLSX_CANDIDATES), file=sys.stderr)
+        print("[import_bloggers_direct]   → 跳过博主荐股三表，继续灌参赛股（两者已解耦）", file=sys.stderr)
 
     # 1) 直读源头 Excel（不再经过原 App 的 bloggers.json）
-    stocks, overlaps, stats = extract_bloggers_from_xlsx(args.xlsx)
-    src_updated = _mtime_str(args.xlsx)
+    if bloggers_ok:
+        stocks, overlaps, stats = extract_bloggers_from_xlsx(args.xlsx)
+        src_updated = _mtime_str(args.xlsx)
+    else:
+        stocks, overlaps, stats, src_updated = [], [], [], ""
 
     con = sqlite3.connect(args.db, timeout=30)
     con.row_factory = sqlite3.Row
+    n_reco = n_ovl = n_sta = 0
+    n_rnd = n_par = n_trk = 0
+    contest_note = "skipped"
     try:
         con.executescript(DDL)
-        n_reco, n_ovl, n_sta = upsert_bloggers(con, stocks, overlaps, stats, src_updated)
+        if bloggers_ok:
+            n_reco, n_ovl, n_sta = upsert_bloggers(con, stocks, overlaps, stats, src_updated)
 
-        n_rnd = n_par = n_trk = 0
-        contest_note = "skipped"
         if not args.no_contest:
             if os.path.exists(args.contest_json):
                 with open(args.contest_json, encoding="utf-8") as f:
@@ -370,6 +403,22 @@ def main(argv: list[str] | None = None) -> int:
                 contest_note = "missing:%s" % args.contest_json
 
         con.commit()
+
+        # 2026-10-09 口径自愈（根治「汇总表不跟着 reco 重算」）：
+        # 源头 Excel 只描述得了它自己有的行；抖音自动提取等渠道直接新增 blogger_reco 行后，
+        # 汇总口径（blogger_stats / blogger_overlap）必须从 **blogger_reco 真源** 重算，
+        # 否则 Excel 一灌就把汇总表退回旧值、永远滞后。best-effort：失败只记，不影响导入结果。
+        # 实现已收敛到顶层模块 blogger_rebuild（与 server 读取时自愈、CLI 脚本共用一份口径）。
+        try:
+            _proj = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if _proj not in sys.path:
+                sys.path.insert(0, _proj)
+            import blogger_rebuild as _rb
+            _rb.rebuild_stats(con)
+            _rb.rebuild_overlap(con)
+        except Exception as _e:  # noqa: BLE001
+            print("[import_bloggers_direct] 汇总重算失败（已忽略，不影响导入）：%s" % _e,
+                  file=sys.stderr)
 
         def cnt(tbl: str) -> int:
             try:
@@ -384,9 +433,12 @@ def main(argv: list[str] | None = None) -> int:
             "SELECT COUNT(DISTINCT video_id) FROM contest_participant").fetchone()[0]
 
         if args.quiet:
-            print("import_bloggers_direct ok reco=%d overlap=%d stats=%d "
+            # tag 会进 viewer/logs/blogger_daily.log 的每行摘要 —— 让"博主源缺失、参赛股照灌"
+            # 这件事在日志里一眼可见，而不是静默降级。
+            tag = "ok" if bloggers_ok else "PARTIAL(bloggers=MISSING)"
+            print("import_bloggers_direct %s reco=%d overlap=%d stats=%d "
                   "round=%d part=%d track=%d contest=%s src=%s"
-                  % (cnt("blogger_reco"), cnt("blogger_overlap"), cnt("blogger_stats"),
+                  % (tag, cnt("blogger_reco"), cnt("blogger_overlap"), cnt("blogger_stats"),
                      cnt("contest_round"), cnt("contest_participant"), cnt("contest_track"),
                      contest_note, src_updated))
         else:
@@ -403,6 +455,10 @@ def main(argv: list[str] | None = None) -> int:
             print("  参赛期数：%d" % rounds)
     finally:
         con.close()
+    # 只有「两个源都拿不到」才算真失败；Excel 缺失但参赛股灌成功 → 仍算成功
+    # （部分降级已由上面的 PARTIAL 标记写进日志，不静默）。
+    if not bloggers_ok and contest_note != "ok":
+        return 2
     return 0
 
 

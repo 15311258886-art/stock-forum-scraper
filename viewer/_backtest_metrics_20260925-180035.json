@@ -1,0 +1,52 @@
+{
+  "players": 226,
+  "players_with_url": 94,
+  "positions": 271,
+  "positions_real_symbol": 271,
+  "positions_ratio_filled": 3,
+  "trades_after": 47,
+  "trades_real_symbol": 47,
+  "lhb_stocks": 231,
+  "lhb_seats": 1772,
+  "jisilu_positions": 4,
+  "site_coverage": [
+    {
+      "site": "eastmoney",
+      "players": 79,
+      "holding_players": 0,
+      "positions": 0
+    },
+    {
+      "site": "taoguba",
+      "players": 72,
+      "holding_players": 53,
+      "positions": 267
+    },
+    {
+      "site": "xueqiu",
+      "players": 34,
+      "holding_players": 0,
+      "positions": 0
+    },
+    {
+      "site": "sina",
+      "players": 20,
+      "holding_players": 0,
+      "positions": 0
+    },
+    {
+      "site": "ths",
+      "players": 18,
+      "holding_players": 0,
+      "positions": 0
+    },
+    {
+      "site": "jisilu",
+      "players": 3,
+      "holding_players": 1,
+      "positions": 4
+    }
+  ],
+  "xueqiu_players": 34,
+  "xueqiu_positions": 0
+}

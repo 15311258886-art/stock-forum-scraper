@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票论坛数据 · 自动更新说明</title>
+<style>
+  :root{
+    --bg:#F6F4EF;
+    --card:#FFFFFF;
+    --ink:#1B1B1B;
+    --ink-2:#5E5E5E;
+    --ink-3:#8C8C8C;
+    --line:#E7E2D8;
+    --teal:#0E7490;
+    --teal-soft:#E6F1F4;
+    --gold:#B8925A;
+    --gold-soft:#F7F0E4;
+    --ok:#2F7D5F;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:36px 20px 64px;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:15px; line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  /* 顶部 */
+  .hero{
+    background:var(--card); border-radius:var(--radius);
+    padding:34px 36px 30px; position:relative; overflow:hidden;
+    box-shadow:0 1px 2px rgba(27,27,27,.04), 0 10px 30px rgba(27,27,27,.05);
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0 0 auto 0; height:4px;
+    background:linear-gradient(90deg,var(--teal) 0%,#2A9DB8 45%,var(--gold) 100%);
+  }
+  .eyebrow{
+    font-size:12.5px; letter-spacing:.14em; color:var(--gold);
+    font-weight:600; margin-bottom:14px; text-transform:uppercase;
+  }
+  h1{font-size:27px; line-height:1.35; margin:0 0 12px; font-weight:700; letter-spacing:-.01em;}
+  .sub{color:var(--ink-2); font-size:15.5px; margin:0;}
+  .badge{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--teal-soft); color:var(--teal);
+    font-size:13px; font-weight:600; padding:5px 13px; border-radius:999px;
+    margin-top:18px;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);}
+
+  /* 通用卡片 */
+  .card{
+    background:var(--card); border-radius:var(--radius);
+    padding:28px 32px; margin-top:20px;
+    box-shadow:0 1px 2px rgba(27,27,27,.04), 0 10px 30px rgba(27,27,27,.045);
+  }
+  h2{
+    font-size:16px; margin:0 0 18px; font-weight:700;
+    display:flex; align-items:center; gap:10px;
+  }
+  h2 .idx{
+    width:22px;height:22px;border-radius:6px;flex:0 0 auto;
+    background:var(--teal); color:#fff; font-size:12.5px; font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  h2 .idx.gold{background:var(--gold);}
+
+  /* 关键指标行 */
+  .metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  .metric{
+    background:var(--bg); border:1px solid var(--line);
+    border-radius:12px; padding:15px 16px;
+  }
+  .metric .k{font-size:12.5px;color:var(--ink-3);margin-bottom:5px;}
+  .metric .v{font-size:19px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .metric .v small{font-size:12.5px;font-weight:500;color:var(--ink-2);margin-left:2px;}
+
+  /* 模拟消息 */
+  .msg{
+    background:var(--gold-soft); border-left:3px solid var(--gold);
+    border-radius:10px; padding:18px 20px; font-size:14px; line-height:1.9;
+  }
+  .msg .line1{font-weight:700;color:var(--ok);}
+  .msg .dim{color:var(--ink-2);}
+  .msg code{
+    background:rgba(255,255,255,.75); border:1px solid var(--line);
+    border-radius:5px; padding:1px 6px; font-size:13px;
+    font-family:ui-monospace,Consolas,monospace;
+  }
+
+  /* 两栏清单 */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  ul.clean{list-style:none;margin:0;padding:0;}
+  ul.clean li{
+    padding:9px 0 9px 26px; position:relative; font-size:14.5px;
+    border-bottom:1px dashed var(--line);
+  }
+  ul.clean li:last-child{border-bottom:none;}
+  ul.clean li::before{
+    position:absolute; left:0; top:9px; font-size:14px;
+  }
+  ul.no li::before{content:"✕"; color:#C26B5A; font-weight:700;}
+  ul.yes li::before{content:"✓"; color:var(--ok); font-weight:700;}
+
+  /* 时间线 */
+  .tl{position:relative;padding-left:24px;margin-top:4px;}
+  .tl::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--line);}
+  .tl .node{position:relative;padding:0 0 18px 0;}
+  .tl .node:last-child{padding-bottom:0;}
+  .tl .node::before{
+    content:"";position:absolute;left:-22px;top:7px;width:10px;height:10px;
+    border-radius:50%;background:#fff;border:2.5px solid var(--teal);
+  }
+  .tl .t{font-weight:700;font-size:14.5px;}
+  .tl .d{color:var(--ink-2);font-size:13.5px;}
+
+  /* 提示条 */
+  .hint{
+    background:var(--teal-soft); border-radius:10px; padding:15px 18px;
+    font-size:14px; color:#0B5A70; margin-top:16px;
+  }
+  .hint b{color:var(--teal);}
+
+  .foot{
+    text-align:center; color:var(--ink-3); font-size:12.5px;
+    margin-top:26px; line-height:1.9;
+  }
+  @media (max-width:720px){
+    .metrics{grid-template-columns:repeat(2,1fr);}
+    .cols{grid-template-columns:1fr;}
+    .hero{padding:26px 22px;}
+    .card{padding:22px;}
+    h1{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">Stock Forum Data · Auto Update</div>
+    <h1>股票论坛数据 · 自动更新已开启</h1>
+    <p class="sub">从今天起，抓数据这件事不再需要你动手——不用找文件、不用双击、不用管登录凭证。</p>
+    <div class="badge"><span class="dot"></span>已启用 · 状态正常</div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">1</span>运行安排</h2>
+    <div class="metrics">
+      <div class="metric">
+        <div class="k">自动运行时间</div>
+        <div class="v">周一 / 三 / 五 <small>16:30</small></div>
+      </div>
+      <div class="metric">
+        <div class="k">单次耗时</div>
+        <div class="v">约 6–7 <small>分钟</small></div>
+      </div>
+      <div class="metric">
+        <div class="k">覆盖来源</div>
+        <div class="v">5 <small>个站点 + 3 类榜单</small></div>
+      </div>
+      <div class="metric">
+        <div class="k">需要你操作</div>
+        <div class="v" style="color:var(--ok)">0 <small>次</small></div>
+      </div>
+    </div>
+    <div class="hint">
+      抓取范围：<b>东方财富 · 新浪 · 同花顺 · 淘股吧 · 雪球</b>，外加<b>游资龙虎榜</b>、<b>集思录晒盘</b>。
+      时间点选在 A 股收盘后，当天的操作与讨论都已落定。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">2</span>每次跑完，你会收到这样一条消息</h2>
+    <div class="msg">
+      <div class="line1">✅ 数据更新完成 · 用时 6 分 52 秒</div>
+      <div class="dim">新增：交易 20 条 · 讨论 5 条</div>
+      <div class="dim">当前库存：选手 226 · 持仓 271 · 交易 103 · 讨论 1059 · 龙虎榜 2003</div>
+      <div class="dim">想在查看器里看到新数据：关掉窗口，重新双击桌面「股票论坛可视化查看器」。</div>
+    </div>
+    <div class="hint">
+      这条消息是<b>主动推送</b>的，你不用去查。如果某次我发的是「失败」，回我一句就行，我来处理。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx gold">3</span>你要做的，只剩两件小事</h2>
+    <div class="cols">
+      <div>
+        <ul class="clean yes">
+          <li><b>想看最新数据时</b><br>把查看器窗口关掉、重新双击桌面图标即可。窗口本身不会自动刷新，这是它唯一的脾气。</li>
+          <li><b>收到「失败」简报时</b><br>回我一句，我查日志定位，不需要你折腾。</li>
+        </ul>
+      </div>
+      <div>
+        <ul class="clean no">
+          <li><b>雪球登录凭证 10 月到期</b><br>已实测：不带凭证也能抓到数据，到期<b>不影响</b>，不用续。</li>
+          <li><b>代理软件</b><br>本机走直连即可。日志里那句「代理不可达 → 降级为直连」是<b>正常</b>的。</li>
+          <li><b>手动双击任何 bat 文件</b><br>这套流程已经全自动接管。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">4</span>一次自动更新的完整过程</h2>
+    <div class="tl">
+      <div class="node">
+        <div class="t">16:30 自动触发</div>
+        <div class="d">定时任务唤醒，无需电脑前有人。</div>
+      </div>
+      <div class="node">
+        <div class="t">抓取五个站点的牛人持仓与讨论</div>
+        <div class="d">雪球用真实浏览器过风控；淘股吧无凭据时自动跳过，属正常。</div>
+      </div>
+      <div class="node">
+        <div class="t">写库 + 重建牛人池</div>
+        <div class="d">数据写进查看器用的那个库，并同步整理牛人名单。</div>
+      </div>
+      <div class="node">
+        <div class="t">数据库瘦身</div>
+        <div class="d">执行一次写入合并，避免日志文件越积越大。</div>
+      </div>
+      <div class="node">
+        <div class="t">生成结果并推送给你</div>
+        <div class="d">把「新增多少、总共有多少、成没成」压缩成一条简报。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx gold">5</span>想确认它一直在跑？</h2>
+    <p style="margin:0 0 4px;color:var(--ink-2);font-size:14.5px;">
+      两种方式，任选其一：
+    </p>
+    <ul class="clean yes">
+      <li>直接问我一句「最近跑了吗」，我读结果文件告诉你。</li>
+      <li>或者自己看这个文件（每次覆盖为最新一次）：<br>
+        <code style="background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:2px 7px;font-size:13px;font-family:ui-monospace,Consolas,monospace;">stock-forum-scraper\auto_update_status.json</code>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">6</span>可随时调整（说一声就行）</h2>
+    <ul class="clean yes">
+      <li><b>改频率</b> — 现在是一周三次；想改成「每个交易日」或「每周一次」，一句话的事。</li>
+      <li><b>改成绝对安静</b> — 若你不想收到简报，我可以改成系统级的后台任务，跑完不发消息、不占任何额度。</li>
+      <li><b>清理旧备份</b> — 工程目录里已积累 23 份历史数据库备份，共约 <b>807 MB</b>，可只保留最近 3 份。</li>
+    </ul>
+  </section>
+
+  <div class="foot">
+    股票论坛可视化查看器 · 自动更新说明<br>
+    生成于 2026-09-25 19:52
+  </div>
+
+</div>
+</body>
+</html>

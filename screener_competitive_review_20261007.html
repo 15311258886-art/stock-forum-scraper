@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能选股器 · 竞品对比与提升规划（2026-10-07）</title>
+<style>
+  :root{
+    --bg:#faf7f2; --panel:#ffffff; --ink:#1c1b18; --muted:#6b6760;
+    --accent:#0E7490; --line:#e7e1d6; --ok:#1f8a4c; --warn:#c8641a; --bad:#b23b3b;
+    --chip:#eef5f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.65;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 64px}
+  header{border-bottom:3px solid var(--accent);padding-bottom:18px;margin-bottom:8px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:14px}
+  h2{font-size:20px;margin:40px 0 14px;padding-left:11px;border-left:4px solid var(--accent)}
+  h3{font-size:16px;margin:20px 0 8px;color:var(--accent)}
+  p{margin:8px 0}
+  .note{background:var(--chip);border-left:4px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;color:#234;font-size:14px}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;background:var(--panel)}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0ede6;font-weight:600}
+  .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+  .t0{background:#e8f3ec;color:var(--ok)} .t1{background:#fdf0e3;color:var(--warn)} .t2{background:#fae8e8;color:var(--bad)}
+  .yes{color:var(--ok);font-weight:600} .no{color:var(--bad);font-weight:600} .part{color:var(--warn);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .card .ph{position:absolute;top:-10px;left:16px;font-size:12px;font-weight:700;padding:2px 10px;border-radius:10px}
+  .card h3{margin:6px 0 8px;font-size:16px}
+  .card ul{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+  .card li{margin:4px 0}
+  .kv{font-size:13px;color:var(--muted);margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+  .kv b{color:var(--ink)}
+  .pill{background:#f0ede6;border-radius:6px;padding:2px 8px;font-weight:600}
+  .tl{display:flex;gap:0;margin:20px 0;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  .tl>div{flex:1;padding:14px 16px;background:var(--panel);border-right:1px solid var(--line);font-size:13.5px}
+  .tl>div:last-child{border-right:0}
+  .tl b{color:var(--accent);display:block;font-size:15px;margin-bottom:4px}
+  footer{margin-top:40px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+  .src{font-size:12.5px;color:var(--muted);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>智能选股器 · 竞品横向对比与提升规划</h1>
+    <div class="sub">调研样本 12 家 · 2026-10-07 · 本报告仅作方案规划，待确认后再实施，不涉及代码改动</div>
+  </header>
+
+  <div class="note">
+    <b>结论先行：</b>我们当前的核心引擎（多条件 AND 组合 + 当日快照缓存 + 换手率五维评分）已经比绝大多数"条件选股器"快、比纯表格工具强。
+    但和头部产品比，差距集中在三件事：<b>① 没有"保存策略/复用"</b>（用户每次都要重调，最高频痛点）、<b>② 结果是纯表格、没有可视化</b>（Finviz 热力图是零售用户的标志性体验）、
+    <b>③ 没有"回测/分位/解释"闭环</b>（只给"今天哪些符合"，不给"这套条件过不站得住、是不是真低估"）。下面用真实竞品数据展开。
+  </div>
+
+  <h2>一、调研覆盖了哪些产品（共同点怎么来的）</h2>
+  <p class="src">
+    国内：同花顺 i 问财、东方财富条件选股Pro、雪球筛选器、选股宝、理杏仁、Wind、萝卜投研、MarketArc、聚宽/青柠量化、TradingView（中文）、Simply Wall St（中文评测）；
+    海外：Finviz、Simply Wall Street、TC2000、Magnifi（AI 助理）。<br>
+    共性不是凭感觉归纳的，而是这 12 家反复出现的能力交集——下文"行业标配"列即来自这个交集。
+  </p>
+
+  <h2>二、能力矩阵：我们 vs 行业标配</h2>
+  <table>
+    <thead><tr><th>能力维度</th><th>行业标配（头部普遍具备）</th><th>我们现状</th><th>差距</th></tr></thead>
+    <tbody>
+      <tr><td>多条件组合筛选（基本面/估值/技术/资金）</td><td>全部具备，多维度 AND/OR</td><td><span class="yes">有</span> 估值6+持股+质量4+值得率，纯 AND</td><td><span class="tag t0">领先/持平</span></td></tr>
+      <tr><td>筛选速度（当日数据缓存）</td><td>普遍秒级</td><td><span class="yes">有</span> 当日快照缓存，二次筛选毫秒级</td><td><span class="tag t0">领先</span></td></tr>
+      <tr><td>阈值可调 / 分组布局</td><td>参数化输入框</td><td><span class="yes">有</span> 两行分组+内联输入+行业归组</td><td><span class="tag t0">领先</span></td></tr>
+      <tr><td>换手率/筹码技术面评分</td><td>少数具备（东财主力意愿/散户线）</td><td><span class="yes">有</span> 五维值得率评分机器</td><td><span class="tag t0">差异化优势</span></td></tr>
+      <tr><td><b>保存策略模板 / 收藏条件</b></td><td><b>全部具备</b>（我的方案/收藏）</td><td><span class="no">无</span></td><td><span class="tag t2">明显缺口</span></td></tr>
+      <tr><td><b>结果可视化（热力图/图表）</b></td><td><b>头部标配</b>（Finviz 热力图、Snowflake）</td><td><span class="no">无</span> 纯表格</td><td><span class="tag t2">明显缺口</span></td></tr>
+      <tr><td><b>估值/价格历史分位</b></td><td><b>价值派标配</b>（理杏仁 5/10年分位）</td><td><span class="no">无</span></td><td><span class="tag t2">明显缺口</span></td></tr>
+      <tr><td><b>策略回测（胜率/年化/回撤）</b></td><td><b>进阶标配</b>（东财/FinLab/青柠）</td><td><span class="no">无</span></td><td><span class="tag t1">高阶缺口</span></td></tr>
+      <tr><td>CSV 导出</td><td>普遍具备</td><td><span class="no">无</span></td><td><span class="tag t1">小缺口</span></td></tr>
+      <tr><td>个股深度（杜邦/财务健康度）</td><td>理杏仁/Wind 强</td><td><span class="part">弱</span> 仅基础估值+股东户数</td><td><span class="tag t1">受限（财务数据源不通）</span></td></tr>
+      <tr><td>自然语言选股（AI）</td><td>同花顺问财、Magnifi</td><td><span class="no">无</span></td><td><span class="tag t1">战略方向</span></td></tr>
+      <tr><td>题材热点→龙头映射</td><td>选股宝独家链路</td><td><span class="no">无</span></td><td><span class="tag t1">差异化方向</span></td></tr>
+      <tr><td>条件预警/监控（alerts）</td><td>Finviz/SWS/青柠</td><td><span class="no">无</span></td><td><span class="tag t1">低频需求</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>三、我们已具备的"护城河"（不要丢）</h2>
+  <ul>
+    <li><b>极速内核：</b>当日全市场估值快照 + 评分缓存，二次筛选毫秒级——这是东财/雪球网页筛选器都未必能做到的本地体验。</li>
+    <li><b>换手率五维值得率评分：</b>自研机器、数据当天缓存，是竞品里少有的"筹码+换手"技术面量化，且已和筛选打通。</li>
+    <li><b>行业归组 + 两行分组布局：</b>刚做的交互，比多数工具"一长条 chip"更清晰。</li>
+    <li><b>连续阴跌扫描 + 板块分类：</b>已有独立视图。</li>
+  </ul>
+
+  <h2>四、建议突破的 8 个点（分级）</h2>
+  <p>分级逻辑：<span class="tag t0">P0 立刻做</span> 低成本高感知、且<b>不依赖受限财务数据源</b>；
+  <span class="tag t1">P1 数据可得</span> 中等工作量；<span class="tag t2">P2 战略级</span> 依赖大模型/历史引擎，重大提升但投入大。</p>
+
+  <div class="grid">
+    <div class="card"><span class="ph t0">P0</span>
+      <h3>B1 · 策略模板保存与复用</h3>
+      <p><b>竞品佐证：</b>同花顺"我的方案"、雪球"收藏搜索条件"、Finviz"50 个 saved screens"——<b>所有头部产品都有</b>。这是用户提到"点这么多"后最痛的缺失：每次刷新都要重选。</p>
+      <ul><li>做法：把当前"选中项+阈值"命名保存（localStorage 或后端），列表一键加载/删除</li>
+          <li>顺带做：常用预设（如"低估值白马""高股息防御""低筹码集中"）内置模板</li></ul>
+      <div class="kv"><span class="pill">依赖：无</span><span class="pill">工作量：0.5–1天</span><span class="pill">收益：高（直接消痛点）</span></div>
+    </div>
+
+    <div class="card"><span class="ph t0">P0</span>
+      <h3>B2 · 结果可视化（行业热力图 + Treemap）</h3>
+      <p><b>竞品佐证：</b>Finviz 热力图是"零售交易者标志性体验"（review 原文："once you use it, feels indispensable"）；我们已有 <code>industry</code> 字段和 <code>worth</code> 评分。</p>
+      <ul><li>做法①：筛选结果按行业聚合的涨跌/值得率热力块</li>
+          <li>做法②：结果 Treemap（块大小=市值，颜色=值得率/涨跌）</li>
+          <li>做法③：个股结果行内嵌迷你走势（sparkline）</li></ul>
+      <div class="kv"><span class="pill">依赖：已有数据</span><span class="pill">工作量：1–2天</span><span class="pill">收益：极高（专业感拉满）</span></div>
+    </div>
+
+    <div class="card"><span class="ph t0">P0</span>
+      <h3>B3 · CSV 导出 + 列自定义</h3>
+      <p><b>竞品佐证：</b>雪球/东财/Finviz 全部支持导出；Finviz "Export to CSV" 是付费点之一，说明需求刚性。</p>
+      <ul><li>做法：结果表一键导出 CSV；列显隐/拖拽排序增强</li></ul>
+      <div class="kv"><span class="pill">依赖：无</span><span class="pill">工作量：0.5天</span><span class="pill">收益：中高</span></div>
+    </div>
+
+    <div class="card"><span class="ph t1">P1</span>
+      <h3>B4 · 估值历史分位（低估信号）</h3>
+      <p><b>竞品佐证：</b>理杏仁核心差异化就是"PE/PB 过去 5/10 年分位"——比"PE<20"更能说明"现在便不便宜"。价值投资者最认这个。</p>
+      <ul><li>做法：在估值报表历史序列上算当前 PE/PB/PS 的分位，结果表加"PE分位"列+低估高亮</li>
+          <li>风险：需确认东财能否取到历史日序列（现有接口只取最新交易日，需补历史拉取）</li></ul>
+      <div class="kv"><span class="pill">依赖：东财历史序列</span><span class="pill">工作量：1–2天</span><span class="pill">收益：高（价值派刚需）</span></div>
+    </div>
+
+    <div class="card"><span class="ph t1">P1</span>
+      <h3>B5 · 个股深度：杜邦 + 财务健康度评分</h3>
+      <p><b>竞品佐证：</b>理杏仁杜邦分析、财务健康度评分是基本面派核心；Simply Wall St 用五维"Snowflake"把公司一眼讲清。</p>
+      <ul><li>做法：个股详情页加 ROE 杜邦拆解 + 健康度雷达</li>
+          <li>风险：<b>当前财务数据源（ROE/毛利率/负债率/股息率）受环境限制取不到</b>，需待源解封或换源</li></ul>
+      <div class="kv"><span class="pill">依赖：财务数据源</span><span class="pill">工作量：2–3天</span><span class="pill">收益：中（受数据源卡）</span></div>
+    </div>
+
+    <div class="card"><span class="ph t2">P2</span>
+      <h3>B6 · 自然语言选股（AI）</h3>
+      <p><b>竞品佐证：</b>同花顺 i 问财（2.5万+原子指标、大模型拆解多约束）、Magnifi——"说人话选股"已成头部标配。</p>
+      <ul><li>做法：大白话→筛选条件映射（如"连续3年ROE>15%且破净"→自动勾选+填值）</li>
+          <li>契合点：您本身是做 AI Agent 的，这正好是主业能力外延</li>
+          <li>风险：需接大模型；本地服务如何调用需设计</li></ul>
+      <div class="kv"><span class="pill">依赖：大模型</span><span class="pill">工作量：3–5天</span><span class="pill">收益：战略级差异化</span></div>
+    </div>
+
+    <div class="card"><span class="ph t2">P2</span>
+      <h3>B7 · 策略回测闭环</h3>
+      <p><b>竞品佐证：</b>FinLab 一句话点破："多数工具只回答今天哪些符合，不回答这套条件过去站不站得住"；东财/青柠/聚宽全部有回测。</p>
+      <ul><li>做法：把筛选条件跑历史，给胜率/年化/最大回撤 + 与指数基准对比</li>
+          <li>风险：需全市场历史日K与财务，工程量大</li></ul>
+      <div class="kv"><span class="pill">依赖：历史引擎</span><span class="pill">工作量：1–2周</span><span class="pill">收益：重大（决策说服力）</span></div>
+    </div>
+
+    <div class="card"><span class="ph t2">P2</span>
+      <h3>B8 · 题材热点→龙头映射</h3>
+      <p><b>竞品佐证：</b>选股宝独家链路"新闻→题材→龙头股池"，短线交易者最友好；MarketArc 做"事件→T+1~T+7 价格路径评分"。</p>
+      <ul><li>做法：热点题材自动生成候选龙头池 + 关联度评分</li>
+          <li>风险：需题材/事件数据源与映射规则</li></ul>
+      <div class="kv"><span class="pill">依赖：题材数据源</span><span class="pill">工作量：1周+</span><span class="pill">收益：差异化（短线向）</span></div>
+    </div>
+  </div>
+
+  <h2>五、推荐演进路线</h2>
+  <div class="tl">
+    <div><b>Phase 1 · 体验闭环</b>1–2 周<br>B1 策略保存 · B2 可视化热力图 · B3 导出。把"快"变成"好用+好看+能复用"。</div>
+    <div><b>Phase 2 · 价值深化</b>2–4 周<br>B4 估值分位 · B5 个股杜邦（视数据源）。把"筛得出"变成"知道便不便宜、健不健康"。</div>
+    <div><b>Phase 3 · 智能跃迁</b>1–2 月<br>B6 自然语言 · B7 回测 · B8 题材映射。从"工具"升级为"投研决策助手"。</div>
+  </div>
+
+  <div class="note">
+    <b>我的建议（先做的三件事）：</b>① <b>B1 策略保存</b>——用户当下最痛、零依赖、半天能做；② <b>B2 行业热力图/Treemap</b>——用已有数据就能把专业感拉满，且是头部产品标志性体验；
+    ③ <b>B3 CSV 导出</b>——竞品普遍标配的小缺口。这三件做完，产品就从"能筛"跨到"好用、能复盘、能复用"，且<b>完全不碰当前受限的财务数据源</b>，风险最低、收益最高。
+    B4 估值分位紧随其后（价值派最认）。B6/B7/B8 等您确认方向再投入。
+  </div>
+
+  <footer>
+    附：本方案所有"竞品能力"均来自 2026-10-07 公开网络检索（同花顺 i 问财、东方财富条件选股Pro、雪球筛选器、选股宝、Finviz、理杏仁、Wind、MarketArc、萝卜投研、TradingView、青柠量化/聚宽、Simply Wall St 等官方与第三方评测）。
+    本规划仅作决策参考，待您确认优先级后再进入实施。
+  </footer>
+</div>
+</body>
+</html>

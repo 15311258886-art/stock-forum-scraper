@@ -1,0 +1,126 @@
+app.js lines 4053
+
+=== NAV 定义 ===
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘选手", icon: "▦", items: [
+    { tab: "players", label: "选手与渠道" },
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+=== 学习板块相关函数 ===
+ 3048:   lastOk: null, status: "never", error: "", tracked: [], sources: {},
+ 3133:   if (!newest) return { state: "untracked", names: keys };
+ 3138:   return ({ ok: "fr-ok", stale: "fr-stale", untracked: "fr-untracked", unknown: "fr-unknown", loading: "fr-loading" }[state]) || "fr-unknown";
+ 3144:   if (f.state === "untracked") return `来源「${toArr(f.names).join("、")}」未纳入当前抓取配置，无法判定更新时效`;
+ 3152:   if (f.state === "untracked") return "未纳入刷新";
+ 3155: const FRESH_CHIP_TEXT = { ok: "已更新", stale: "⚠ 未更新", untracked: "未纳入刷新", loading: "…", unknown: "" };
+ 3228:       RS.tracked = toArr(d.tracked_sources);
+ 3345:   { key: "learn", label: "跟我学习", icon: "✎", items: [
+ 3346:     { tab: "learn_zdx_stock", label: "中短线炒股" },
+ 3347:     { tab: "learn_tracks", label: "学习轨道管理" }] },
+ 3362:     const items = c.key === "learn" ? learnSubItems(c.items) : c.items;
+ 3380:    只重绘横条，不碰面板、不写 hash。与 selectNav 分开是为了让「学习轨道列表异步到达
+ 3385:   const items = cat.key === "learn" ? learnSubItems(cat.items) : cat.items;
+ 3389:     // 「跟我学习」横条右端保留知识库上下文（状态 chip + 立即吸取）——它们原先就在横条上
+ 3390:     (cat.key === "learn"
+ 3418:   if (cat.key === "learn" && !KB.tracks) loadKbTracks();
+ 3419:   if (tab === "learn_zdx_stock") ensureKbDoc();
+ 3420:   if (tab === "learn_tracks") renderKbTracks();
+ 3472: /* ================= 跟我学习：知识库（中短线炒股） =================
+ 3477:   key: "zdx_stock", doc: null, loading: false, error: "",
+ 3478:   tracks: null, tracksLoading: false,
+ 3481: /* 「跟我学习」的横向子类 = 固定的「学习轨道管理」+ kb_sources.yaml 声明的各条学习轨道 */
+ 3482: function learnSubItems(fallback) {
+ 3483:   const tracks = toArr(KB.tracks && KB.tracks.docs);
+ 3484:   if (!tracks.length) return fallback;
+ 3485:   const items = tracks.map((d) => ({
+ 3486:     tab: "learn_" + d.doc_key,
+ 3487:     label: d.track || d.title || d.doc_key,
+ 3490:   items.push({ tab: "learn_tracks", label: "学习轨道管理" });
+ 3493: /* 动态学习轨道面板在 index.html 里没有预置容器 → 首次进入时按需补一个。
+ 3507:   const box = ensurePanel("learn_zdx_stock");
+ 3519:   const box = ensurePanel("learn_tracks");
+ 3521:   if (KB.tracks && !KB.tracksLoading) { renderKbTracks(); return; }
+ 3522:   if (KB.tracksLoading) return;
+ 3523:   KB.tracksLoading = true;
+ 3526:       KB.tracks = d;
+ 3530:       const cat = NAV.find((c) => c.key === "learn");
+ 3531:       if (cat) paintSubnav(cat, CURRENT.cat === "learn" ? CURRENT.tab : cat.items[0].tab);
+ 3534:     .catch((e) => { box.innerHTML = `<div class="empty">学习轨道读取失败：${esc(apiErrText(e))}</div>`; })
+ 3535:     .finally(() => { KB.tracksLoading = false; });
+ 3549:       KB.doc = null; KB.tracks = null;
+ 3573:   chip.title = `${d.track || ""}｜${d.title || ""}\n吸取：${d.ingested_at || "—"}\n来源：${d.source_path || "—"}\n` + freshTitle(f);
+ 3579: /* 「跟我学习 → 中短线炒股」主视图：把整份知识库按「结论 → 流派 → 对比 → 误区 → 回测 → 来源 → 风险」铺开。
+ 3583:   const box = ensurePanel("learn_zdx_stock");
+ 3592:       `<button class="btn" onclick="showTab('learn_tracks')">查看学习轨道管理</button></div>`;
+ 3668:         <h2>${esc(d.title || m.title || "学习知识库")}</h2>
+ 3674:           <span class="chip-s chip-fresh ${freshCls(f.state)}" title="${escAttr(freshTitle(f))}">${freshLine(f, "学习内容")}</span>
+ 3708:   $$("#p-learn_zdx_stock .kb-toc-item").forEach((a) => {
+ 3716:   $$("#p-learn_zdx_stock .kb-blogger").forEach((b) => {
+ 3724:    what＝主语，便于在「学习内容」这类非行情场景说人话。 */
+ 3729:   if (f.state === "untracked") return "未纳入刷新";
+ 3831: /* 「跟我学习 → 学习轨道管理」：各知识库来源的吸取状态（复用「最后更新」时效口径） */
+ 3833:   const box = ensurePanel("learn_tracks");
+ 3836:   const d = KB.tracks;
+ 3837:   if (!d) { box.innerHTML = `<div class="empty">正在读取学习轨道…</div>`; return; }
+ 3841:       ? `<span class="chip-s chip-fresh chip-untracked">尚未吸取</span>`
+ 3842:       : `<span class="chip-s chip-fresh ${freshCls(f.state)}" title="${escAttr(freshTitle(f))}">${freshLine(f, "学习内容")}</span>`;
+ 3844:       <td><b>${esc(t.track || t.title || t.doc_key)}</b><div class="src-line">${esc(t.doc_key)}</div></td>
+ 3854:     <div class="hint" style="margin-bottom:10px">一条学习轨道 = 一个横向子板块。来源在
+ 3863:     <table><thead><tr><th>学习轨道</th><th>版本</th><th class="num">知识点</th><th>吸取时间</th><th>最后更新</th><th>来源文件</th></tr></thead>
+ 3864:       <tbody>${rows || `<tr><td colspan="6">未配置任何学习轨道</td></tr>`}</tbody></table>
+ 3879:   const trk = toArr(RS.tracked);
+ 3882:     const tracked = !trk.length || trk.indexOf(k) >= 0;
+ 3886:       <td>${tracked ? `<span class="chip-s">已纳入</span>` : `<span class="chip-s chip-fresh chip-untracked">未纳入</span>`}</td>
+
+=== index.html panels ===
+['p-summary', 'p-dashboard', 'p-stocks', 'p-operating', 'p-players', 'p-lhb', 'p-lhb_sectors', 'p-niusan', 'p-consensus', 'p-cohold', 'p-persons', 'p-sentiment', 'p-topics', 'p-overseas_sentiment', 'p-overseas_hotspots', 'p-sources', 'p-archive', 'p-fetchlog', 'p-learn_zdx_stock', 'p-learn_tracks']
+
+=== 共识面板相关 ===
+ 1674:   if (!(d.investors || []).length && !(d.cohold || []).length) {
+ 1697:   const coh = (d.cohold || []).map((c) => {
+ 1835:   const coholdRows = (con.rows || []).map((c) =>
+ 1852:     ${coholdRows ? `<table><thead><tr><th>个股</th><th class="num">同持牛散</th><th>名单</th></tr></thead><tbody>${coholRows}</tbody></table>` : `<div class="empty">暂无协同持股</div>`}
+ 2110: function renderConsensus(list) {
+ 2113:     $("#p-consensus").innerHTML = `<div class="empty">暂无共同持仓数据。需先采集各选手持仓（collect_positions）。</div>`;
+ 2148:   $("#p-consensus").innerHTML = `
+ 2168: function coholdLoad(days, anchor) {
+ 2171:   return api(`/api/cohold_recent?days=${COHOLD.days}&min_holders=${COHOLD.min}` +
+ 2176: function coholdDays(n) { coholdLoad(n, null); }
+ 2177: function coholdAnchor(m) { coholdLoad(null, m); }
+ 2180: function coholdWindowBar(d) {
+ 2189:     `<button class="btn sm${n === d.days ? " primary" : ""}" onclick="coholdDays(${n})">${n} 天</button>`).join(" ");
+ 2193:       return `<button class="btn sm${on ? " primary" : ""}" onclick="coholdAnchor('${k}')">${lab}</button>`;
+ 2205: function coholdTable(d, group) {
+ 2267:   const box = $("#p-cohold");
+ 2280:     ${coholdWindowBar(d)}
+ 2286:     ${coholdTable(d, "buy")}
+ 2287:     ${coholdTable(d, "sell")}
+ 2298:   $$("#p-cohold tr[data-sym]").forEach((tr) => {
+ 2307:   $$("#p-consensus tr[data-sym]").forEach((tr) => {
+ 2871:       const sellRows = toArr(d.sells).map((s) => {
+ 3025:   api("/api/consensus?min_holders=2").then((x) => renderConsensus(toArr(x))).catch((e) => reportLoadError("共同持仓共识", e));
+ 3026:   api(`/api/cohold_recent?days=${COHOLD.days}&min_holders=${COHOLD.min}&anchor=${encodeURIComponent(COHOLD.anchor || "auto")}`)
+ 3339:     { tab: "cohold", label: "近5日共同买入" },

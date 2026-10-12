@@ -1,0 +1,34 @@
+INFO:root:scheduler thread running
+INFO:root:scheduler started
+INFO:root:scheduler thread running
+INFO:root:scheduler started
+========================================================================
+[回测时刻] 2026-09-25 21:56:53  (周五=交易日)
+========================================================================
+
+【A】当日龙虎榜可得性（T 日盘后披露，决定时效上限）
+   LHB个股 2026-09-25: OK  181ms  total/rows=(0, 0)
+   最新可用交易日: 2026-09-24 00:00:00  (148ms)
+   席位当日 total=0  (165ms)
+
+【B】各抓取源实时性（单次请求耗时；判断盘中能否 10 分钟刷新一轮）
+   新浪K线(全历史源)           OK     314ms  120
+   腾讯行情(兜底)             OK     200ms  550
+   东财push2实时行情          FAIL  10032ms  RemoteDisconnected: Remote end closed connection without response
+   东财F10财务              OK     122ms  {'version': '685b3c6ab8149e379d00023ce9797069', 'result': {'pages': 10
+   雪球首页                 OK     142ms  110310
+
+【C】查看器接口端到端（用户点开会感知的延迟）
+   /api/quote 600519    OK    6451ms  1278
+   /api/kline day       OK    1036ms  6012
+   /api/kline week      OK     490ms  1265
+   /api/lhb             OK      12ms  81
+   /api/lhb_sectors     OK       0ms  0
+   /api/players         OK       3ms  226
+
+【D】密集请求敏感性（模拟盘中连续刷新，看是否触发限流）
+   东财push2 连打 8 次: 成功 0 / 失败 8
+   失败样例: ['RemoteDisconnected: Remote end closed connection without res', 'RemoteDisconnected: Remote end closed connection without res', 'RemoteDisconnected: Remote end closed connection without res']
+   新浪接口 连打 8 次: 成功 8 / 失败 0
+
+[回测完成]

@@ -1,0 +1,8 @@
+======================================================================
+A) 雪球 raw_pages 全清单（url / 长度 / 是否含 timeline__item）
+======================================================================
+Traceback (most recent call last):
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\_xsrc4.py", line 14, in <module>
+    html = con.execute("SELECT html FROM raw_pages WHERE rowid=?", (r['rowid'],)).fetchone()['html'] or ''
+                                                                    ~^^^^^^^^^
+IndexError: No item with that key

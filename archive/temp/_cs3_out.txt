@@ -1,0 +1,51 @@
+INFO:root:scheduler thread running
+INFO:root:scheduler started
+=== server 里的相关函数 ===
+   api_cohold_recent
+   api_consensus
+
+=== /api/consensus 返回结构 ===
+  type list len 52
+  item keys: ['symbol', 'symbol_name', 'label', 'holders', 'weighted_holders', 'tiers', 'platforms', 'channels', 'sources', 'sites', 'discuss_heat', 'players', 'company', 'market', 'name_missing']
+   000001 平安银行 holders=14 weighted=8.5
+   601318 中国平安 holders=12 weighted=6.5
+   300750 宁德时代 holders=9 weighted=6.25
+   600519 贵州茅台 holders=8 weighted=4.2
+
+=== /api/cohold_recent 返回结构 ===
+  keys: ['days', 'min_holders', 'anchor', 'anchor_source', 'today', 'latest_data_date', 'window_start', 'window_end', 'buy', 'sell']
+  days=5 window=2026-09-21~2026-09-25 anchor=2026-09-25
+  buy n=4  sell n=1
+   [buy] 601318 中国平安 人数=7
+   [buy] 000001 平安银行 人数=4
+   [buy] 300750 宁德时代 人数=3
+   [buy] 600519 贵州茅台 人数=3
+   [sell] 300750 宁德时代 人数=2
+
+=== trades 里卖出记录分布 ===
+  eastmoney   BUY    21
+  xueqiu      HOLD   12
+  eastmoney   SELL   8
+  sina        BUY    8
+  eastmoney   HOLD   4
+  sina        HOLD   3
+  taoguba     BUY    3
+  taoguba     SELL   2
+  xueqiu      BUY    2
+  taoguba     HOLD   1
+
+=== 卖出记录明细 ===
+  eastmoney  先让脑子看见         300750 宁德时代 2026-09-25 05:41:02
+  taoguba    靳兔             605058 华瓷股份 2026-09-24 15:20:00
+  eastmoney  摸鱼后喂养纳指        600519 贵州茅台 
+  eastmoney  比对分析回报率        000001 平安银行 
+  eastmoney  撕幕操盘手          000001 平安银行 
+  eastmoney  股友QQNY0P       000001 平安银行 
+  taoguba    TAndyT         600186 莲花控股 
+  eastmoney  夜的欢歌           600519 贵州茅台 
+  eastmoney  湘零道人001禁言      300750 宁德时代 
+  eastmoney  湘零道人001禁言      601318 中国平安 
+
+=== positions 里 action 取值 ===
+  '关注/操作' 267
+  '社区晒盘' 4

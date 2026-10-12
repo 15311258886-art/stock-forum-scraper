@@ -1,0 +1,11 @@
+﻿CONSENSUS default: bot hits = ["鏂版氮璐㈢粡瀹?] (panel len 12155)
+CONSENSUS TierA  : bot hits = [] (panel len 1666)
+COHOLD           : bot hits = [] (panel len 4055)
+PANEL summary    #p-summary     exists=true len=21012 contains("闆嗗悎绔炰环")=false head="鏈€鍚庢姄鍙栵細2026-10-09 15:36:49 锝?鎺ュ叆绔欑偣锛歵aoguba銆乪astmoney銆亁ueqiu銆乼hs"
+PANEL prediction #p-prediction  exists=true len=4680 head="姣忔棩棰勬祴 路 鑷垜杩涘寲鐭嚎鎺ㄨ崘 鐭嚎绐楀彛 T+1 / T+3 / T+5 / T+10 路 鍘嗗彶娌夋穩 5 涓娴嬫棩 閲嶆柊"
+PANEL blogger    #p-blogger     exists=true len=6692 head="鍗氫富鑽愯偂 2026-10-09 20:52 鏇存柊 璺熻釜 21 浣嶅崥涓?路 宸查噰鍒?7 浣?銆屾定璺屽箙銆嶄负鑽愯偂鍙戝竷鍚庣殑鍖洪棿鏀?
+PANEL news       #p-news        exists=true len=9279 head="涓偂蹇 / 鍏憡 鑷姩鐩洏 200 鍙?路 涓婃鎵弿 2026-10-09 22:27:49 路 宸插仠姝紙14 鍒嗛挓鍓?
+
+JS errors during load + tab switches: 0
+VERDICT bots-in-DOM: FOUND (FAIL)
+VERDICT js-errors: ZERO (PASS)

@@ -1,0 +1,42 @@
+{
+  "short": {
+    "ok": "4/4",
+    "bps": null
+  },
+  "short+92": {
+    "ok": "2/4",
+    "bps": 200.9897548
+  },
+  "short+47,48": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+163,164": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+116,117": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+86": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+189": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+50,171": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "short+92+86+189": {
+    "ok": "0/4",
+    "bps": null
+  },
+  "full_long": {
+    "ok": "0/4",
+    "bps": null
+  }
+}

@@ -1,0 +1,6 @@
+=== 1) players 打标全景（site x axis x stale）===
+Traceback (most recent call last):
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\_h2.py", line 8, in <module>
+    for r in con.execute('SELECT site, axis, stale, COUNT(*) n FROM players GROUP BY site, axis, stale ORDER BY site'):
+             ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: stale

@@ -1,0 +1,230 @@
+===== renderConsensus 全文 =====
+span 99189-102385
+function renderConsensus(list) {
+  const all = toArr(list);
+  if (!all.length) {
+    $("#p-consensus").innerHTML = `<div class="empty">暂无共同持仓数据。需先采集各选手持仓（collect_positions）。</div>`;
+    return;
+  }
+  const rows = all.map((x) => {
+    // channel 为空时不渲染角标：/api/consensus 的 trades 兜底源把 channel 置 NULL（db.py NULL AS channel），
+    // 而 ch-* 类自带背景色（app.css:207）——空文本 + 有色背景会渲染成一个无文字色块（UI 回归 C4）。
+    // 这里刻意沿用原「渠道字母」紧凑写法而非 channelBadge()：后者输出「A 实盘大赛」全称，
+    // 会把每行选手明细撑长，与本区块的紧凑排版不符。
+    const players = toArr(x.players).map((pl) => {
+      const chBadge = pl.channel
+        ? `<span class="badge ch-${escAttr(pl.channel)}">${esc(pl.channel)}</span> `
+        : "";
+      // 操作时间：trades 兜底源用 post_time（发帖时间≈动作时间），紧挨动作标签展示，鼠标悬停看完整时间
+      const timeChip = pl.post_time
+        ? ` <span class="chip-s" title="操作发帖时间 ${escAttr(pl.post_time)}">${esc(pl.post_time.slice(5, 16))}</span>`
+        : "";
+      return `<div class="chip-row">${chBadge}${esc(pl.player)} ${actionBadge(pl.action)}${timeChip} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}</div>`;
+    }).join("");
+    const sources = toArr(x.sources).map((s) => srcLink(s, "↗", { arrow: false })).join(" ");
+    // 覆盖渠道为空数组时给占位「—」，与抽屉渲染（app.js:1149 `${... || "—"}`）口径统一（UI 回归 C6）
+    const channels = toArr(x.channels).filter(Boolean);
+    // 层级加权共识度（A/B/C/D 沿用原权重，E/F 递减但仍计数）→ 比单纯"人数"更能代表真实共识强度
+    const w = x.weighted_holders != null ? x.weighted_holders : x.holders;
+    return `<tr data-sym="${escAttr(x.symbol)}">
+      <td><b>${esc(x.symbol_name || "名称待补全")}</b><br/><span class="stk-code">${esc(x.symbol)}</span> <span class="stk-corp">${esc(x.company || "")}</span></td>
+      <td><span class="badge bull">${x.holders ?? "—"} 人</span></td>
+      <td><span class="badge t-w" title="层级加权共识度（A~F 按权重求和）">加权 ${w ?? "—"}</span></td>
+      <td>${toArr(x.tiers).map(tierBadge).join(" ")}</td>
+      <td>${channels.length ? channels.map(channelBadge).join(" ") : "—"}</td>
+      <td><span class="chip-s">讨论热度 ${x.discuss_heat ?? "—"}</span><br/><span class="chip-s">平台 ${toArr(x.platforms).length}</span></td>
+      <td>${players}</td>
+      <td>${sources}</td>
+      ${refCell(toArr(x.platforms))}
+    </tr>`;
+  }).join("");
+  $("#p-consensus").innerHTML = `
+    <div class="hint" style="margin-bottom:10px">按「同时持仓人数」降序排列；共识基数已扩大到 <b>100+ 选手池</b>（覆盖淘股吧/东财/雪球/同花顺 4 平台）。新增「层级加权共识度」：在 A/B/C/D 原权重基础上纳入 E/F 低层级（权重递减但仍计数），比单纯人数更代表真实共识强度；「层级」列展示跨 A~F 覆盖，「平台」列展示跨平台分布。${freshLegend()}</div>
+    <table><thead><tr><th>股票</th><th>共同持仓</th><th>加权共识</th><th>层级覆盖</th><th>覆盖渠道</th><th>热度/平台</th><th>持仓选手明细</th><th>来源</th><th>最后更新</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+  bindConsensus();
+  applyFreshness();
+}
+/* ================= 近5日共同买入（Request F） =================
+   与「共同持仓共识」并列的独立板块。两者答的不是同一个问题：
+   - 共识板块：现在还有多少人**持有** → 持仓快照；
+   - 本板块  ：最近 N 天里谁**同时动手**了 → 动作时点（用带时间的 buy_time/sell_time 过滤）。
+   所以本板块能露出「窗口内已卖出」这类共识板块永远看不到的行。
+
+   口径：窗口内 ≥min_holders 位选手对同一标的同向操作（默认 2 人 / 5 天）。
+   跨表合并：positions（仓位占比/买价/现价）+ trades（**成交数量**、更精确成交时刻），
+   同一选手同一标的合并为一条，字段取「最近一笔 + 该组内最丰富者」互补。
+   锚定：默认锚定「数据最新日」——按今天算会全空（离线数据没跟上今天），看起来像坏了；
+        可一键切到「按今日」。当前用哪种，界面上如实标注，不做静默替换。 */
+const COHOLD = { days: 5, min: 2, anchor: "auto", data: null };
+
+
+
+===== api_consensus 全文 =====
+def api_consensus(min_holders: int = 2, symbol: str | None = None) -> list[dict]:
+    """多人共同持仓共识：各股被多少人（跨渠道/平台）共同持有，按人数降序，
+    融合讨论热度作为辅助参考。symbol 指定时只返回单只，避免每次点击重算全量。"""
+    out = DB.consensus_stocks(min_holders=min_holders)
+    for x in out:
+        n = _named(x["symbol"], x.get("symbol_name") or "")
+        x["symbol_name"] = n["name"]
+        x["company"] = n["company"]
+        x["market"] = n["market"]
+        x["name_missing"] = n["name_missing"]
+    if symbol:
+        out = [x for x in out if x["symbol"] == symbol]
+    return out
+
+
+
+===== DB.cohold_recent 实现 =====
+ompany"] = n["company"]
+        x["market"] = n["market"]
+        x["name_missing"] = n["name_missing"]
+    if symbol:
+        out = [x for x in out if x["symbol"] == symbol]
+    return out
+
+
+def api_cohold_recent(days: int = 5, min_holders: int = 2,
+                      anchor: str | None = None) -> dict:
+    """近 N 日「多人同向操作」：共买 / 共卖两组，附买入时间、价格、数量、浮盈与持有状态。
+
+    与 /api/consensus 的区别：那边看的是**当前持仓快照**（现在还有多少人拿着），
+    这边看的是**最近 N 天谁同时动手了**（动作发生时点）。两者互补，不可互替。
+
+    名称补全在服务端统一做（与其它接口一致），避免前端各自回退出不一致的显示名。
+    """
+    d = DB.cohold_recent(days=days, min_holders=min_holders, anchor=anchor)
+    for grp in ("buy", "sell"):
+        for x in d.get(grp) or []:
+            n = _named(x["symbol"], x.get("symbol_name") or "")
+            x["symbol_name"] = n["name"]
+            x["company"] = n["company"]
+            x["market"] = n["market"]
+            x["name_missing"] = n["name_missing"]
+            if n["name"]:
+                x["label"] = f"{n['name']}（{x['symbol']}）"
+            for p in x.get("players") or []:
+                p["symbol_name"] = n["name"] or x["symbol_name"] or ""
+    return d
+
+
+def api_stock(symbol: str) -> dict:
+    """单只股票明细：讨论帖 + 各选手持仓（含买入时间/买入价/当前股价/权限）+ 相关实盘交易。
+    轻量接口（不含原始页面 HTML），供「当前讨论股票」卡片点击查看。"""
+    if not symbol:
+        return {"error": "symbol required"}
+    mentions = [dict(r) for r in DB.conn.execute(
+        "SELECT sm.context, p.site, p.author, p.post_time, p.sentiment, p.text "
+        "FROM stock_mentions sm JOIN posts p ON p.id = sm.post_id_ref "
+        "WHERE sm.symbol=? ORDER BY p.post_time DESC LIMIT 50", (symbol,)).fetchall()]
+    trades = [dict(r) for r in DB.conn.execute(
+        "SELECT id, site, author, post_time, action, symbol, symbol_name, price, quantity, "
+        "buy_time, buy_price, current_price, sell_time, sell_price, hold_since, "
+        "access_level, access_hint FROM trades "
+        "WHERE symbol=? ORDER BY COALESCE(buy_time, post_time) DESC LIMIT 100", (symbol,)).fetchall()]
+    positions = [dict(r) for r in DB
+
+===== index.html panel ids =====
+p-summary, p-dashboard, p-stocks, p-operating, p-players, p-lhb, p-lhb_sectors, p-niusan, p-consensus, p-cohold, p-persons, p-sentiment, p-topics, p-overseas_sentiment, p-overseas_hotspots, p-sources, p-archive, p-fetchlog, p-learn_zdx_stock, p-learn_tracks
+
+===== coholdTable 定义 =====
+function coholdTable(d, group) {
+  const buy = group === "buy";
+  const list = toArr(d[group]);
+  const tone = buy ? "bull" : "bear";
+  const title = buy ? "共同买入" : "共同卖出";
+  const tLabel = buy ? "买入时间" : "卖出时间";
+  if (!list.length) {
+    return `<h3 class="coh-h">${title} <span class="chip-s">0 个标的</span></h3>
+      <div class="empty">窗口 <b>${esc(d.window_start)} ~ ${esc(d.window_end)}</b> 内没有「≥${esc(d.min_holders ?? COHOLD.min)} 位选手同时${buy ? "买入" : "卖出"}同一标的」的记录。<br/>
+      ${buy ? "共买需要多位选手在 5 天内看上同一只票，比共卖更难触发，为空属正常。" : ""}
+      可把天数放宽到 10 天，或切到「锚定数据最新日」再试。</div>`;
+  }
+  const rows = list.map((x) => {
+    const people = toArr(x.players).map((p) => {
+      const ch = p.channel ? `<span class="badge ch-${escAttr(p.channel)}">${esc(p.channel)}</span> ` : "";
+      const bits = [];
+      if (p.price != null) bits.push(`¥${esc(p.price)}`);
+      if (p.quantity != null) bits.push(`<b>${esc(p.quantity)}</b> 股`);
+      if (buy) {
+        if (p.ratio != null && p.ratio !== "") bits.push(`仓位 ${esc(p.ratio)}%`);
+        if (p.pct_gain != null) {
+          const c = p.pct_gain >= 0 ? "var(--bull)" : "var(--bear)";
+          bits.push(`<b style="color:${c}">${p.pct_gain >= 0 ? "+" : ""}${esc(p.pct_gain)}%</b>`);
+        }
+      } else if (p.ratio != null && p.ratio !== "") {
+        bits.push(`${p.ratio >= 100 ? "清仓" : "减仓"} ${esc(p.ratio)}%`);
+      }
+      if (p.ops > 1) bits.push(`<span class="chip-s">${p.ops} 笔</span>`);
+      const st = buy
+        ? (p.still_holding ? `<span class="badge hold">持有中</span>`
+          : `<span class="badge bear">买入后已卖出</span>`)
+        : `<span class="badge bear">已卖出</span>`;
+      const from = toArr(p.evidence).join("+");
+      return `<div class="coh-p">${ch}<b>${esc(p.player)}</b>` +
+        `<span class="coh-t">${esc((p.last_time || "").slice(0, 16))}</span>` +
+        `${bits.join(' <span class="coh-dot">·</span> ')} ${st}` +
+        `<span class="coh-src" title="该条数据来自哪张表">${esc(from)}</span></div>`;
+    }).join("");
+    const urls = toArr(x.urls).map((u) => srcLink(u, "↗", { arrow: false })).join(" ");
+    const status = buy
+      ? `<span class="chip-s">持有 ${esc(x.still_holding ?? 0)} 人</span>` +
+        (x.exited ? `<br/><span class="chip-s" style="color:var(--bear)">已卖出 ${esc(x.exited)} 人</span>` : "")
+      : `<span class="chip-s">已卖出 ${esc(x.player_count ?? 0)} 人</span>`;
+    return `<tr data-sym="${escAttr(x.symbol)}">
+      <td><b>${esc(x.symbol_name || "名称待补全")}</b><br/><span class="stk-code">${esc(x.symbol)}</span> <span class="stk-corp">${esc(x.company || "")}</span></td>
+      <td><span class="badge ${tone}">${esc(x.player_count ?? "—")} 人</span></td>
+      <td><span class="chip-s">合计 ${x.total_quantity != null ? esc(x.total_quantity) + " 股" : "—"}</span><br/><span class="chip-s">均价 ${x.avg_price != null ? "¥" + esc(x.avg_price) : "—"}</span></td>
+      <td><span class="chip-s">${esc((x.first_time || "").slice(0, 16))}</span><br/><span class="chip-s">→ ${esc((x.last_time || "").slice(0, 16))}</span></td>
+      <td>${people}</td>
+      <td>${status}</td>
+      <td>${urls}</td>
+      ${refCell(toArr(x.sites))}
+    </tr>`;
+  }).join("");
+  return `<h3 class="coh-h">${title} <span class="badge ${tone}">${list.length} 个标的</span></h3>
+    <table><thead><tr><th>股票</th><th>${title}</th><th>合计数量 / 均价</th><th>时间范围</th>
+      <th>参与者明细（${tLabel} · 价格 · 数量 · ${buy ? "仓位 · 浮盈" : "卖出比例"}）</th>
+      <th>持有状态</th><th>来源</th><th>最后更新</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+
+
+===== 学习组 NAV 定义 =====
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘选手", icon: "▦", items: [
+    { tab: "players", label: "选手与渠道" },
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+===== 学习相关函数 =====
+ 3476: const KB = {
+ 3506: function ensureKbDoc(force) {
+ 3518: function loadKbTracks() {
+ 3582: function renderKbDoc() {
+ 3832: function renderKbTracks() {

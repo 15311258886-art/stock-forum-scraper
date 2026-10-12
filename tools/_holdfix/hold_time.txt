@@ -1,0 +1,25 @@
+== HOLD trades: time-field coverage
+    {'n': 83, 'has_post': 58, 'has_buy': 60, 'has_sell': 0}
+   sample HOLD rows:
+    {'author': '牛转钱坤8888', 'symbol': '600127', 'symbol_name': '金健米业', 'post_time': '', 'buy_time': '2026-09-24 15:35:00', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+    {'author': '爱学yzwls2179', 'symbol': '000001', 'symbol_name': '平安银行', 'post_time': '2026-08-22', 'buy_time': '2026-09-25 09:42:10', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+    {'author': '新浪财经客户端', 'symbol': '300750', 'symbol_name': '宁德时代', 'post_time': '2026-09-24', 'buy_time': '2026-09-25 09:42:20', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+    {'author': '星空你亏钱了吗', 'symbol': '601318', 'symbol_name': '中国平安', 'post_time': '2026-09-18', 'buy_time': '2026-09-25 09:42:30', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+    {'author': '股友平常心处之', 'symbol': '600519', 'symbol_name': '贵州茅台', 'post_time': '', 'buy_time': '2026-09-25 05:28:40', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+    {'author': '股友6K77v62673', 'symbol': '000001', 'symbol_name': '平安银行', 'post_time': '2026-09-25 05:28:50', 'buy_time': '2026-09-25 05:28:50', 'sell_time': '', 'price': None, 'current_price': None, 'quantity': None}
+
+== HOLD by symbol on post_time window 2026-10-05..2026-10-09 (distinct author)
+    {'symbol': '601318', 'symbol_name': '中国平安', 'n': 5}
+    {'symbol': '000001', 'symbol_name': '平安银行', 'n': 4}
+    {'symbol': '300750', 'symbol_name': '宁德时代', 'n': 4}
+    {'symbol': '600519', 'symbol_name': '贵州茅台', 'n': 2}
+    {'symbol': '002639', 'symbol_name': '雪人集团', 'n': 1}
+    {'symbol': '605011', 'symbol_name': '杭州热电', 'n': 1}
+
+== HOLD by symbol on buy_time window (distinct author)
+    {'symbol': '601318', 'symbol_name': '中国平安', 'n': 5}
+    {'symbol': '000001', 'symbol_name': '平安银行', 'n': 4}
+    {'symbol': '300750', 'symbol_name': '宁德时代', 'n': 4}
+    {'symbol': '600519', 'symbol_name': '贵州茅台', 'n': 2}
+    {'symbol': '002639', 'symbol_name': '雪人集团', 'n': 1}
+    {'symbol': '605011', 'symbol_name': '杭州热电', 'n': 1}

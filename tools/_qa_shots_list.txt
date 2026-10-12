@@ -1,0 +1,16 @@
+﻿drawer-after-tests.png
+empty-state-summary.png
+fail-_api 返回 500 且非 JSON_HTML 错误页_.png
+fail-_api 返回 500 但 body 是合法 JSON {error}.png
+fail-_api_summary 缺 counts 字段_其余正常_.png
+fail-_api_topics 条目缺 weight 字段.png
+fail-全部 _api 直接失败_网络层 abort_.png
+fail-类型不符__api_sentiment 返回 JSON 数组.png
+fail-缺字段__api_persons 条目缺 mention_count_role.png
+fail-缺字段__api_summary.counts 少给 topics_person.png
+theme-card-warm-stocks.png
+theme-dark-dashboard-stocks.png
+theme-light-tech-stocks.png
+theme-minimal-report-stocks.png
+viewport-1024x700.png
+viewport-1440x1000.png

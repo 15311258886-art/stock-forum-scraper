@@ -1,0 +1,400 @@
+{
+ "src_status": [
+  {
+   "status": "已接入",
+   "n": 26
+  },
+  {
+   "status": "已连通但无条目",
+   "n": 1
+  },
+  {
+   "status": "待激活（需 API Key）",
+   "n": 1
+  },
+  {
+   "status": "待激活（需 VPN）",
+   "n": 7
+  },
+  {
+   "status": "抓取失败",
+   "n": 1
+  },
+  {
+   "status": "未启用",
+   "n": 5
+  }
+ ],
+ "src_detail": [
+  {
+   "source_key": "arstechnica",
+   "name": "Ars Technica",
+   "status": "已接入",
+   "count": 20,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "cnbc",
+   "name": "CNBC",
+   "status": "已接入",
+   "count": 30,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "cnbc_economy",
+   "name": "CNBC 经济",
+   "status": "已接入",
+   "count": 30,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "cnbc_tech",
+   "name": "CNBC 科技",
+   "status": "已接入",
+   "count": 30,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "fortune",
+   "name": "Fortune",
+   "status": "已接入",
+   "count": 10,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "github_trending",
+   "name": "GitHub 趋势仓库",
+   "status": "已接入",
+   "count": 15,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "hkex_news",
+   "name": "HKEX 香港交易所（新闻稿）",
+   "status": "已接入",
+   "count": 50,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "hkex_sehk",
+   "name": "HKEX 联交所（通告/规则）",
+   "status": "已接入",
+   "count": 50,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "live_science",
+   "name": "Live Science",
+   "status": "已接入",
+   "count": 50,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "marketwatch",
+   "name": "MarketWatch",
+   "status": "已接入",
+   "count": 10,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "mit_tech_review",
+   "name": "MIT Technology Review",
+   "status": "已接入",
+   "count": 10,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "nasdaq_news",
+   "name": "Nasdaq 市场新闻",
+   "status": "已接入",
+   "count": 15,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "nature",
+   "name": "Nature",
+   "status": "已接入",
+   "count": 75,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "new_scientist",
+   "name": "New Scientist",
+   "status": "已接入",
+   "count": 10,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "peertube",
+   "name": "PeerTube",
+   "status": "已接入",
+   "count": 2,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "phys_org",
+   "name": "Phys.org",
+   "status": "已接入",
+   "count": 30,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "seekingalpha",
+   "name": "Seeking Alpha",
+   "status": "已接入",
+   "count": 7,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "slashdot",
+   "name": "Slashdot",
+   "status": "已接入",
+   "count": 15,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "techcrunch",
+   "name": "TechCrunch",
+   "status": "已接入",
+   "count": 20,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "theverge",
+   "name": "The Verge",
+   "status": "已接入",
+   "count": 10,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "ths",
+   "name": "同花顺",
+   "status": "已接入",
+   "count": 19,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "wired",
+   "name": "Wired",
+   "status": "已接入",
+   "count": 49,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "zaobao_sea",
+   "name": "联合早报（东南亚）",
+   "status": "已接入",
+   "count": 53,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "zaobao_singapore",
+   "name": "联合早报（新加坡）",
+   "status": "已接入",
+   "count": 54,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "zaobao_world",
+   "name": "联合早报（国际）",
+   "status": "已接入",
+   "count": 55,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "zdnet",
+   "name": "ZDNet",
+   "status": "已接入",
+   "count": 25,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "engadget",
+   "name": "Engadget",
+   "status": "已连通但无条目",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "youtube_finance",
+   "name": "YouTube 财经大咖",
+   "status": "待激活（需 API Key）",
+   "count": 0,
+   "requires_key": 1,
+   "requires_vpn": 0,
+   "enabled": 0
+  },
+  {
+   "source_key": "google_news_us",
+   "name": "Google News（美/港/国际）",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "hkej",
+   "name": "信报 HKEJ",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "investing_com",
+   "name": "Investing.com",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "reddit_stocks",
+   "name": "Reddit r/stocks",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "reuters_world",
+   "name": "Reuters World",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "scmp",
+   "name": "SCMP 南华早报",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "yahoo_finance_rss",
+   "name": "Yahoo Finance",
+   "status": "待激活（需 VPN）",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 1,
+   "enabled": 0
+  },
+  {
+   "source_key": "hackernews",
+   "name": "Hacker News（科技社区）",
+   "status": "抓取失败",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 1
+  },
+  {
+   "source_key": "aastocks",
+   "name": "AAStocks 阿斯达克（港股资讯）",
+   "status": "未启用",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 0
+  },
+  {
+   "source_key": "eastmoney_guba",
+   "name": "东方财富股吧",
+   "status": "未启用",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 0
+  },
+  {
+   "source_key": "relay_overseas",
+   "name": "境外中继（GitHub Actions 云代理）",
+   "status": "未启用",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 0
+  },
+  {
+   "source_key": "science_news",
+   "name": "Science（新闻）",
+   "status": "未启用",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 0
+  },
+  {
+   "source_key": "xueqiu_hot",
+   "name": "雪球（热帖）",
+   "status": "未启用",
+   "count": 0,
+   "requires_key": 0,
+   "requires_vpn": 0,
+   "enabled": 0
+  }
+ ],
+ "today_new": []
+}

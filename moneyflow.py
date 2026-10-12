@@ -43,6 +43,69 @@ _A_SHARE_FS = ("m:0+t:6+f:!2,m:0+t:13+f:!2,m:0+t:80+f:!2,"
 # 资金流排行字段（含最新价 + 涨跌幅 + 主力净额 + 主力占比 + 超大单 + 大单）
 _RANK_FIELDS = "f2,f3,f12,f14,f62,f184,f66,f72"
 
+
+def _is_trading_time() -> bool:
+    """当前是否处于 A 股连续竞价时段（工作日 + 9:30–11:30 / 13:00–15:00）。
+
+    盘中口径（push2 clist 实时快照）**只在这个窗口内可信**：离开窗口后无法从 clist 报文
+    读出「这份数据属于哪个交易日」，为避免张冠李戴（拿周五的榜冒充周一），一律不用它，
+    退回有明确 TRADE_DATE 的 datacenter 日报（并如实标 is_intraday=False）。
+    """
+    n = time.localtime()
+    if n.tm_wday >= 5:
+        return False
+    hm = n.tm_hour * 60 + n.tm_min
+    return (9 * 60 + 30) <= hm <= (11 * 60 + 30) or (13 * 60) <= hm <= (15 * 60)
+
+
+def _intraday_rank(pz: int) -> dict | None:
+    """盘中口径：东财 push2 clist 实时主力净流入（f62，元）。
+
+    ⚠️ 仅盘中调用（调用方已用 _is_trading_time 把关）——此时 f62 为**当日盘中累计**主力净流入，
+    与日终口径不是一回事，故随包带 is_intraday=True + data_time，让前端如实标注，
+    绝不把盘中累计冒充日终值。取不到返回 None（交日终源兜底）。
+    """
+    try:
+        rows = emapi.clist(_A_SHARE_FS, _RANK_FIELDS, pz=pz, fid="f62", po=1,
+                           timeout=2, retries=0)
+    except Exception:  # noqa: BLE001
+        rows = []
+    if not rows:
+        return None
+    out = []
+    for x in rows:
+        out.append({
+            "code": x.get("f12"), "name": x.get("f14"),
+            "price": emapi._num(x.get("f2")), "pct": emapi._num(x.get("f3")),
+            "main_net": emapi._num(x.get("f62")),
+            "main_pct": emapi._num(x.get("f184")),
+            "huge_net": emapi._num(x.get("f66")),
+            "big_net": emapi._num(x.get("f72")),
+        })
+    now = time.localtime()
+    today = time.strftime("%Y-%m-%d", now)
+    return {"ok": True, "rows": out, "source": "eastmoney_push2",
+            "source_label": "东方财富（盘中实时）",
+            "trade_date": today, "data_date": today,
+            "data_time": time.strftime("%Y-%m-%d %H:%M:%S", now), "is_intraday": True}
+
+
+def _daily_rank(pz: int) -> dict | None:
+    """日终口径：东财 datacenter 日报（RPT_DMSK_TS_STOCKNEW，最近有数据交易日，通常 T-1）。
+
+    is_intraday=False，data_date = 报表里**真实有值**的那个交易日（自动回退，绝不硬编码）。
+    """
+    try:
+        ff = emapi.fundflow_rank(pz=pz)
+    except Exception:  # noqa: BLE001
+        return None
+    if not (ff.get("ok") and ff.get("rows")):
+        return None
+    ds = ff.get("date")
+    return {"ok": True, "rows": ff["rows"], "source": ff.get("source"),
+            "source_label": "东方财富（数据中心·日终口径）",
+            "trade_date": ds, "data_date": ds, "data_time": None, "is_intraday": False}
+
 # ---------- 失败负缓存 ----------
 _NEG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          "moneyflow_negcache.json")
@@ -127,18 +190,27 @@ def stock(symbol: str, force: bool = False) -> dict:
         sid = emapi.secid(symbol)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "symbol": symbol, "source": "eastmoney",
+                "data_date": None, "data_time": None, "is_intraday": False,
                 "reason": f"未取到 {symbol} 的资金流（代码解析失败：{e}）"}
     rows = emapi.fflow(sid, lmt=6)
     if not rows:
         payload = {"ok": False, "symbol": symbol, "source": "eastmoney",
+                   "data_date": None, "data_time": None, "is_intraday": False,
                    "reason": f"未取到 {symbol} 的资金流（东财接口不可达或该代码无资金流数据）",
                    "tip": "东财 push2 对本机程序请求限流；可稍后点「强制重试」，或改用「板块资金流」标签页（数据来自新浪，稳定）。",
                    "negative_cache": True}
         _neg_put(key, payload)
         return dict(payload)
     last = rows[-1]
+    last_date = last.get("date")
+    # 盘中（交易日 + 连续竞价时段）里 fflow 最后一根 = 今日盘中累计 → is_intraday=True；
+    # 其余情况（盘后/隔日）= 该交易日的日终值 → is_intraday=False，但仍如实给出 data_date。
+    is_intraday = bool(last_date == time.strftime("%Y-%m-%d") and _is_trading_time())
     return {
-        "ok": True, "symbol": symbol, "date": last.get("date"),
+        "ok": True, "symbol": symbol, "date": last_date,
+        "data_date": last_date,
+        "data_time": (time.strftime("%Y-%m-%d %H:%M:%S") if is_intraday else None),
+        "is_intraday": is_intraday,
         "main_net": last.get("main_net"), "main_pct": last.get("main_pct"),
         "huge_net": last.get("huge_net"), "big_net": last.get("big_net"),
         "mid_net": last.get("mid_net"), "small_net": last.get("small_net"),
@@ -150,46 +222,46 @@ def stock(symbol: str, force: bool = False) -> dict:
 def rank(pz: int = 30, force: bool = False) -> dict:
     """全市场个股主力净流入排行。
 
-    v4（2026-10-09，风控定案后主源切换）：
-      · 主源 = 东财 **datacenter**（emapi.fundflow_rank → RPT_DMSK_TS_STOCKNEW）——
-        push2 对本机密集请求触发风控（RST/空响应），datacenter 实测 200 且给的就是
-        **真·主力净流入**（PRIME_INFLOW，元），并自动回退到「最近有数据的交易日」；
-      · 兜底 = push2 clist（仅当 datacenter 也空时，且它经常被风控——属可选兜底）；
+    v5（2026-10-09，**盘中口径优先**）：
+      · **盘中**（工作日 9:30–11:30 / 13:00–15:00）：主源 = 东财 push2 clist 实时榜
+        （f62 = 当日主力净流入，元），随包 `is_intraday=True` + `data_time` = 现抓时刻；
+      · **非盘中 / 盘中源不可用**：兜底 = 东财 datacenter 日报（RPT_DMSK_TS_STOCKNEW，
+        最近有数据交易日，通常 T-1），随包 `is_intraday=False` + `data_date` = 该报表真实交易日。
+      · 两路都带 `data_date` / `data_time` / `is_intraday`，供前端**如实**标注口径
+        —— 盘中累计 ≠ 日终值，绝不含糊；盘中源取不到就老实退回并标 T-1，绝不用盘中值冒充日终。
+      · 盘中源先给 2.2s 窗口，且与日终源**并发**跑（日终源几乎不额外等待）；拿到盘中源就用它。
       · 两源全失败才落负缓存并如实给出 reason，绝不写 0、绝不用 mock。
     """
-    key = f"rank:v4:{pz}"
+    key = f"rank:v5:{pz}"
     if not force:
         hit = _neg_get(key)
         if hit is not None:
             hit.update({"ok": False, "source": "eastmoney", "negative_cache": True})
             return hit
-    # 主源：datacenter 报表（未被 push2 风控影响）
+    pool = emapi.race_pool()
+    # 盘中源与日终源**并发**起跑：盘中源有 2.2s 优先窗口，日终源同时跑，故几乎不增加总延迟
+    f_intra = pool.submit(_intraday_rank, pz) if _is_trading_time() else None
+    f_daily = pool.submit(_daily_rank, pz)
+    if f_intra is not None:
+        try:
+            intra = f_intra.result(timeout=2.2)
+        except Exception:  # noqa: BLE001
+            intra = None
+        if intra and intra.get("rows"):
+            f_daily.cancel()
+            return intra
     try:
-        ff = emapi.fundflow_rank(pz=pz)
+        daily = f_daily.result()
     except Exception:  # noqa: BLE001
-        ff = {"ok": False, "rows": [], "reason": "datacenter 取数异常"}
-    if ff.get("ok") and ff.get("rows"):
-        return {"ok": True, "rows": ff["rows"], "source": ff.get("source"),
-                "trade_date": ff.get("date")}
-    # 兜底：push2 clist（风控高发，仅作可选兜底）
-    rows = emapi.clist(_A_SHARE_FS, _RANK_FIELDS, pz=pz, fid="f62", po=1)
-    if rows:
-        out = []
-        for x in rows:
-            out.append({
-                "code": x.get("f12"), "name": x.get("f14"),
-                "price": emapi._num(x.get("f2")), "pct": emapi._num(x.get("f3")),
-                "main_net": emapi._num(x.get("f62")),
-                "main_pct": emapi._num(x.get("f184")),
-                "huge_net": emapi._num(x.get("f66")),
-                "big_net": emapi._num(x.get("f72")),
-            })
-        return {"ok": True, "rows": out, "source": "eastmoney_push2"}
+        daily = None
+    if daily and daily.get("rows"):
+        return daily
     payload = {"ok": False, "rows": [], "source": "eastmoney",
-               "reason": ("数据源暂不可用：个股主力净流入排行主源（东财 datacenter）与"
-                          "兜底源（push2）均未取到数据。datacenter 通常稳定，若两者同时为空，"
-                          "多为本机网络/代理异常，请稍后重试。"),
-               "tip": "个股主力净流入榜主源为东财 datacenter（稳定）；本机网络受限时可稍后重试。",
+               "data_date": None, "data_time": None, "is_intraday": False,
+               "reason": ("数据源暂不可用：个股主力净流入排行盘中源（东财实时榜）与"
+                          "日终源（东财 datacenter）均未取到数据。datacenter 通常稳定，"
+                          "若两者同时为空，多为本机网络/代理异常，请稍后重试。"),
+               "tip": "个股主力净流入榜：盘中优先东财实时榜、盘后为东财 datacenter（稳定）；本机网络受限时可稍后重试。",
                "negative_cache": True}
     _neg_put(key, payload)
     return dict(payload)

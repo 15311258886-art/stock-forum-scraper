@@ -1,0 +1,51 @@
+=== row_axis 定义 ===
+886:                      COALESCE(p.axis, pl.axis) AS row_axis
+911:                          COALESCE(t.axis, pl.axis) AS row_axis
+959:            if is_bot_author(r["player"], r["row_axis"]):
+1197:                       COALESCE(p.axis, pl.axis) AS row_axis
+1204:                r["row_axis"])
+1213:                       COALESCE(t.axis, pl.axis) AS row_axis
+1220:                r["row_axis"])
+
+=== _cohold_group add() 头部 ===
+            expr_p, expr_t = "p.sell_time", "t.sell_time"
+        elif action == "HOLD":
+            expr_p = "COALESCE(NULLIF(p.buy_time,''), p.post_time)"
+            expr_t = "COALESCE(NULLIF(t.buy_time,''), t.post_time)"
+        else:
+            expr_p, expr_t = "p.buy_time", "t.buy_time"
+
+        raw: dict[tuple[str, str], list[dict]] = {}
+
+        def add(player, symbol, name, when, channel, site, tier, platform,
+                price, quantity, ratio, current_price, hold_since, url, src, is_a=0, axis=None):
+            if not player or not symbol or not when:
+                return
+            # 机器号（资讯/播报号）**始终**剔除，不受 only_qualified 影响（QA FAIL-D）。
+            if is_bot_author(player, axis):
+                return
+            if only_qualified and not is_a:
+                return
+            d10 = str(when)[:10]
+            if d10 < lo or d10 > hi:
+                return
+            raw.setdefault((player, symbol), []).append({
+                "player": player, "symbol": symbol, "symbol_name": name or "",
+                "when": str(when), "channel": channel or "", "site": site or "",
+                "tier": tier or "", "platform": platform or "", "is_a": int(is_a or 0),
+                "price": price, "quantity": quantity, "ratio": ratio,
+                "current_price": current_price, "hold_since": hold_since or "",
+                "source_url": url or "", "src": src,
+            })
+
+        for r in self.conn.execute(
+            f"""SELECT p.player, p.symbol, p.symbol_name, {expr_p} AS when_,
+                       p.channel, p.site, p.post_url, p.ratio, p.buy_price,
+                       p.current_price, p.hold_since,
+                       COALESCE(pl.tier, p.channel, '') AS tier,
+                       COALESCE(pl.platform, p.site, '') AS platform,
+                       CASE WHEN pl.tier = 'A' THEN 1 ELSE 0 END AS is_a,
+                       COALESCE(p.axis, pl.axis) AS row_axis
+                FROM positions p LEFT JOIN players pl ON pl.name = p.player
+                WHERE UPPER(COALESCE(p.action,'')) = ?""", (action,)
+        ).fetchall():

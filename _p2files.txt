@@ -1,0 +1,14 @@
+== 保护文件（应保持旧日期，非今晚）==
+sites.yaml(保护)                   12,738 B  mtime=2026-10-05 14:40  F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper\config\sites.yaml
+viewer/app.db(生产库)           74,854,400 B  mtime=2026-10-09 20:54  F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper\viewer\app.db
+
+== 暂存区产物 ==
+players_posts.jsonl           4,825,306 B  mtime=2026-10-09 21:09  F:/AI Agent部署知识库/2026-10-07-14-13-22/.workbuddy/douyin/采集数据\players_posts.jsonl
+players_posts_summary.csv        23,301 B  mtime=2026-10-09 21:09  F:/AI Agent部署知识库/2026-10-07-14-13-22/.workbuddy/douyin/采集数据\players_posts_summary.csv
+collect_players.log              36,931 B  mtime=2026-10-09 21:09  F:/AI Agent部署知识库/2026-10-07-14-13-22/.workbuddy/douyin/采集数据\collect_players.log
+players_home_ledger.jsonl        46,173 B  mtime=2026-10-09 21:09  F:/AI Agent部署知识库/2026-10-07-14-13-22/.workbuddy/douyin/采集数据\players_home_ledger.jsonl
+
+== 本次新增/改动的代码文件 ==
+collect_players_posts.py         19,530 B  mtime=2026-10-09 18:54  F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper\tools\collect_players_posts.py
+players_home.py                   9,296 B  mtime=2026-10-09 17:33  F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper\scraper\players_home.py
+xueqiu.py(时间解析)                  12,224 B  mtime=2026-10-09 17:53  F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper\scraper\parsers\xueqiu.py

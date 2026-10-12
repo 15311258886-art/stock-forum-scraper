@@ -1,0 +1,3 @@
+﻿8765: LISTEN pid=26300
+pid=38084 ppid=44724
+pid=26300 ppid=38084

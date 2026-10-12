@@ -1,0 +1,13 @@
+﻿
+   Id StartTime          Path                                                  
+   -- ---------          ----                                                  
+18620 2026/10/5 13:44:01 F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-sc...
+21000 2026/10/5 13:44:01 C:\Users\野比&大熊\.workbuddy\binaries\python\versions\...
+
+
+
+LocalPort OwningProcess
+--------- -------------
+     8765         21000
+
+

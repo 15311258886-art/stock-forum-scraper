@@ -1,0 +1,11 @@
+ 1472: const LHB = { data: null, sel: null, selDept: null };
+ 1473: function loadLhb(date, windowDays) {
+ 1494: function renderLhb() {
+ 1639: function loadNiusan() {
+ 1643: function renderNiusan() {
+ 1708: const LBHS = { data: null };
+ 1709: function loadLhbSectors(date) {
+ 1720: const DASH = { data: null };
+ 1722: function loadDashboard() {
+ 1726: function renderDashboard() {
+ 1822: function renderLhbSectors() {

@@ -1,0 +1,60 @@
+======================================================================
+[1] /api/summary 实现
+======================================================================
+def api_summary() -> dict:
+    counts = DB.counts()
+    login = DB.get_login_status()
+    # 给每条登录态补充「登录网址 + 中文名 + 是否需要登录」，使前端能渲染可点击的登录入口。
+    login = [
+        {**row, **_site_login_meta(row.get("site") or "")}
+        for row in login
+    ]
+    last = DB.get_meta("last_ingest", "尚未抓取")
+    return {"counts": counts, "login_status": login, "last_ingest": last,
+            # 「知识获取 → 抓取与登录记录」用：最近一次抓取动作的执行时刻
+            "last_fetch_at": DB.get_meta("last_fetch_at", ""),
+            "sites": _sites()}
+
+
+
+======================================================================
+[2] 前端默认 tab / 初始化
+======================================================================
+    327: .then(() => loadAll()).catch(() => {});
+    451: loadAll();
+    530: .then((r) => { setHint(`股票名称补全完成：解析 ${r.resolved} / 请求 ${r.requested}，写入缓存 ${r.persisted} 条。`); loadAll(); })
+   2795: function loadAll() {
+   3040: .then((r) => { setHint("刷新完成：" + JSON.stringify((r && r.results) || [])); return loadAll(); })
+   3069: loadAll();
+   3076: .then((r) => { setHint("登录检测：" + JSON.stringify(r.results)); loadAll(); })
+   3096: loadAll();
+   3108: ③ 在 loadAll() 里加一次 fetch + render（或在其首次进入时懒加载）。
+   3161: selectNav(a.dataset.cat, keep, true);
+   3183: a.onclick = (e) => { e.preventDefault(); selectNav(cat.key, a.dataset.tab, true); };
+   3191: function selectNav(catKey, tabKey, push) {
+   3197: if (location.hash !== h) { location.hash = h; return; }   // hashchange 会回调本函数
+   3232: const raw = (location.hash || "").replace(/^#/, "");
+   3241: if (h) selectNav(h.cat, h.tab, false);
+   3242: else selectNav(NAV[0].key, NAV[0].items[0].tab, true);
+   3246: if (h) selectNav(h.cat, h.tab, false);
+   3251: if (c) selectNav(c.key, tab, true);
+   3793: .then(() => loadAll())
+   3829: loadAll();
+
+======================================================================
+[3] 前端 summary 渲染函数
+======================================================================
+    230: function renderSummary(s) {
+   3277: function ensurePanel(tab) {
+   3655: function renderSourcesPanel(summary) {
+
+======================================================================
+[4] 可用素材：各源最新数据时间
+======================================================================
+  lhb_stocks               (492, '2026-09-24')
+  trades(有时间)              (64, '2026-09-25 05:41:02')
+  posts                    (1059, '2026-09-25 18:32:00')
+  raw_pages                (179, '2026-09-25 20:15:12')
+  news                     (678, '2026-09-25 16:12:00')
+  stock_holders            (398, '2026-09-23')
+  positions                (271, '2021-06-20')

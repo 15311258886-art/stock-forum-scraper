@@ -1,0 +1,27 @@
+topic-content.left 找到: True
+直接子元素数: 5
+  <div class='topic-content-nav'> text='最新 最热 全部股票'
+  <div class='(no class)'> text='没钱炒股2006 实盘 复盘 ［图片］［图片］ # 实盘 淘股论坛 · 1阅读数 · 09-22 21:39 微风吹拂西海岸 实盘第十七天 买入 华金资本 二进'
+  <div class='(no class)'> text=''
+  <div class='topic-content-navlists'> text='股票 现价 涨幅 7日讨论（次） 30日讨论（次）'
+  <div class='dropDown_text'> text='点击加载更多'
+==============================================================================
+【含 /a/ 短链的元素】
+  href=/a/2viYHaiXnt2  text='实盘 复盘'
+     祖先链: div.- < div.- < div.- < div.- < div.topic-content.left
+  href=/a/2shvzRoEN2M  text='来自于主帖《【实盘】本金1万，每月定投2千，目标100万'
+     祖先链: span.- < div.topic-end < div.- < div.- < div.topic-content.left
+==============================================================================
+【topic-head / topic-info / topic-end 内容】
+-- topic-head : 0 个 --
+-- topic-info : 0 个 --
+-- topic-end : 20 个 --
+   <div> text='淘股论坛 · 1阅读数 · 09-22 21:39'  inner='<div class="topic-end">\n<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">\n<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>\n<span style="float: left; c'
+   <div> text='淘股论坛 · 7阅读数 · 09-22 21:31'  inner='<div class="topic-end">\n<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">\n<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>\n<span style="float: left; c'
+   <div> text='淘股论坛 · 10阅读数 · 09-22 20:32'  inner='<div class="topic-end">\n<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">\n<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>\n<span style="float: left; c'
+   <div> text='淘股论坛 · 12阅读数 · 09-22 20:17'  inner='<div class="topic-end">\n<a onclick="iconLink(1,this)" style="text-decoration: none; color: #999">\n<img src="https://css.tgb.cn/images/default/tglt.png" style="float: left; margin-right: 5px"/>\n<span style="float: left; c'
+==============================================================================
+【div.clear 前 3 个块结构】
+-- 块 1 --
+-- 块 2 --
+-- 块 3 --

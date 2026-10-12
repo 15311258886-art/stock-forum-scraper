@@ -1,0 +1,101 @@
+===== 1) 接线状态 =====
+app.js lines: 3953
+  app.js renderDashboard        4
+  app.js loadDashboard          2
+  app.js const DASH             1
+  app.js renderNiusan           3
+  app.js loadNiusan             3
+  app.js const NS               0
+  app.js renderLhbSectors       3
+  app.js loadLhbSectors         3
+  app.js const LBHS             1
+  index panels(20): p-summary, p-dashboard, p-stocks, p-operating, p-players, p-lhb, p-lhb_sectors, p-niusan, p-consensus, p-cohold, p-persons, p-sentiment, p-topics, p-overseas_sentiment, p-overseas_hotspots, p-sources, p-archive, p-fetchlog, p-learn_zdx_stock, p-learn_tracks
+
+  后端接口:
+    def api_dashboard                  1
+    def api_niusan                     1
+    def api_lhb_sectors                1
+    def api_holders_panel              0
+    def api_holders                    0
+    def api_stockholder_flow           0
+    route == "/api/dashboard"          1
+    route == "/api/niusan"             1
+    route == "/api/lhb_sectors"        1
+
+===== 2) 数据量 =====
+  players              226
+  positions            271
+  trades               64
+  posts                1059
+  news                 678
+  lhb_stocks           492
+  lhb_seats            3815
+  lhb_depts            3175
+  lhb_inst             269
+  lhb_sector_focus     24
+  stock_holders        23199
+  stock_holder_num     4854
+  全部表: kb_doc, lhb_depts, lhb_inst, lhb_seats, lhb_sector_focus, lhb_stocks, login_status, meta, news, overseas_hotspots, overseas_mentions, overseas_news, overseas_sentiment_daily, overseas_sources_status, persons, players, positions, posts, raw_pages, refresh_status, sqlite_sequence, stock_holder_num, stock_holders, stock_mentions, stock_names, topics, trades
+
+===== 3) 股东数据污染面（家族持股检测） =====
+  holder_type 取值:
+    '机构' 13176
+    '自然人' 9967
+    '其他' 56
+
+  自然人跨公司分布:
+    持7只: 1人
+    持6只: 5人
+    持5只: 1人
+    持4只: 6人
+    持3只: 16人
+    持2只: 107人
+    持1只: 2467人
+
+  疑似家族持股（同一只股同姓氏≥2人 且 合计占比>30%）Top12:
+    002973 侨银股份     45人 合计663.46%  刘少云/郭倍华/许少杰/章国化/李卫峰/姚中清/刘少云/郭倍华/许少杰/许晓坪/陈新栋/陈仁照/尚丽娅/
+    601086 国芳集团     38人 合计478.64%  张国芳/张春芳/张辉阳/周杰洪/蒋勇/石伟君/张国芳/张春芳/张辉阳/蒋勇/周杰洪/石伟君/张国芳/张春
+    603580 艾艾精工     52人 合计443.22%  涂木林/蔡瑞美/谢恺/李南方/徐文良/仲玉洁/邓立浦/万丛林/章兆利/涂木林/蔡瑞美/李南方/谢恺/徐文
+    001209 洪兴股份     46人 合计442.19%  郭秋洪/郭静璇/周德茂/柯国民/唐旭东/郭璇风/黄政生/郭秋洪/郭静璇/周德茂/柯国民/郭璇风/黄政生/
+    688686 奥普特      24人 合计402.76%  卢治临/卢盛林/许学亮/潘淑莹/卢治临/卢盛林/许学亮/潘淑莹/卢治临/卢盛林/许学亮/潘淑莹/卢治临/
+    300836 佰奥智能     49人 合计401.47%  肖朝蓬/朱莉华/刘芸/庄华锋/路玲兰/任晗熙/肖朝蓬/朱莉华/刘芸/史凤华/孙剑平/严培棉/庄华锋/路玲
+    605058 澳弘电子     38人 合计394.13%  杨九红/陈定红/邱坚明/张德成/朱雪松/詹美云/邓慧珏/杨九红/陈定红/张伟/张德成/朱雪松/张树林/杨
+    002862 实丰文化     45人 合计382.08%  蔡俊权/蔡俊淞/王来喜/蔡锦贤/颜维晓/王晓华/刘飞/蔡俊权/蔡俊淞/王来喜/蔡锦贤/颜维晓/王晓华/刘
+    001317 三羊马      34人 合计362.03%  邱红阳/张继松/王云杰/郑美华/韩赛/顾思佳/张滨彦/邱红阳/徐元贵/窦成云/张滨彦/邱红阳/徐元贵/窦
+    603880 南卫股份     40人 合计356.71%  李平/徐东/李永平/李永中/李菲/赵爱立/李平/徐东/李永平/李永中/牛花香/李菲/王旋/李平/徐东/李
+    301193 家联科技     31人 合计353.72%  张三云/王熊/赵建光/蔡礼永/张三云/王熊/赵建光/蔡礼永/张三云/王熊/赵建光/蔡礼永/杨健存/冯晶晶
+    603429 *ST集友    59人 合计351.90%  徐善水/唐红军/余永恒/姚发征/严书诚/孙志松/朱向阳/陈林琴/杨二果/张亚/徐善水/唐红军/姚发征/余
+
+  跨>=2公司（牛散候选）: 136 人
+  跨>=3公司（核心牛散）: 29 人
+
+===== 4) 时间口径 =====
+  trades     total=64    blank=45    00:00:00=0    max=2026-09-25 05:41:02
+  news       total=678   blank=514   00:00:00=0    max=2026-09-25 16:12:00
+  positions  total=271   blank=267   00:00:00=0    max=2021-06-20
+  posts      total=1059  blank=493   00:00:00=0    max=2026-09-25 18:32:00
+
+===== 5) 最新交易日覆盖 =====
+  lhb_stocks 2026-09-24: 63 只
+  lhb_stocks 2026-09-23: 68 只
+  lhb_stocks 2026-09-22: 66 只
+  lhb_stocks 2026-09-21: 60 只
+  lhb_stocks 2026-09-18: 50 只
+  lhb_stocks 2026-09-17: 53 只
+  lhb_stocks 2026-09-16: 63 只
+  ---
+  sector_focus 2026-09-23: 4 板块
+  sector_focus 2026-09-22: 4 板块
+  sector_focus 2026-09-21: 4 板块
+  sector_focus 2026-09-18: 4 板块
+  sector_focus 2026-09-17: 4 板块
+  sector_focus 2026-09-16: 4 板块
+  ---
+  stock_holders 报告期 2026-09-23: 16 行
+  stock_holders 报告期 2026-09-22: 13 行
+  stock_holders 报告期 2026-09-21: 1 行
+  stock_holders 报告期 2026-09-18: 2 行
+  stock_holders 报告期 2026-09-17: 14 行
+  stock_holders 报告期 2026-09-16: 15 行
+  stock_holders 报告期 2026-09-15: 2 行
+  stock_holders 报告期 2026-09-14: 4 行

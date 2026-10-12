@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS blogger_perf (
   blogger TEXT NOT NULL, rec_date TEXT, stock_code TEXT,
   base_close REAL, r1 REAL, r3 REAL, r5 REAL, r10 REAL,
   days_avail INTEGER, updated TEXT,
+  series_json TEXT,
   UNIQUE(blogger, rec_date, stock_code)
 );
 CREATE INDEX IF NOT EXISTS idx_bp_code ON blogger_perf(stock_code);
@@ -62,6 +63,10 @@ def ensure_table() -> None:
     con = _conn()
     try:
         con.executescript(DDL)
+        # 幂等迁移：老库的 blogger_perf 没有 series_json 列（2026-10-10 补，荐股后逐日走势）
+        cols = [r[1] for r in con.execute("PRAGMA table_info(blogger_perf)").fetchall()]
+        if "series_json" not in cols:
+            con.execute("ALTER TABLE blogger_perf ADD COLUMN series_json TEXT")
         con.commit()
     finally:
         con.close()
@@ -146,13 +151,24 @@ def _rows_for(arg: tuple) -> tuple | None:
     for w in WINDOWS:
         if len(nxt) >= w:
             out["r%d" % w] = round((nxt[w - 1][1] / base_c - 1.0) * 100.0, 2)
+    # 2026-10-10：荐股后逐日走势（最多 10 个交易日），chg = 相对荐股日收盘的累计 %，
+    # 供前端画「荐股后走势」小曲线；没有后续行情时存空串（不是假数据）。
+    series = [{"d": d, "c": round(c, 3), "chg": round((c / base_c - 1.0) * 100.0, 2)}
+              for d, c in nxt[:10]]
     return (blogger, rec_date, code, round(base_c, 3),
             out["r1"], out["r3"], out["r5"], out["r10"],
-            out["days_avail"], time.strftime("%Y-%m-%d %H:%M:%S"))
+            out["days_avail"], time.strftime("%Y-%m-%d %H:%M:%S"),
+            json.dumps(series, ensure_ascii=False) if series else "")
 
 
 def compute_all(force: bool = False, limit: int = 0) -> dict:
-    """全量算一遍并 UPSERT。首次需抓约 200+ 次日 K，8 并发约数秒；当天第二次直接读库秒回。"""
+    """全量算一遍并 UPSERT。首次需抓约 200+ 次日 K，8 并发约数秒；当天第二次直接读库秒回。
+
+    2026-10-10 修「8 月荐股的 3/5/10 日永远是 —」：
+      旧逻辑只补「blogger_perf 里完全没有的行」——一行算过一次就冻死，哪怕当时
+      T+3/T+5/T+10 窗口还没走完、事后也永不重算（与 extref「na 是终态」同类病）。
+      现在把「有行但任一窗口为 NULL」的行也排进队列重算；行情取不到时 _rows_for
+      返回 None、该行不动，下次再试（失败不会被误标成已处理）。"""
     t0 = time.time()
     ensure_table()
     con = _conn()
@@ -163,9 +179,12 @@ def compute_all(force: bool = False, limit: int = 0) -> dict:
                 + (" LIMIT %d" % limit if limit else "")):
             if force:
                 job.append((r["blogger"], r["rec_date"], r["stock_code"]))
-            elif not con.execute(
-                    "SELECT 1 FROM blogger_perf WHERE blogger=? AND rec_date=? AND stock_code=?",
-                    (r["blogger"], r["rec_date"], r["stock_code"])).fetchone():
+                continue
+            p = con.execute(
+                "SELECT r1, r3, r5, r10 FROM blogger_perf WHERE blogger=? AND rec_date=? AND stock_code=?",
+                (r["blogger"], r["rec_date"], r["stock_code"])).fetchone()
+            # 没有 perf 行 → 补算；有行但任一窗口还是 NULL → 重算（窗口可能已走完）
+            if p is None or any(p[k] is None for k in ("r1", "r3", "r5", "r10")):
                 job.append((r["blogger"], r["rec_date"], r["stock_code"]))
     finally:
         con.close()
@@ -181,12 +200,12 @@ def compute_all(force: bool = False, limit: int = 0) -> dict:
                 try:
                     con.execute(
                         "INSERT INTO blogger_perf (blogger, rec_date, stock_code, base_close,"
-                        " r1, r3, r5, r10, days_avail, updated)"
-                        " VALUES (?,?,?,?,?,?,?,?,?,?)"
+                        " r1, r3, r5, r10, days_avail, updated, series_json)"
+                        " VALUES (?,?,?,?,?,?,?,?,?,?,?)"
                         " ON CONFLICT(blogger, rec_date, stock_code) DO UPDATE SET"
                         " base_close=excluded.base_close, r1=excluded.r1, r3=excluded.r3,"
                         " r5=excluded.r5, r10=excluded.r10, days_avail=excluded.days_avail,"
-                        " updated=excluded.updated", res)
+                        " updated=excluded.updated, series_json=excluded.series_json", res)
                     con.commit()
                 finally:
                     con.close()
@@ -206,8 +225,8 @@ def get(code: str | None = None, blogger: str | None = None) -> list:
     ensure_table()
     con = _conn()
     try:
-        sql = "SELECT blogger, rec_date, stock_code, base_close, r1, r3, r5, r10, days_avail, updated"
-        sql += " FROM blogger_perf"
+        sql = ("SELECT blogger, rec_date, stock_code, base_close, r1, r3, r5, r10,"
+               " days_avail, updated, series_json FROM blogger_perf")
         where, args = [], []
         if code:
             where.append("stock_code = ?")
@@ -217,7 +236,23 @@ def get(code: str | None = None, blogger: str | None = None) -> list:
             args.append(blogger)
         sql += (" WHERE " + " AND ".join(where)) if where else ""
         sql += " ORDER BY rec_date DESC"
-        return [dict(r) for r in con.execute(sql, args).fetchall()]
+        rows = [dict(r) for r in con.execute(sql, args).fetchall()]
+        # 2026-10-10 王总要求：卡片要能直接看到「现价 vs 荐股日收盘」的至今涨跌。
+        # series_json 末点即最新已结算交易日 → 派生 last_date / last_close / last_chg，免得前端各自解析。
+        for r in rows:
+            r["last_date"] = r["last_close"] = r["last_chg"] = None
+            sj = r.get("series_json")
+            if sj:
+                try:
+                    arr = json.loads(sj)
+                    if isinstance(arr, list) and arr:
+                        last = arr[-1] or {}
+                        r["last_date"] = last.get("d")
+                        r["last_close"] = last.get("c")
+                        r["last_chg"] = last.get("chg")
+                except Exception:
+                    pass
+        return rows
     finally:
         con.close()
 

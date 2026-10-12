@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\_t_ns.py", line 7, in <module>
+    import server as S
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\viewer\server.py", line 37, in <module>
+    from scraper.config import get_site, load_config  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\scraper\config.py", line 7, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'

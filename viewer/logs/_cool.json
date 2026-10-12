@@ -1,0 +1,15 @@
+{
+  "emapi_quote": {
+    "secs": 0.298,
+    "ok": true,
+    "pb_from_emapi": 6.31
+  },
+  "server_api_quote": {
+    "secs": 1.223,
+    "source": "东方财富 push2 + 东方财富 F1",
+    "bps": 200.9897548,
+    "pe_ttm": 19.46,
+    "price": 1267.66
+  },
+  "at": "14:12:32"
+}

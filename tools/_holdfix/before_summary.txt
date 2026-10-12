@@ -1,0 +1,23 @@
+consensus rows: 55
+   601318 中国平安      holders= 39 buy=None hold=None w=18.65 acts={'BUY': 24, 'HOLD': 15}
+   300750 宁德时代      holders= 37 buy=None hold=None w=18.85 acts={'BUY': 30, 'HOLD': 7}
+   600519 贵州茅台      holders= 35 buy=None hold=None w=16.35 acts={'社区晒盘': 1, 'BUY': 25, 'HOLD': 9}
+   000001 平安银行      holders= 31 buy=None hold=None w=16.15 acts={'BUY': 14, 'HOLD': 17}
+   600127 金健米业      holders=  5 buy=None hold=None w=3.48 acts={'关注/操作': 3, 'BUY': 2}
+   000066 中国长城      holders=  5 buy=None hold=None w=3.1 acts={'关注/操作': 5}
+   300024 机器人       holders=  4 buy=None hold=None w=2.86 acts={'关注/操作': 4}
+   000678 襄阳轴承      holders=  4 buy=None hold=None w=2.31 acts={'关注/操作': 1, 'BUY': 3}
+   000978 桂林旅游      holders=  4 buy=None hold=None w=3.62 acts={'关注/操作': 4}
+   000890 法尔胜       holders=  4 buy=None hold=None w=2.48 acts={'关注/操作': 4}
+   002077 大港股份      holders=  4 buy=None hold=None w=2.48 acts={'关注/操作': 4}
+   000815 美利云       holders=  4 buy=None hold=None w=2.48 acts={'关注/操作': 4}
+--- cohold 2026-10-05 2026-10-09 anchor 2026-10-09
+  buy groups: 5
+      600519 贵州茅台 pc= 10 acts= [None]
+      300750 宁德时代 pc= 9 acts= [None]
+      601318 中国平安 pc= 5 acts= [None]
+      000001 平安银行 pc= 3 acts= [None]
+      600663 陆家嘴 pc= 2 acts= [None]
+  sell groups: 2
+      300750 宁德时代 pc= 8 acts= [None]
+      600519 贵州茅台 pc= 2 acts= [None]

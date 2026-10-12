@@ -1,0 +1,608 @@
+######## 2026-09-28 ########
+CNBC | Taxpayer-funded Trump ads draw bipartisan scrutiny ahead of midterms
+    https://www.cnbc.com/2026/09/27/trump-government-funded-ads-midterms.html
+CNBC | Oil gains over 1% as Trump rejects Iranian proposal to reopen Hormuz Strait
+    https://www.cnbc.com/2026/09/28/oil-price-today-wti-brent-trump-iran.html
+CNBC | Anthropic CEO Amodei set to meet with Trump after missing state dinner
+    https://www.cnbc.com/2026/09/27/dario-amodei-set-to-have-dinner-with-trump-after-missing-state-dinner.html
+CNBC | Iran's foreign minister says Tehran ready for 'doomsday' war with U.S., but leaves diplomacy on the table
+    https://www.cnbc.com/2026/09/27/iran-foreign-minister-keeps-indirect-talks-with-us-open-state-media.html
+CNBC | Apple, Microsoft, and Meta prove stock picking for individuals is not a fool's errand
+    https://www.cnbc.com/2026/09/27/jim-cramer-apple-microsoft-and-meta-prove-stock-picking-for-individuals-is-not-a-fools-errand.html
+CNBC | Nor'easter delays hundreds of flights, airlines waive change fees
+    https://www.cnbc.com/2026/09/25/flights-storm-new-york-boston-east-coast.html
+CNBC | Here are the 4 big things we're watching in the stock market in the week ahead
+    https://www.cnbc.com/2026/09/27/here-are-the-4-big-things-were-watching-in-the-stock-market-in-the-week-ahead.html
+CNBC 科技 | Trump to have dinner with Anthropic CEO Amodei at the White House
+    https://www.cnbc.com/2026/09/27/trump-dinner-anthropic-ceo-amodei.html
+CNBC 经济 | Lowe's is launching a drone delivery service in partnership with DoorDash, Alphabet
+    https://www.cnbc.com/2026/09/24/lowes-drones-delivery-doordash-alphabet.html
+Fortune | The U.S. may soon receive $600 million worth of Iranian oil that was seized earlier in the war, putting an ancient body of maritime law back in focus
+    https://fortune.com/2026/09/27/us-600-million-iranian-oil-seizure-naval-blockade-prize-law/
+Fortune | Walmart CEO says that the retail giant and its AI shopping assistant aren’t using personal information to set prices amid rollout of digital labels
+    https://fortune.com/2026/09/27/walmart-ceo-ai-shopping-assistant-personal-information-prices-digital-labels/
+Fortune | Thinking about buying stocks instead of a home as mortgage rates top 7%? The S&P 500 has blown away the housing market over the past decade
+    https://fortune.com/2026/09/27/stocks-vs-homeownership-renting-housing-market-mortgage-rates-sp500/
+Fortune | The U.S. economy is running hot and stuck on a hamster wheel as GDP growth must outpace borrowing costs—or risk getting sucked into a debt spiral
+    https://fortune.com/2026/09/27/us-economy-gdp-growth-bond-yields-borrowing-costs-debt-spiral/
+Fortune | Sand deficit: Coastal erosion is so bad in California that the residents of this mostly Republican city may tax themselves to restore the beach
+    https://fortune.com/2026/09/27/coastal-erosion-san-clemente-california-republican-city-tax-beach-restoration/
+Fortune | Giorgio Armani’s will requires the sale of a 15% stake in his empire within 18 months of his death. LVMH, L’Oréal and EssilorLuxottica may split it
+    https://fortune.com/2026/09/27/giorgio-armani-15-percent-stake-sale-death-lvmh-loreal-essilorluxottica/
+Hacker News（科技社区） | Lunar Terminator Paradox
+    https://notes.secretsauce.net/notes/2026/09/27_lunar-terminator-paradox.html
+Hacker News（科技社区） | My Recent Woodworking Projects
+    https://notoriousbfg.com/recent-woodworking-projects/
+Hacker News（科技社区） | Show HN: Cartopolis, interactive globe-sized 3D world
+    https://code.garage44.eu/jeroen/cartopolis
+Hacker News（科技社区） | When did Google get so weird?
+    https://sancho.bearblog.dev/google-weird/
+Hacker News（科技社区） | Have an LLC
+    https://zachholman.com/posts/you-should-have-an-llc
+Hacker News（科技社区） | Self-Hosting on the Dark Web
+    https://david.alvarezrosa.com/posts/self-hosting-on-the-dark-web/
+Hacker News（科技社区） | Alan Kay's answer to “Did the ENIAC have a BIOS”?
+    https://www.quora.com/Did-the-ENIAC-have-a-BIOS/answer/Alan-Kay-11
+Hacker News（科技社区） | Imp is a full port of DSPy to the BEAM
+    https://github.com/deepfates/imp
+Hacker News（科技社区） | What I did at Recurse Center
+    https://thill.me/2026/09/11/what-i-did-at-rc.html
+Hacker News（科技社区） | Show HN: Lofi Cities – Pixel-art city nights with browser-generated lofi
+    https://loficities.com/
+Hacker News（科技社区） | Oral history of John Chowning, inventor of FM synthesis [video]
+    https://www.youtube.com/watch?v=e1Xn3030IvM
+Hacker News（科技社区） | Ember-1
+    https://fireworks.ai/blog/ember-1
+Hacker News（科技社区） | Don't couple your Go code to GitHub
+    https://iain.rocks/blog/dont-couple-your-go-code-to-github
+MarketWatch | ‘I want to make her proud’: My mother, a divorcée, died and I’m her executor. Do I need to file for probate?
+    https://www.marketwatch.com/story/i-want-to-make-her-proud-my-mother-a-divorcee-died-and-im-her-executor-do-i-need-to-file-for-probate-a39b1123?mod=mw_rss_topstories
+MarketWatch | ‘We lived within our means’: I earned $30,000 as a pastor and still retired comfortably. Why don’t you tell people that?
+    https://www.marketwatch.com/story/we-lived-within-our-means-i-earned-30-000-as-a-pastor-and-still-retired-comfortably-why-dont-you-tell-people-that-6b9f231e?mod=mw_rss_topstories
+MarketWatch | A ‘death cross’ is coming for the dollar. Why Trump will be happy.
+    https://www.marketwatch.com/story/a-death-cross-is-coming-for-the-dollar-why-trump-will-be-happy-0766303d?mod=mw_rss_topstories
+MarketWatch | Social Security overpaid my 82-year-old mother by $20,000. What else is hiding in her finances?
+    https://www.marketwatch.com/story/she-gave-a-neighbor-2-000-social-security-overpaid-my-mother-82-by-20-000-what-else-is-hiding-in-her-finances-1b54977f?mod=mw_rss_topstories
+MarketWatch | My husband and I are in our 50s and have no kids. We have $2 million in IRAs and 401(k)s. Do we really need a will?
+    https://www.marketwatch.com/story/my-husband-and-i-are-in-our-50s-and-have-no-kids-we-have-2-million-do-we-need-a-will-62fb422f?mod=mw_rss_topstories
+MarketWatch | ‘It doesn’t seem fair’: I’m retired and have plenty of money. Why can’t I qualify for a retail credit card?
+    https://www.marketwatch.com/story/it-doesnt-seem-fair-im-retired-and-have-plenty-of-money-why-cant-i-qualify-for-a-retail-credit-card-8a58eda3?mod=mw_rss_topstories
+Nasdaq 市场新闻 | Elon Musk Just Gave Nvidia Investors More Good News. Is the Stock a Buy?
+    https://www.nasdaq.com/articles/elon-musk-just-gave-nvidia-investors-more-good-news-stock-buy
+Nasdaq 市场新闻 | SoundHound AI vs. BigBear.ai: Revenue Trends Reveal Key Insights About These Artificial Intelligence Companies
+    https://www.nasdaq.com/articles/soundhound-ai-vs-bigbearai-revenue-trends-reveal-key-insights-about-these-artificial
+Nasdaq 市场新闻 | Nebius Is Raising the Price of Its AI Compute on Oct. 1. Here's What That Says About the Shortage.
+    https://www.nasdaq.com/articles/nebius-raising-price-its-ai-compute-oct-1-heres-what-says-about-shortage
+Nasdaq 市场新闻 | Salesforce vs. Palantir Technologies: What Revenue Trends Reveal to Investors About These Tech Giants
+    https://www.nasdaq.com/articles/salesforce-vs-palantir-technologies-what-revenue-trends-reveal-investors-about-these-tech
+Nasdaq 市场新闻 | Malaysia Stock Market May Find Traction On Monday
+    https://www.nasdaq.com/articles/malaysia-stock-market-may-find-traction-monday-0
+Nasdaq 市场新闻 | A $10,000 Investment in SpaceX Will Be Worth This Much by 2030
+    https://www.nasdaq.com/articles/10000-investment-spacex-will-be-worth-much-2030
+Nasdaq 市场新闻 | Japan Stock Market May Add To Its Winnings On Monday
+    https://www.nasdaq.com/articles/japan-stock-market-may-add-its-winnings-monday
+Nasdaq 市场新闻 | Win Streak May Continue For South Korea Shares
+    https://www.nasdaq.com/articles/win-streak-may-continue-south-korea-shares
+Nasdaq 市场新闻 | Here's How Many Shares of Coca-Cola You'd Need for $10,000 in Yearly Dividends
+    https://www.nasdaq.com/articles/heres-how-many-shares-coca-cola-youd-need-10000-yearly-dividends
+Nasdaq 市场新闻 | Bristol Myers Squibb vs. Novo Nordisk: Which Healthcare Stock Is a Better Buy in 2026?
+    https://www.nasdaq.com/articles/bristol-myers-squibb-vs-novo-nordisk-which-healthcare-stock-better-buy-2026
+Nasdaq 市场新闻 | 1 Top Warren Buffett Stock Trading 21% Below Its All-Time High That Can Double a $1,000 Investment in 5 Years
+    https://www.nasdaq.com/articles/1-top-warren-buffett-stock-trading-21-below-its-all-time-high-can-double-1000-investment-5
+Nasdaq 市场新闻 | I'd Buy Amazon Stock While It Sits 12% Below Its Record
+    https://www.nasdaq.com/articles/id-buy-amazon-stock-while-it-sits-12-below-its-record
+Nasdaq 市场新闻 | 3 Simple Reasons I'd Rather Own Nvidia Than SpaceX
+    https://www.nasdaq.com/articles/3-simple-reasons-id-rather-own-nvidia-spacex
+Nasdaq 市场新闻 | GE Vernova vs. Bloom Energy: Which AI Power Stock Has the Edge?
+    https://www.nasdaq.com/articles/ge-vernova-vs-bloom-energy-which-ai-power-stock-has-edge
+Nasdaq 市场新闻 | SpaceX vs. Tesla: Which Will Be the Largest Company at the End of 2027?
+    https://www.nasdaq.com/articles/spacex-vs-tesla-which-will-be-largest-company-end-2027
+Nature | Briefing Chat: Why scientists made papyrus scrolls, then burnt them
+    https://www.nature.com/articles/d41586-026-03041-y
+Nature | Why science wouldn’t exist without alchemy, curiosity and great writing: Books in brief
+    https://www.nature.com/articles/d41586-026-03032-z
+Nature | Anthropic’s AI biolab finds ‘CRISPR-like’ DNA in viruses. What’s next?
+    https://www.nature.com/articles/d41586-026-03039-6
+Nature | Chemists struggle to ditch hazardous solvents — even after decades of ‘green’ efforts
+    https://www.nature.com/articles/d41586-026-03023-0
+Nature | Nepal’s floods expose issues with climate-disaster funding — firmer policies are needed fast
+    https://www.nature.com/articles/d41586-026-03016-z
+Nature | Exclusive: Sham scientific societies are misleading star researchers
+    https://www.nature.com/articles/d41586-026-02980-w
+Nature | OpenAI's research chief talks of ‘cultural reset’ after wild few weeks
+    https://www.nature.com/articles/d41586-026-03028-9
+Nature | AI bots are flooding researchers with requests for money and time
+    https://www.nature.com/articles/d41586-026-03005-2
+Nature | Bumblebees don’t mind a little plastic in their honeypots
+    https://www.nature.com/articles/d41586-026-02988-2
+Nature | Youthful fans of YouTube sports videos stick to the sofa
+    https://www.nature.com/articles/d41586-026-02989-1
+Nature | GLP-1 drugs fail to help some people lose weight — scientists are on a quest for answers
+    https://www.nature.com/articles/d41586-026-03020-3
+Nature | AI system helps lab devices ‘talk’ with each other — streamlining research
+    https://www.nature.com/articles/d41586-026-02990-8
+Nature | AI agent hacks government website for first time: why this breach matters
+    https://www.nature.com/articles/d41586-026-03024-z
+Nature | Daily briefing: Will AI really be the death of us all?
+    https://www.nature.com/articles/d41586-026-03029-8
+Nature | AlphaFold ‘goes viral’: database adds protein complexes of common viruses
+    https://www.nature.com/articles/d41586-026-03022-1
+Nature | Author Correction: Large recoverable elastic energy in chiral metamaterials via twist buckling
+    https://www.nature.com/articles/s41586-026-11189-w
+Nature | Chiral oxazolidinones via biocatalytic aziridination of unactivated alkenes
+    https://www.nature.com/articles/s41586-026-11169-0
+Nature | Bank accounts reveal the fingerprints of abusive financial control
+    https://www.nature.com/articles/d41586-026-03021-2
+Nature | Competition heats up in the regenerative-medicine ranks
+    https://www.nature.com/articles/d41586-026-02856-z
+Nature | Huge hoard of metal bars hints at vast Iron Age trade
+    https://www.nature.com/articles/d41586-026-02986-4
+Nature | The gene-regulatory evolution of the human skeleton
+    https://www.nature.com/articles/s41586-026-11053-x
+Nature | The anthropogenic fingerprint on emerging infectious diseases
+    https://www.nature.com/articles/s41586-026-11058-6
+Nature | Gravitational torque drives multidecadal variations in length of day
+    https://www.nature.com/articles/s41586-026-10999-2
+Nature | Single-nucleus transcriptome-wide association study of human brain disorders
+    https://www.nature.com/articles/s41586-026-10836-6
+Nature | Lu + optical frequency references with accuracy verified at the 19th digit
+    https://www.nature.com/articles/s41586-026-11072-8
+Nature | Sequence-encoded hexagonal lattices in multichannel peptide nanofibrils
+    https://www.nature.com/articles/s41586-026-11016-2
+Nature | Banking records reveal characteristics of financial abuse
+    https://www.nature.com/articles/s41586-026-11049-7
+Nature | Hepatocytes promote liver metastasis of pancreatic cancer by providing serine
+    https://www.nature.com/articles/s41586-026-11051-z
+Nature | A design approach for bitopic kinase inhibitors
+    https://www.nature.com/articles/s41586-026-11056-8
+Nature | A methanogen hydrolase reveals the structure of archaeal peptidoglycan
+    https://www.nature.com/articles/s41586-026-11028-y
+Nature | Reference genomes and fossils revise bat family phylogeny and biogeography
+    https://www.nature.com/articles/s41586-026-11007-3
+Nature | mTORC1 drives cell-autonomous astrocyte reactivity in tuberous sclerosis
+    https://www.nature.com/articles/s41586-026-11054-w
+Nature | Targeting ZMYND8 unleashes IL-2 signalling to override T cell exhaustion
+    https://www.nature.com/articles/s41586-026-11059-5
+Nature | Anomalous metal and superconducting phases in rhombohedral graphene
+    https://www.nature.com/articles/s41586-026-11033-1
+Nature | Lifespan single-cell transcriptomic atlas of the human prefrontal cortex
+    https://www.nature.com/articles/s41586-026-10271-7
+Nature | Agricultural liming is a carbon sink in the Mississippi River Basin
+    https://www.nature.com/articles/s41586-026-11040-2
+Nature | Stacking-induced direct band gap in CVD-grown 1H MoS 2 bilayers
+    https://www.nature.com/articles/s41586-026-11069-3
+Nature | TRAM promotes Toll-like-receptor-free myddosome signal transduction
+    https://www.nature.com/articles/s41586-026-11052-y
+Nature | Lsp2 links mTORC1 to TOP mRNA translation and lifespan in Drosophila
+    https://www.nature.com/articles/s41586-026-11029-x
+Nature | Lsp2 links early-life diet to adult translation and lifespan in Drosophila
+    https://www.nature.com/articles/s41586-026-11031-3
+Nature | The lipidomic architecture of the mouse brain
+    https://www.nature.com/articles/s41586-026-11050-0
+Nature | Single-cell atlas of transcriptomic vulnerability across brain disorders
+    https://www.nature.com/articles/s41586-025-09573-z
+Nature | MMEJ repair of breaks at TA repeats maintains ecDNA and cancer fitness
+    https://www.nature.com/articles/s41586-026-11048-8
+Nature | A quadruped robot designed to complete a marathon on a single battery charge
+    https://www.nature.com/articles/s41586-026-11102-5
+Nature | Neuronal detection of social actions directs collective escape behaviour
+    https://www.nature.com/articles/s41586-026-11041-1
+Nature | Organic two-dimensional van der Waals heterostructures
+    https://www.nature.com/articles/s41586-026-11074-6
+Nature | The mutational dynamics of the Arabidopsis centromeres
+    https://www.nature.com/articles/s41586-026-11046-w
+Nature | Brain lipids are organized into zones — and reorganized during pregnancy
+    https://www.nature.com/articles/d41586-026-02772-2
+Nature | Efficient yet stable large perovskite solar modules made using surface treatment
+    https://www.nature.com/articles/d41586-026-02937-z
+Nature | Lack of female researchers and participants in regenerative-medicine research holds everyone back
+    https://www.nature.com/articles/d41586-026-02857-y
+Nature | Gravitational tug-of-war inside Earth is changing the length of our days
+    https://www.nature.com/articles/d41586-026-03018-x
+Nature | There’s a new form of boron — and it’s really weird
+    https://www.nature.com/articles/d41586-026-03001-6
+Nature | In praise of human teachers: universities must resist outsourcing everything to AI
+    https://www.nature.com/articles/d41586-026-02949-9
+Nature | ‘Remarkably encouraging’: stem-cell treatments for autoimmune diseases enter new phase
+    https://www.nature.com/articles/d41586-026-02855-0
+Nature | A plant that reproduces sexually but has clone-like offspring
+    https://www.nature.com/articles/d41586-026-02789-7
+Nature | Daily briefing: Read the text inside a charred, rolled-up scroll
+    https://www.nature.com/articles/d41586-026-03025-y
+Nature | Landmark map of human brain’s gene activity holds clues to Alzheimer’s disease and more
+    https://www.nature.com/articles/d41586-026-02947-x
+Nature | How to stay smart in the age of AI: the science of critical thinking
+    https://www.nature.com/articles/d41586-026-02930-6
+Nature | Vast cellular gene-expression atlas could transform how scientists understand brain ageing and disease
+    https://www.nature.com/articles/d41586-026-02770-4
+Nature | The human skeleton’s unique adaptations relied on gene regulatory changes
+    https://www.nature.com/articles/d41586-026-02775-z
+Nature | Gravitational forces inside Earth drag some decades out — and make others fly by
+    https://www.nature.com/articles/d41586-026-02773-1
+Nature | A guide to the Nature Index
+    https://www.nature.com/articles/d41586-026-02858-x
+Nature | How do I rekindle my motivation for earning my PhD?
+    https://www.nature.com/articles/d41586-026-02563-9
+Nature | Best clock ever: timekeeper based on lutetium atoms wows researchers
+    https://www.nature.com/articles/d41586-026-03019-w
+Nature | A widespread agricultural practice is an unexpected CO 2 sink
+    https://www.nature.com/articles/d41586-026-02646-7
+Nature | Conifer trees can prosper half a world away from their usual home
+    https://www.nature.com/articles/d41586-026-02771-3
+Nature | Genome project opens the next chapter for studying bat evolution
+    https://www.nature.com/articles/d41586-026-02637-8
+Nature | What is needed for regenerative medicine to flourish?
+    https://www.nature.com/articles/d41586-026-02854-1
+Nature | Surprising protein links dietary restriction to increased lifespan in flies
+    https://www.nature.com/articles/d41586-026-02774-0
+Nature | The courier
+    https://www.nature.com/articles/d41586-026-02861-2
+Nature | Biosecurity must protect human functional capacity
+    https://www.nature.com/articles/d41586-026-02996-2
+Nature | Why insects need their own protected areas
+    https://www.nature.com/articles/d41586-026-02997-1
+Nature | A global safety net for climate-risk intelligence is urgently needed
+    https://www.nature.com/articles/d41586-026-02995-3
+Nature | What happens in Vegas: one lecturer’s hunt for a projector
+    https://www.nature.com/articles/d41586-026-02724-w
+Nature | Dust in the wind is on the decline
+    https://www.nature.com/articles/d41586-026-02979-3
+Phys.org | What the smell of a soil can tell us about soil health
+    https://phys.org/news/2026-09-soil-health.html
+Phys.org | Who is responsible for limiting global warming to 1.5°?
+    https://phys.org/news/2026-09-responsible-limiting-global.html
+Phys.org | Japan's 2011 tsunami sparked fish hybridization, but species boundaries largely held
+    https://phys.org/news/2026-09-japan-tsunami-fish-hybridization-species.html
+Phys.org | Why volcanic crystals are black boxes for tracking magma's journey to the Earth's surface
+    https://phys.org/news/2026-09-volcanic-crystals-black-tracking-magma.html
+Phys.org | Finding homes for whales and dolphins when parks close isn't easy—sea sanctuaries aren't the answer
+    https://phys.org/news/2026-09-homes-whales-dolphins-isnt-easy.html
+Phys.org | Can Bionic Reading really help you read faster? Scientists put it to the test
+    https://phys.org/news/2026-09-bionic-faster-scientists.html
+Phys.org | Soil protection measures can make agri-photovoltaics more sustainable
+    https://phys.org/news/2026-09-soil-agri-photovoltaics-sustainable.html
+Phys.org | More moral language doesn't always mean more engagement online
+    https://phys.org/news/2026-09-moral-language-doesnt-engagement-online.html
+Phys.org | How has evolution shaped men's and women's minds? A new book tells an outdated story
+    https://phys.org/news/2026-09-evolution-men-women-minds-outdated.html
+Seeking Alpha | Oil climbs, stock futures slip as Trump rejects Iran’s Hormuz proposal
+    https://seekingalpha.com/news/4647414-oil-climbs-stock-futures-slip-as-trump-rejects-irans-hormuz-proposal?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | Here are the major earnings before the open Monday
+    https://seekingalpha.com/news/4647390-here-are-the-major-earnings-before-the-open-monday?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | IDT Corporation Q4 2026 Earnings Preview
+    https://seekingalpha.com/news/4647262-idt-corporation-q4-2026-earnings-preview?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | Jefferies Financial Group Q3 2026 Earnings Preview
+    https://seekingalpha.com/news/4647263-jefferies-financial-group-q3-2026-earnings-preview?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | Vail Resorts Q4 2026 Earnings Preview
+    https://seekingalpha.com/news/4647264-vail-resorts-q4-2026-earnings-preview?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | Global markets: US stocks rise, Europe slips, Asia mixed
+    https://seekingalpha.com/news/4647412-global-markets-us-stocks-rise-europe-slips-asia-mixed?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+Seeking Alpha | U.S. pours billions into critical minerals push to loosen China’s grip
+    https://seekingalpha.com/news/4647409-u-s-pours-billions-into-critical-minerals-push-to-loosen-china-s-grip?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+TechCrunch | Anthropic’s CEO is about to have dinner with President Trump
+    https://techcrunch.com/2026/09/27/anthropics-ceo-is-about-to-have-dinner-with-president-trump/
+TechCrunch | Can Muse overcome Meta’s trust issues?
+    https://techcrunch.com/2026/09/27/can-muse-overcome-metas-trust-issues/
+TechCrunch | Anthropic’s Dario Amodei gets the SNL treatment
+    https://techcrunch.com/2026/09/27/anthropics-dario-amodei-gets-the-snl-treatment/
+TechCrunch | TechCrunch Mobility: AV companies pick their lanes
+    https://techcrunch.com/2026/09/27/techcrunch-mobility-av-companies-pick-their-lanes/
+同花顺 | 巨头出手！英伟达持续加码玻璃基板
+    https://news.10jqka.com.cn/20260927/c680289106.shtml
+同花顺 | 国内首部，AI电影正式定档！概念股稀缺(附名单)
+    https://news.10jqka.com.cn/20260928/c680289542.shtml
+同花顺 | 央行货币政策委员会例会释放新信号，加大逆周期调节力度
+    https://news.10jqka.com.cn/20260928/c680289465.shtml
+同花顺 | 本周，千亿解禁！国货航等4股规模最大（附名单）
+    https://news.10jqka.com.cn/20260928/c680289840.shtml
+同花顺 | 突破百万台在即，机器人细分赛道，高歌猛进！12股获融资客加仓
+    https://news.10jqka.com.cn/20260928/c680290208.shtml
+同花顺 | 中美达成八点成果共识
+    https://news.10jqka.com.cn/20260926/c680286099.shtml
+同花顺 | 新基金延募现象频发 被动产品成“滞销”重灾区
+    https://news.10jqka.com.cn/20260928/c680289534.shtml
+同花顺 | 国庆假期临近，持股还是持币过节？机构研判来了
+    https://news.10jqka.com.cn/20260926/c680285694.shtml
+同花顺 | 美股三大指数高开高走，道指涨0.93%终结周线三连跌，苹果创历史新高
+    https://news.10jqka.com.cn/20260926/c680284981.shtml
+联合早报（东南亚） | 萧郡瑜：巫统的两道难题
+    https://www.zaobao.com/news/sea/story20260928-9743183
+联合早报（东南亚） | 曼谷洪灾持续水位居高不下 逾5万户家庭受影响
+    https://www.zaobao.com/news/sea/story20260927-9745078
+联合早报（东南亚） | 国阵与各阵营周一讨论甲州选举合作
+    https://www.zaobao.com/news/sea/story20260927-9744542
+联合早报（东南亚） | 调查森州宪政危机 警方周一传召大臣与10名行政议员录供
+    https://www.zaobao.com/news/sea/story20260927-9744793
+联合早报（东南亚） | 马国F1巴林大奖赛部署约700保安交管人员
+    https://www.zaobao.com/news/sea/story20260927-9744232
+联合早报（东南亚） | 缅甸拳在内战中流行 从自卫中收获尊重尊严
+    https://www.zaobao.com/news/sea/story20260927-9641282
+联合早报（东南亚） | 阿末扎希将见森州议员 讨论宪政危机解方
+    https://www.zaobao.com/news/sea/story20260927-9743885
+联合早报（东南亚） | 曼谷洪水趋缓 素万那普机场泰航行李处理仍受影响
+    https://www.zaobao.com/news/sea/story20260927-9743795
+联合早报（东南亚） | 槟城车子停放位置不当阻碍交通 民众游客合力移车
+    https://www.zaobao.com/news/sea/story20260927-9743616
+联合早报（东南亚） | 曼谷大雨洪水未退 近4900人撤离避难
+    https://www.zaobao.com/news/sea/story20260927-9743438
+联合早报（东南亚） | 国际特稿：地缘红利被美国红线压缩 东南亚突围须整合硬实力
+    https://www.zaobao.com/news/sea/story20260927-9688634
+联合早报（东南亚） | 柬埔寨10省遭洪灾 逾2万5000户受影响
+    https://www.zaobao.com/news/sea/story20260926-9741980
+联合早报（东南亚） | 印尼渡轮沉没事死亡人数升至64人
+    https://www.zaobao.com/news/sea/story20260926-9741866
+联合早报（东南亚） | 泰国曼谷暴雨成灾全市列为灾区 首相提前结束访英回国
+    https://www.zaobao.com/news/sea/story20260926-9741605
+联合早报（东南亚） | 现行法律无居家服刑条例 马律师公会拟挑战纳吉特赦
+    https://www.zaobao.com/news/sea/story20260926-9741342
+联合早报（东南亚） | 柔佛哥打丁宜第二大桥通车 舒缓交通惠及逾万道路使用者
+    https://www.zaobao.com/news/sea/story20260926-9740891
+联合早报（东南亚） | 印尼成立新管理局 防控泥炭地林火
+    https://www.zaobao.com/news/sea/story20260926-9740873
+联合早报（东南亚） | 菲副总统莎拉否认收受20亿比索现金
+    https://www.zaobao.com/news/sea/story20260926-9740702
+联合早报（东南亚） | 马国沙巴州京那巴当岸清晨发生3.3级地震
+    https://www.zaobao.com/news/sea/story20260926-9740159
+联合早报（东南亚） | 连日强降雨引发严重洪灾 曼谷全市为洪水灾区
+    https://www.zaobao.com/news/sea/story20260926-9739932
+联合早报（东南亚） | 中美竞争加剧压缩亚细安政策空间 专家吁不选边站推动经济多元化
+    https://www.zaobao.com/news/sea/story20260925-9737482
+联合早报（东南亚） | 称已铲除大型诈骗园区 柬埔寨转而追查幕后主谋
+    https://www.zaobao.com/news/sea/story20260925-9737686
+联合早报（东南亚） | 纳吉获有条件特赦后首次露面 申请暂缓一马案刑罚以免阻碍居家服刑安排
+    https://www.zaobao.com/news/sea/story20260925-9737103
+联合早报（东南亚） | 安华：马中同意延长东铁路线至马泰边境
+    https://www.zaobao.com/news/sea/story20260925-9736397
+联合早报（东南亚） | 印尼经济团队承诺加强协调 稳定市场信心
+    https://www.zaobao.com/news/sea/story20260925-9736714
+联合早报（东南亚） | 印尼免费餐发生致命意外 专家促检讨食安程序
+    https://www.zaobao.com/news/sea/story20260925-9736283
+联合早报（东南亚） | 避免选手烟霾中长跑 马国古晋马拉松赛事取消
+    https://www.zaobao.com/news/sea/story20260925-9735969
+联合早报（国际） | 韩国要求乌克兰就公开朝鲜战俘移交正式道歉
+    https://www.zaobao.com/news/world/story20260928-9746245
+联合早报（国际） | 特朗普约见Anthropic阿莫代伊 重申反对放缓AI
+    https://www.zaobao.com/news/world/story20260928-9746165
+联合早报（国际） | 英美军驻地附近捕五人 特朗普：他们企图制造巨大破坏
+    https://www.zaobao.com/news/world/story20260928-9746073
+联合早报（国际） | 特朗普：本周料与伊朗展开更多谈判
+    https://www.zaobao.com/news/world/story20260927-9745753
+联合早报（国际） | 教宗良十四世：安乐死不能视为“正常”
+    https://www.zaobao.com/news/world/story20260927-9745680
+联合早报（国际） | 南非又发现一具女尸 两个多月发现女受害者增至11人
+    https://www.zaobao.com/news/world/story20260927-9745588
+联合早报（国际） | 中美峰会后高市与特朗普通话 重申同盟关系
+    https://www.zaobao.com/news/world/story20260927-9745347
+联合早报（国际） | 瑞士公投否决收紧中立政策提案
+    https://www.zaobao.com/news/world/story20260927-9745464
+联合早报（国际） | 特朗普回拒伊朗方案 德黑兰：重开霍尔木兹海峡条件绝不妥协
+    https://www.zaobao.com/news/world/story20260927-9744947
+联合早报（国际） | 以色列财长促吞并加沙地带及黎巴嫩南部部分地区
+    https://www.zaobao.com/news/world/story20260927-9745324
+联合早报（国际） | 刚果（金）东部沉船事故造成至少12人死亡
+    https://www.zaobao.com/news/world/story20260927-9745239
+联合早报（国际） | 韩国三军人清理巡逻路遭地雷炸伤 韩军与联合国军展开调查
+    https://www.zaobao.com/news/world/story20260927-9745195
+联合早报（国际） | 美国强劲秋季风暴席卷东北部多地 数万户断电一人死亡
+    https://www.zaobao.com/news/world/story20260927-9745178
+联合早报（国际） | 【美国中期选举】参众两院选情再恶化 “红色暗流”或将共和党人拖入深渊
+    https://www.zaobao.com/news/world/story20260927-9743927
+联合早报（国际） | 美媒：朝鲜测试结合无人机与导弹的蜂群攻击战术
+    https://www.zaobao.com/news/world/story20260927-9745022
+联合早报（国际） | 英国首相承诺改革社会护理 方案留待下届大选提出
+    https://www.zaobao.com/news/world/story20260927-9744820
+联合早报（国际） | 日本高科技诈骗猖獗 日均损失10亿日元
+    https://www.zaobao.com/news/world/story20260927-9738738
+联合早报（国际） | 特朗普拒绝重开霍尔木兹方案 伊朗军方称做好迎战准备
+    https://www.zaobao.com/news/world/story20260927-9744581
+联合早报（国际） | 英国首相暂不支持希思罗机场建第三跑道
+    https://www.zaobao.com/news/world/story20260927-9744502
+联合早报（国际） | 研究：寻求聊天机器人陪伴的青少年更感孤独
+    https://www.zaobao.com/news/world/story20260927-9744182
+联合早报（国际） | 英国美军基地附近发生重大事件 警方逮捕五人疏散居民
+    https://www.zaobao.com/news/world/story20260927-9744074
+联合早报（国际） | 硅谷巨头办AI院校 培育新世代科技人才
+    https://www.zaobao.com/news/world/story20260927-9722270
+联合早报（国际） | 印度尼泊尔暴雨洪灾造成70死 10人遭雪崩掩埋失踪
+    https://www.zaobao.com/news/world/story20260927-9743926
+联合早报（国际） | 美国学校吹起“反科技”风 限制学生使用科技产品和AI
+    https://www.zaobao.com/news/world/story20260927-9670156
+联合早报（国际） | 医疗数据库遭AI入侵事件 澳洲参议院传召OpenAI与Anthropic总裁质询
+    https://www.zaobao.com/news/world/story20260927-9743645
+联合早报（国际） | 南非发生两起酒吧枪击事件 共造成27人死亡
+    https://www.zaobao.com/news/world/story20260927-9743505
+联合早报（国际） | 沙特首都学校无预警改线上教学一周
+    https://www.zaobao.com/news/world/story20260927-9743380
+联合早报（国际） | 习特二会后 美日领导人再通电话
+    https://www.zaobao.com/news/world/story20260927-9742474
+联合早报（国际） | 【视频】习近平时隔11年对美进行国事访问 特朗普亲自在停机坪迎接
+    https://www.zaobao.com/news/world/story20260924-9725722
+联合早报（新加坡） | 回理会推出三措施 助回教家庭落实遗产规划
+    https://www.zaobao.com/news/singapore/story20260927-9744105
+联合早报（新加坡） | 维文：AI发展难刹车 全球须速建立共同规则和防护机制
+    https://www.zaobao.com/news/singapore/story20260927-9744746
+联合早报（新加坡） | 新加坡外长维文：中美关系暂处“休战” 须持续对话化解分歧
+    https://www.zaobao.com/news/singapore/story20260927-9745278
+联合早报（新加坡） | 中三女生习武不让须眉 滨海湾花园耍大旗竞技
+    https://www.zaobao.com/news/singapore/story20260927-9744783
+联合早报（新加坡） | 黄姜饭义卖会今年目标 为总统挑战筹款15万元
+    https://www.zaobao.com/news/singapore/story20260927-9744787
+联合早报（新加坡） | 芽笼士乃设调解工作组 助居民及早化解纠纷
+    https://www.zaobao.com/news/singapore/story20260927-9744724
+联合早报（新加坡） | 脱下白袍从政 赛义德哈伦：政策不能只从临床视角制定
+    https://www.zaobao.com/news/singapore/story20260927-9721778
+联合早报（新加坡） | 文莱王储比拉赫访新 将与黄循财总理主持年轻领袖计划活动
+    https://www.zaobao.com/news/singapore/story20260927-9745033
+联合早报（新加坡） | 政策咨询讨论不能无休止 徐芳达：政府须适时作决定
+    https://www.zaobao.com/news/singapore/story20260927-9744807
+联合早报（新加坡） | SIMBA发生数据外泄事件 逾2.3万名客户资料受影响
+    https://www.zaobao.com/news/singapore/story20260927-9744996
+联合早报（新加坡） | 婴儿保姆试点计划推出一年多 照顾逾百宝宝获家长好评
+    https://www.zaobao.com/news/singapore/story20260927-9710954
+联合早报（新加坡） | 制定全国气候适应计划 东南区举办对话会征集意见
+    https://www.zaobao.com/news/singapore/story20260927-9744084
+联合早报（新加坡） | 又见野猴作乱！这次在树上“乱丢纸巾”
+    https://www.zaobao.com/news/singapore/story20260927-9744258
+联合早报（新加坡） | 称设计师吞款要客户补上 装修公司加价不果停工须赔2万元
+    https://www.zaobao.com/news/singapore/story20260927-9708315
+联合早报（新加坡） | 陈振声赴法德 展开六天介绍访问
+    https://www.zaobao.com/news/singapore/story20260927-9744239
+联合早报（新加坡） | 实龙岗中村庄“最酷空间” 楼下买菜楼上自习
+    https://www.zaobao.com/news/singapore/story20260927-9743258
+联合早报（新加坡） | “让爱传出去”第16年 212名学生与各族裔长者同乐
+    https://www.zaobao.com/news/singapore/story20260927-9743586
+联合早报（新加坡） | 【红蚂蚁】不戴头盔、车篮子载人 危险骑行要管到什么程度才够？
+    https://www.zaobao.com/news/singapore/story20260927-9738771
+联合早报（新加坡） | 停车五分钟要收10万元？停车场管理层：已更换零件
+    https://www.zaobao.com/news/singapore/story20260927-9743749
+联合早报（新加坡） | 两阿叔巴士内叫阵 车长及时劝解
+    https://www.zaobao.com/news/singapore/story20260927-9743457
+联合早报（新加坡） | 称为孙筹医药费 女佣屡偷首饰现金
+    https://www.zaobao.com/news/singapore/story20260927-9743763
+联合早报（新加坡） | 八邑会馆迎97周年 明年办4000人国际潮团联谊年会
+    https://www.zaobao.com/news/singapore/story20260927-9743123
+联合早报（新加坡） | 太原王氏公会庆90周年 办千人宴筹款扩建大厦
+    https://www.zaobao.com/news/singapore/story20260927-9728423
+联合早报（新加坡） | 碧山乌鸦袭人 一小时六人遭殃
+    https://www.zaobao.com/news/singapore/story20260927-9743443
+联合早报（新加坡） | 印尼女邀投资不见回酬 男子恐损15.7万元报警
+    https://www.zaobao.com/news/singapore/story20260927-9743477
+联合早报（新加坡） | 清洁工见宝马狂烧 连取11灭火器
+    https://www.zaobao.com/news/singapore/story20260927-9743472
+联合早报（新加坡） | 星期天多区PSI破百 医生：N95口罩有效防霾
+    https://www.zaobao.com/news/singapore/story20260927-9743459
+######## 2026-09-27 ########
+Ars Technica | How the Smithsonian became the latest front in Trump’s culture war
+    https://arstechnica.com/tech-policy/2026/09/how-the-smithsonian-became-the-latest-front-in-trumps-culture-war/
+CNBC | At NFL games this season, drone defense tech aims to bring down disruptions
+    https://www.cnbc.com/2026/09/27/nfl-drone-defense-tech-game-disruptions.html
+CNBC | Debt-hungry AI companies face increased risk as bond yields spike
+    https://www.cnbc.com/2026/09/27/debt-hungry-data-center-companies-increased-risk-bond-yields-spike.html
+CNBC | Meta's Muse agent is attacking one of the economy's most profitable weak spots
+    https://www.cnbc.com/2026/09/27/meta-muse-ai-personal-agent.html
+CNBC | Apple faces $5.7 billion patent infringement verdict over iPhone and Apple Watch haptics
+    https://www.cnbc.com/2026/09/26/apple-taction-technology-patent-infringement-verdict.html
+CNBC | OpenAI expands review of model behavior after more rogue agent incidents emerge
+    https://www.cnbc.com/2026/09/26/openai-agent-model-behavior-review.html
+CNBC | Top Wall Street analysts like these 3 dividend stocks for steady income
+    https://www.cnbc.com/2026/09/27/top-wall-street-analysts-like-these-dividend-stocks-for-steady-income.html
+CNBC | Boeing flags 737 Max software glitch affecting some automated approach functions
+    https://www.cnbc.com/2026/09/26/boeing-737-max-navigation-software-glitch.html
+CNBC | Trump says he approved new fuel economy standards, rolling back Biden-era rules
+    https://www.cnbc.com/2026/09/26/trump-fuel-economy-cafe-standards.html
+CNBC | White House moves to block $810 million in funding through pocket rescission
+    https://www.cnbc.com/2026/09/26/white-house-810-million-pocket-rescission.html
+CNBC | Here's exactly what Paramount promised Hollywood to land WBD — and why some are still skeptical
+    https://www.cnbc.com/2026/09/25/paramount-hollywood-promises.html
+CNBC 科技 | Meta and Microsoft led tech stocks higher last week despite soaring bond yields
+    https://www.cnbc.com/2026/09/26/meta-microsoft-led-tech-higher-this-week-despite-soaring-bond-yields.html
+Fortune | British police arrest five men for allegedly preparing a terrorism attack with explosives on a base used by U.S. bombers for Iran war
+    https://fortune.com/2026/09/27/british-police-arrest-raf-fairford-terrorism-attack-explosives-us-air-force-bombers-iran-war/
+Fortune | As soaring energy prices crush businesses, France rolls out a new $500 million aid package, including help with commuting and heating costs
+    https://fortune.com/2026/09/27/energy-prices-businesses-france-500-million-aid-package-commuting-heating-costs/
+Fortune | One of the most biting insults in Alaska politics is hitting someone with the ‘Lower 48’ label — and it’s central to the U.S. Senate race
+    https://fortune.com/2026/09/27/alaska-politics-lower-48-insult-us-senate-race-dan-sullivan-mary-peltola/
+Hacker News（科技社区） | Show HN: TinyAIArena watch AI agents battle it out
+    https://tinyaiarena.com/
+Hacker News（科技社区） | The Normalization of Inexplicable Failures
+    https://www.ihatethefuture.com/2026/09/the-normalization-of-inexplicable.html
+Hacker News（科技社区） | Fragment of oldest known peace treaty found in Turkey
+    https://www.livescience.com/archaeology/ancient-egyptians/we-have-found-traces-of-peace-thousands-of-years-old-fragment-of-worlds-oldest-known-peace-treaty-found-in-turkey
+Hacker News（科技社区） | In an $80 motel room, a discovery to shed light on the origins of life
+    https://www.nytimes.com/2026/09/26/science/motel-science-discovery.html
+Hacker News（科技社区） | Replacing the old battery on rechargeable bike lights
+    https://jvns.ca/blog/2026/09/27/replacing-the-old-battery-on-rechargeable-bike-lights/
+Hacker News（科技社区） | Faster prompt lookup drafting in llama.cpp
+    https://jadidbourbaki.github.io/blog/prompt-lookup-llama-cpp/
+Hacker News（科技社区） | Video CDs Break Windows Explorer
+    https://clydesnotes.blogspot.com/2026/08/video-cds-break-windows-explorer.html
+Live Science | A giant cosmic 'fart' is making a wobbling zombie star repeatedly flash us, 'groundbreaking' observations reveal
+    https://www.livescience.com/space/astronomy/a-giant-cosmic-fart-is-making-a-wobbling-zombie-star-repeatedly-flash-us-groundbreaking-observations-reveal
+Live Science | James Webb telescope shares one of its biggest images ever, with record-breaking stars hiding in the dust
+    https://www.livescience.com/space/astronomy/james-webb-telescope-shares-one-of-its-biggest-images-ever-with-record-breaking-stars-hiding-in-the-dust-space-photo-of-the-week
+Live Science | What is the closest any object has gotten to the sun?
+    https://www.livescience.com/space/astronomy/what-is-the-closest-any-object-has-gotten-to-the-sun
+MarketWatch | My friend is terminally ill. Should she sell her rental home and pay $100,000 in capital gains?
+    https://www.marketwatch.com/story/my-friend-is-terminally-ill-should-she-sell-her-rental-home-and-pay-100-000-in-capital-gains-8568aada?mod=mw_rss_topstories
+MarketWatch | I’m 77, pay rent and live off Social Security, but I help homeless people. Why are so many people going hungry?
+    https://www.marketwatch.com/story/im-77-pay-rent-and-live-off-social-security-but-i-help-homeless-people-why-are-so-many-people-going-hungry-5818465f?mod=mw_rss_topstories
+MarketWatch | Micron could dethrone Nvidia and become the biggest driver of S&P 500 profit growth
+    https://www.marketwatch.com/story/micron-could-dethrone-nvidia-and-become-the-biggest-driver-of-s-p-500-profit-growth-d62e0e68?mod=mw_rss_topstories
+MarketWatch | Look closer, and Wall Street’s rally is showing cracks
+    https://www.marketwatch.com/story/look-closer-and-wall-streets-rally-is-showing-cracks-94952048?mod=mw_rss_topstories
+New Scientist | Blood test could gauge if a baby has a dangerous infection in 15 minutes
+    https://www.newscientist.com/article/2590894-blood-test-could-gauge-if-a-baby-has-a-dangerous-infection-in-15-minutes/?utm_campaign=RSS|NSNS&utm_content=home&utm_medium=RSS&utm_source=NSNS
+Phys.org | Waste bulrush transformed into copper-enhanced material for dye removal from wastewater
+    https://phys.org/news/2026-09-bulrush-copper-material-dye-wastewater.html
+Phys.org | Astronomers discover a radio galaxy with evidence of four separate jet outbursts
+    https://phys.org/news/2026-09-astronomers-radio-galaxy-evidence-jet.html
+Phys.org | DNA reveals chemosynthesis genes in bacteria living on coral reef fish gills
+    https://phys.org/news/2026-09-dna-reveals-chemosynthesis-genes-bacteria.html
+Phys.org | Powerful storm pummels Northeast US with rain, high winds
+    https://phys.org/news/2026-09-powerful-storm-pummels-northeast-high.html
+Phys.org | Why AI has trouble predicting the fury of hurricane intensity
+    https://phys.org/news/2026-09-ai-fury-hurricane-intensity.html
+Phys.org | NEET with a disability: What's holding back visually impaired young people who want to work
+    https://phys.org/news/2026-09-neet-disability-visually-impaired-young.html
+Phys.org | Looking for #womenshealth information on Instagram? 4 out of 10 posts are ads
+    https://phys.org/news/2026-09-womenshealth-instagram-ads.html
+Phys.org | Black hole jets reach far beyond galaxies' visible edges, potentially deciding their fate
+    https://phys.org/news/2026-09-black-hole-jets-galaxies-visible.html
+Phys.org | Why earwigs infected by parasitic worms head towards water
+    https://phys.org/news/2026-09-earwigs-infected-parasitic-worms.html
+Phys.org | Pumpkin-derived enzyme weakens peanut proteins' binding to allergy antibodies in lab tests
+    https://phys.org/news/2026-09-pumpkin-derived-enzyme-weakens-peanut.html
+Phys.org | Engineers teach spacecraft to 'dream' their way to the space station
+    https://phys.org/news/2026-09-spacecraft-space-station.html
+Phys.org | Sparse layers of 10-nanometer silver particles boost CO production from CO₂
+    https://phys.org/news/2026-09-sparse-layers-nanometer-silver-particles.html
+Phys.org | A real-time look inside spacecraft heat shields during extreme heat conditions
+    https://phys.org/news/2026-09-real-spacecraft-shields-extreme-conditions.html
+Slashdot | Just How Big is the AI Buildout - and How Risky?
+    https://slashdot.org/story/26/09/25/230252/just-how-big-is-the-ai-buildout---and-how-risky?utm_source=rss1.0mainlinkanon&utm_medium=feed
+Slashdot | Waymo Says Its Self-Driving Cars Reduced Injury-Causing Accidents by 82%
+    https://tech.slashdot.org/story/26/09/27/0134224/waymo-says-its-self-driving-cars-reduced-injury-causing-accidents-by-82?utm_source=rss1.0mainlinkanon&utm_medium=feed
+Slashdot | After Dozens of Incidents at OpenAI and Anthropic, OpenAI Pauses Model Training to Build More Safeguards
+    https://slashdot.org/story/26/09/27/078251/after-dozens-of-incidents-at-openai-and-anthropic-openai-pauses-model-training-to-build-more-safeguards?utm_source=rss1.0mainlinkanon&utm_medium=feed
+Slashdot | New Tin-based Solar Cells Trap Heat 1,000 Times Longer, Could Beat 33% Limit
+    https://hardware.slashdot.org/story/26/09/26/0716210/new-tin-based-solar-cells-trap-heat-1000-times-longer-could-beat-33-limit?utm_source=rss1.0mainlinkanon&utm_medium=feed
+Slashdot | China and the US Say They've Agreed to Start Talks About AI
+    https://news.slashdot.org/story/26/09/27/0153248/china-and-the-us-say-theyve-agreed-to-start-talks-about-ai?utm_source=rss1.0mainlinkanon&utm_medium=feed
+Slashdot | KDE and GNOME Developers Ponder How to Handle AI-Generated Contributions
+    https://tech.slashdot.org/story/26/09/24/1928229/kde-and-gnome-developers-ponder-how-to-handle-ai-generated-contributions?utm_source=rss1.0mainlinkanon&utm_medium=feed
+TechCrunch | Sennheiser Momentum 5 review: Great sound, incredible battery life, and few compromises
+    https://techcrunch.com/2026/09/27/sennheiser-momentum-5-review-great-sound-incredible-battery-life-and-few-compromises/
+TechCrunch | PNOE’s new face mask wants to make lab-grade breath testing a self-serve affair
+    https://techcrunch.com/2026/09/26/pnoes-new-face-mask-wants-to-make-lab-grade-breath-testing-a-self-serve-affair/
+TechCrunch | Google tests buying from Walmart-owned Flipkart through Gemini and AI Mode in India
+    https://techcrunch.com/2026/09/26/google-tests-buying-from-walmart-owned-flipkart-through-gemini-and-ai-mode-in-india/
+TechCrunch | Insurers claim AI is already increasing healthcare costs
+    https://techcrunch.com/2026/09/26/insurers-claim-ai-is-already-increasing-healthcare-costs/
+TechCrunch | TikTok agrees to pay at least $100M in Alabama settlement
+    https://techcrunch.com/2026/09/26/tiktok-agrees-to-pay-at-least-100m-in-alabama-settlement/
+TechCrunch | Meta and YouTube say they will run ads for ‘Musk’ documentary after all
+    https://techcrunch.com/2026/09/26/meta-says-it-will-run-ads-for-musk-documentary-after-all/
+TechCrunch | Levoit’s new air purifier is for the pet odors that have taken over your apartment
+    https://techcrunch.com/2026/09/26/levoits-new-air-purifier-is-for-the-pet-odors-that-have-taken-over-your-apartment/
+The Verge | Out of the Park Baseball lets me enjoy baseball even when the Mets suck
+    https://www.theverge.com/games/1001206/out-of-the-park-baseball-cozy-sim-video-game-review
+The Verge | Engram is a sampler that turns broken AI hallucinations into music
+    https://www.theverge.com/ai-artificial-intelligence/1001193/engram-sampler-ai-hallucinations-music
+The Verge | OpenAI agents tried to ‘bruteforce’ a UN website
+    https://www.theverge.com/ai-artificial-intelligence/1001178/openai-agents-bruteforce-un-website
+The Verge | Why OLPC’s $100 laptop never stood a chance
+    https://www.theverge.com/podcast/1000517/why-olpcs-100-laptop-never-stood-a-chance
+The Verge | The smart home graveyard is getting crowded
+    https://www.theverge.com/column/1000778/smart-home-june-oven-graveyard
+Wired | Best Party Speakers (2026): JBL, Sony, Marshall, and More
+    https://www.wired.com/story/best-party-speaker/
+Wired | What’s the Best Pet DNA Test? We Tested the Most Popular Ones
+    https://www.wired.com/story/best-pet-dna-test-kits/
+Wired | You Don’t Need to Pay for Distraction-Blocking Software
+    https://www.wired.com/story/you-dont-need-to-pay-for-distraction-blocking-software/
+Wired | The Data Center Backlash Should Also Be a Climate Reckoning. It Isn’t Yet
+    https://www.wired.com/story/data-center-backlash-climate-reckoning/
+Wired | Nicotine Is Mounting a Comeback in the Wellness Movement
+    https://www.wired.com/story/nicotine-is-mounting-a-comeback-in-the-wellness-movement/
+Wired | Some Pancreatic Cells Are Just One Genetic Tweak Away From Treating Diabetes
+    https://www.wired.com/story/pancreatic-cells-just-one-genetic-tweak-away-from-treating-diabetes/

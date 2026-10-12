@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-10-11T09:48:17.661Z",
+  "focus": "data-connectivity + data-continuity",
+  "endpoints_probed": 62,
+  "real_failures": [],
+  "eastmoney_down": [],
+  "continuity": {
+    "predictionDates": [
+      "2026-09-28",
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-08",
+      "2026-10-09"
+    ],
+    "predictionCount": 5,
+    "todayInDates": true,
+    "datesDesc": false,
+    "todayRunDate": "2026-10-09",
+    "todayHasData": true,
+    "todayItems": 20,
+    "isolation": {
+      "req29": "2026-09-29",
+      "req28": "2026-09-28",
+      "count29": 20,
+      "count28": 20,
+      "isolated": true
+    },
+    "catchup": {
+      "running": false,
+      "stage": "",
+      "total": 0,
+      "done": 0,
+      "dates": [],
+      "current": null,
+      "error": null,
+      "finished_at": null
+    },
+    "lhbLatest": "2026-10-09",
+    "lhbTodayHasData": true,
+    "buffett": {
+      "updated_at": "2026-10-06",
+      "periods": [
+        "2026-10-06",
+        "2026-09-29",
+        "2026-09-22",
+        "2026-09-15",
+        "2026-08-29",
+        "2026-07-11"
+      ]
+    }
+  },
+  "summary": {
+    "endpoints": 62,
+    "ok": 61,
+    "empty_ok": 1,
+    "real_failures": 0,
+    "eastmoney_down": 0,
+    "prediction_today": "2026-10-09",
+    "prediction_isolated": true,
+    "lhb_latest": "2026-10-09",
+    "lhb_today_data": true,
+    "buffett_periods": [
+      "2026-10-06",
+      "2026-09-29",
+      "2026-09-22",
+      "2026-09-15",
+      "2026-08-29",
+      "2026-07-11"
+    ]
+  }
+}

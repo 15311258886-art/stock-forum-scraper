@@ -1,0 +1,106 @@
+========== 一、真实页面（只读） ==========
+PASS  [正常页] 无加载失败时错误条隐藏（不能常亮）  —— barVisible=false text=""
+PASS  [正常页] 全站无 undefined / NaN / Invalid Date  —— undefined=0 NaN=0 invalidDate=0
+PASS  [正常页] title 属性上无 undefined / NaN  —— 0 处 
+PASS  [P2-1] 已定义 escAttr()
+PASS  [P2-1] escAttr 把 " 与 ' 一并转义  —— escAttr("x\" onmouseover=...") = "x&quot; onmouseover=&quot;window.__xss=1&#39; &lt;b&gt;&amp;"
+PASS  [P2-1] 对照：esc() 不转义引号（说明 escAttr 是必要的）  —— esc() = "x\" onmouseover=\"window.__xss=1' &lt;b&gt;&amp;"
+PASS  [P2-1] javascript: / data: 被判定为不可跳转  —— javascript=true data=true
+PASS  [P2-1] javascript: / data: 不会生成 <a href>  —— js=<span class="src-demo-text" title="该条为程序内置示例数据，无真实 | data=<span class="src-demo-text" title="该条为程序内置示例数据，无真实
+PASS  [P2-1] 真实 https 链接仍可点（保留原有能力）  —— <a href="https://www.reuters.com/markets/x" target="_blank" rel="noopener norefe
+PASS  [P2-1] 占位域名仍降级为不可点（保留原有行为）  —— <span class="src-demo-text" title="该条为程序内置示例数据，无真实出处，故不提供跳转"
+INFO  [P2-7] 面板状态分布  —— 未启用×5 / 已接入×26 / 待激活（需 VPN）×7 / 已连通但无条目×1 / 抓取失败×1 / 待激活（需 API Key）×1
+PASS  [P2-7①] 六类状态映射正确（未接入/待激活/未启用/示例模式/连通无条目/失败）  —— {"已接入":"src-on","已连通但无条目":"src-neutral","示例模式·未联网":"src-demo","待激活（需 VPN）":"src-wait","待激活（需 API Key）":"src-wait","未启用":"src-off","抓取失败":"src-err","未知状态XYZ":"src-off","":"src-off"}
+PASS  [P2-7④] 「已连通但无条目」不再落到红色 src-err  —— → src-neutral
+PASS  [P2-7④] 未知状态也不再默认标红（兜底为中性灰）  —— 未知→src-off 空→src-off
+PASS  [P2-7①] 真实渲染中每个源的配色与自身状态一致  —— 41 个源全部一致
+PASS  [P2-7①] 红色只用于真失败（除「抓取失败」外没有别的源被标红）  —— 抓取失败
+PASS  [P2-7④] 面板里「已连通但无条目」确实按中性渲染  —— ov-src-status src-neutral
+PASS  [P2-7⑥] 面板标题旁渲染「数据截至：<checked_at>」  —— checked_at=2026-09-22 21:53:46 文案="数据截至：2026-09-22 21:53:46"
+PASS  [P2-7⑥] checked_at 不渲染成 undefined  —— 数据截至：2026-09-22 21:53:46
+PASS  [P2-7⑥] checked_at 全缺失时降级为空（调用方会隐藏该行，不渲染 undefined）  —— latestCheckedAt(...)=""
+PASS  [P2-7③] 条数口径写成「抓取 N 条」并带 title 提示去重前口径  —— 26 个源，样例 抓取 16 条 / title="为去重前的抓取条数，实际入库数可能更少"
+PASS  [P2-7⑤] 图例如实描述为「上一次采集」的快照  —— 本面板展示的是上一次采集的结果快照（数据时点见标题旁「数据截至」），不是实时探测结果。国外源（YouTube/Reddi
+PASS  [P2-7⑤] 图例已删除当前实现下不会出现的「示例模式·未联网」说法  —— 本面板展示的是上一次采集的结果快照（数据时点见标题旁「数据截至」），不是实时探测结果。国外源（YouTube/Reddit/Google News/Reuters 等）在本机实测需
+PASS  [P2-7] 面板内无 undefined
+PASS  [P2-5] 人员列表文案不再声称「不遗漏任何一个名称」  —— 每个名称均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + 所属层级（A~F，入选选手才有）。按出现次数降序排列，此处列出前 80 位（本次接口共返回 170 位）；完整名单请以数据库导出为准。
+PASS  [P2-5] 人员列表文案如实说明截断（列出前 N 位 + 接口共返回 M 位）  —— 每个名称均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + 所属层级（A~F，入选选手才有）。按出现次数降序排列，此处列出前 80 位（本次接口共返回 170 位）；完整名单请以数据库导出为准。
+PASS  [P2-5] 人员表单元格无 undefined  —— 行数=80 脏单元格=0
+PASS  [主题 dark-dashboard] 无 undefined / NaN / title 脏值  —— undefined=0 NaN=0 titleBad=0
+PASS  [主题 minimal-report] 无 undefined / NaN / title 脏值  —— undefined=0 NaN=0 titleBad=0
+PASS  [主题 card-warm] 无 undefined / NaN / title 脏值  —— undefined=0 NaN=0 titleBad=0
+PASS  [主题 light-tech] 无 undefined / NaN / title 脏值  —— undefined=0 NaN=0 titleBad=0
+PASS  [正常页] 真实数据流程无 JS 运行时错误  —— 无
+
+========== 二、P1-2 加载失败可见化（abort / 500 HTML / 500 JSON） ==========
+PASS  [P1-2][网络层 abort] 出现可见错误条  —— barVisible=true bar="部分数据加载失败：【汇总接口】Failed to fetch；【当前讨论股票】Failed to fetch；【正在操作股票】Failed "
+PASS  [P1-2][网络层 abort] 错误条文案含「部分数据加载失败」  —— 部分数据加载失败：【汇总接口】Failed to fetch；【当前讨论股票】Failed to fetch；【正在操作股票】Failed to fetch；【实盘选手】Faile
+PASS  [P1-2][网络层 abort] statusHint 也变成可读报错（不再是默认引导语）  —— 部分数据加载失败：【近期热点(国外驱动)】Failed to fetch
+PASS  [P1-2][网络层 abort] 报错信息带状态码/原因  —— 部分数据加载失败：【汇总接口】Failed to fetch；【当前讨论股票】Failed to fetch；【正在操作股票】Failed to fetch；【实盘选手】Failed to fetch；【共同持仓共识】F
+PASS  [P1-2][网络层 abort] 错误条可关闭
+PASS  [P1-2][网络层 abort] 无未捕获的 JS 异常  —— console: Failed to load resource: net::ERR_FAILED ; console: Failed to load resource: net::ERR_FAILED
+PASS  [P1-2][500 HTML 错误页] 出现可见错误条  —— barVisible=true bar="部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — <html><bo"
+PASS  [P1-2][500 HTML 错误页] 错误条文案含「部分数据加载失败」  —— 部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — <html><body>Internal Server E
+PASS  [P1-2][500 HTML 错误页] statusHint 也变成可读报错（不再是默认引导语）  —— 部分数据加载失败：【近期热点(国外驱动)】HTTP 500 Internal Server Error /api/overseas_hots
+PASS  [P1-2][500 HTML 错误页] 报错信息带状态码/原因  —— 部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — <html><body>Internal Server Error</body></html>；【
+PASS  [P1-2][500 HTML 错误页] 错误条可关闭
+PASS  [P1-2][500 HTML 错误页] 无未捕获的 JS 异常  —— console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+PASS  [P1-2][500 JSON error] 出现可见错误条  —— barVisible=true bar="部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — {"error":"
+PASS  [P1-2][500 JSON error] 错误条文案含「部分数据加载失败」  —— 部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — {"error":"boom"}；【当前讨论股票】HTTP
+PASS  [P1-2][500 JSON error] statusHint 也变成可读报错（不再是默认引导语）  —— 部分数据加载失败：【近期热点(国外驱动)】HTTP 500 Internal Server Error /api/overseas_hots
+PASS  [P1-2][500 JSON error] 报错信息带状态码/原因  —— 部分数据加载失败：【汇总接口】HTTP 500 Internal Server Error /api/summary — {"error":"boom"}；【当前讨论股票】HTTP 500 Internal Server
+PASS  [P1-2][500 JSON error] 错误条可关闭
+PASS  [P1-2][500 JSON error] 无未捕获的 JS 异常  —— console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+PASS  [P2-9][缺 counts] 给出可读提示（而非静默白屏）  —— hint="部分数据加载失败：【汇总接口】响应中缺少 counts 字段，计数已降级为空" bar=true
+PASS  [P2-9][缺 counts] 计数降级为「—」且不渲染 undefined  —— —,—,—,—,—,—,—,—,—
+PASS  [P2-9][缺 counts] 无未捕获 JS 异常  —— 无
+
+========== 三、P2-1 属性逃逸注入测试 ==========
+PASS  [P2-1] 选手行 data-name 原样回读（引号没有被截断成半个值）  —— 得到 "甲\" data-evil=\"1" 期望 "甲\" data-evil=\"1"
+PASS  [P2-1] 选手行 data-ch 原样回读  —— 得到 "A\" onmouseover=\"window.__xssCh=1"
+PASS  [P2-1] 选手行属性集合只有 data-name/data-ch/data-tier（未注入 data-evil）  —— ["data-ch","data-name","data-tier"]
+PASS  [P2-1] 页面上不存在任何 [onmouseover] 属性  —— 节点数=0
+PASS  [P2-1] 页面上不存在被注入的 [data-evil]  —— 节点数=0
+PASS  [P2-1] 选手渠道徽章未被引号截断成独立属性（无 onmouseover，class 仍含 ch-A）  —— className="badge ch-A\" onmouseover=\"window.__xssCh=1" hasOnmouseover=false
+FAIL  [P2-1] 人物行 data-name 原样回读且属性未被追加  —— "乙\" onmouseover=\"window.__xssPerson=1" / ["data-name","style"]
+PASS  [P2-1] 股票卡 data-sym 原样回读且属性未被追加  —— "600519\" onmouseover=\"window.__xssSym=1" / ["class","data-sym"]
+PASS  [P2-1] javascript:/data: 没有被写进任何 <a href>  —— 命中=0
+PASS  [P2-1] 注入的 onmouseover 未被触发  —— 被触发=0
+PASS  [P2-1] 真实鼠标悬停后仍未触发任何注入脚本  —— 被触发=0
+PASS  [P2-1] 注入场景无未捕获 JS 异常  —— 无
+
+========== 四、P2-8 抽屉把手可视性 ==========
+PASS  [P2-8] 抽屉已打开且初始就在视口内（right/bottom 不越界）  —— {"l":760,"t":76,"w":662,"h":840,"r":1422,"b":916}
+PASS  [P2-8] 拖到右下极限后 right <= innerWidth  —— left=778 width=662 right=1440 vw=1440
+PASS  [P2-8] 拖到右下极限后 bottom <= innerHeight  —— top=160 height=840 bottom=1000 vh=1000
+PASS  [P2-8] 拖到右下极限后右下角拉伸手柄完整在视口内  —— {"l":1419,"t":979,"r":1439,"b":999,"w":20} vw=1440 vh=1000
+PASS  [P2-8] 拖到右下极限后标题栏可见可拖  —— headTop=161
+PASS  [P2-8] 拖到左上极限后 right/bottom 仍不越界且手柄可见  —— @(-502,0) 662x840 rz={"l":139,"t":819,"r":159,"b":839,"w":20}
+PASS  [P2-8] 拖到左上极限后标题栏仍在视口内（可再次拖回）  —— headTop=1
+PASS  [P2-8] 窗口缩到 900x620 后 right/bottom 不越界且手柄可见  —— @(-502,0) 662x612 right=160 bottom=612 vw=900 vh=620 rz={"l":139,"t":591,"r":159,"b":611,"w":20}
+PASS  [P2-8] 把手向右下拖出视口后仍被钳回视口内  —— @(-502,0) 1938x996 right=1436 bottom=996 rz={"l":1415,"t":975,"r":1435,"b":995,"w":20}
+PASS  [P2-8] 抽屉场景无未捕获 JS 异常  —— 无
+
+========== 五、缺字段 / 类型不符（拦截构造，仅测试页生效） ==========
+FAIL  [P2-9] 大面积缺字段时全站无 undefined / NaN / Invalid Date  —— undefined=4 NaN=0 invalidDate=0
+PASS  [P2-9] title 属性上无 undefined / NaN  —— 0 处 
+PASS  [P2-9] 空降级不抛错（无未捕获 JS 异常）  —— 无
+FAIL  [P2-9] 汇总卡缺字段显示为「—」共 9 张且无 undefined  —— —,1,2,—,—,—,—,—,—
+PASS  [P3-6] 缺 weight 的热点被跳过，面板不出现 NaN  —— 行数=0 空态=1 文本="暂无热点话题"
+PASS  [P2-9] 人物表缺 mention_count 显示「—」而非 undefined  —— 乙 | 来源未知 | 作者 | —
+PASS  [P2-9] 共同持仓缺 holders/weighted/heat 显示「—」  ——  按「同时持仓人数」降序排列；共识基数已扩大到 100+ 选手池（覆盖淘股吧/东财/雪球/同花顺 4 平台）。新增「层级加权共识度」：在 A/B/C/D 原权重基础上纳入 E/F 
+PASS  [P2-9] 舆论情绪缺 distribution/name_total 不抛错且有内容  —— 0看多0看空0中性 情绪地图（按股票聚合多空，点击卡片看持仓与交易明细） 图例：这些数字分别代表什么 600519股票代码（6 位数字，中国内地交易所）——不是序号、不是排名，代表
+FAIL  [P2-9] 实盘操作缺 price/quantity 显示 -  —— 每个选手均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺） + 所属层级（A~F）。标的列格式为「股票简称 + 股票代码」：代码是 6 位数字（如 600519），对应贵州茅
+PASS  [P2-9] 海外热点缺放大系数/置信/热度显示「—」  —— — | — | 热度 —
+PASS  [P2-7①/②] 已连通但无条目在缺字段页也判为中性（不是红色）  —— ov-src-status src-neutral
+PASS  [P2-7②] enabled===false 时出现「已关闭」小标  —— ov-src-status src-wait
+PASS  [P2-7③] count=5 渲染为「抓取 5 条」  —— 抓取 5 条
+PASS  [P2-7⑥] 缺字段页仍渲染 checked_at
+PASS  [P3-7] 类型不符（数组↔对象↔字符串）不产生 pageerror  —— 无
+PASS  [P3-7] /api/sentiment 返回数组时面板降级提示而非全空白  —— 舆论情绪数据格式异常（接口返回类型不符），已降级显示。请检查 /api/sentiment 的返回结构。
+PASS  [P2-9] /api/stocks 返回字符串时降级为空态而非抛错  —— 暂无讨论股票数据
+PASS  [P2-9] /api/topics 返回对象时降级为空态  —— 暂无热点话题
+PASS  [P2-9] /api/summary 返回数组时计数降级为「—」且不抛错  —— —原始文档(页)—帖子—实盘交易—资讯—入选选手—持仓记录—人物—讨论股票—热点词
+PASS  [P2-9] 类型不符页无 undefined / NaN  —— undefined=0 NaN=0
+
+=== ui_fix_frontend：90/94 通过（FAIL 4） ===

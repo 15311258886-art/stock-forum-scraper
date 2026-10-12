@@ -1,0 +1,119 @@
+DB = F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\viewer\app.db  size= 917504 bytes  mtime= 2026-09-22 21:53:46
+
+=========== 1. 各表行数 ===========
+  raw_pages                  1
+  posts                      185
+  trades                     46
+  players                    160
+  positions                  135
+  news                       3
+  stock_mentions             185
+  persons                    170
+  topics                     15
+  login_status               1
+  meta                       3
+  stock_names                25
+  overseas_news              707
+  overseas_mentions          18
+  overseas_sentiment_daily   77
+  overseas_hotspots          17
+  overseas_sources_status    41
+
+=========== 2. meta 表（判定示例/真实的关键）===========
+  demo                     = 1
+  last_ingest              = 示例数据
+  overseas_last_collect    = 2026-09-22 21:53:47
+
+=========== 3. 示例数据 vs 真实数据：逐表按来源 URL 判别 ===========
+  posts          总=185   示例URL=185   非示例URL=0     (其中空URL=0    )
+  trades         总=46    示例URL=46    非示例URL=0     (其中空URL=0    )
+  positions      总=135   示例URL=135   非示例URL=0     (其中空URL=0    )
+  players        总=160   示例URL=160   非示例URL=0     (其中空URL=0    )
+  news           总=3     示例URL=3     非示例URL=0     (其中空URL=0    )
+  overseas_news  总=707   示例URL=41    非示例URL=666   (其中空URL=0    )
+  overseas_hotspots 总=17    示例URL=0     非示例URL=17    (其中空URL=0    )
+
+=========== 4. posts 时间字段 ===========
+  posts 总数: 185
+  post_time 为空/NULL: 0
+  post_time 最早/最晚: ('2026-09-22 13:16:10', '2026-09-22 21:53:10')
+  今日(2026-09-22)的 post_time 条数: 185
+  post_time 精确到同一秒的重复组数(>1):
+     2026-09-22 21:04:10  x2
+     2026-09-22 20:43:10  x2
+     2026-09-22 20:22:10  x2
+     2026-09-22 20:01:10  x2
+     2026-09-22 19:40:10  x2
+     2026-09-22 19:19:10  x2
+  示例 posts(example.local): 185
+  真实 posts(非 example): 0
+
+=========== 5. trades / positions 时间字段 ===========
+  trades 总数=46  post_time空=0  buy_time空=14  hold_since空=46
+     示例=46 真实=0
+  positions 总数=135  post_time空=135  buy_time空=0  hold_since空=131
+     示例=135 真实=0
+
+=========== 6. overseas_news：kind / 示例源 / 时间 ===========
+  kind 分布: {'media': 318, 'research': 175, 'official': 100, 'tech_community': 35, 'seed': 32, 'domestic_crosscheck': 25, 'forum': 15, 'blog': 7}
+  source_name 以「示例源·」开头: 32
+  url 为 example.local: 41
+  publish_time 为空/NULL: 0
+  publish_time 今日条数: 412
+  publish_time 最早/最晚: ('2026-01-02 11:36:25', '2026-09-22 23:30:00')
+  meta.overseas_last_collect = 2026-09-22 21:53:47
+  publish_time 精确同一秒重复组(>1，前 10):
+     2026-09-22 21:53:46  x99
+     2026-09-22 21:53:45  x75
+     2026-09-22 21:00:00  x10
+     2026-09-22 19:00:00  x6
+     2026-09-21 18:00:00  x5
+     2026-09-21 20:00:00  x4
+     2026-09-22 20:00:00  x4
+     2026-09-20 18:00:00  x3
+     2026-09-22 18:00:00  x3
+     2026-01-02 11:36:26  x2
+  落在「重复时间戳」里的条目数: 245 / 707
+
+=========== 7. overseas_sentiment_daily 序列（趋势图数据源）===========
+  行数: 77
+     2026-09-22  total=506
+     2026-09-21  total=59
+     2026-09-20  total=24
+     2026-09-19  total=30
+     2026-09-18  total=21
+     2026-09-17  total=20
+     2026-09-16  total=25
+     2026-09-15  total=15
+     2026-09-14  total=7
+     2026-09-13  total=2
+     2026-09-11  total=9
+     2026-09-10  total=5
+  今日行的 total: 506
+
+=========== 8. 缺失字段体检（前端会渲染成 undefined 的位置）===========
+  [stock_mentions]
+     symbol_name        空/NULL = 185 / 185
+  [posts]
+  [trades]
+  [positions]
+  [players]
+  [overseas_hotspots]
+  [overseas_news]
+
+=========== 9. overseas_hotspots 关键字段例样 ===========
+   {'key': 'topic::科技与AI', 'title': '科技与AI · 国外舆情聚合（162 条）', 'direction': '利多但国外舆情转弱（净空 11）', 'amplification_factor': 1.6, 'confidence': 0.75, 'heat': 5764.25, 'first_seen': '2026-04-13 16:30:00', 'updated_at': '2026-09-22 23:06:30'}
+   {'key': 'research_paper', 'title': 'Peer-reviewed study on quantum computing sends related technology shares higher', 'direction': '利多但国外舆情转弱（净空 8）', 'amplification_factor': 1.6, 'confidence': 0.73, 'heat': 4378.35, 'first_seen': '2026-09-09 18:59:45', 'updated_at': '2026-09-22 23:06:30'}
+   {'key': 'topic::金融与汇率', 'title': '金融与汇率 · 国外舆情聚合（108 条）', 'direction': '中性偏多', 'amplification_factor': 1.6, 'confidence': 0.75, 'heat': 3014.65, 'first_seen': '2026-01-02 11:36:25', 'updated_at': '2026-09-22 23:06:30'}
+   {'key': 'pandemic_overseas', 'title': 'Airline and travel stocks slide as pandemic-era concerns resurface', 'direction': '利多但国外舆情转弱（净空 10）', 'amplification_factor': 1.6, 'confidence': 0.76, 'heat': 1431.25, 'first_seen': '2026-09-14 17:00:00', 'updated_at': '2026-09-22 23:06:30'}
+   {'key': 'geo_conflict', 'title': 'Brent crude jumps as geopolitical tension raises oil supply risk', 'direction': '分化（利多能源/军工/避险 / 利空出行与下游成本）', 'amplification_factor': 1.6, 'confidence': 0.87, 'heat': 1071.5, 'first_seen': '2026-09-19 04:26:33', 'updated_at': '2026-09-22 23:06:30'}
+
+=========== 10. persons / players 计数对账 ===========
+  persons 表总数: 170  /api/persons LIMIT 100
+  players 表总数: 160
+  players tier 分布: {'A': 37, 'B': 42, 'C': 35, 'D': 40, 'E': 5, 'F': 1}
+  players is_top_player=1: 154
+  players is_visible=1: 160
+  positions 覆盖选手数: 71
+  positions 覆盖标的数: 23
+  stock_mentions distinct symbol: 24

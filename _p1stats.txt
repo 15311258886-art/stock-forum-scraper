@@ -1,0 +1,7 @@
+posts 总行数 = 1465 {'sina': 810, 'xueqiu': 655}
+人数(台账) = 84 | 状态 = {'sina/empty': 3, 'sina/ok': 48, 'xueqiu/ok': 33}
+
+-- empty 清单 --
+  sina | 红利实战 | https://guba.sina.com.cn/u/1830822897 | 主贴 0 条，新增 0
+  sina | 我很穷 | https://guba.sina.com.cn/u/5786320669 | 主贴 19 条，新增 0
+  sina | 牵牛尉 | https://guba.sina.com.cn/u/1319941343 | 主贴 0 条，新增 0

@@ -1,0 +1,49 @@
+=== /api/summary 路由 ===
+se (
+                "application/javascript; charset=utf-8" if rel.endswith(".js") else "text/html; charset=utf-8")
+            self._send_file(STATIC_DIR / rel, ctype)
+            return
+        if route == "/api/summary":
+            return self._send_json(api_summary())
+        if route == "/api/stocks":
+            return self._send_json(api_stocks())
+        if route == "/api/operating":
+            return self._send_json(api_operating())
+        if route == "/api/persons":
+            return self._send_json(
+
+=== api_summary 定义行号 ===
+  366 def api_summary() -> dict:
+  937 def api_lhb_sectors(date: str | None = None) -> dict:
+  994 def api_niusan(min_hold: int = 2, scope: str = "free") -> dict:
+
+=== index panel ids ===
+['p-summary', 'p-stocks', 'p-operating', 'p-players', 'p-lhb', 'p-lhb_sectors', 'p-niusan', 'p-consensus', 'p-cohold', 'p-persons', 'p-sentiment', 'p-topics', 'p-overseas_sentiment', 'p-overseas_hotspots', 'p-sources', 'p-archive', 'p-fetchlog', 'p-learn_zdx_stock', 'p-learn_tracks']
+
+=== ensurePanel ===
+function ensurePanel(tab) {
+  let p = $("#p-" + tab);
+  if (!p) {
+    p = document.createElement("div");
+    p.className = "panel";
+    p.id = "p-" + tab;
+    const host = document.querySelector(".content");
+    if (host) host.appendChild(p); else return null;
+  }
+  return p;
+}
+function ensureKbDoc(force) {
+  const box = ensurePanel("learn_zdx_stock");
+  if (!box) return;
+  if (KB.doc && !force) { renderKbDoc(); return; }
+  if (KB.loading) return;
+  KB.loading = true;
+  if (!KB.doc) box.innerHTML = `<div class="empty">正在读取知识库…</div>`;
+  api("/api/kb/doc?key=" + encodeURIComponent(KB.key))
+    .then((d) => { KB.doc = d; KB.error = ""; renderKbDoc(); })
+    .catch((e) => { KB.error = apiErrText(e); box.innerHTML = `<div class="empty">知识库读取失败：${esc(KB.error)}</div>`; })
+    .finally(() => { KB.loading = false; });
+}
+function loadKbTracks() {
+  const box = ensurePanel("learn_tracks");
+  if (

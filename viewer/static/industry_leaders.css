@@ -1,0 +1,29 @@
+/* 行业龙头全景面板样式（独立文件，零改动既有 app.css / visual-upgrade.css） */
+
+.il-head { display: flex; align-items: baseline; gap: 12px; margin: 14px 0 6px; flex-wrap: wrap; }
+.il-head h2 { font-size: 18px; margin: 0; }
+
+.il-legend { margin: 6px 0 14px; color: #555; font-size: 13px; line-height: 1.6; }
+.il-leader { color: #d11a2a; font-weight: 700; }
+
+.il-ind { margin-bottom: 18px; border: 1px solid #e3e6ea; border-radius: 8px; overflow: hidden; background: #fff; }
+.il-ind-hd { display: flex; align-items: baseline; gap: 10px; padding: 8px 12px; background: #f6f8fa; border-bottom: 1px solid #e3e6ea; }
+.il-ind-name { font-weight: 700; font-size: 15px; }
+.il-ind-hd .muted { font-size: 12px; }
+
+.il-tb { width: 100%; border-collapse: collapse; font-size: 13px; }
+.il-tb th, .il-tb td { padding: 5px 10px; border-bottom: 1px solid #eef1f4; text-align: left; white-space: nowrap; }
+.il-tb thead th { background: #fafbfc; color: #666; font-weight: 600; position: sticky; top: 0; }
+.il-tb .num { text-align: right; font-variant-numeric: tabular-nums; }
+.il-tb .up { color: #d11a2a; }
+.il-tb .down { color: #1a9d4b; }
+.il-lead-row { background: rgba(209, 26, 42, 0.06); }
+.il-tag { color: #d11a2a; font-weight: 700; }
+
+.il-list { padding: 0 0 20px; }
+
+/* 沙箱 / 取数失败提示 */
+.il-warn { margin: 18px; padding: 16px 18px; border: 1px solid #f0c36d; background: #fff8e6; border-radius: 8px; }
+.il-warn-title { font-weight: 700; color: #b9770e; font-size: 15px; }
+.il-warn-body { margin-top: 8px; line-height: 1.6; }
+.il-warn code { background: #f3e9cf; padding: 1px 5px; border-radius: 4px; font-size: 12px; }

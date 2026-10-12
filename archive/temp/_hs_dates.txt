@@ -1,0 +1,35 @@
+=== end_date=2026-09-23 的行 ===
+  {"id": "9251", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "1", "holder_name": "珠海华实焕新方科投资企业(有限合伙)", "holder_type": "机构", "is_org": "1", "hold_num": "1018448674.0", "hold_ratio": "22.95", "free_ratio": null, "hold_change": "38429752", "change_ratio": "3.92132755", "scope": "total"}
+  {"id": "9252", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "2", "holder_name": "胜宏科技(惠州)股份有限公司", "holder_type": "机构", "is_org": "1", "hold_num": "228949101.0", "hold_ratio": "5.16", "free_ratio": null, "hold_change": "不变", "change_ratio": null, "scope": "total"}
+  {"id": "9253", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "3", "holder_name": "方正信息产业有限责任公司", "holder_type": "机构", "is_org": "1", "hold_num": "113902273.0", "hold_ratio": "2.57", "free_ratio": null, "hold_change": "-35999965", "change_ratio": "-24.01562877", "scope": "total"}
+  {"id": "9254", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "4", "holder_name": "香港中央结算有限公司", "holder_type": "机构", "is_org": "1", "hold_num": "106011318.0", "hold_ratio": "2.39", "free_ratio": null, "hold_change": "-2004341", "change_ratio": "-1.85560225", "scope": "total"}
+  {"id": "9255", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "5", "holder_name": "方正科技集团股份有限公司破产企业财产处置专用账户", "holder_type": "机构", "is_org": "1", "hold_num": "83023608.0", "hold_ratio": "1.87", "free_ratio": null, "hold_change": "不变", "change_ratio": null, "scope": "total"}
+  {"id": "9256", "symbol": "600601", "symbol_name": "方正科技", "end_date": "2026-09-23", "notice_date": "", "holder_rank": "6", "holder_name": "北京方正互联技术有限公司", "holder_type": "机构", "is_org": "1", "hold_num": "46183986.0", "hold_ratio": "1.04", "free_ratio": null, "hold_change": "不变", "change_ratio": null, "scope": "total"}
+
+=== end_date 前十（含股票）===
+  2026-09-23  n=16   股=3   600601,603519,688105
+  2026-09-22  n=13   股=4   000607,301686,603912,603936
+  2026-09-21  n=1    股=1   603956
+  2026-09-18  n=2    股=1   002137
+  2026-09-17  n=14   股=3   002285,601091,688025
+  2026-09-16  n=15   股=3   002137,603519,688837
+  2026-09-15  n=2    股=1   002536
+  2026-09-14  n=4    股=2   000868,002536
+  2026-09-11  n=12   股=3   001298,301234,603226
+  2026-09-10  n=10   股=2   301689,601218
+  2026-09-09  n=15   股=3   002008,002137,301699
+  2026-09-08  n=2    股=1   002137
+  2026-09-07  n=7    股=2   603448,603936
+  2026-09-04  n=25   股=3   002827,600825,603880
+  2026-09-03  n=7    股=3   002536,600368,688478
+  2026-09-02  n=25   股=5   002536,301686,301688,605055,688478
+  2026-09-01  n=37   股=7   000560,301033,301697,601091,601123,603023,603429
+
+=== scope 取值 ===
+  free     n=11441  2025-12-31 ~ 2026-09-04
+  total    n=11758  2013-09-30 ~ 2026-09-23
+
+=== 600519 全部期（scope=free）===
+   2026-06-30 10
+   2026-03-31 10
+   2025-12-31 10

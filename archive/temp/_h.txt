@@ -1,0 +1,17 @@
+import json: True
+import sqlite3: False
+_num2 defined: 1
+def _num2(v):
+    """两位小数格式化（用于「万股」等展示，缺值返回 —）。"""
+    n = _num(v)
+    return "—" if n is None else f"{n:.2f}"
+
+
+def _em_secid(symbol: str) -> tuple[str, str, str]:
+    """代码 → (market, code, secid)。market: 1=沪市，0=深市/北交所。"""
+    sym = (symbol or "").strip().lower()
+    code = sym[2:] if sym.startswith(("sh", "sz", "bj")) else sym
+    if sym.startswith("sh"):
+        market = "1
+
+_num2 used: 3

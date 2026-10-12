@@ -1,0 +1,59 @@
+/* 2026-10-11 王总第三回合③：技术·价值教学「方法卡片网格」
+   一格一方法：方法短名 + 人话总结 + 回测胜率/收益/评级（或「未回测」）。
+   配色全部走全局令牌（浅色明亮科技风 + 深青 #0E7490 突出色），不新造色。 */
+.mt-head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin:6px 2px 12px; flex-wrap:wrap; }
+.mt-head-l { font-size:13px; color:var(--muted); }
+.mt-head-l b { color:var(--text); font-weight:700; }
+.mt-head-r { font-size:12px; color:var(--muted); }
+.mt-basis { margin:0 2px 14px; padding:8px 12px; background:var(--tag); border:1px solid var(--border); border-radius:10px; font-size:12px; color:var(--muted); }
+.mt-basis summary { cursor:pointer; color:var(--accent); font-weight:600; }
+.mt-basis-row { margin-top:6px; line-height:1.6; }
+
+.mt-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:12px; }
+.mt-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:13px 14px;
+  cursor:pointer; transition:.15s; display:flex; flex-direction:column; gap:8px; min-height:150px; }
+.mt-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 18px #0001; }
+.mt-card:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.mt-card-un { opacity:.94; }
+
+.mt-card-head { display:flex; align-items:center; gap:8px; }
+.mt-name { font-size:15.5px; font-weight:800; color:var(--text); }
+.mt-kind { font-size:11px; padding:1px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); flex:0 0 auto; }
+.mt-kind-tech { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,var(--border)); background:color-mix(in srgb,var(--accent) 8%,var(--panel)); }
+.mt-kind-val { color:var(--accent2); border-color:color-mix(in srgb,var(--accent2) 45%,var(--border)); background:color-mix(in srgb,var(--accent2) 10%,var(--panel)); }
+
+.mt-sum { font-size:12.5px; color:var(--muted); line-height:1.55; flex:1 1 auto; }
+.mt-meta { font-size:11.5px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+.mt-meta span { white-space:nowrap; }
+
+.mt-back { display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px dashed var(--border); padding-top:8px; }
+.mt-back-un { color:var(--muted); }
+.mt-rat { font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:999px; border:1px solid var(--border); white-space:nowrap; }
+.mt-rat-a { color:#0E7490; background:color-mix(in srgb,#0E7490 12%,var(--panel)); border-color:color-mix(in srgb,#0E7490 45%,var(--border)); }
+.mt-rat-b { color:#15803D; background:color-mix(in srgb,#15803D 12%,var(--panel)); border-color:color-mix(in srgb,#15803D 45%,var(--border)); }
+.mt-rat-c { color:var(--warn,#B45309); background:color-mix(in srgb,var(--warn,#B45309) 12%,var(--panel)); border-color:color-mix(in srgb,var(--warn,#B45309) 42%,var(--border)); }
+.mt-rat-d { color:#B91C1C; background:color-mix(in srgb,#B91C1C 10%,var(--panel)); border-color:color-mix(in srgb,#B91C1C 40%,var(--border)); }
+.mt-rat-un { color:var(--muted); background:var(--tag); }
+.mt-back-num { font-size:10.5px; color:var(--muted); display:flex; flex-direction:column; line-height:1.3; }
+.mt-back-num b { font-size:13px; color:var(--text); font-variant-numeric:tabular-nums; }
+.mt-back-num b.num-bull { color:var(--bull); }
+.mt-back-num b.num-bear { color:var(--bear); }
+.mt-strat { font-size:11px; color:var(--muted); margin-top:-2px; }
+.mt-un-note { font-size:11.5px; color:var(--muted); }
+
+.mt-dlg-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.mt-dlg-sum { color:var(--text); font-size:13px; line-height:1.6; margin:0 0 10px; }
+.mt-dlg-stat { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:12px; }
+.mt-dlg-stat b { color:var(--text); font-variant-numeric:tabular-nums; }
+.mt-dlg-h { font-size:13px; color:var(--accent); margin:14px 0 8px; }
+.mt-tbl { width:100%; border-collapse:collapse; font-size:12.5px; }
+.mt-tbl th, .mt-tbl td { padding:6px 8px; border-bottom:1px solid var(--border); text-align:left; }
+.mt-tbl th { color:var(--muted); font-weight:600; }
+.mt-tbl .num { text-align:right; font-variant-numeric:tabular-nums; }
+.mt-tbl .mt-num-bull { color:var(--bull); }
+.mt-tbl .mt-num-bear { color:var(--bear); }
+.mt-tbl .mt-c-rat { font-weight:700; }
+.mt-dlg-un { font-size:12.5px; color:var(--muted); background:var(--tag); border:1px solid var(--border); border-radius:8px; padding:8px 10px; }
+.mt-samp { list-style:none; margin:0; padding:0; max-height:320px; overflow:auto; }
+.mt-samp li { padding:5px 0; border-bottom:1px dashed var(--border); font-size:12.5px; line-height:1.5; }
+.mt-samp-date { color:var(--muted); font-size:11px; margin-right:8px; font-variant-numeric:tabular-nums; }

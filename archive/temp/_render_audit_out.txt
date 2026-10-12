@@ -1,0 +1,393 @@
+========================================================================
+renderOperating  @line 1238
+========================================================================
+ 1238: function renderOperating(list) {
+ 1239:   const items = toArr(list);
+ 1240:   if (!items.length) { $("#p-operating").innerHTML = `<div class="empty">暂无实盘操作记录</div>`; return; }
+ 1241:   // 2026-09-24：trades 同样区分 demo 与真实（demo URL 全是 example.local）。
+ 1242:   // chip "东方财富/同花顺/雪球" 来自 demo_data 给选手预设的渠道，**不代表这些平台真的被抓取**——
+ 1243:   // 当前 PARSER_REGISTRY 仅 taoguba，其它站需要单独写 HTML 解析器才能实时抓取。
+ 1244:   const isDemoTrade = (t) => /example\.local/i.test(t.post_url || "") || /^demo-/i.test(t.post_id || "");
+ 1245:   const demoN = items.filter(isDemoTrade).length;
+ 1246:   const realN = items.length - demoN;
+ 1247:   const sites = [...new Set(items.map(t => t.site || "?"))];
+ 1248:   const rows = items.map((t) => {
+ 1249:     const plat = t.author_platform || t.site;
+ 1250:     const ch = sourceChannel(plat ? [plat] : [], t.author_tier);
+ 1251:     const demo = isDemoTrade(t);
+ 1252:     return `<tr data-kind="trade" data-id="${escAttr(t.id)}" ${demo ? 'data-demo="1"' : 'data-real="1"'}>
+ 1253:       <td>${esc(t.author)} <span class="chip-s ${demo ? "chip-demo" : "chip-real"}">${demo ? "示例" : "真实"}</span><div class="src-line">${ch}</div></td>
+ 1254:       <td>${t.post_time ? esc(fmtTimeText(t.post_time)) : "<span class='s'>未披露</span>"}</td>
+ 1255:       <td>${actionBadge(t.action)}</td>
+ 1256:       <td><b>${esc(t.symbol_name || "名称待补全")}</b> <span class="stk-code">${esc(t.symbol || "")}</span></td>
+ 1257:       <td class="num">${t.price ?? "-"}</td>
+ 1258:       <td class="num">${t.quantity ?? "-"}</td>
+ 1259:       ${refCell([plat])}
+ 1260:     </tr>`;
+ 1261:   }).join("");
+ 1262:   const banner = realN === 0
+ 1263:     ? `<div class="banner banner-warn"><b>当前是示例数据</b>（${items.length} 条），trades 表里所有 URL 都是 <code>example.local/demo</code>。${sites.length === 1 && sites[0] === 'taogub
+ 1264:     : `<div class="banner banner-info">真实抓取 ${realN} 条 / 示例 ${demoN} 条（来源：${sites.join(", ")}）</div>`;
+ 1265:   $("#p-operating").innerHTML = `
+ 1266:     ${banner}
+ 1267:     <div class="hint" style="margin-bottom:10px">每个选手均标注其<b>来源渠道</b>：<b>平台</b>（淘股吧/东方财富/雪球/同花顺） + <b>所属层级</b>（A~F）。标的列格式为「股票简称 + 股票代码」：代码是 6 位数字（如 600519），对应贵州茅台，不是序号。$
+ 1268:     <div class="hint" style="margin-bottom:10px">「时间」是<b>选手发帖/操作的时间</b>，不是本系统的抓取时间。源站没给出时间的显示<b>未披露</b>——不会用抓取时刻冒充，避免误导判断。</div>
+ 1269:     <table><thead><tr><th>选手（来源渠道）</th><th>时间</th><th>动作</th><th>标的（名称 + 代码）</th><th class="num">价格</th><th class="num">数量</th><th>最后更新</th></tr></thead><tbody>${rows}<
+ 1270:   bindRows();
+ 1271:   applyFreshness();
+ 1272: }
+
+========================================================================
+renderPlayers  @line 1950
+========================================================================
+ 1950: function renderPlayers(list) {
+ 1951:   const all = toArr(list);
+ 1952:   if (!all.length) { $("#p-players").innerHTML = `<div class="empty">暂无入选实盘选手。请先点「抓取并更新」(players 模式)。</div>`; return; }
+ 1953:   // 2026-09-24：库中的源 URL 全部为 example.local/demo 的条目视为「示例数据」。
+ 1954:   // 真实抓取尚未打通（淘股吧登录态无效），整张表目前是合成数据，刷新不会改变时间戳。
+ 1955:   // 这里把示例/真实分开计数，并在顶部横幅明示，避免用户反复刷新以为有 bug。
+ 1956:   const isDemoRow = (p) => /example\.local/i.test(p.source_url || "");
+ 1957:   const demoN = all.filter(isDemoRow).length;
+ 1958:   const realN = all.length - demoN;
+ 1959:   const tierCount = {};
+ 1960:   const chCount = {};
+ 1961:   all.forEach((p) => {
+ 1962:     const t = p.tier || p.channel || "D";
+ 1963:     tierCount[t] = (tierCount[t] || 0) + 1;
+ 1964:     if (p.channel) chCount[p.channel] = (chCount[p.channel] || 0) + 1;
+ 1965:   });
+ 1966:   // 竖向筛选项：层级 A~F + 渠道 A~D 一行一项
+ 1967:   const tierBtns = ["A", "B", "C", "D", "E", "F"].map((t) =>
+ 1968:     `<button class="fbtn" data-tier="${t}" onclick="filterPlayers('tier','${t}')">` +
+ 1969:     `${esc(TIER_LABEL[t])}<span class="cnt">${tierCount[t] || 0}</span></button>`).join("");
+ 1970:   const chBtns = ["A", "B", "C", "D"].map((c) =>
+ 1971:     `<button class="fbtn" data-ch="${c}" onclick="filterPlayers('ch','${c}')">` +
+ 1972:     `${esc(CHANNEL_LABEL[c])}<span class="cnt">${chCount[c] || 0}</span></button>`).join("");
+ 1973:   const rows = all.map((p) => {
+ 1974:     const t = p.tier || p.channel || "D";
+ 1975:     const demo = isDemoRow(p);
+ 1976:     // 当前持仓 chips：最多展示 3 只，其余折进 "+N"；悬停 title 显示全量（含动作/时间/来源）
+ 1977:     // 2026-09-25 补：徽章内直接展示「操作时间」，不再只藏在 tooltip 里（与「共同持仓」口径一致）。
+ 1978:     // 源站未给时间的一律不显示时间标，绝不用抓取时刻冒充。
+ 1979:     const hls = toArr(p.holdings);
+ 1980:     // 2026-09-25：东财/同花顺为讨论区，平台无结构化真实持仓，标记为 discussion。
+ 1981:     // 不再显示空「—」(易被误认为漏抓)，改为诚实灰标「讨论活跃·无实盘源」。
+ 1982:     const isDiscussion = p.real_holding === "discussion";
+ 1983:     const isCommunity = p.real_holding === "community";
+ 1984:     const hlShown = hls.slice(0, 3).map((h) => {
+
+========================================================================
+renderNiusan  @line 1643
+========================================================================
+ 1643: function renderNiusan() {
+ 1644:   const box = $("#p-niusan");
+ 1645:   if (!box) return;
+ 1646:   const d = NIUSAN.data;
+ 1647:   if (!d) { box.innerHTML = `<div class="empty">牛散数据加载中…</div>`; return; }
+ 1648:   const s = d.summary || {};
+ 1649:   if (!(d.investors || []).length && !(d.cohold || []).length) {
+ 1650:     box.innerHTML = `<div class="empty">暂无股东数据。该板块由 holders_fetch.py 抓取上市公司披露的自然人股东后生成。</div>`;
+ 1651:     return;
+ 1652:   }
+ 1653:   const seg = (v, t) => `<span class="chip-s" role="button" data-ns-scope="${escAttr(v)}" ` +
+ 1654:     `style="cursor:pointer;${v === NIUSAN.scope ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(t)}</span>`;
+ 1655:   const inv = (d.investors || []).map((p) => {
+ 1656:     const holds = (p.holdings || []).map((x) => {
+ 1657:       const tip = (x.symbol_name || "") + " " + x.symbol +
+ 1658:         " | 占流通 " + (x.ratio == null ? "—" : x.ratio + "%") +
+ 1659:         " | " + (x.change || "变动未披露") + " | 披露期 " + (x.end_date || "—");
+ 1660:       return `<span class="kline-chip chip-s" data-sym="${escAttr(x.symbol)}" style="margin:1px 3px 1px 0" ` +
+ 1661:         `title="${escAttr(tip)} 点击看详情">${esc(x.symbol_name || x.symbol)}</span>`;
+ 1662:     }).join("");
+ 1663:     return `<tr>
+ 1664:       <td><b>${esc(p.name)}</b></td>
+ 1665:       <td class="num"><b>${p.stock_count}</b> 只</td>
+ 1666:       <td class="num">${(p.total_ratio || 0).toFixed(2)}%</td>
+ 1667:       <td class="num">${p.new_cnt ? `<span class="bull">${p.new_cnt}</span>` : "—"}</td>
+ 1668:       <td class="num">${p.cut_cnt ? `<span class="bear">${p.cut_cnt}</span>` : "—"}</td>
+ 1669:       <td>${holds || "—"}</td>
+ 1670:     </tr>`;
+ 1671:   }).join("");
+ 1672:   const coh = (d.cohold || []).map((c) => {
+ 1673:     const ps = (c.people || []).map((x) =>
+ 1674:       `<span class="chip-s" style="margin:1px 3px 1px 0">${esc(x.name)}` +
+ 1675:       `${x.ratio == null ? "" : " " + x.ratio.toFixed(2) + "%"}</span>`).join("");
+ 1676:     return `<tr>
+ 1677:       <td>${lhbSymChip(c.symbol)}</td>
+
+========================================================================
+renderStarMoves  @line 1827
+========================================================================
+ 1827: function renderStarMoves() {
+ 1828:   const box = $("#p-star_moves");
+ 1829:   if (!box) return;
+ 1830:   const d = STARM.data;
+ 1831:   if (!d || d.empty || !(d.rows || []).length) {
+ 1832:     box.innerHTML = `<div class="empty">暂无牛散动向数据。需先抓取权威股东披露（holders_fetch.py）。</div>`;
+ 1833:     return;
+ 1834:   }
+ 1835:   const rows = d.rows || [];
+ 1836:   const sel = STARM.sel || rows[0].date;
+ 1837:   const cur = rows.find((r) => r.date === sel) || rows[0];
+ 1838:   const chips = rows.map((r) =>
+ 1839:     `<span class="chip-s" role="button" data-sm-date="${escAttr(r.date)}" ` +
+ 1840:     `style="cursor:pointer;${r.date === cur.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">` +
+ 1841:     `${esc(r.date)} <span class="s">${r.counts.new}新/${r.counts.add}增/${r.counts.cut}减/${r.counts.exit}退</span></span>`).join(" ");
+ 1842:   const badge = (k) => {
+ 1843:     const m = { new: ["新进", "bull"], add: ["增持", "bull"], cut: ["减持", "bear"], exit: ["退出", "bear"] };
+ 1844:     const [t, c] = m[k];
+ 1845:     return `<span class="src-tag ${k === "new" || k === "add" ? "src-port" : "src-comm"}">${t}</span>`;
+ 1846:   };
+ 1847:   const sec = (key, title, arr) => {
+ 1848:     if (!arr.length) return `<div class="view-group"><div class="vg-head">${title}（0）</div><div class="vg-empty">无</div></div>`;
+ 1849:     const trs = arr.map((x) => `<tr>
+ 1850:         <td><b>${esc(x.name)}</b></td>
+ 1851:         <td><span class="kline-chip chip-s" data-sym="${escAttr(x.symbol)}" title="点击看这只股的详情">${esc(x.symbol)}</span> ${esc(x.symbol_name || "")}</td>
+ 1852:         <td class="num">${x.ratio != null ? Number(x.ratio).toFixed(2) + "%" : "—"}</td>
+ 1853:         <td class="num s">${esc(x.change || "")}</td>
+ 1854:       </tr>`).join("");
+ 1855:     return `<div class="view-group">
+ 1856:       <div class="vg-head">${badge(key)} ${title}（${arr.length}）</div>
+ 1857:       <table><thead><tr><th>牛散</th><th>股票</th><th class="num">占流通股</th><th class="num">变动</th></tr></thead><tbody>${trs}</tbody></table>
+ 1858:     </div>`;
+ 1859:   };
+ 1860:   const s = d.summary || {};
+ 1861:   box.innerHTML = `
+
+========================================================================
+renderPersons  @line 1274
+========================================================================
+ 1274: function renderPersons(list) {
+ 1275:   const all = toArr(list);
+ 1276:   if (!all.length) { $("#p-persons").innerHTML = `<div class="empty">暂无人物数据</div>`; return; }
+ 1277:   // P2-5：接口默认只回 100 条，此处再取前 80 条。文案必须如实说明截断，不能写「不遗漏任何一个名称」。
+ 1278:   const total = all.length, shown = Math.min(total, 80);
+ 1279:   const rows = all.slice(0, shown).map((p) => {
+ 1280:     const plats = Array.isArray(p.sites) && p.sites.length ? p.sites : (p.platform ? [p.platform] : []);
+ 1281:     return `<tr data-name="${escAttr(p.name)}" style="cursor:pointer"><td>${esc(p.name)}</td><td>${sourceChannel(plats, p.tier)}</td><td><span class="chip-s">${esc(p.ro
+ 1282:   }).join("");
+ 1283:   $("#p-persons").innerHTML = `<div class="hint" style="margin-bottom:10px">每个名称均标注其<b>来源渠道</b>：<b>平台</b>（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + <b>所属层级</b>（A~F，入选选手才有）。按出现次数降序排列
+ 1284:     <table><thead><tr><th>姓名/昵称</th><th>来源渠道（平台 · 层级）</th><th>角色</th><th class="num">出现次数</th><th>最后更新</th></tr></thead><tbody>${rows}</tbody></table>`;
+ 1285:   bindRows();
+ 1286:   applyFreshness();
+ 1287: }
+ 1289: function renderSentiment(d) {
+ 1290:   // P3-7：/api/sentiment 若返回数组（类型不符），旧实现会把 Array.prototype.map 当数据用而抛错、
+ 1291:   // 面板全空。这里先做类型校验并降级提示，不抛错。
+ 1292:   if (!d || typeof d !== "object" || Array.isArray(d)) {
+ 1293:     $("#p-sentiment").innerHTML = `<div class="empty">舆论情绪数据格式异常（接口返回类型不符），已降级显示。请检查 /api/sentiment 的返回结构。</div>`;
+ 1294:     return;
+ 1295:   }
+ 1296:   const dist = (d.distribution && typeof d.distribution === "object") ? d.distribution : {};
+ 1297:   const bars = [
+ 1298:     ["看多", dist["看多"] || 0, "bull"], ["看空", dist["看空"] || 0, "bear"], ["中性", dist["中性"] || 0, "neu"],
+ 1299:   ].map(([l, n, c]) => `<div class="bar-card"><div class="bar-val ${c}">${n}</div><div class="s" style="color:var(--muted)">${l}</div></div>`).join("");
+ 1300:   const map = toArr(d.map).map((m) => stockCard(m, "sentiment")).join("");
+ 1301:   const missing = Math.max(0, (Number(d.name_total) || 0) - (Number(d.name_covered) || 0));
+ 1302:   $("#p-sentiment").innerHTML = `<div class="bars" style="margin-bottom:16px">${bars}</div>
+ 1303:     <h3 style="margin:6px 0 10px">情绪地图（按股票聚合多空，点击卡片看持仓与交易明细）</h3>
+ 1304:     ${stockLegend(d)}
+ 1305:     ${missing > 0 ? `<div class="hint" style="margin-bottom:12px">有 <b>${missing}</b> 个代码未取到名称（多为冷门标的或网络未连通）。可点上方「补全股票名称」联网查询；也可在 <code>config/stock_names.yaml</code> 中
+ 1306:     <div class="grid">${map || "<div class='empty'>暂无情绪分布</div>"}</div>`;
+ 1307:   bindStockCards("#p-sentiment");
+ 1308:   bindLegendSync();
+
+========================================================================
+renderConsensus  @line 2069
+========================================================================
+ 2069: function renderConsensus(list) {
+ 2070:   const all = toArr(list);
+ 2071:   if (!all.length) {
+ 2072:     $("#p-consensus").innerHTML = `<div class="empty">暂无共同持仓数据。需先采集各选手持仓（collect_positions）。</div>`;
+ 2073:     return;
+ 2074:   }
+ 2075:   const rows = all.map((x) => {
+ 2076:     // channel 为空时不渲染角标：/api/consensus 的 trades 兜底源把 channel 置 NULL（db.py NULL AS channel），
+ 2077:     // 而 ch-* 类自带背景色（app.css:207）——空文本 + 有色背景会渲染成一个无文字色块（UI 回归 C4）。
+ 2078:     // 这里刻意沿用原「渠道字母」紧凑写法而非 channelBadge()：后者输出「A 实盘大赛」全称，
+ 2079:     // 会把每行选手明细撑长，与本区块的紧凑排版不符。
+ 2080:     const players = toArr(x.players).map((pl) => {
+ 2081:       const chBadge = pl.channel
+ 2082:         ? `<span class="badge ch-${escAttr(pl.channel)}">${esc(pl.channel)}</span> `
+ 2083:         : "";
+ 2084:       // 操作时间：trades 兜底源用 post_time（发帖时间≈动作时间），紧挨动作标签展示，鼠标悬停看完整时间
+ 2085:       const timeChip = pl.post_time
+ 2086:         ? ` <span class="chip-s" title="操作发帖时间 ${escAttr(pl.post_time)}">${esc(pl.post_time.slice(5, 16))}</span>`
+ 2087:         : "";
+ 2088:       return `<div class="chip-row">${chBadge}${esc(pl.player)} ${actionBadge(pl.action)}${timeChip} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}</div>`;
+ 2089:     }).join("");
+ 2090:     const sources = toArr(x.sources).map((s) => srcLink(s, "↗", { arrow: false })).join(" ");
+ 2091:     // 覆盖渠道为空数组时给占位「—」，与抽屉渲染（app.js:1149 `${... || "—"}`）口径统一（UI 回归 C6）
+ 2092:     const channels = toArr(x.channels).filter(Boolean);
+ 2093:     // 层级加权共识度（A/B/C/D 沿用原权重，E/F 递减但仍计数）→ 比单纯"人数"更能代表真实共识强度
+ 2094:     const w = x.weighted_holders != null ? x.weighted_holders : x.holders;
+ 2095:     return `<tr data-sym="${escAttr(x.symbol)}">
+ 2096:       <td><b>${esc(x.symbol_name || "名称待补全")}</b><br/><span class="stk-code">${esc(x.symbol)}</span> <span class="stk-corp">${esc(x.company || "")}</span></td>
+ 2097:       <td><span class="badge bull">${x.holders ?? "—"} 人</span></td>
+ 2098:       <td><span class="badge t-w" title="层级加权共识度（A~F 按权重求和）">加权 ${w ?? "—"}</span></td>
+ 2099:       <td>${toArr(x.tiers).map(tierBadge).join(" ")}</td>
+ 2100:       <td>${channels.length ? channels.map(channelBadge).join(" ") : "—"}</td>
+ 2101:       <td><span class="chip-s">讨论热度 ${x.discuss_heat ?? "—"}</span><br/><span class="chip-s">平台 ${toArr(x.platforms).length}</span></td>
+ 2102:       <td>${players}</td>
+ 2103:       <td>${sources}</td>
+
+========================================================================
+renderCohold  @line 2225
+========================================================================
+ 2225: function renderCohold(d) {
+ 2226:   const box = $("#p-cohold");
+ 2227:   if (!box) return;
+ 2228:   if (!d || typeof d !== "object" || Array.isArray(d)) {
+ 2229:     box.innerHTML = `<div class="empty">近5日共同买入：接口返回类型不符，已降级为空。</div>`;
+ 2230:     return;
+ 2231:   }
+ 2232:   COHOLD.data = d;
+ 2233:   box.innerHTML = `
+ 2234:     <div class="hint" style="margin-bottom:10px">
+ 2235:       按「窗口内 ≥<b>${esc(d.min_holders ?? COHOLD.min)}</b> 位选手<b>同向操作</b>同一标的」聚合，<b>共买</b>（红）与<b>共卖</b>（绿）分两组列出。
+ 2236:       与左侧「共同持仓共识」<b>口径不同</b>：共识看的是<b>现在还持有</b>（持仓快照），本板块看的是<b>最近 ${esc(d.days)} 天谁同时动手</b>（动作发生时点）——
+ 2237:       所以本板块能露出「窗口内已卖出」这类共识板块看不到的行。数据合并 <b>positions</b>（仓位占比/买价/现价）与 <b>trades</b>（<b>成交数量</b>、更精确的成交时刻）两张表。
+ 2238:     </div>
+ 2239:     ${coholdWindowBar(d)}
+ 2240:     <div class="coh-legend">
+ 2241:       <span class="badge bull">共同买入</span> <span class="coh-lbl">红 = 买（A股惯例）</span>
+ 2242:       <span class="coh-sep"></span>
+ 2243:       <span class="badge bear">共同卖出</span> <span class="coh-lbl">绿 = 卖</span>
+ 2244:     </div>
+ 2245:     ${coholdTable(d, "buy")}
+ 2246:     ${coholdTable(d, "sell")}
+ 2247:     <div class="hint" style="margin-top:12px">
+ 2248:       <b>数量</b>来自 trades 表的成交记录——positions 表没有这一列，所以只有持仓快照、没有成交明细的行会显示「—」，<b>不会用 0 或估算值顶替</b>。
+ 2249:       <b>浮盈</b>用同一笔的买价与现价计算，不跨笔混算。<b>持有状态</b>取「买点之后是否存在该选手对该标的的卖出记录」，有则记为「买入后已卖出」。
+ 2250:       ${freshLegend()}
+ 2251:     </div>`;
+ 2252:   bindCohold();
+ 2253:   applyFreshness();
+ 2254: }
+ 2256: function bindCohold() {
+ 2257:   $$("#p-cohold tr[data-sym]").forEach((tr) => {
+ 2258:     tr.onclick = (e) => {
+ 2259:       if (e.target.tagName === "A") return;
+
+========================================================================
+renderLhb  @line 1494
+========================================================================
+ 1494: function renderLhb() {
+ 1495:   const box = $("#p-lhb");
+ 1496:   if (!box) return;
+ 1497:   const d = LHB.data;
+ 1498:   if (!d || d.empty || !(d.stocks || []).length) {
+ 1499:     box.innerHTML = `<div class="empty">暂无龙虎榜数据。请先运行 lhb_fetch.py 抓取（沪深交易所盘后披露，东方财富接口转发）。</div>`;
+ 1500:     return;
+ 1501:   }
+ 1502:   const seatsBy = {};
+ 1503:   (d.seats || []).forEach((s) => { (seatsBy[s.security_code] = seatsBy[s.security_code] || []).push(s); });
+ 1504:   const chips = (d.dates || []).map((x) =>
+ 1505:     `<span class="chip-s" role="button" data-lhb-date="${escAttr(x)}" ` +
+ 1506:     `style="cursor:pointer;${x === d.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`).join(" ");
+ 1507:   const instNet = (d.inst_buy_net || 0) - (d.inst_sell_net || 0);
+ 1509:   const rows = (d.stocks || []).map((s) => {
+ 1510:     const on = LHB.sel === s.security_code;
+ 1511:     const chg = s.change_rate != null ? s.change_rate.toFixed(2) : "—";
+ 1512:     const cls = s.change_rate != null ? (s.change_rate >= 0 ? "bull" : "bear") : "";
+ 1513:     return `<tr data-lhb-stock="${escAttr(s.security_code)}" style="cursor:pointer;${on ? "background:rgba(14,116,144,.12);" : ""}">
+ 1514:       <td>${lhbSymChip(s.security_code)}</td>
+ 1515:       <td><b>${esc(s.security_name || "")}</b></td>
+ 1516:       <td class="${cls}">${chg}%</td>
+ 1517:       <td class="num">${s.close_price != null ? s.close_price.toFixed(2) : "—"}</td>
+ 1518:       <td class="num"><b>${amtYi(s.net_amt)}</b></td>
+ 1519:       <td class="num">${amtYi(s.buy_amt)}</td>
+ 1520:       <td class="num">${amtYi(s.sell_amt)}</td>
+ 1521:       <td class="num">${s.turnoverrate != null ? s.turnoverrate.toFixed(1) + "%" : "—"}</td>
+ 1522:       ${lhbPct(s.d1_chg)}
+ 1523:       ${lhbPct(s.d5_chg)}
+ 1524:       <td class="s">${esc((s.reason || "").replace("日", ""))}</td>
+ 1525:     </tr>`;
+ 1526:   }).join("");
+ 1528:   let seatHtml = `<div class="s dim">点击上表任意个股，查看买卖前 5 席位明细。</div>`;
+
+========================================================================
+renderLhbSectors  @line 1881
+========================================================================
+ 1881: function renderLhbSectors() {
+ 1882:   const box = $("#p-lhb_sectors");
+ 1883:   if (!box) return;
+ 1884:   const d = LBHS.data;
+ 1885:   if (!d) { box.innerHTML = `<div class="empty">板块动向加载中…</div>`; return; }
+ 1886:   if (d.empty || !(d.rows || []).length) {
+ 1887:     box.innerHTML = `<div class="empty">暂无「板块动向」数据。<br>
+ 1888:       该板块由 lhb_sector_link.py 离线计算后落库，随每次全量更新自动跑一次。</div>`;
+ 1889:     return;
+ 1890:   }
+ 1891:   const s = d.summary || {};
+ 1892:   const chips = (d.dates || []).map((x) =>
+ 1893:     `<span class="chip-s" role="button" data-lhs-date="${escAttr(x)}" ` +
+ 1894:     `style="cursor:pointer;${x === d.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`).join(" ");
+ 1895:   const rows = (d.rows || []).map((r) => {
+ 1896:     const stocks = (r.onlist || []).map((o) => {
+ 1897:       const code = o && o.code ? o.code : "";
+ 1898:       const nm = o && o.name ? o.name : "";
+ 1899:       if (!code) return `<span class="chip-s" style="margin:1px 3px 1px 0">${esc(nm)}</span>`;
+ 1900:       return `<span class="kline-chip chip-s" data-sym="${escAttr(code)}" style="margin:1px 3px 1px 0"
+ 1901:         title="${escAttr(nm + " " + code)} 点击看详情">${esc(nm)}</span>`;
+ 1902:     }).join("");
+ 1903:     const ex1 = r.excess_t1;
+ 1904:     const exCls = ex1 == null ? "" : (ex1 >= 0 ? "bull" : "bear");
+ 1905:     return `<tr>
+ 1906:       <td><b>${esc(r.sector)}</b></td>
+ 1907:       <td class="num"><b>${r.onlist_n}</b> 只</td>
+ 1908:       <td class="num"><b>${amtYi(r.net_amt)}</b></td>
+ 1909:       <td>${stocks}</td>
+ 1910:       <td class="num">${r.members_n == null ? "—" : r.members_n}</td>
+ 1911:       <td class="num">${r.sampled == null ? "—" : r.sampled}</td>
+ 1912:       ${lhbPct(r.t1_avg)}
+ 1913:       ${lhbPct(r.t3_avg)}
+ 1914:       <td class="num ${exCls}">${ex1 == null ? "—" : (ex1 >= 0 ? "+" : "") + Number(ex1).toFixed(2) + "%"}</td>
+ 1915:       <td class="num">${lhbRate(r.t1_win)}</td>
+
+========================================================================
+加载函数与接口
+========================================================================
+ 1473: function loadLhb(date, windowDays) {
+ 1474:   const q = [];
+ 1475:   if (date) q.push("date=" + encodeURIComponent(date));
+ 1476:   if (windowDays) q.push("window_days=" + windowDays);
+ 1477:   return api("/api/lhb" + (q.length ? "?" + q.join("&") : ""))
+ 1478:     .then((d) => { LHB.data = d; LHB.sel = null; LHB.selDept = null; renderLhb(); });
+ 1480: /* 涨跌色：必须用 .bull/.bear —— app.css 里只有这两个是全局红/绿（A 股口径 红涨绿跌）。
+ 1481:    原先这里写的是 .up/.down，而 .up/.down 只对个别元素作用域生效，导致颜色一直没显示出来。*/
+
+ 1639: function loadNiusan() {
+ 1640:   const q = "?scope=" + encodeURIComponent(NIUSAN.scope) + "&min_hold=" + NIUSAN.minHold;
+ 1641:   return api("/api/niusan" + q).then((d) => { NIUSAN.data = d; renderNiusan(); });
+ 1643: function renderNiusan() {
+ 1644:   const box = $("#p-niusan");
+ 1645:   if (!box) return;
+ 1646:   const d = NIUSAN.data;
+ 1647:   if (!d) { box.innerHTML = `<div class="empty">牛散数据加载中…</div>`; return; }
+
+ 1709: function loadLhbSectors(date) {
+ 1710:   const q = date ? "?date=" + encodeURIComponent(date) : "";
+ 1711:   return api("/api/lhb_sectors" + q).then((d) => { LBHS.data = d; renderLhbSectors(); });
+ 1713: /* ---------- 今日看板（2026-09-25 新增）：决策入口 ----------
+ 1714:  * 组织维度是「今天该看什么」而非「数据从哪来」：
+ 1715:  *   ① 资金主线（龙虎榜最新日：个股净买 / 机构 / 营业部）
+ 1716:  *   ② 板块多点共振（同一天多个票上榜的题材方向 + T+1/T+3 验证）
+ 1717:  *   ③ 牛散共识（多位牛散同持的股）
+
+ 1722: function loadDashboard() {
+ 1723:   return api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); });
+ 1726: function renderDashboard() {
+ 1727:   const box = $("#p-dashboard");
+ 1728:   if (!box) return;
+ 1729:   const d = DASH.data;
+ 1730:   if (!d) { box.innerHTML = `<div class="empty">今日看板加载中…</div>`; return; }
+
+ 1824: function loadStarMoves() {
+ 1825:   return api("/api/star_moves").then((d) => { STARM.data = d; STARM.sel = null; renderStarMoves(); });
+ 1827: function renderStarMoves() {
+ 1828:   const box = $("#p-star_moves");
+ 1829:   if (!box) return;
+ 1830:   const d = STARM.data;
+ 1831:   if (!d || d.empty || !(d.rows || []).length) {
+ 1832:     box.innerHTML = `<div class="empty">暂无牛散动向数据。需先抓取权威股东披露（holders_fetch.py）。</div>`;

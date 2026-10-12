@@ -1,0 +1,429 @@
+"""近期热点（模块二）：由国外新闻驱动，自动汇总热点事件并做「提升性影响分析」。
+
+两条聚合路径
+------------
+1. **传导表聚合**：命中 `lexicon.TRANSMISSION_TABLE` 的主题 → 直接产出带「传导路径 + 放大/衰减」的热点。
+2. **主题兜底聚合**：国外源高频但传导表未覆盖的主题 → 用 `TOPIC_DEFAULT` 生成通用传导说明，
+   保证「国外驱动热点」不漏。
+
+提升性影响分析 = 国外舆情强度 × 国内交叉比对一致性 → 放大系数 / 衰减系数，
+所有结论都带 evidence（原始条目）可回溯。
+"""
+from __future__ import annotations
+
+import json
+from collections import defaultdict
+from datetime import datetime
+
+from overseas import lexicon as lx
+
+# 传导表未覆盖主题的通用传导说明
+TOPIC_DEFAULT: dict[str, dict] = {
+    "国外疫情舆论": {
+        "overview": "国外疫情 / 流感舆论升温，防疫物资与疫苗需求预期抬升，出行链风险偏好承压。",
+        "variables": ["疫苗与检测需求 ↑", "防疫物资需求 ↑", "出行意愿 ↓"],
+        "sectors_up": ["疫苗", "体外诊断", "中药"],
+        "sectors_down": ["航空机场", "旅游酒店", "线下消费"],
+        "sectors": ["疫苗", "体外诊断", "中药", "航空机场"],
+        "direction": "利多（防疫链）/ 利空（出行消费）",
+        "transmission": "国外疫情舆论升温 → 全球防疫需求预期抬升 → 国内防疫链短期催化；出行链风险偏好承压。",
+    },
+    "国际形势": {
+        "overview": "国际形势趋于紧张（制裁 / 出口管制 / 地缘博弈），外部不确定性上升。",
+        "variables": ["外部不确定性 ↑", "自主可控政策力度 ↑", "外需订单 ↓"],
+        "sectors_up": ["国产替代", "军工", "能源安全", "农业"],
+        "sectors_down": ["外需出口链", "跨境物流"],
+        "sectors": ["国产替代", "军工", "能源安全", "农业"],
+        "direction": "分化（利空外需 / 利多自主可控）",
+        "transmission": "国际形势紧张 → 外部不确定性上升 → 自主可控与安全主题受资金关注，外需链承压。",
+    },
+    "国际新闻热点": {
+        "overview": "国际宏观新闻（利率 / 通胀 / GDP / 大选）改变全球风险偏好。",
+        "variables": ["全球风险偏好 ±", "美元指数 ±", "北向资金流向 ±"],
+        "sectors_up": ["券商", "黄金"],
+        "sectors_down": ["高估值成长", "出口链"],
+        "sectors": ["券商", "黄金", "大盘蓝筹"],
+        "direction": "中性偏结构性",
+        "transmission": "国际宏观新闻（利率/通胀/GDP）改变全球风险偏好 → 通过汇率与外资流向影响 A 股核心资产。",
+    },
+    "科技与AI": {
+        "overview": "海外科技巨头资本开支与新产品周期变化，映射到国内算力与半导体供应链。",
+        "variables": ["AI 资本开支 ↑", "算力订单 ↑", "消费电子备货 ↑"],
+        "sectors_up": ["AI算力", "半导体", "消费电子"],
+        "sectors_down": ["传统消费电子代工（低阶）"],
+        "sectors": ["AI算力", "半导体", "消费电子"],
+        "direction": "利多",
+        "transmission": "海外科技巨头资本开支与新产品周期 → 国内算力/半导体/消费电子供应链订单弹性。",
+    },
+    "能源与大宗": {
+        "overview": "国际大宗商品（原油 / 煤炭 / 有色）价格波动，改变上下游盈利分配。",
+        "variables": ["大宗价格 ↑", "上游盈利 ↑", "下游制造成本 ↑"],
+        "sectors_up": ["石油石化", "煤炭", "有色金属"],
+        "sectors_down": ["下游制造", "交运物流"],
+        "sectors": ["石油石化", "煤炭", "有色金属"],
+        "direction": "分化（利多上游 / 利空下游）",
+        "transmission": "国际大宗价格波动 → 上游资源股盈利弹性，下游制造成本压力。",
+    },
+    "消费与医药": {
+        "overview": "海外医药政策与消费趋势变化，映射到国内创新药出海与消费品需求。",
+        "variables": ["创新药出海预期 ↑", "海外消费需求 ±", "CXO 订单 ±"],
+        "sectors_up": ["创新药", "CXO"],
+        "sectors_down": ["低迷消费品", "旅游零售"],
+        "sectors": ["创新药", "CXO", "消费"],
+        "direction": "分化",
+        "transmission": "海外医药政策与消费趋势 → 国内创新药出海预期与消费品需求映射。",
+    },
+    "金融与汇率": {
+        "overview": "美元与美债收益率、人民币汇率变动，影响外资流向与权重股估值。",
+        "variables": ["美元指数 ±", "美债收益率 ±", "北向资金流向 ±"],
+        "sectors_up": ["券商", "黄金"],
+        "sectors_down": ["出口链（人民币升值）", "银行（息差）"],
+        "sectors": ["券商", "银行", "黄金"],
+        "direction": "中性偏多",
+        "transmission": "美元与美债收益率变动 → 人民币汇率与外资流向 → 影响权重股与券商弹性。",
+    },
+    "供应链与制造": {
+        "overview": "海外供应链扰动（罢工 / 港口拥堵 / 关税），影响航运价格与出口交付节奏。",
+        "variables": ["航运运价 ↑", "交付周期 ↑", "出口订单节奏 ±"],
+        "sectors_up": ["航运港口", "物流"],
+        "sectors_down": ["依赖准时交付的出口制造"],
+        "sectors": ["航运港口", "物流", "机械出口"],
+        "direction": "分化",
+        "transmission": "海外供应链扰动（罢工/拥堵/关税） → 航运价格与出口交付节奏波动。",
+    },
+    # ---- 用户指定重点追踪的四类事件（主题兜底口径，与传导表 id 保持一致）----
+    "地缘冲突与战争": {
+        "overview": "地缘冲突或局部战争升级：涉及能源主产区、关键航运要道或大国博弈，避险情绪与能源供给预期同步抬升。",
+        "variables": ["布伦特原油价格 ↑", "黄金价格 ↑", "避险指数(VIX) ↑", "油轮/集装箱运费 ↑", "风险偏好 ↓"],
+        "sectors_up": ["石油石化", "油气服务", "油运", "军工", "黄金", "煤炭"],
+        "sectors_down": ["航空机场", "物流快递", "旅游酒店", "下游化工", "可选消费"],
+        "sectors": ["石油石化", "油气服务", "油运", "军工", "黄金", "煤炭",
+                    "航空机场", "物流快递", "旅游酒店", "下游化工"],
+        "direction": "分化（利多能源/军工/避险 / 利空出行与下游成本）",
+        "transmission": "冲突升级或航道受阻 → 原油供给预期收紧、油价上行 → 上游油气盈利上修，油运与军工受益，"
+                        "避险资金推升黄金；同时航油与物流成本上升压制航空、快递、旅游，下游化工毛利承压。",
+    },
+    "自然灾害与洪涝": {
+        "overview": "境外重大自然灾害（洪涝 / 台风 / 地震）：造成人员转移、基建损毁与区域供应链中断，并带来后续重建需求。",
+        "variables": ["农产品/粮食价格 ↑", "建材(水泥/防水)需求 ↑", "保险赔付 ↑",
+                      "区域物流时效 ↓", "重建投资 ↑"],
+        "sectors_up": ["水利建设", "建材(水泥/防水/管材)", "工程机械", "农业种植", "应急装备"],
+        "sectors_down": ["保险", "区域旅游", "受灾航线航空", "当地地产"],
+        "sectors": ["水利建设", "建材", "工程机械", "农业种植", "应急装备", "保险", "旅游", "地产"],
+        "direction": "分化（利多重建链 / 利空保险与区域消费）",
+        "transmission": "灾害损毁基建与农田 → 短期农产品供给受影响、粮价预期上行，重建带动水利/建材/工程机械订单；"
+                        "同时保险赔付上升压制险企利润，受灾区域旅游、航线与地产需求走弱。",
+    },
+    "科研论文与突破": {
+        "overview": "顶刊（《Nature》《Science》）或顶级会议发布重大科研论文 / 技术突破，改变相关产业的技术路线与商业化预期。",
+        "variables": ["技术商业化预期 ↑", "产业链订单预期 ↑", "主题资金关注度 ↑", "估值溢价 ↑"],
+        # 与 lexicon.TRANSMISSION_TABLE 的 research_paper 保持同一口径：展开为可映射的细分领域
+        "sectors_up": ["AI算力", "创新药", "新材料", "量子科技"],
+        "sectors_down": ["传统燃油车链", "传统能源"],
+        "sectors": ["AI算力", "创新药", "新材料", "量子科技", "传统燃油车链", "传统能源"],
+        "direction": "利多（对应技术链）/ 利空（被替代的旧路线）",
+        "transmission": "顶刊论文证实技术可行性 → 产业界加速投入、一级市场估值抬升 → A 股对应技术链获主题资金追捧；"
+                        "同时被替代的旧技术路线面临估值下修。",
+    },
+    "粮食歉收与减产": {
+        "overview": "主产区气候异常（干旱 / 洪涝）或出口国实施出口限制，导致粮食减产、全球粮价与农产品价格上行。",
+        "variables": ["CBOT 小麦/玉米价格 ↑", "全球粮价指数 ↑", "化肥农药需求 ↑",
+                      "饲料成本 ↑", "CPI 食品分项 ↑"],
+        "sectors_up": ["种业", "种植业", "农垦", "化肥农药", "农机"],
+        "sectors_down": ["养殖(饲料成本)", "饲料", "食品加工", "调味品", "白酒(用粮成本)"],
+        "sectors": ["种业", "种植业", "农垦", "化肥农药", "农机", "养殖", "饲料", "食品加工", "调味品"],
+        "direction": "分化（利多种植与农资 / 利空养殖与食品加工）",
+        "transmission": "减产 → 全球粮价上行 → 种植收益改善带动种业 / 种植 / 农垦，种植意愿提升拉动化肥农药与农机需求；"
+                        "同时饲料与食品加工原料成本上升，养殖、食品加工、调味品及用粮的白酒毛利承压。",
+    },
+    "其他": {
+        "sectors": ["大盘"],
+        "direction": "中性",
+        "transmission": "国外新闻对国内的传导路径不明确，暂以观察为主。",
+    },
+}
+
+
+def _join(v) -> str:
+    """把列表/字符串统一成逗号分隔（入库用）。"""
+    if not v:
+        return ""
+    return ",".join(v) if isinstance(v, (list, tuple)) else str(v)
+
+
+def _fallback_overview(rows: list[dict], tr: dict) -> str:
+    """传导表未给概述时，用真实条目自动拼一段「发生了什么」，避免留空。"""
+    top = sorted(rows, key=lambda x: float(x.get("heat") or 0), reverse=True)[:1]
+    lead = top[0]["title"] if top else ""
+    topic = tr.get("topic") or ""
+    return (f"国外源围绕「{topic}」形成议题（{len(rows)} 条条目）；"
+            f"代表性报道：{lead}。" if lead else
+            f"国外源围绕「{topic}」形成议题（{len(rows)} 条条目）。")
+
+
+def _fmt_symbols(entities: list[dict]) -> str:
+    seen, out = set(), []
+    for e in entities:
+        k = (e["market"], e["symbol"])
+        if k in seen:
+            continue
+        seen.add(k)
+        label = f"{e['symbol']}" + (f" {e['name']}" if e.get("name") else "")
+        out.append(f"{e['market']}:{label}")
+    return ",".join(out)
+
+
+def _detail(sectors) -> str:
+    """把「领域名列表」展开成细分领域 → 代表公司的 JSON 字符串（供前端按领域分组渲染）。
+
+    输出结构：[{"sector": "AI算力", "symbols": [{"code": "300308", "name": "中际旭创"}, ...]}, ...]
+    查不到代表公司的领域名也保留一条（symbols 为空），让前端如实展示「暂无代表标的」。
+    """
+    if not sectors:
+        return "[]"
+    if isinstance(sectors, str):
+        sectors = [s.strip() for s in sectors.split(",") if s.strip()]
+    out = []
+    for s in sectors:
+        name = str(s).strip()
+        if not name:
+            continue
+        syms = lx.SECTOR_SYMBOLS.get(name) or []
+        out.append({"sector": name,
+                    "symbols": [{"code": c, "name": n} for c, n in syms]})
+    return json.dumps(out, ensure_ascii=False)
+
+
+def _amp_reading(amp: float) -> str:
+    """放大系数的口语化解读。"""
+    if amp > 1.3:
+        return "强共振/情绪放大"
+    if amp >= 1.05:
+        return "温和放大"
+    return "传导偏弱"
+
+
+# 「领域名」里不能当成决策落点的占位 / 描述式字符串。
+# 历史数据里出现过「无显著直接利空」「论文对应技术链（…视论文方向而定）」这类写法；
+# 若不过滤，结论会渲染成「阶段回避 无显著直接利空」——语义不通，等于没给方向。
+_PLACEHOLDER_HINTS = ("无显著", "视论文方向而定", "被该技术替代", "对应技术链")
+
+
+def _clean_sectors(v) -> list[str]:
+    """规范化领域名列表并剔除占位式描述（供决策导向使用，_detail 仍如实保留原值）。"""
+    if not v:
+        return []
+    if isinstance(v, str):
+        v = v.split(",")
+    out: list[str] = []
+    for s in v:
+        name = str(s).strip()
+        if not name or any(h in name for h in _PLACEHOLDER_HINTS):
+            continue
+        out.append(name)
+    return out
+
+
+def _decision(direction: str, sectors_up, sectors_down,
+              confidence: float, amp: float, amp_read: str) -> str:
+    """由方向 + 受益/受损领域 + 置信度 + 放大系数，生成一句话到两句话的决策导向。"""
+    up = _clean_sectors(sectors_up)[:3]
+    down = _clean_sectors(sectors_down)[:3]
+    if not up and not down:
+        return "方向待观察：本事件暂未映射到明确的国内受益/受损领域，建议列入观察池。"
+
+    d = direction or ""
+    weakened = ("转弱" in d) or ("净空" in d)
+    tail = f"确定性 {confidence:.2f}，情绪放大 {amp} 倍（{amp_read}）。"
+
+    if ("利空" in d) and ("利多" not in d):
+        body = "方向偏空："
+        if down:
+            body += "规避 " + "、".join(down) + "；"
+        if up:
+            body += "仅保留 " + "、".join(up[:2]) + " 作为防御观察。"
+        return body.rstrip("；") + "。" + tail
+
+    if ("利多" in d) and ("利空" not in d):
+        body = "方向偏多："
+        if up:
+            body += "主攻 " + "、".join(up) + "；"
+        if down:
+            body += "阶段回避 " + "、".join(down[:2]) + "。"
+        body = body.rstrip("；")
+        if not body.endswith("。"):
+            body += "。"
+        body += ("因国外舆情转弱，建议降低仓位、按短线观察。" if weakened else "属短期催化。")
+        return body + tail
+
+    # 分化 / 混合 / 中性
+    body = "结构性分化："
+    if up:
+        body += "做多 " + "、".join(up) + "；"
+    if down:
+        body += "规避 " + "、".join(down) + "。"
+    body = body.rstrip("；")
+    if not body.endswith("。"):
+        body += "。"
+    if weakened:
+        body += "（国外舆情转弱，注意兑现）"
+    return body + tail
+
+
+def build_hotspots(db, news_rows: list[dict], topics_cfg: dict | None = None) -> list[dict]:
+    """从海外新闻条目聚合热点并入库。返回热点列表（已按热度排序）。"""
+    db.clear_overseas_hotspots()
+
+    foreign = [r for r in news_rows if r.get("region") in ("US", "HK", "GLOBAL")]
+    domestic = [r for r in news_rows if r.get("region") == "CN"]
+
+    # ---- 1) 传导表聚合 ----
+    clusters: dict[str, dict] = {}
+    for r in foreign:
+        blob = f"{r.get('title','')} {r.get('summary','')}"
+        tags = " ".join([r.get("topic") or "", r.get("topics") or ""])
+        for row in lx.match_transmission(blob + " " + tags):
+            c = clusters.setdefault(row["id"], {"tr": row, "rows": []})
+            c["rows"].append(r)
+
+    # ---- 2) 主题兜底聚合（传导表未覆盖的高频主题）----
+    by_topic: dict[str, list[dict]] = defaultdict(list)
+    for r in foreign:
+        by_topic[r.get("topic") or "其他"].append(r)
+    # 已被传导表聚合掉的条目不再重复进入主题兜底簇（避免同一批新闻出两张卡）
+    used_titles = set()
+    for c in clusters.values():
+        for r in c["rows"]:
+            used_titles.add(r.get("title"))
+    for topic, rows in by_topic.items():
+        if topic == "其他":
+            # 「其他」是未命中任何主题的兜底桶，把一堆无关新闻聚成一张卡没有分析价值
+            continue
+        free = [r for r in rows if r.get("title") not in used_titles]
+        if len(free) < 2:
+            continue
+        key = f"topic::{topic}"
+        if key in clusters:
+            continue
+        clusters[key] = {"tr": {"id": key, "topic": topic, **TOPIC_DEFAULT.get(topic, TOPIC_DEFAULT["其他"])},
+                         "rows": free}
+
+    # ---- 3) 逐簇生成热点 ----
+    hotspots: list[dict] = []
+    for key, c in clusters.items():
+        tr, rows = c["tr"], c["rows"]
+        if not rows:
+            continue
+        # 驱动源（去重，保留国外源；国内源单列）
+        f_sources, f_regions = [], []
+        entities: list[dict] = []
+        for r in rows:
+            if r["source_name"] not in f_sources:
+                f_sources.append(r["source_name"])
+            if r["region"] not in f_regions:
+                f_regions.append(r["region"])
+            try:
+                entities.extend(json.loads(r.get("entities") or "[]"))
+            except Exception:  # noqa: BLE001
+                pass
+
+        # 国内交叉比对：同一主题在国内源中的出现次数与情绪一致性
+        theme_tokens = [t.lower() for t in (tr.get("trigger") or [])] or [str(tr.get("topic", ""))]
+        cn_hits = []
+        for d in domestic:
+            blob = f"{d.get('title','')} {d.get('summary','')}".lower()
+            if any(t and t in blob for t in theme_tokens):
+                cn_hits.append(d)
+        foreign_heat = sum(float(r.get("heat") or 0) for r in rows)
+        cn_heat = sum(float(r.get("heat") or 0) for r in cn_hits)
+        if cn_hits:
+            f_bull = sum(1 for r in rows if r["sentiment"] == "看多")
+            f_bear = sum(1 for r in rows if r["sentiment"] == "看空")
+            c_bull = sum(1 for r in cn_hits if r["sentiment"] == "看多")
+            c_bear = sum(1 for r in cn_hits if r["sentiment"] == "看空")
+            same_dir = ((f_bull - f_bear) >= 0) == ((c_bull - c_bear) >= 0)
+            cross = (f"国内源有 {len(cn_hits)} 条同主题报道，情绪"
+                     f"{'与国外一致 → 内外共振，冲击被放大' if same_dir else '与国外相左 → 存在分歧，需警惕反复'}。")
+            sync_bonus = 0.15 if same_dir else -0.05
+        else:
+            cross = "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。"
+            sync_bonus = -0.10
+
+        base = float(tr.get("confidence") or 0.6)
+        amp = 1.0 + max(0, len(f_sources) - 1) * 0.10 + sync_bonus
+        amp = round(min(max(amp, 0.85), 1.60), 2)
+        conf = round(min(0.95, base + 0.03 * min(len(rows), 5)), 2)
+
+        # 情绪方向修正：国外源整体偏空则调低利多表述
+        f_net = sum(1 for r in rows if r["sentiment"] == "看多") - sum(1 for r in rows if r["sentiment"] == "看空")
+        direction = tr.get("direction", "中性")
+        if f_net < 0 and direction.startswith("利多"):
+            direction = f"利多但国外舆情转弱（净空 {abs(f_net)}）"
+
+        top = sorted(rows, key=lambda x: float(x.get("heat") or 0), reverse=True)[:6]
+        evidence = [{
+            "title": r["title"], "source": r["source_name"], "region": r["region"],
+            "time": r.get("publish_time", ""), "url": r.get("url", ""),
+            "sentiment": r["sentiment"], "topic": r.get("topic", ""),
+        } for r in top]
+
+        # 标题：传导表未给标题时，用热度最高的原始报道标题作事件名（可追溯，不留「（国外驱动）」空壳）
+        lead = sorted(rows, key=lambda x: float(x.get("heat") or 0), reverse=True)[0]
+        if key.startswith("topic::") and tr.get("topic"):
+            title = f"{tr['topic']} · 国外舆情聚合（{len(rows)} 条）"
+        else:
+            # 传导表若未内联 title，先取 lexicon.EVENT_TITLE_ZH 的中文事件名；
+            # 都没有才回落到英文原新闻标题（旧行为，仅兜底）。
+            title = (tr.get("title")
+                     or lx.EVENT_TITLE_ZH.get(str(tr.get("id") or ""))
+                     or lead["title"])
+
+        # 结构化结论：事件概述 / 关键传导变量 / 板块涨跌预判
+        # 优先取传导表同名字段；取不到再回落到 IMPACT_STRUCTURE（既有 7 类主题）
+        struct: dict = {}
+        for _k in ("overview", "variables", "sectors_up", "sectors_down"):
+            _v = tr.get(_k)
+            if not _v:
+                _v = lx.IMPACT_STRUCTURE.get(tr.get("id", ""), {}).get(_k)
+            struct[_k] = _v
+
+        # 细分领域 → 代表公司（前端按领域分组展示）+ 一句决策导向
+        amp_read = _amp_reading(amp)
+        decision = _decision(direction, struct.get("sectors_up"), struct.get("sectors_down"),
+                             conf, amp, amp_read)
+
+        hotspots.append({
+            "key": key,
+            "title": title,
+            "topic": tr.get("topic") or (rows[0].get("topic") or ""),
+            "overview": struct.get("overview") or _fallback_overview(rows, tr),
+            "variables": _join(struct.get("variables")),
+            "sectors_up": _join(struct.get("sectors_up")),
+            "sectors_down": _join(struct.get("sectors_down")),
+            "sectors_up_detail": _detail(struct.get("sectors_up")),
+            "sectors_down_detail": _detail(struct.get("sectors_down")),
+            "decision": decision,
+            # 驱动源剔除「示例源·xx」这类结构化示例（种子）——它们不是真实接入源，
+            # 列在卡片上会让用户误以为有 20+ 家真实媒体在驱动该议题。
+            "driver_sources": ",".join(s for s in f_sources if not s.startswith("示例源")),
+            "driver_regions": ",".join(f_regions),
+            "direction": direction,
+            "related_markets": ",".join(sorted({e["market"] for e in entities})),
+            "related_symbols": _fmt_symbols(entities),
+            "domestic_sectors": ",".join(tr.get("sectors") or []),
+            "transmission": tr.get("transmission", ""),
+            "amplification": tr.get("amplification") or (
+                f"国外源 {len(f_sources)} 家、{len(rows)} 条条目构成议题密度；"
+                f"放大系数 {amp}（>1 为放大，<1 为衰减）。"),
+            "cross_check": cross,
+            "amplification_factor": amp,
+            "confidence": conf,
+            "heat": round(foreign_heat + cn_heat, 2),
+            "evidence": json.dumps(evidence, ensure_ascii=False),
+            "first_seen": min((r.get("publish_time") or "") for r in rows) or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+    hotspots.sort(key=lambda x: x["heat"], reverse=True)
+    for h in hotspots:
+        db.save_overseas_hotspot(**h)
+    return hotspots

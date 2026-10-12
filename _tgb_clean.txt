@@ -1,0 +1,18 @@
+﻿DEL _tgb_cookie_tmp.json
+DEL _tgb_cookie_inject.py
+DEL _tgb_step2.py
+DEL _tgb_step4.py
+DEL _tgb_step1.txt
+DEL _tgb_step2.txt
+DEL _tgb_step4.txt
+DEL _tgb_step4_err.txt
+DEL _cookie_chk.txt
+=== remaining _tgb* ===
+KEEP _tgb_step3.py
+KEEP _tgb_step3.txt
+KEEP _tgb_step3_err.txt
+=== cred store (密文，未落明文) ===
+  .key 44
+  credentials.enc 5368
+  credentials.enc.bak.before-taoguba-real-20260924 248
+  credentials.enc.bak.before-tgb-20261001 5220

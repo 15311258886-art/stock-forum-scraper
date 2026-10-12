@@ -1,0 +1,43 @@
+app.js TOTAL 4030
+
+=== 顶层函数定义（1600-2100 行区间）===
+ 1639: function loadNiusan() {
+ 1643: function renderNiusan() {
+ 1709: function loadLhbSectors(date) {
+ 1722: function loadDashboard() {
+ 1726: function renderDashboard() {
+ 1837: function loadStarMoves() {
+ 1840: function renderStarMoves() {
+ 1894: function renderLhbSectors() {
+ 1963: function renderPlayers(list) {
+ 2069: function filterPlayers(attr, val) {
+ 2082: function renderConsensus(list) {
+
+=== renderNiusan / renderStarMoves / renderDashboard 关键锚点 ===
+ 1639: function loadNiusan() {
+ 1641: return api("/api/niusan" + q).then((d) => { NIUSAN.data = d; renderNiusan(); });
+ 1643: function renderNiusan() {
+ 1704: loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+ 1722: function loadDashboard() {
+ 1723: return api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); });
+ 1726: function renderDashboard() {
+ 1837: function loadStarMoves() {
+ 1838: return api("/api/star_moves").then((d) => { STARM.data = d; STARM.sel = null; renderStarMoves(); });
+ 1840: function renderStarMoves() {
+ 1887: el.onclick = () => { STARM.sel = el.dataset.smDate; renderStarMoves(); };
+ 2980: api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); })
+ 3396: if (DASH.data) renderDashboard();
+ 3397: else loadDashboard().catch((e) => reportLoadError("今日看板", e));
+ 3416: if (NIUSAN.data) renderNiusan();
+ 3417: else loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+ 3420: if (STARM.data) renderStarMoves();
+ 3421: else loadStarMoves().catch((e) => reportLoadError("牛散动向", e));
+
+=== 面板 id 引用（p-niusan / p-dashboard / p-star_moves）===
+ 1644: const box = $("#p-niusan");
+ 1701: $$("#p-niusan [data-ns-scope]").forEach((el) => {
+ 1727: const box = $("#p-dashboard");
+ 1830: $$("#p-dashboard .kline-chip[data-sym]").forEach((el) => {
+ 1841: const box = $("#p-star_moves");
+ 1886: $$("#p-star_moves [data-sm-date]").forEach((el) => {
+ 1889: $$("#p-star_moves .kline-chip[data-sym]").forEach((el) => {

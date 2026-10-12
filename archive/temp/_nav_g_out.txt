@@ -1,0 +1,60 @@
+=== NAV 全结构 ===
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "star_moves", label: "牛散动向" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+=== 各 tab 的渲染函数与接口调用 ===
+  tab=dashboard      ->  if (DASH.data) renderDashboard(); else loadDashboard().catch((e) => reportLoadError("今日看板", e)); 
+  tab=lhb            ->  if (LHB.data) renderLhb(); else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e)); 
+  tab=lhb_sectors    ->  if (LBHS.data) renderLhbSectors(); else loadLhbSectors().catch((e) => reportLoadError("板块动向", e)); 
+  tab=niusan         ->  if (NIUSAN.data) renderNiusan(); else loadNiusan().catch((e) => reportLoadError("牛散追踪", e)); 
+  tab=star_moves     ->  if (STARM.data) renderStarMoves(); else loadStarMoves().catch((e) => reportLoadError("牛散动向", e)); 
+
+=== 每个 tab 用到的 /api/ 接口 ===
+  loadStockQuote         -> /api/quote?symbol=${encodeURIComponent
+  loadKline              -> /api/kline?symbol=${encodeURIComponent
+  loadLhb                -> /api/lhb
+  loadNiusan             -> /api/niusan
+  loadLhbSectors         -> /api/dashboard, /api/lhb_sectors
+  loadDashboard          -> /api/dashboard
+  loadStarMoves          -> /api/star_moves
+  loadRawHtml            -> /api/detail?kind=${kind}&id=${id}&full=1
+  loadAll                -> /api/dashboard, /api/summary
+  loadSchedulerStatus    -> /api/scheduler/status
+  loadRefreshStatus      -> /api/refresh_status
+  loadKbTracks           -> /api/kb/list
+
+=== 各 panel id（index.html 静态面板）===
+  p-summary, p-dashboard, p-stocks, p-operating, p-players, p-lhb, p-lhb_sectors, p-niusan, p-star_moves, p-consensus, p-cohold, p-persons, p-sentiment, p-topics, p-overseas_sentiment, p-overseas_hotspots, p-sources, p-archive, p-fetchlog, p-learn_zdx_stock, p-learn_tracks
+
+=== APP 一级分组 ===
+  key=overview       label=总览
+  key=acquire        label=知识获取
+  key=research       label=行情研判
+  key=trade          label=实盘操作
+  key=learn          label=跟我学习

@@ -1,0 +1,8 @@
+ok=True has_snap=True days=1 buy_count=42
+summary={}
+2026-10-05 total=47 n=5 base=2026-09-03
+  000016 track={"ok": true, "from": "2026-10-05", "days": 0, "target": 2.4, "price": 2.46, "diff": 2.5}
+  T+1 price=None ret=None vs_target=None
+  T+10 price=None ret=None vs_target=None
+  T+3 price=None ret=None vs_target=None
+  T+5 price=None ret=None vs_target=None

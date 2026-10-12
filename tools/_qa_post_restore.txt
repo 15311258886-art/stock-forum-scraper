@@ -1,0 +1,29 @@
+回滚后只读验收 @ http://127.0.0.1:8765
+==========================================================================
+[A] 库内容
+    posts                        185
+    players                      160
+    positions                    135
+    trades                       46
+    overseas_news                707
+    overseas_hotspots            17
+    overseas_sentiment_daily     77
+    overseas_sources_status      41
+    meta.overseas_last_collect = ('2026-09-22 21:53:47',)
+    overseas_sources_status 列 = ['source_key', 'name', 'region', 'status', 'ok', 'count', 'error', 'latency', 'requires_key', 'requires_vpn', 'note', 'checked_at', 'enabled']
+    含 enabled 列 = True
+    区域分布 = {'US': 303, 'GLOBAL': 194, 'HK': 102, 'SG': 83, 'CN': 25}
+
+[B] 面板接口（只发 GET）
+    /api/overseas_sentiment  HTTP 200  total=707  region_dist={'CN': {'count': 25, 'heat': 369.0}, 'GLOBAL': {'count': 194, 'heat': 6082.4}, 'HK': {'count': 102, 'heat': 3072.75}, 'SG': {'count': 83, 'heat': 889.2}, 'US': {'count': 303, 'heat': 12069.4}}
+        news 返回 40 条，区域分布 = {'US': 12, 'GLOBAL': 12, 'SG': 4, 'HK': 12}
+    /api/overseas_hotspots  HTTP 200  n=17  decision 非空=17  sectors_up_detail 类型=['list']
+    /api/overseas_sources  HTTP 200  n=41
+        status 分布 = {'未启用': 5, '已接入': 26, '待激活（需 VPN）': 7, '已连通但无条目': 1, '抓取失败': 1, '待激活（需 API Key）': 1}
+        带 enabled 字段 = 41/41，enabled=1 共 28
+    /api/summary               HTTP 200  顶层条目=4
+    /api/players               HTTP 200  顶层条目=160
+    /api/consensus             HTTP 200  顶层条目=23
+
+[C] 已跳过：写接口守卫验证必须在隔离副本库（VIEWER_DB/VIEWER_PORT）上做，
+    对生产库发 POST /api/demo 本身即破坏性操作。见 tools/_qa_fix_backend2.txt。

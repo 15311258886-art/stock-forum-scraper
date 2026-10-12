@@ -1,0 +1,13 @@
+TOTAL 386
+  65: MAX_DENSITY = 0.25    # 上榜密度上限：板块内上榜股占比超此值 → 判定为统计类板块，跳过
+ 203:     dates = [r["trade_date"] for r in con.execute(
+ 204:         "SELECT DISTINCT trade_date FROM lhb_stocks ORDER BY trade_date DESC")]
+ 205:     if args.days:
+ 206:         dates = dates[:args.days]
+ 207:     dates = sorted(dates)
+ 246:     focus = {k: v for k, v in agg.items() if len(v["codes"]) >= args.min_appear}
+ 247:     print(f"[2/4] 上榜≥{args.min_appear}只的「板块·日」组合：{len(focus)} 个"
+ 261:     candidates = []
+ 272:         density = len(onlist) / float(max(1, len(members)))
+ 273:         if density > MAX_DENSITY:
+ 274:             print(f"      跳过「{s}」：上榜密度 {density:.0%}（统计类板块，非真题材）", flush=True)

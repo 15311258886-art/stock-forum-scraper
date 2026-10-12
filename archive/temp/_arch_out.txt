@@ -1,0 +1,120 @@
+======================================================================
+[1] 数据层：业务表清单与量级
+======================================================================
+  kb_doc                       1
+  lhb_depts                    3175
+  lhb_inst                     269
+  lhb_seats                    3815
+  lhb_sector_focus             24
+  lhb_stocks                   492
+  login_status                 5
+  meta                         8
+  news                         678
+  overseas_hotspots            17
+  overseas_mentions            21
+  overseas_news                693
+  overseas_sentiment_daily     79
+  overseas_sources_status      41
+  persons                      739
+  players                      226
+  positions                    271
+  posts                        1059
+  raw_pages                    179
+  refresh_status               7
+  sqlite_sequence              15
+  stock_holder_num             4854
+  stock_holders                23199
+  stock_mentions               46
+  stock_names                  228
+  topics                       25
+  trades                       64
+  --- 空表 ---
+  无
+
+======================================================================
+[2] 牛散数据现状
+======================================================================
+  stock_holders 行=23199 覆盖股=398 自然人条=9967 牛散候选(跨>=2股)=136
+  报告期范围: 2013-09-30 ~ 2026-09-23
+
+======================================================================
+[3] 接口层：API 路由清单
+======================================================================
+  共 42 个：
+     /api/cohold_recent
+     /api/consensus
+     /api/demo
+     /api/detail
+     /api/detail_list
+     /api/edge/restart
+     /api/fetch
+     /api/hotspots
+     /api/kb/doc
+     /api/kb/list
+     /api/kb/reload
+     /api/kline
+     /api/lhb
+     /api/lhb_sectors
+     /api/login/import
+     /api/login/open
+     /api/login_check
+     /api/login_status
+     /api/niusan
+     /api/operating
+     /api/overseas
+     /api/overseas_hotspots
+     /api/overseas_sentiment
+     /api/overseas_sources
+     /api/person
+     /api/persons
+     /api/player
+     /api/players
+     /api/positions
+     /api/posts
+     /api/quote
+     /api/raw_pages
+     /api/refresh_status
+     /api/scheduler/status
+     /api/scheduler/toggle
+     /api/sentiment
+     /api/stock
+     /api/stock_names
+     /api/stocks
+     /api/summary
+     /api/sync_names
+     /api/topics
+
+======================================================================
+[4] 前端导航结构（信息架构）
+======================================================================
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+======================================================================
+[5] 前端面板容器清单
+======================================================================
+  19 个: ['p-summary', 'p-stocks', 'p-operating', 'p-players', 'p-lhb', 'p-lhb_sectors', 'p-niusan', 'p-consensus', 'p-cohold', 'p-persons', 'p-sentiment', 'p-topics', 'p-overseas_sentiment', 'p-overseas_hotspots', 'p-sources', 'p-archive', 'p-fetchlog', 'p-learn_zdx_stock', 'p-learn_tracks']

@@ -1,0 +1,18 @@
+blognew.js bytes 65390
+getDav NOT FOUND
+getCourse NOT FOUND
+=== 所有 ajax/url 串 ===
+   #followAll
+   #followDiv
+   #followSP
+   +arr[i].followNum+
+   +arr[i].stockCode+
+   /getFansList?pageNo=1&selfID=
+   /shuo/getSpmatchUserFollowList?userID=
+   /shuo/getUserBlogShuoFollow?userID=
+   /user/jumpDigStock
+   followDiv
+   https://css.tgb.cn/images/mNew/daV.png
+   jumpStocks(
+   new/dav/getIsDavByUserID
+   user/delSelfFriend?listUserID=

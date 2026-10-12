@@ -1,0 +1,220 @@
+================================================================================
+前端缺陷修复报告（UI 线 · general-purpose-3）
+项目：F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper
+改动文件：viewer/static/app.js、viewer/static/app.css            （未动 server.py / db.py / overseas/*）
+新增文件：tests/ui_fix_frontend.js
+截图目录：tools/shots_frontend/（未覆盖 tools/shots/、tools/shots_ui/）
+服务：全程对运行中的 8765 做只读回归，未重启 8765
+================================================================================
+
+§0 一句话结论
+--------------------------------------------------------------------------------
+清单 7 组缺陷全部修完；新增专项回归 tests/ui_fix_frontend.js 94/94 PASS；
+既有回归 ui_hotspot 31/31、ui_full_regression 71/80 → 80/80（9 条 FAIL 全清零）；
+ui_regression 因为 tests/ui_regression.js 正被另一条线改成半成品（见 §6）暂时跑不出数字。
+
+
+§1 改动摘要（文件:行号 → 改了什么 → 为什么）
+--------------------------------------------------------------------------------
+【app.js】
+
+1) P1-2 前端静默失败
+   - app.js:13-22 `api()`：`fetch().then(r => r.json())` → 先判 `r.ok`，
+     非 2xx 抛出 `HTTP <status> <statusText> <path> — <响应体前 200 字>`。
+     原因：fetch 不会因 4xx/5xx reject，旧实现把错误页当 JSON 解析后静默吞掉。
+   - app.js:41-73 新增 `loadErrors` / `apiErrText()` / `errorBarHost()` / `renderErrorBar()` /
+     `reportLoadError()`：加载失败在顶栏正下方插一条可关闭的错误条
+     （`#apiErrorBar.部分数据加载失败：…`），同时把摘要写进 `#statusHint`。
+   - app.js:1151-1170 `loadAll()`：10 个请求逐个补 `.catch(...)`；summary 额外做
+     「非对象 → 降级空对象」「无 counts 字段 → 报可读提示」。
+   - 补齐其余裸 Promise：`renderSummary` 内 /api/posts(:106-117)、`openStock`(:208)、
+     `openStockConsensus`(:492)、`renderOverseasSentiment` 内 /api/overseas_sources(:546)、
+     `openDetail`(:925)、`loadRawHtml`(:941)、`openPerson`(:954)、`openPlayer`(:983)、
+     `btnLogin`(:1180) / `btnDemo` / 实时刷新定时器(:1216) —— 动作类用 setHint 报错，
+     面板类用 reportLoadError 报错。全文件已无裸 `fetch`（仅 api() 内一处）。
+
+2) P2-1 XSS 属性逃逸
+   - app.js:33-36 新增 `escAttr()`（在 esc 基础上 `"→&quot;`、`'→&#39;`）。
+   - 属性上下文一律改用 escAttr：
+     :94 `data-sym`（股票卡）、:117 `data-id`（帖子行）、:303 `data-name`（人物行）、
+     :311 `data-id`（操作行）、:356 `ch-*`（渠道徽章 class）、:368 `t-*`（层级徽章 class）、
+     :384 `p-*`（平台徽章 class）、:423 `data-name/data-ch/data-tier`（选手行）、
+     :462 `ch-*`（共识玩家 class）、:467 `data-sym`（共识行）、
+     :622 `data-status`（数据源卡）、:628 `data-checked-at`、:1037 `ch-*/title`（人物持仓徽章）、
+     :1058 `title`（持仓起始日期）。
+   - app.js:393-397 新增 `isSafeHttpUrl()` + `DANGEROUS_URL_RE`（显式拒绝 javascript:/data:/
+     vbscript:/file:），`isPlaceholderUrl()` 复用它；:410 `href="${escAttr(url)}"`。
+     保留原有「示例 URL 不可点」行为（占位域名/非 http(s) 仍降级为纯文本 + 示例标）。
+
+3) P2-8 抽屉把手跑出视口
+   - app.js:748-760 新增 `clampDrawerToViewport(d)`：宽高先收敛到视口内，再钳制
+     `left + width <= innerWidth`、`top + height <= innerHeight`，左侧至少留 160px 标题栏。
+   - 调用点：拖拽 `move`/`up`(:819-831)、拉伸 `move`/`up`(:849-858)、
+     `placeDrawer` 末尾(:790)、`toggleMax` 还原(:801)、窗口 `resize`(:893-901，最大化态另算)。
+     旧实现 `maxL = vw - 160` 允许 left=1280 使右缘 2082 > 1440，右下角手柄抓不到。
+
+4) P2-9 缺字段 / counts 缺失
+   - `toArr()`(:37) 全量替换 `(x || [])` 形式的数组读取（共 30+ 处）。
+   - `renderCards`(:94-103)：counts 非对象 → 空对象；缺失值渲染 `—`。
+   - `renderSummary`(:106-117)、`openStock`(:208-283)、`openStockConsensus`(:492)、
+     `openPerson`(:954)、`openPlayer`(:983) 所有数字字段改 `?? "—"` / `?? 0`。
+   - 修 4 处「把 undefined 写进 DOM」的真实漏网（由新测试发现）：
+     :716 `actionBadge(a)`（action 缺失 → 字面量 undefined）、
+     :356 `channelBadge(ch)`（→「渠道 undefined」）、
+     :367 `tierBadge(t)`（→「层级 undefined」）、
+     :511 `regionLabel(r)`（→ undefined）。现在分别渲染 `—` / 渠道未标注 / 层级未标注 / 区域未标注。
+
+5) P3-6 / P3-7 类型与 NaN
+   - `renderTopics`(:339-352)：先 `Number.isFinite(Number(t.weight))` 过滤，非有限值跳过该条，
+     不再出现 `热度 NaN` 与 `width:NaN%`；max 也退化为 1 兜底。
+   - `renderSentiment`(:317-337)：加类型校验（非对象或数组 → 面板显示
+     「数据格式异常（接口返回类型不符），已降级显示」），不再因 `(d.map||[]).map` 取到
+     Array.prototype.map 而抛错白屏。
+
+6) P2-7 数据源面板（全部做成特性探测，不硬依赖后端新字段）
+   - :595-604 `srcStatusClass(st)`：已接入=src-on(绿)；已连通但无条目=src-neutral(中性黄)；
+     示例模式=src-demo(蓝)；待激活*=src-wait(黄)；未启用=src-off(灰)；抓取失败=src-err(红)；
+     未知/空状态兜底 src-off（不再默认标红）。
+   - :606-608 `latestCheckedAt()` + :610-640 `renderOverseasSources()`：标题旁渲染
+     「数据截至：<checked_at>」，全缺失时整行隐藏（不渲染 undefined）。
+   - :612-620 enabled 特性探测：`hasOwnProperty("enabled") && enabled === false` 时，
+     状态徽章旁加「已关闭」小标（后端当前已提供 enabled，实测 0 个 false，逻辑就绪）。
+   - :636 条数口径改为「抓取 N 条」+ title「为去重前的抓取条数，实际入库数可能更少」。
+   - :638 图例文案改为如实描述：面板展示的是「上一次采集」的结果快照；
+     删除当前实现下不会出现的「未联网时显示『示例模式·未联网』」说法。
+   - 保留「示例模式」分支（本轮实测运行中服务确实返回了「示例模式·未联网」，该分支已被用到）。
+   - app.css:311-316 新增 src-neutral / 已关闭小标 / 数据截至 / 抓取 N 条 样式。
+   - app.css:320-331 新增错误条样式（深红底 + 浅红字，浅色/深色主题下都可读，可关闭）。
+
+7) P2-5 人员列表截断与文案矛盾
+   - :303-315 `renderPersons`：去掉「不遗漏任何一个名称」；
+     改为「按出现次数降序排列，此处列出前 <shown> 位（本次接口共返回 <total> 位）」，
+     截断逻辑保持 slice(0,80) 不变（后端放不放开都不影响文案正确性）。
+   - `mention_count` 缺失改渲染 `—`。
+
+【app.css】
+   :189  `.stk-name` 补 `word-break:break-word; overflow-wrap:anywhere;`
+         —— 超出清单的一处补丁：ui_full_regression 的「超长无空格 ASCII 串不产生横向溢出」
+         是真实布局缺陷（`.stk-corp` 已有该属性，`.stk-name` 漏了），同文件 1 行，
+         把 1 条 FAIL 转 PASS。如不需要可单行回退。
+
+
+§2 回归前后数字（均对运行中的 8765，未重启）
+--------------------------------------------------------------------------------
+测试                                改动前            改动后
+ui_hotspot.js 8765                  31/31 (SKIP 0)    31/31 (SKIP 0)
+ui_regression.js 8765               21/21             （见 §6，被外部半成品阻断）
+ui_full_regression.js 8765          71/80 (FAIL 9)    80/80 (FAIL 0 / SKIP 0)
+tests/ui_fix_frontend.js（新增）      —                94/94 (FAIL 0)
+
+ui_full_regression 9 条 FAIL → 全 PASS 明细：
+ 1) [股票] 拖到右下极限后手柄仍在视口   → PASS（clampDrawerToViewport）
+ 2) [人物] 拖到右下极限后手柄仍在视口   → PASS（同上）
+ 3) [选手] 拖到右下极限后手柄仍在视口   → PASS（同上）
+ 4) 超长无空格 ASCII 串不产生页面横向溢出 → PASS（.stk-name word-break，见 §1【app.css】）
+ 5) [错误态] /api/summary 缺 counts 时给出可读提示 → PASS（reportLoadError）
+ 6) [错误态] 缺 weight 字段时未渲染出 NaN         → PASS（Number.isFinite 过滤）
+ 7) [错误态] 缺字段:/api/persons 条目缺 mention_count/role → PASS（?? "—"）
+ 8) [错误态] 缺字段:/api/summary.counts 少给字段  → PASS（renderCards 降级）
+ 9) [错误态] 类型不符:/api/sentiment 返回 JSON 数组 → PASS（类型校验降级）
+
+原始输出留档：
+  tools/_qa_fix_frontend_before.txt   改动前三个既有回归
+  tools/_qa_fix_frontend_after.txt    改动后三个既有回归
+  tools/_qa_fix_frontend_assert.txt   新增专项回归的逐条断言
+  tools/_qa_fix_frontend_run1/2/3.txt 新增专项回归的三次迭代（94/94 为 run3）
+
+
+§3 新增 tests/ui_fix_frontend.js 断言结果（94/94 PASS）
+--------------------------------------------------------------------------------
+一、真实页面（只读）
+  · 正常页错误条不常亮；全站无 undefined/NaN/Invalid Date；title 属性无脏值
+  · escAttr 把 " 与 ' 一并转义（对照断言：esc() 不转义引号 → 说明 escAttr 必要）
+  · javascript: / data: 判定为不可跳转且不生成 <a href>；真实 https 仍可点；占位域名仍降级
+  · 数据源面板：六类状态映射纯函数校验全对；真实渲染逐个源配色与状态自洽；
+    红色只出现在「抓取失败」；「已连通但无条目」= src-neutral（不是 src-err）；
+    「数据截至：<checked_at>」已渲染；checked_at 全缺失时降级为空；
+    条数文案 = 「抓取 N 条」且 title 含去重前口径；图例含「上一次采集」且已去掉「未联网时显示」
+  · 人员列表：不再声称「不遗漏任何一个名称」，如实写「列出前 N 位（共 M 位）」
+  · 四套主题下均无 undefined/NaN/title 脏值
+二、P1-2 三种失败（网络层 abort / 500 HTML / 500 JSON）
+  · 每种失败下：错误条可见（含「部分数据加载失败」）、statusHint 也变可读报错、
+    报错信息带状态码或网络原因、错误条可点 ✕ 关闭、无未捕获 JS 异常
+  · counts 缺失（HTTP 200 但少字段）：给出可读提示、计数降级为「—」、无异常
+三、P2-1 属性逃逸注入（载荷含 "）
+  · 选手行 data-name / data-ch 原样回读；属性集合精确等于 [data-ch,data-name,data-tier]（无 data-evil）
+  · 人物行属性集合 = [data-name, style]；股票卡 = [class, data-sym]
+  · 全页 [onmouseover] 节点数 = 0；[data-evil] = 0；a[href^=javascript:]/[data:] = 0
+  · 真鼠标悬停行后 window.__xssCh/__xssPerson/__xssSym 均未触发
+四、P2-8 抽屉把手
+  · 初始 / 拖到右下极限 / 拖到左上极限 / 视口缩到 900x620 / 把把手拖出 2200x1800 后：
+    一律 `left+width <= innerWidth`、`top+height <= innerHeight`，右下角拉伸手柄矩形完整在视口内，
+    标题栏 top >= -1（仍可拖回）
+五、缺字段 / 类型不符（请求拦截构造）
+  · 大面积缺字段页：全站 undefined=0 NaN=0；汇总 9 张卡「有值的显值、缺的显 —」；
+    缺 weight 的热点被跳过（无 NaN、显空态）；人物表显 —；共识 holders/weighted/heat 显 —；
+    海外热点 放大系数/置信/热度 显 —；数据源面板中性色 + 「已关闭」小标 + 「抓取 5 条」+ checked_at
+  · 类型不符页（数组↔对象↔字符串互喂）：0 条 pageerror，各面板降级提示而非白屏
+
+
+§4 断言改动说明（本轮我改过的断言，逐条说明为什么）
+--------------------------------------------------------------------------------
+按规矩「不得默默改断言」，以下 3 处是我自己新写的断言写错了/前提不成立，已改为
+数据驱动或修正正则，不是放宽判定：
+
+ A) 「[P2-7①] 已接入→src-on / 已连通但无条目→src-neutral / …」
+    初版按「面板里必须出现某状态」来断言。首次运行时 8765 正在被另一条线重启，快照里
+    「已接入」= 0 个（临时全变成「示例模式·未联网」），导致 3 条断言假红/假绿
+    （空集合上的 .every() 恒真 = 假绿，更危险）。
+    改法：新增纯函数断言（直接调 window.srcStatusClass 校验六类 + 未知/空值映射）
+    + 「真实渲染中每个源的 class 必须与自身 data-status 一致」的一致性断言。
+    判定：原断言「写法有缺陷」（依赖运行中服务的瞬时数据分布），不是代码缺陷。
+ B) 「[P2-7③] 抓取 N 条」：改为「若快照里存在 count>0 的源则必须符合口径，否则 SKIP」。
+    判定：断言前提不成立时的显式 SKIP，不是放宽；该口径另有「缺字段页 count=5」独立覆盖。
+ C) 「[P2-5] 人员列表文案如实说明截断」：正则 `/共\s*\d+\s*位/` 与真实文案
+    「本次接口共返回 100 位」不匹配（中间多了「返回」二字）。改法：正则改为
+    `/共[^，。；]{0,10}?\d+\s*位/`。判定：断言写错（正则与文案不符），文案本身正确。
+ D) 「[P2-1] 人物行属性未被追加」：初版期望属性集合 = ["data-name"]，实际源码里该行
+    还带内联 `style="cursor:pointer"`，故期望改为 ["data-name","style"]。
+    判定：断言写错（漏算了源码自带的 style）；安全性质（无注入属性）无误。
+
+除以上 4 条外，其余 90 条断言自始未改。
+另外：新增断言过程中真的抓出 4 处代码缺陷（actionBadge / channelBadge / tierBadge /
+regionLabel 会把字面量 undefined 写进 DOM），已按「改代码、不改断言」处理。
+
+
+§5 未纳入清单、但我做了的 1 处改动（请复核）
+--------------------------------------------------------------------------------
+app.css:189 `.stk-name` 补 `word-break:break-word; overflow-wrap:anywhere;`
+理由：ui_full_regression「超长无空格 ASCII 串不产生页面横向溢出（.stk-name 未设 word-break）」
+是真实布局缺陷，同属我负责的 app.css，1 行即可修，把该 FAIL 转 PASS。
+影响面：真实股票简称都很短，视觉无变化；四主题共用同一属性，不改变「四主题高度一致」。
+如需保持清单最小化，删掉这半行即可回退。
+
+
+§6 遗留 / 需要 team-lead 决策
+--------------------------------------------------------------------------------
+1) tests/ui_regression.js 当前无法运行：文件 (11833 字节, 23:59 被改) 在第 12 行调用
+   `announce()`、第 19 行调用 `trackRequests(page)`，但这两个函数在文件里不存在，
+   直接抛 `RUNNER ERROR @ init: announce is not defined`。这不是我的改动导致
+   （改动前 21/21 正常，且我没碰该文件）。等该文件改完我再补跑，预期 ≥ 21/21。
+2) 数据源面板 ②（enabled）已做特性探测：后端现已返回 enabled 字段（实测 41 个源全部
+   非 false，故当前无「已关闭」小标），一旦后端把某些源置 false，界面会自动出现该小标。
+3) ③「抓取 N 条」只改前端口径（显示 + title 提示），实际入库数仍取决于后端去重；
+   若后端愿意直接给「去重后条数」，前端可无缝切换。
+4) 本轮所有断言用的 8765 数据是后端重启后的快照（checked_at=2026-09-22 21:53:46）；
+   若后端随后改变 /api/overseas_sources 的字段或状态文案，请重跑
+   `node tests/ui_fix_frontend.js 8765`，其状态映射断言是数据驱动 + 纯函数双保险。
+
+
+§7 复现命令
+--------------------------------------------------------------------------------
+export NODE_PATH="C:\Users\野比&大熊\.workbuddy\binaries\node\workspace\node_modules"
+node --check viewer/static/app.js
+node tests/ui_fix_frontend.js 8765      # → 94/94
+node tests/ui_hotspot.js 8765           # → 31/31
+node tests/ui_full_regression.js 8765   # → 80/80
+（ui_regression.js 待外部修改完成后重跑）
+
+未 commit（该项目未使用 git 管理）。
+================================================================================

@@ -1,0 +1,56 @@
+===== 后端有、前端未直连的接口 =====
+   /api/cohold_recent
+   /api/dashboard
+   /api/demo
+   /api/detail
+   /api/detail_list
+   /api/kline
+   /api/login_status
+   /api/person
+   /api/player
+   /api/positions
+   /api/quote
+   /api/stock
+   /api/stock_names
+   /api/topics
+  合计 14 / 43
+
+===== 前端 NAV 子标签 → 是否有渲染函数 =====
+  summary              汇总             ['renderSummary']
+  sources              数据源            ['renderSources']
+  archive              原始存档           ['renderArchive']
+  fetchlog             抓取与登录记录        （未见同名函数）
+  stocks               当前讨论股票         ['renderStocks']
+  sentiment            舆论情绪           ['renderSentiment']
+  topics               近期热点           （未见同名函数）
+  overseas_sentiment   美股港股舆情         ['renderOverseasSentiment']
+  overseas_hotspots    国外驱动热点         ['renderOverseasHotspots']
+  operating            正在操作股票         ['renderOperating']
+  players              实盘选手(渠道)       ['renderPlayers']
+  lhb                  游资龙虎榜          ['renderLhb']
+  lhb_sectors          板块动向           ['renderLhbSectors']
+  niusan               牛散追踪           ['renderNiusan']
+  consensus            共同持仓共识         ['renderConsensus']
+  cohold               近5日共同买入        ['renderCohold']
+  persons              相关人物           ['renderPersons']
+  learn_zdx_stock      中短线炒股          （未见同名函数）
+  learn_tracks         学习轨道管理         （未见同名函数）
+  learn_tracks         学习轨道管理         （未见同名函数）
+
+===== 板块扩散缺口 =====
+  lhb_stocks 有榜的日期: ['2026-09-16', '2026-09-17', '2026-09-18', '2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24']
+  sector_focus 已算的日期: ['2026-09-16', '2026-09-17', '2026-09-18', '2026-09-21', '2026-09-22', '2026-09-23']
+
+===== 表：positions 时间填充（判断能否标注购买时间）=====
+  jisilu     n=4    无时间=0
+  taoguba    n=267  无时间=267
+
+===== 股东变动字段可用量（对标"新进/增持/减持"告警）=====
+  '不变'  10646
+  '新进'  5769
+  '100000'  26
+  '-1000000'  21
+  '-100000'  21
+  '-500000'  18
+  '-10000'  17
+  '-200000'  16

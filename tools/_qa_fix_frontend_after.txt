@@ -1,0 +1,181 @@
+### AFTER ui_hotspot
+PASS  热点卡已渲染（至少 1 张）  —— 共 17 张
+PASS  已删除「证据（原始条目）」文本
+PASS  已删除证据区块节点 .ov-hs-ev  —— 节点数=0
+PASS  热点面板内无 看多/看空/中性 徽章  —— 残留=0
+PASS  模块说明已去除「附原始证据可追溯」
+PASS  每张卡都有决策结论块  —— 结论块=17 / 卡=17
+PASS  决策结论文字非空（>=8 字）  —— 过短=0
+INFO  结论样例  —— 方向偏多：主攻 AI算力、半导体、消费电子；阶段回避 传统消费电子代工（低阶）。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。
+PASS  涨跌预判已按细分领域分组  —— 上涨组=17 下跌组=16
+PASS  领域行已渲染  —— 领域行=96
+PASS  公司标签已渲染  —— 公司=413
+PASS  每家公司都是「中文名 + 6 位代码」  —— 不合格=0
+INFO  公司样例  —— 中际旭创(300308) / 浪潮信息(000977) / 科大讯飞(002230) / 中科曙光(603019) / 海光信息(688041)
+PASS  未出现降级占位提示（数据已重算）
+PASS  领域名无横向溢出  —— 溢出=0
+PASS  领域名文字未压到公司标签  —— 压字=0
+PASS  海外舆情面板无 看多/看空/中性 徽章  —— 残留=0
+PASS  海外舆情面板已移除情绪分布三格  —— 残留=0
+PASS  海外新闻流条目无情绪徽章  —— 新闻条数=40 残留=0
+PASS  重点提及标的已去掉 多N/空N  —— 标的数=5 残留=0
+INFO  海外面板数据量  —— 新闻 40 条 / 标的 5 个
+PASS  国内情绪分布仍在（未被误删）  —— bull=1 bear=1 neu=1
+PASS  国内模块的「多N/空N」徽章保留（本次只删海外）  —— 多空徽章=53 ｜ 三字徽章=0
+PASS  结论块高度正常（未被压扁）  —— 高=43px
+PASS  结论块未与「① 事件概述」重叠
+PASS  [light-tech] 公司标签底色≠文字色（可读）  —— rgb(241, 236, 224) vs rgb(26, 26, 26)
+PASS  [light-tech] 结论文字与结论标签底色不同  —— rgb(26, 26, 26) vs rgb(14, 116, 144)
+PASS  [dark-dashboard] 公司标签底色≠文字色（可读）  —— rgb(27, 34, 48) vs rgb(229, 231, 235)
+PASS  [dark-dashboard] 结论文字与结论标签底色不同  —— rgb(229, 231, 235) vs rgb(34, 211, 238)
+PASS  [minimal-report] 公司标签底色≠文字色（可读）  —— rgb(241, 245, 249) vs rgb(30, 41, 59)
+PASS  [minimal-report] 结论文字与结论标签底色不同  —— rgb(30, 41, 59) vs rgb(51, 65, 85)
+PASS  [card-warm] 公司标签底色≠文字色（可读）  —— rgb(255, 241, 224) vs rgb(63, 45, 30)
+PASS  [card-warm] 结论文字与结论标签底色不同  —— rgb(63, 45, 30) vs rgb(217, 119, 6)
+PASS  无 JS 运行时错误  —— 无
+
+=== 31/31 通过（SKIP 0） ===
+### AFTER ui_regression
+RUNNER ERROR @ init: announce is not defined
+### AFTER ui_full_regression
+========== 一、tab 切换（10 个） ==========
+PASS  [tab summary] 汇总：渲染内容/无脏字符/无报错  —— active=true 文字=1316字 节点=136 溢出=0px 脏={} 新增错=0 ｜ 最后抓取：示例数据 ｜ 接入站点：taoguba 登录态检测 taoguba · no_credential 未保存凭据，请先 credentials add 
+PASS  [tab stocks] 当前讨论股票：渲染内容/无脏字符/无报错  —— active=true 文字=1724字 节点=266 溢出=0px 脏={} 新增错=0 ｜ 卡片第一行是股票简称，第二行是股票代码 + 公司全称，点击任意卡片可查看该股的持仓选手（持仓起始日期 / 买入价 / 当前股价）、相关实盘交易与讨论帖。 图例：
+PASS  [tab operating] 正在操作股票：渲染内容/无脏字符/无报错  —— active=true 文字=3004字 节点=612 溢出=0px 脏={} 新增错=0 ｜ 每个选手均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺） + 所属层级（A~F）。标的列格式为「股票简称 + 股票代码」：代码是 6 位数字（如 600
+PASS  [tab players] 实盘选手：渲染内容/无脏字符/无报错  —— active=true 文字=7077字 节点=2438 溢出=0px 脏={} 新增错=0 ｜ 多层级人物覆盖：在原有 A/B/C/D 渠道基础上新增 E 主播大V（热度不高但影响力突出）与 F 长尾观察 两层。低层级权重递减，但一律露出（is_visib
+PASS  [tab consensus] 共同持仓共识：渲染内容/无脏字符/无报错  —— active=true 文字=4431字 节点=1027 溢出=0px 脏={} 新增错=0 ｜ 按「同时持仓人数」降序排列；共识基数已扩大到 100+ 选手池（覆盖淘股吧/东财/雪球/同花顺 4 平台）。新增「层级加权共识度」：在 A/B/C/D 原权重基
+PASS  [tab persons] 相关人物：渲染内容/无脏字符/无报错  —— active=true 文字=1793字 节点=652 溢出=0px 脏={} 新增错=0 ｜ 每个名称均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + 所属层级（A~F，入选选手才有）。按出现次数降序排列，此处列出前 80
+PASS  [tab sentiment] 舆论情绪：渲染内容/无脏字符/无报错  —— active=true 文字=1443字 节点=303 溢出=0px 脏={} 新增错=0 ｜ 94 看多 49 看空 42 中性 情绪地图（按股票聚合多空，点击卡片看持仓与交易明细） 图例：这些数字分别代表什么 600519 6 位数字为股票代码（中国内
+PASS  [tab topics] 近期热点：渲染内容/无脏字符/无报错  —— active=true 文字=138字 节点=91 溢出=0px 脏={} 新增错=0 ｜ 突破 热度 30 量能 热度 29 回踩 热度 28 主升 热度 27 套牢 热度 26 割肉 热度 25 分红 热度 24 仓位 热度 23 异动 热度 22
+PASS  [tab overseas_sentiment] 美股港股舆情：渲染内容/无脏字符/无报错  —— active=true 文字=7763字 节点=1004 溢出=0px 脏={} 新增错=0 ｜ 国外视角优先：海外（美股/港股/国际）源权重更高，国内源仅作交叉比对（权重 0.45）。当前共 707 条海外条目、净情绪指数 -5.9（整体偏空）。 海外整体
+PASS  [tab overseas_hotspots] 近期热点(国外驱动)：渲染内容/无脏字符/无报错  —— active=true 文字=16342字 节点=2558 溢出=0px 脏={} 新增错=0 ｜ 模块二：由「国外新闻」驱动，自动汇总热点事件并做提升性影响分析。重点追踪四类事件：地缘冲突与战争 / 洪涝等自然灾害 / 重大科研论文发布 / 粮食歉收与减产。
+
+========== 二、详情抽屉（股票 / 人物 / 选手） ==========
+PASS  [股票] 抽屉弹出且内容非空  —— title="股票 · 宁德时代（300750） · 宁德时代新能源科技股份有限公司" 662x840 @(760,76) 正文=1833字
+PASS  [股票] 抽屉无 undefined/NaN/Invalid Date  —— 脏=[] ｜ 股票代码 300750 创业板 （6 位代码，非序号） 股票简称 宁德时代 公司全称 宁德时代新能源科技股份有限公司 共同持仓 5 人（记录 5 条） 讨论提及 10 条 实盘交易 1 条 ① 多空观点明细 —— 谁看多 / 谁看空（针对「
+PASS  [股票] 抽屉横向不遮挡所点行  —— 所点行x[102,402] 抽屉x[760,1422] 全矩形相交=false
+PASS  [股票] 关闭入口①✕生效
+PASS  [股票] 关闭入口②Esc生效
+PASS  [股票] 关闭入口③点面板外生效
+PASS  [股票] 关闭入口④底部按钮生效
+PASS  [股票] 拖拽移动生效  —— (760,76)→(140,36)
+PASS  [股票] 拖拽后标题栏+拉伸手柄仍在视口内  —— headTopInView=true handleInView=true
+PASS  [股票] 右下角拉伸生效且手柄未出视口  —— 662x840→802x910 handleInView=true
+PASS  [股票] 拖到右下极限后手柄仍在视口  —— @(638,90) 802x910 handleInView=true
+PASS  [人物] 抽屉弹出且内容非空  —— title="人物 · 趋势猎人" 662x840 @(760,76) 正文=383字
+PASS  [人物] 抽屉无 undefined/NaN/Invalid Date  —— 脏=[] ｜ 趋势猎人 出现次数 3 角色 mention 提及过股票 300750、000858、000333 持仓（3） 300059 东方财富 22%09-17 起 600028 中国石化 31.3%09-11 起已卖出 601012 隆基绿能 8
+PASS  [人物] 抽屉横向不遮挡所点行  —— 所点行x[103,375] 抽屉x[760,1422] 全矩形相交=false
+PASS  [人物] 关闭入口①✕生效
+PASS  [人物] 关闭入口②Esc生效
+PASS  [人物] 关闭入口③点面板外生效
+PASS  [人物] 关闭入口④底部按钮生效
+PASS  [人物] 拖拽移动生效  —— (760,76)→(140,36)
+PASS  [人物] 拖拽后标题栏+拉伸手柄仍在视口内  —— headTopInView=true handleInView=true
+PASS  [人物] 右下角拉伸生效且手柄未出视口  —— 662x840→802x910 handleInView=true
+PASS  [人物] 拖到右下极限后手柄仍在视口  —— @(638,90) 802x910 handleInView=true
+PASS  [选手] 抽屉弹出且内容非空  —— title="实盘选手 · 大阪柯小李（渠道 A）" 662x840 @(760,76) 正文=2056字
+PASS  [选手] 抽屉无 undefined/NaN/Invalid Date  —— 脏=[] ｜ 选手档案 · A 实盘大赛 名次 1 评分/收益 99.2 官方认证 — 是否入选 ✅ 入选 来源 主页示例 ⚠ 该选手存在 2 项受限内容（付费 / 积分 / 无权限）。如需查看完整买卖价与成本，请按提示充值或开通相应权限： 付费 300
+PASS  [选手] 抽屉横向不遮挡所点行  —— 所点行x[196,384] 抽屉x[760,1422] 全矩形相交=false
+PASS  [选手] 关闭入口①✕生效
+PASS  [选手] 关闭入口②Esc生效
+PASS  [选手] 关闭入口③点面板外生效
+PASS  [选手] 关闭入口④底部按钮生效
+PASS  [选手] 拖拽移动生效  —— (760,76)→(140,36)
+PASS  [选手] 拖拽后标题栏+拉伸手柄仍在视口内  —— headTopInView=true handleInView=true
+PASS  [选手] 右下角拉伸生效且手柄未出视口  —— 662x840→802x910 handleInView=true
+PASS  [选手] 拖到右下极限后手柄仍在视口  —— @(638,90) 802x910 handleInView=true
+
+========== 三、四主题可读性 / 不消失不错位 ==========
+PASS  [light-tech] 文字色≠背景色（正文/卡片名/徽章）  —— 正文 rgb(26, 26, 26) on rgb(250, 247, 240) (对比度 16.27) ｜ 卡名 rgb(26, 26, 26) on rgb(255, 255, 255) (17.4) ｜ 徽章 rgb(26, 26, 26) on rgb(241, 236, 224) (14.76)
+PASS  [light-tech] 关键文字对比度 ≥ 3.0  —— 卡名对比度=17.4 正文对比度=16.27
+PASS  [light-tech] 元素数量与基线一致（未消失）  —— cards=24 boxes=24 badges=50 零尺寸块=0
+PASS  [dark-dashboard] 文字色≠背景色（正文/卡片名/徽章）  —— 正文 rgb(229, 231, 235) on rgb(11, 14, 20) (对比度 15.6) ｜ 卡名 rgb(229, 231, 235) on rgb(21, 26, 36) (14.07) ｜ 徽章 rgb(229, 231, 235) on rgb(27, 34, 48) (12.87)
+PASS  [dark-dashboard] 关键文字对比度 ≥ 3.0  —— 卡名对比度=14.07 正文对比度=15.6
+PASS  [dark-dashboard] 元素数量与基线一致（未消失）  —— cards=24 boxes=24 badges=50 零尺寸块=0
+PASS  [minimal-report] 文字色≠背景色（正文/卡片名/徽章）  —— 正文 rgb(30, 41, 59) on rgb(255, 255, 255) (对比度 14.63) ｜ 卡名 rgb(30, 41, 59) on rgb(255, 255, 255) (14.63) ｜ 徽章 rgb(30, 41, 59) on rgb(241, 245, 249) (13.35)
+PASS  [minimal-report] 关键文字对比度 ≥ 3.0  —— 卡名对比度=14.63 正文对比度=14.63
+PASS  [minimal-report] 元素数量与基线一致（未消失）  —— cards=24 boxes=24 badges=50 零尺寸块=0
+PASS  [card-warm] 文字色≠背景色（正文/卡片名/徽章）  —— 正文 rgb(63, 45, 30) on rgb(255, 247, 237) (对比度 12.32) ｜ 卡名 rgb(63, 45, 30) on rgb(255, 255, 255) (13.08) ｜ 徽章 rgb(63, 45, 30) on rgb(255, 241, 224) (11.78)
+PASS  [card-warm] 关键文字对比度 ≥ 3.0  —— 卡名对比度=13.08 正文对比度=12.32
+PASS  [card-warm] 元素数量与基线一致（未消失）  —— cards=24 boxes=24 badges=50 零尺寸块=0
+PASS  四主题下面板高度一致（未错位/塌陷）  —— light-tech=1004 / dark-dashboard=1004 / minimal-report=1004 / card-warm=1004
+
+========== 四、长文本压力（DOM 注入模拟超长标题/昵称） ==========
+PASS  超长中文标题不产生页面横向溢出  —— scrollWidth 1440→1440 (viewport 1440) 卡内 scroll/client={"scroll":270,"client":270,"cardScroll":298,"cardClient":298}
+PASS  超长无空格 ASCII 串不产生页面横向溢出（.stk-name 未设 word-break，属极限输入）  —— scrollWidth→1440 卡内={"scroll":270,"client":270}
+PASS  公司全称列（.stk-corp 已设 word-break）对超长 ASCII 正常换行、不溢出  —— scrollWidth→1440 该元素 scroll/client={"scroll":270,"client":270}
+
+========== 五、响应式 / 窄视口 ==========
+PASS  [1024x700] 无横向溢出  —— scrollWidth=1024 viewport=1024 溢出=0px
+PASS  [1024x700] 顶栏 4 个按钮 elementFromPoint 可命中  —— #btnFetch=ok909,14,93,35 #btnLogin=ok572,14,80,35 #btnDemo=ok664,14,80,35 #btnOverseas=ok756,14,141,35
+PASS  [1440x1000] 无横向溢出  —— scrollWidth=1440 viewport=1440 溢出=0px
+PASS  [1440x1000] 顶栏 4 个按钮 elementFromPoint 可命中  —— #btnFetch=ok1325,14,93,35 #btnLogin=ok988,14,80,35 #btnDemo=ok1080,14,80,35 #btnOverseas=ok1172,14,141,35
+
+PASS  主页面全程无 JS 运行时错误  —— 无
+
+========== 六、空态 / 错误态（拦截构造，仅测试页生效） ==========
+PASS  [空态][summary] 显示可读空态文案且无 undefined/NaN  —— 文字=78字 .empty=1 脏=[] ｜ 最后抓取：尚未抓取 ｜ 接入站点：taoguba 登录态检测 尚未检测 最新帖子（点击查看原文） 作者 时间 情绪 内容 暂无可查看的帖子，
+PASS  [空态][stocks] 显示可读空态文案且无 undefined/NaN  —— 文字=8字 .empty=1 脏=[] ｜ 暂无讨论股票数据
+PASS  [空态][operating] 显示可读空态文案且无 undefined/NaN  —— 文字=8字 .empty=1 脏=[] ｜ 暂无实盘操作记录
+PASS  [空态][players] 显示可读空态文案且无 undefined/NaN  —— 文字=39字 .empty=1 脏=[] ｜ 暂无入选实盘选手。请先运行「抓取并更新」(players 模式) 或载入示例。
+PASS  [空态][consensus] 显示可读空态文案且无 undefined/NaN  —— 文字=43字 .empty=1 脏=[] ｜ 暂无共同持仓数据。需先采集各选手持仓（collect_positions）或载入示例。
+PASS  [空态][persons] 显示可读空态文案且无 undefined/NaN  —— 文字=6字 .empty=1 脏=[] ｜ 暂无人物数据
+PASS  [空态][sentiment] 显示可读空态文案且无 undefined/NaN  —— 文字=252字 .empty=1 脏=[] ｜ 0 看多 0 看空 0 中性 情绪地图（按股票聚合多空，点击卡片看持仓与交易明细） 图例：这些数字分别代表什么 600519 股票代码（6 
+PASS  [空态][topics] 显示可读空态文案且无 undefined/NaN  —— 文字=6字 .empty=1 脏=[] ｜ 暂无热点话题
+PASS  [空态][overseas_sentiment] 显示可读空态文案且无 undefined/NaN  —— 文字=32字 .empty=1 脏=[] ｜ 暂无海外舆情数据。请先「载入示例」或点「刷新海外舆情(联网)」。
+PASS  [空态][overseas_hotspots] 显示可读空态文案且无 undefined/NaN  —— 文字=32字 .empty=1 脏=[] ｜ 暂无国外驱动热点。请先「载入示例」或点「刷新海外舆情(联网)」。
+PASS  [空态] 无 JS 运行时错误  —— 无
+INFO  [错误态] 全部 /api 直接失败(网络层 abort)  —— gotoErr=无 页面可见报错提示=true statusHint="部分数据加载失败：【近期热点(国外驱动)】Failed to fetch" 卡片区文字="" 汇总="…" 顶层错误条=false JS错误=10
+INFO      └ JS 错误详情: console: Failed to load resource: net::ERR_FAILED ; console: Failed to load resource: net::ERR_FAILED ; console: Failed to load resource: net::ERR_FAILED
+INFO  [错误态] /api 返回 500 且非 JSON(HTML 错误页)  —— gotoErr=无 页面可见报错提示=true statusHint="部分数据加载失败：【近期热点(国外驱动)】HTTP 500 Internal S" 卡片区文字="" 汇总="…" 顶层错误条=false JS错误=10
+INFO      └ JS 错误详情: console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+INFO  [错误态] /api 返回 500 但 body 是合法 JSON {error}  —— gotoErr=无 页面可见报错提示=true statusHint="部分数据加载失败：【近期热点(国外驱动)】HTTP 500 Internal S" 卡片区文字="" 汇总="…" 顶层错误条=false JS错误=10
+INFO      └ JS 错误详情: console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error) ; console: Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+INFO  [错误态] /api/summary 缺 counts 字段(其余正常)  —— gotoErr=无 页面可见报错提示=true statusHint="部分数据加载失败：【汇总接口】响应中缺少 counts 字段，计数已降级为空" 卡片区文字="—
+原始文档(页)
+—
+帖子
+—
+实盘交易
+—
+资讯
+—
+入选选手
+—
+持仓记录" 汇总="…09-22 20:46:10 看多 000333 美的集团 当前 看好并加仓，我的判断是趋势延续。…" 顶层错误条=false JS错误=0
+INFO      └ JS 错误详情: 无
+PASS  [错误态] /api/summary 缺 counts 时前端给出可读提示（而非静默白屏）  —— hint="部分数据加载失败：【汇总接口】响应中缺少 counts 字段，计数已降级为空" JS错误=0
+INFO  [错误态] /api/topics 条目缺 weight 字段  —— gotoErr=无 页面可见报错提示=false statusHint="提示：首次使用请点「载入示例」预览界面；真实数据需先在淘股吧注册并 add 凭据" 卡片区文字="1
+原始文档(页)
+185
+帖子
+46
+实盘交易
+3
+资讯
+160
+入选选手
+1" 汇总="…09-22 20:46:10 看多 000333 美的集团 当前 看好并加仓，我的判断是趋势延续。…" 顶层错误条=false JS错误=0
+INFO      └ JS 错误详情: 无
+PASS  [错误态] 缺 weight 字段时前端未渲染出 NaN  —— topics 面板 textContent="暂无热点话题"
+INFO  [错误态] 缺字段:/api/persons 条目缺 mention_count/role  —— gotoErr=无 页面可见报错提示=false statusHint="提示：首次使用请点「载入示例」预览界面；真实数据需先在淘股吧注册并 add 凭据" 卡片区文字="1
+原始文档(页)
+185
+帖子
+46
+实盘交易
+3
+资讯
+160
+入选选手
+1" 汇总="…09-22 20:46:10 看多 000333 美的集团 当前 看好并加仓，我的判断是趋势延续。…" 顶层错误条=false JS错误=0
+INFO      └ JS 错误详情: 无
+PASS  [错误态] 缺字段:/api/persons 条目缺 mention_count/role —— 前端未把 undefined 直接渲染到产物 DOM 里  —— 相关容器 textContent 内 undefined 0 处 ｜ "每个名称均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺，即该名称来自的论坛） + 所属层级（A~F，入选选手才有）。按出现次数降序排列，此处列出前 2 位（本次接口共返回 2 位）；完整名单请以数据库导出为准。 姓名/昵称来源渠道（平台 · 层级）角色"
+INFO  [错误态] 缺字段:/api/summary.counts 少给 topics/persons/positions  —— gotoErr=net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8765/index.html 页面可见报错提示=false statusHint="" 卡片区文字="" 汇总="…" 顶层错误条=false JS错误=0
+INFO      └ JS 错误详情: 无
+PASS  [错误态] 缺字段:/api/summary.counts 少给 topics/persons/positions —— 前端未把 undefined 直接渲染到产物 DOM 里  —— 相关容器 textContent 内 undefined 0 处 ｜ ""
+INFO  [错误态] 类型不符:/api/sentiment 返回 JSON 数组  —— gotoErr=net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8765/index.html 页面可见报错提示=false statusHint="" 卡片区文字="" 汇总="…" 顶层错误条=false JS错误=0
+INFO      └ JS 错误详情: 无
+PASS  [错误态] 类型不符:/api/sentiment 返回 JSON 数组 —— 前端不因载荷类型不符而抛错白屏  —— pageerror 0 条 ｜ 舆论情绪面板 textContent="<空>" ｜ 
+
+=== 断言 80/80 通过（FAIL 0 / SKIP 0） ===

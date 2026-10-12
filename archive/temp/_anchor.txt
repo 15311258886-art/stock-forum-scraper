@@ -1,0 +1,7 @@
+TOTAL 2897
+=== 关键锚点 ===
+  937: def api_lhb_sectors(date: str | None = None) -> dict:
+  981: def api_positions() -> list[dict]:
+ 1643: def _holders_payload(code: str) -> dict | None:
+ 1697: def api_quote(symbol: str, force: bool = False) -> dict:
+ 2413: if route == "/api/lhb_sectors":

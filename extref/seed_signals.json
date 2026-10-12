@@ -1,0 +1,119 @@
+{
+  "_meta": {
+    "title": "外部参考 · 首批信号样本（S3/S4）",
+    "updated": "2026-09-27",
+    "note": "本批为**真实可核的公开信号**，来源与快照时间逐条写在 claim 里，url 为可点原文。",
+    "honesty": [
+      "本批信号全部来自公开榜单/社区汇总，**不是**炒股软件的输出——软件类信源（问财/妙想/九方等）需注册或开通接口后才能取数，已在信源档案中标注通道与状态。",
+      "社区榜单反映的是**群体注意力**，不是投资建议；「核心上涨逻辑」一栏为原汇总方的解读，属二手转述，已标注 hardness=soft。",
+      "pnl_t1/t5/t10 全部为 pending——事后收益需等交易日走完才能回填，**未回填前不显示任何数字**（不写 0，避免被读成「零收益」）。",
+      "同名主体/代码已按 6 位 A 股代码核对；因本机代理限制，代码未再联网二次复核。"
+    ]
+  },
+  "signals": [
+    {
+      "sid": "extref-emrank-20260907-000592",
+      "src_key": "em-guba-rank", "src_name": "东方财富股吧 · 人气榜", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-07", "symbol": "000592", "symbol_name": "平潭发展",
+      "sector": "平潭自贸区 / 林业农业",
+      "direction": "看多", "strength": 4,
+      "reason": "平潭本地唯一上市平台，林业+农林牧渔+海峡两岸三重属性；平潭封关运作进入冲刺，叠加台风内涝重建预期；周五放量涨停、板块内 8 只涨停形成合力。",
+      "claim": "东财股吧人气榜第 1（数据源 guba.eastmoney.com/rank/，页面更新时间 2026-09-07 08:26；当日 +9.99%，7.49 元）。原文口径：「同时登顶东财与同花顺双平台人气榜第 1，辨识度极高」。",
+      "url": "https://guba.eastmoney.com/rank/",
+      "hardness": "hard",
+      "pnl_status": "pending",
+      "tags": ["人气榜第1", "双平台登顶", "自贸区"]
+    },
+    {
+      "sid": "extref-emrank-20260907-600108",
+      "src_key": "em-guba-rank", "src_name": "东方财富股吧 · 人气榜", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-07", "symbol": "600108", "symbol_name": "亚盛集团",
+      "sector": "农业种植 / 粮食安全",
+      "direction": "看多", "strength": 4,
+      "reason": "甘肃农垦旗下唯一农业上市平台，440 万亩土地；世界气象组织 9 月 3 日确认厄尔尼诺已形成并将持续增强，全球食品价格升至 2022 年以来最高；2 连板、成交 9 亿+、换手 12%，主力连续 8 天融资净买入。",
+      "claim": "东财股吧人气榜第 2（页面更新时间 2026-09-07 08:26；当日 +10.10%，讨论 4231 / 浏览 97 万）。",
+      "url": "https://guba.eastmoney.com/rank/",
+      "hardness": "hard",
+      "pnl_status": "pending",
+      "tags": ["人气榜第2", "2连板", "粮食安全"]
+    },
+    {
+      "sid": "extref-emrank-20260907-000735",
+      "src_key": "em-guba-rank", "src_name": "东方财富股吧 · 人气榜", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-07", "symbol": "000735", "symbol_name": "罗牛山",
+      "sector": "生猪养殖 / 赛马概念",
+      "direction": "看多", "strength": 3,
+      "reason": "海南生猪养殖+赛马双题材；猪周期反转，9 月底为能繁母猪调减交卷时点，头部猪企加速压产，开学季备货推动猪价冲高至 11.09 元/公斤；下半年累涨超 29%，主力净流入 1.45 亿。",
+      "claim": "东财股吧人气榜第 3（页面更新时间 2026-09-07 08:26；当日 +10.05%，6.13 元）。",
+      "url": "https://guba.eastmoney.com/rank/",
+      "hardness": "hard",
+      "pnl_status": "pending",
+      "tags": ["人气榜第3", "猪周期", "赛马"]
+    },
+    {
+      "sid": "extref-3plat-20260908-002396",
+      "src_key": "taoguba-hot", "src_name": "淘股吧 · 热股榜 / 实盘赛", "src_kind": "community", "src_tier": "C",
+      "pub_date": "2026-09-08", "symbol": "002396", "symbol_name": "星网锐捷",
+      "sector": "超节点 / 算力",
+      "direction": "看多", "strength": 5,
+      "reason": "超节点+算力唯一高度标；7 天 4 板，被原汇总方称为「全平台共识的板块试金石」。",
+      "claim": "三平台交叉热度第 1（出现平台数 3）：雪球热度 1687、东财排名第 5、淘股吧 3 连板。来源为第三方复盘汇总快照（2026-09 上旬），**非一手页面**，具体名次以各平台当时页面为准。",
+      "url": "https://www.taoguba.com.cn/",
+      "hardness": "soft",
+      "pnl_status": "pending",
+      "tags": ["三平台共识", "4板", "算力"]
+    },
+    {
+      "sid": "extref-3plat-20260908-300413",
+      "src_key": "xueqiu-hot", "src_name": "雪球 · 热股榜 / 热度", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-08", "symbol": "300413", "symbol_name": "芒果超媒",
+      "sector": "AI 应用 / AI 影视",
+      "direction": "看多", "strength": 4,
+      "reason": "AI 长剧《后西游记》首登卫视大屏引爆 AI 影视；雪球 A 股热度第一（3195）+ 东财人气榜第一，当日 20cm 涨停。",
+      "claim": "三平台交叉热度第 2（出现平台数 2）。来源为第三方复盘汇总快照（2026-09 上旬），非一手页面。",
+      "url": "https://xueqiu.com/hots/topic",
+      "hardness": "soft",
+      "pnl_status": "pending",
+      "tags": ["三平台共识", "20cm涨停", "AI应用"]
+    },
+    {
+      "sid": "extref-3plat-20260908-300364",
+      "src_key": "xueqiu-hot", "src_name": "雪球 · 热股榜 / 热度", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-08", "symbol": "300364", "symbol_name": "中文在线",
+      "sector": "AI 应用 / AI 内容",
+      "direction": "看多", "strength": 4,
+      "reason": "与芒果超媒并列 AI 应用双龙头，20.02% 涨停，雪球、东财双双进榜，主力资金净流入居前。",
+      "claim": "三平台交叉热度第 3（出现平台数 2）。来源为第三方复盘汇总快照（2026-09 上旬），非一手页面。",
+      "url": "https://xueqiu.com/hots/topic",
+      "hardness": "soft",
+      "pnl_status": "pending",
+      "tags": ["三平台共识", "20cm涨停", "AI应用"]
+    },
+    {
+      "sid": "extref-3plat-20260908-002418",
+      "src_key": "taoguba-hot", "src_name": "淘股吧 · 热股榜 / 实盘赛", "src_kind": "community", "src_tier": "C",
+      "pub_date": "2026-09-08", "symbol": "002418", "symbol_name": "康盛股份",
+      "sector": "液冷服务器 / 算力散热",
+      "direction": "看多", "strength": 4,
+      "reason": "液冷服务器 5 天 4 板；东财排名第 6、淘股吧液冷梯队核心；原汇总称游资「知春路」主封 1.49 亿。",
+      "claim": "三平台交叉热度第 4（出现平台数 2）。**席位金额为原汇总方转述，未经交易所龙虎榜原始数据核对**，故 hardness=soft。",
+      "url": "https://www.taoguba.com.cn/",
+      "hardness": "soft",
+      "pnl_status": "pending",
+      "tags": ["三平台共识", "液冷", "5天4板"]
+    },
+    {
+      "sid": "extref-3plat-20260908-600722",
+      "src_key": "em-guba-rank", "src_name": "东方财富股吧 · 人气榜", "src_kind": "rank", "src_tier": "C",
+      "pub_date": "2026-09-08", "symbol": "600722", "symbol_name": "金牛化工",
+      "sector": "甲醇 / 能源化工",
+      "direction": "看多", "strength": 3,
+      "reason": "甲醇涨价 + 霍尔木兹海峡事件催化；东财排名第 7、淘股吧多平台热股榜前列，2 连板后看 3 板承接。",
+      "claim": "三平台交叉热度第 5（出现平台数 2）。来源为第三方复盘汇总快照（2026-09 上旬），非一手页面。",
+      "url": "https://guba.eastmoney.com/rank/",
+      "hardness": "soft",
+      "pnl_status": "pending",
+      "tags": ["三平台共识", "2连板", "甲醇"]
+    }
+  ]
+}

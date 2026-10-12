@@ -1,0 +1,150 @@
+===== NAV 结构 =====
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "star_moves", label: "牛散动向" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+===== 一级分组 =====
+  key=overview         label=总览
+  key=acquire          label=知识获取
+  key=research         label=行情研判
+  key=trade            label=实盘操作
+  key=learn            label=跟我学习
+
+===== 二级子标签 =====
+  tab=dashboard        label=今日看板
+  tab=summary          label=汇总
+  tab=sources          label=数据源
+  tab=archive          label=原始存档
+  tab=fetchlog         label=抓取与登录记录
+  tab=stocks           label=当前讨论股票
+  tab=sentiment        label=舆论情绪
+  tab=topics           label=近期热点
+  tab=overseas_sentiment label=美股港股舆情
+  tab=overseas_hotspots label=国外驱动热点
+  tab=operating        label=正在操作股票
+  tab=players          label=实盘选手(渠道)
+  tab=lhb              label=游资龙虎榜
+  tab=lhb_sectors      label=板块动向
+  tab=niusan           label=牛散追踪
+  tab=star_moves       label=牛散动向
+  tab=consensus        label=共同持仓共识
+  tab=cohold           label=近5日共同买入
+  tab=persons          label=相关人物
+  tab=learn_zdx_stock  label=中短线炒股
+  tab=learn_tracks     label=学习轨道管理
+
+===== index.html 面板 id =====
+  p-summary, p-dashboard, p-stocks, p-operating, p-players, p-lhb, p-lhb_sectors, p-niusan, p-star_moves, p-consensus, p-cohold, p-persons, p-sentiment, p-topics, p-overseas_sentiment, p-overseas_hotspots, p-sources, p-archive, p-fetchlog, p-learn_zdx_stock, p-learn_tracks
+
+===== tab -> 渲染/加载函数 =====
+  [dashboard]
+     if (DASH.data) renderDashboard(); else loadDashboard().catch((e) => reportLoadError("今日看板", e));
+  [summary]
+  [sources]
+  [archive]
+  [fetchlog]
+  [stocks]
+  [sentiment]
+  [topics]
+  [overseas_sentiment]
+  [overseas_hotspots]
+  [operating]
+  [players]
+  [lhb]
+     if (LHB.data) renderLhb(); else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+  [lhb_sectors]
+     if (LBHS.data) renderLhbSectors(); else loadLhbSectors().catch((e) => reportLoadError("板块动向", e));
+  [niusan]
+     if (NIUSAN.data) renderNiusan(); else loadNiusan().catch((e) => reportLoadError("牛散追踪", e));
+  [star_moves]
+     if (STARM.data) renderStarMoves(); else loadStarMoves().catch((e) => reportLoadError("牛散动向", e));
+  [consensus]
+  [cohold]
+  [persons]
+  [learn_zdx_stock]
+  [learn_tracks]
+
+===== 文档中 #p-xxx 用法 =====
+  p-cohold           [2226, 2257]
+  p-consensus        [2072, 2107, 2266]
+  p-dashboard        [1727, 1817]
+  p-learn_zdx_stock  [3672, 3680]
+  p-lhb              [1495, 1611, 1614, 1621]
+  p-lhb_sectors      [1882, 1942, 1946]
+  p-niusan           [1644, 1701]
+  p-operating        [1240, 1265, 2711]
+  p-overseas_hotspots [2454, 2486]
+  p-overseas_sentiment [2325, 2352]
+  p-persons          [1276, 1283, 2715]
+  p-players          [1952, 2035, 2057, 2063, 2718]
+  p-sentiment        [525, 1293, 1302, 1307]
+  p-star_moves       [1828, 1873, 1876]
+  p-stocks           [525, 541, 543, 546]
+  p-summary          [257, 409, 2711]
+  p-topics           [1312]
+
+===== loadAll =====
+function loadAll() {
+  // 与各面板并行拉取刷新状态；renderX 尾部会调用 applyFreshness() 兜底重算时效标记。
+  loadRefreshStatus().then(refreshAcquirePanels);
+  // 今日看板：决策入口，页面加载即拉（后端已做容错，单模块失败不拖垮整页）
+  api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); })
+    .catch((e) => reportLoadError("今日看板", e));
+  api("/api/summary").then((s) => {
+    if (!s || typeof s !== "object" || Array.isArray(s)) {
+      s = {};
+      reportLoadError("汇总接口", new Error("返回类型不符，计数已降级为空"));
+    }
+    if (!s.counts) reportLoadError("汇总接口", new Error("响应中缺少 counts 字段，计数已降级为空"));
+    SUMMARY.data = s;
+    renderCards(s.counts);
+    renderSummary(s);
+    refreshAcquirePanels();
+  }).catch((e) => reportLoadError("汇总接口", e));
+  api("/api/stocks").then((x) => renderStocks(toArr(x))).catch((e) => reportLoadError("当前讨论股票", e));
+  api("/api/operating").then((x) => renderOperating(toArr(x))).catch((e) => reportLoadError("正在操作股票", e));
+  api("/api/players").then((x) => renderPlayers(toArr(x))).catch((e) => reportLoadError("实盘选手", e));
+  if (!LHB.data) loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+  api("/api/consensus?min_holders=2").then((x) => renderConsensus(toArr(x))).catch((e) => reportLoadError("共同持仓共识", e));
+  api(`/api/cohold_recent?days=${COHOLD.days}&min_holders=${COHOLD.min}&anchor=${encodeURIComponent(COHOLD.anchor || "auto")}`)
+    .then(renderCohold).catch((e) => reportLoadError("近5日共同买入", e));
+  api("/api/persons").then((x) => renderPersons(toArr(x))).catch((e) => reportLoadError("相关人物", e));
+  api("/api/sentiment").then(renderSentiment).catch((e) => reportLoadError("舆论情绪", e));
+  api("/api/hotspots").then((x) => renderHotspots(x)).catch((e) => reportLoadError("近期热点", e));
+  api("/api/overseas_sentiment").then(renderOverseasSentiment).catch((e) => reportLoadError("美股港股舆情", e));
+  api("/api/overseas_hotspots").then((x) => renderOverseasHotspots(toArr(x))).catch((e) => reportLoadError("近期热点(国外驱动)", e));
+}
+
+/* ================= 刷新状态（Request G） =================
+   需求：① 数据列表新增「最后更新」列，显示每条数据最近一次更新的时刻，
+         超时未更新则在对应行给出高亮/告警；② 实时刷新（每 5 分钟）的状态由
+         后台记录（前端不展示其内部机制）；③ 补齐刷新状态标识、下次刷新倒计时、
+         手动刷新按钮等实用入口。
+
+   口径（与后端 /api/refresh_status 保持一致）：
+   - 「最后更新」= 该行来源站点最近一次**成功**刷新完成的时刻（失败不

@@ -1,0 +1,52 @@
+==============================================================================
+[A] 路径穿越：原始 socket GET（不规范化 URL）
+==============================================================================
+  /static/app.js                                       -> HTTP/1.0 200 OK  type=application/javascript; charset=utf-8  len=70434  body=70434B
+  /static/__nope__.js                                  -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/../server.py                                 -> HTTP/1.0 200 OK  type=text/html; charset=utf-8  len=31482  body=31482B
+  /static/../desktop_app.py                            -> HTTP/1.0 200 OK  type=text/html; charset=utf-8  len=4818  body=4818B
+  /static/../app.db                                    -> HTTP/1.0 200 OK  type=text/html; charset=utf-8  len=917504  body=458158B
+  /static/../../stock-forum-scraper/viewer/server.py   -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/subdir/../../../viewer/server.py             -> HTTP/1.0 200 OK  type=text/html; charset=utf-8  len=31482  body=31482B
+  /static/..\server.py                                 -> HTTP/1.0 200 OK  type=text/html; charset=utf-8  len=31482  body=31482B
+  /static/..%2fserver.py                               -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/%2e%2e%2fserver.py                           -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/..%5cserver.py                               -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static//../server.py                                -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/....//server.py                              -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+  /static/..;/server.py                                -> HTTP/1.0 404 Not Found  type=text/html;charset=utf-8  len=330  body=330B
+
+==============================================================================
+[B] 响应头 / CORS / 错误处理（urllib 禁用 proxy）
+==============================================================================
+  /api/summary                       -> 200  ACAO=*  CT=application/json; charset=utf-8  X-CTO=（缺失）  CSP=（缺失）
+  /api/overseas_hotspots             -> 200  ACAO=*  CT=application/json; charset=utf-8  X-CTO=（缺失）  CSP=（缺失）
+  /static/app.js                     -> 200  ACAO=（缺失）  CT=application/javascript; charset=utf-8  X-CTO=（缺失）  CSP=（缺失）
+  /static/__nope__.js                -> 404  ACAO=（缺失）  CT=text/html;charset=utf-8  X-CTO=（缺失）  CSP=（缺失）
+  /api/__nope__                      -> 404  ACAO=（缺失）  CT=text/html;charset=utf-8  X-CTO=（缺失）  CSP=（缺失）
+
+  -- 带 Origin 头的跨源 GET（浏览器跨站读取场景）--
+  /api/summary     -> 200  ACAO=*
+  /static/app.js   -> 200  ACAO=（缺失）
+  /                -> 200  ACAO=（缺失）
+
+  -- 伪造 Host 头（DNS rebinding 面：Host 是否被校验）--
+  Host=evil.example     -> HTTP/1.0 200 OK
+  Host=attacker.local   -> HTTP/1.0 200 OK
+  Host=(空)              -> HTTP/1.0 200 OK
+
+  -- 参数非法时的错误处理（预期 500/断连，不应泄露 traceback）--
+  /api/posts?limit=abc               -> RemoteDisconnected: Remote end closed connection without response
+  /api/consensus?min_holders=x       -> RemoteDisconnected: Remote end closed connection without response
+  /api/detail?id=xyz                 -> RemoteDisconnected: Remote end closed connection without response
+
+==============================================================================
+[C] 写接口防御措施（代码级核对，未发起任何写请求）
+==============================================================================
+  端点            | Content-Type 校验 | Origin/Referer 校验 | CSRF token | 自定义头
+  POST /api/login_check | 无（json.loads 失败即 payload={}） | 无            | 无            | 无           
+  POST /api/fetch | 无            | 无            | 无            | 无           
+  POST /api/demo | 无            | 无            | 无            | 无           
+  POST /api/overseas | 无            | 无            | 无            | 无           
+  POST /api/sync_names | 无            | 无            | 无            | 无           
+  说明：server.py:637-687 只按 route 分派，未读取 Origin/Referer/Host，也未要求自定义头或 token；请求体解析失败被静默降级为 {}（641-643 行）。

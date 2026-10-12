@@ -1,0 +1,47 @@
+===== 1) 残留进程归属 =====
+  35988|C:\Users\Ұ&\.workbuddy\binaries\node\versions\22.22.2-3\node.EXE C:\Users\Ұ&\.workbuddy\plugins\cache\workbuddy-builtin\sheetagent\5.5.6-wb.38337834.g5f969292.hd3013aec77a0/mcp/start.m
+  13400|C:\Users\Ұ&\.workbuddy\binaries\python\versions\3.13.12\python.exe "F:/AI Agent֪ʶ/2026-09-22-11-49-42/stock-forum-scraper/_s9.py"
+
+===== 2) NAV 完整定义 =====
+const NAV = [
+  { key: "overview", label: "总览", icon: "◎", items: [
+    { tab: "dashboard", label: "今日看板" },
+    { tab: "summary", label: "汇总" }] },
+  { key: "acquire", label: "知识获取", icon: "⇣", items: [
+    { tab: "sources", label: "数据源" },
+    { tab: "archive", label: "原始存档" },
+    { tab: "fetchlog", label: "抓取与登录记录" }] },
+  { key: "research", label: "行情研判", icon: "▤", items: [
+    { tab: "stocks", label: "当前讨论股票" },
+    { tab: "sentiment", label: "舆论情绪" },
+    { tab: "topics", label: "近期热点" },
+    { tab: "overseas_sentiment", label: "美股港股舆情" },
+    { tab: "overseas_hotspots", label: "国外驱动热点" }] },
+  { key: "trade", label: "实盘操作", icon: "▦", items: [
+    { tab: "operating", label: "正在操作股票" },
+    { tab: "players", label: "实盘选手(渠道)" },
+    { tab: "lhb", label: "游资龙虎榜" },
+    { tab: "lhb_sectors", label: "板块动向" },
+    { tab: "niusan", label: "牛散追踪" },
+    { tab: "star_moves", label: "牛散动向" },
+    { tab: "consensus", label: "共同持仓共识" },
+    { tab: "cohold", label: "近5日共同买入" },
+    { tab: "persons", label: "相关人物" }] },
+  { key: "learn", label: "跟我学习", icon: "✎", items: [
+    { tab: "learn_zdx_stock", label: "中短线炒股" },
+    { tab: "learn_tracks", label: "学习轨道管理" }] },
+];
+
+===== 3) 关键函数行号 =====
+ 1494: function renderLhb() {
+ 1643: function renderNiusan() {
+ 1722: function loadDashboard() {
+ 1726: function renderDashboard() {
+ 1827: function renderStarMoves() {
+ 1881: function renderLhbSectors() {
+
+===== 4) 产业链相关表 ===== ['sector_chain']
+  sector_chain             n=4     ['trade_date', 'sector', 'net_amt', 'onlist_n', 'leader_code', 'leader_name', 'leader_net', 'leader_chg', 'leader_pct_now', 'onlist_json', 'tiers_json', 'branches_json', 't1_avg', 't3_avg', 'updated_at']
+     {"trade_date": "2026-09-24", "sector": "福建板块", "net_amt": "1057404199.11", "onlist_n": "5", "leader_code": "000592", "leader_name": "平潭发展", "leader_net": "475076359.6", "leader_chg": "10.0251", "leader_pct_now": "10.03", "onlist_json": "[{\"code\": \"000592\", \"name\": \"平潭发展\"}, {\"code\": \"002614\", \"nam", "tiers_json": "[{\"code\": \"301136\", \"name\": \"招标股份\", \"pct\": 12.33, \"price\": 1
+     {"trade_date": "2026-09-24", "sector": "央国企改革", "net_amt": "1000567225.8", "onlist_n": "22", "leader_code": "300300", "leader_name": "海峡创新", "leader_net": "287748113.28", "leader_chg": "19.9778", "leader_pct_now": "19.98", "onlist_json": "[{\"code\": \"000504\", \"name\": \"南华生物\"}, {\"code\": \"000607\", \"nam", "tiers_json": "[{\"code\": \"000498\", \"name\": \"山东路桥\", \"pct\": 9.92, \"price\": 
+     {"trade_date": "2026-09-24", "sector": "机械设备", "net_amt": "687043003.13", "onlist_n": "11", "leader_code": "002164", "leader_name": "宁波东力", "leader_net": "265090347.8", "leader_chg": "10.0253", "leader_pct_now": "10.03", "onlist_json": "[{\"code\": \"002164\", \"name\": \"宁波东力\"}, {\"code\": \"002819\", \"nam", "tiers_json": "[{\"code\": \"002342\", \"name\": \"巨力索具\", \"pct\": 4.64, \"price\": 7.

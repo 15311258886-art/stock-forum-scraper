@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>股票舆情看板 · 测试与优化方案</title>
+<style>
+:root{--bg:#faf8f5;--panel:#fff;--text:#1a1a1a;--muted:#6b6b6b;--border:#e3ded6;--accent:#0E7490;--p0:#a32d2d;--p0bg:#fcebeb;--p1:#854f0b;--p1bg:#faeeda;--p2:#185fa5;--p2bg:#e6f1fb;--p3:#5f5e5a;--p3bg:#f1efe8;--ok:#3b6d11;--okbg:#eaf3de}
+*{box-sizing:border-box}
+body{margin:0;padding:32px 28px 60px;background:var(--bg);color:var(--text);
+font:14px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:24px;font-weight:600;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+h2{font-size:17px;font-weight:600;margin:34px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--accent)}
+h3{font-size:14.5px;font-weight:600;margin:22px 0 8px}
+p{margin:8px 0}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:16px 0}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-size:21px;font-weight:600;line-height:1.3}
+.stat span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;background:var(--panel)}
+th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#f4f1ec;font-weight:600;white-space:nowrap}
+td.c{white-space:nowrap}
+code{background:#f1efe8;padding:1px 5px;border-radius:4px;font-size:12.5px;
+font-family:ui-monospace,Consolas,monospace}
+.tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.t0{background:var(--p0bg);color:var(--p0)}.t1{background:var(--p1bg);color:var(--p1)}
+.t2{background:var(--p2bg);color:var(--p2)}.t3{background:var(--p3bg);color:var(--p3)}
+.tok{background:var(--okbg);color:var(--ok)}
+.done{background:var(--okbg);color:var(--ok);font-weight:600}
+ul{margin:8px 0;padding-left:22px}li{margin:5px 0}
+.note{background:#fff;border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;margin:14px 0}
+.warn{border-left-color:var(--p0)}
+.fixed{border-left-color:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>股票舆情看板 · 测试与优化方案</h1>
+<div class="sub">测试日期 2026-09-22 ｜ 执行方式：三条独立测试线并行、全程只读（不重启服务、不改数据、不写库）｜ 被测实例 127.0.0.1:8765</div>
+
+<h2>一、测试范围与方法</h2>
+<div class="card">
+<p><b>被测对象</b>：本地看板（<code>viewer/server.py</code> 标准库 HTTP 服务 + <code>viewer/static/app.js</code> 单文件前端 + SQLite <code>viewer/app.db</code>），含国内股吧模块与海外舆情两模块（监控 + 国外驱动热点）。</p>
+<p><b>三条测试线</b></p>
+<ul>
+<li><b>动态功能</b>：枚举 <code>do_GET</code>/<code>do_POST</code> 全部路由，逐个探测状态码、返回结构、字段一致性；覆盖缺参/空参/超长参/Unicode/越界 id/不存在路径等边界；核对计数与明细的数值自洽。</li>
+<li><b>安全专项</b>：静态代码审计 + 无害动态验证。覆盖路径穿越、CORS/CSRF/鉴权、TLS 校验、SQL 注入、前端 XSS、凭据与仓库卫生、网络暴露面、报错信息泄露。</li>
+<li><b>UI 与数据一致性</b>：真实 Chromium + 真实布局矩形断言（不靠肉眼）。10 个 tab、3 类抽屉 × 4 种关闭入口、拖拽与拉伸、四主题可读性、两档视口、空态与错误态；并对 <code>/api/summary</code> 与各列表接口逐项对账、检查示例数据混流。</li>
+</ul>
+<p><b>只读约束与说明</b>：三条线均未修改任何源码、未写入 <code>app.db</code>（测试前后 mtime 未变）、未调用任何写接口（<code>/api/fetch</code>、<code>/api/demo</code>、<code>/api/sync_names</code>、<code>POST /api/overseas</code>）。写接口的 CSRF/鉴权问题以代码级论证给出，未实际触发。</p>
+<p><b>环境注意</b>：本机 <code>http_proxy</code> 指向本机代理，Python <code>urllib</code> 默认会把 localhost 也交给代理——服务异常时会收到 502 而非 ConnectionRefused，易把"服务没起"误判成"服务报错"。所有探测均已显式绕过代理。</p>
+</div>
+
+<h2>二、总体结论</h2>
+<div class="stats">
+<div class="stat"><b>35</b><span>原始问题条数（三线合计）</span></div>
+<div class="stat"><b>25</b><span>去重后问题条数</span></div>
+<div class="stat"><b>1</b><span>P0（已修复）</span></div>
+<div class="stat"><b>5</b><span>P1 严重</span></div>
+<div class="stat"><b>10</b><span>P2 一般</span></div>
+<div class="stat"><b>10</b><span>P3 建议</span></div>
+</div>
+<div class="note warn">
+<p><b>一句话结论</b>：功能与数据自洽性基本健康（核心计数全部对得上、UI 交互与四主题全部通过），但存在 <b>1 个可直接下载源码/数据库/明文凭据的严重漏洞（本轮已封堵）</b>，以及两类会<b>污染结论</b>的数据问题——<b>示例数据与真实数据混流且统计口径不过滤</b>、<b>缺失时间被填成"采集那一刻"</b>。后两类比显示问题更值得优先处理，因为它们会让您据此做出的判断失真。</p>
+</div>
+<div class="note fixed">
+<p><b>本轮已修复</b>：P0-1 静态文件路径穿越（含 <code>/static/</code> 目录导致的连接掐断）。复验：4 条穿越请求全部 404，<code>/</code>、<code>/static/app.js</code>、<code>/static/app.css</code> 均 200 正常。</p>
+</div>
+
+<h2>三、问题清单</h2>
+
+<h3>P0 · 阻断级（1 条，已修复）</h3>
+<table>
+<tr><th>编号</th><th>问题</th><th>位置</th><th>实测证据</th><th>状态</th></tr>
+<tr>
+<td class="c">P0-1</td>
+<td><b>静态文件路径穿越</b>：判据对<b>未折叠</b> <code>..</code> 的字符串做前缀比较，<code>Path</code> 本身不折叠 <code>..</code>，可越出 <code>static/</code> 读取任意文件</td>
+<td class="c"><code>server.py:546-555</code><br><code>server.py:563-567</code></td>
+<td><code>/static/../server.py</code> → 200 / 31482B 源码<br><code>/static/../../viewer/app.db</code> → 200 / 917504B<br><code>/static/../../tools/_cookies_latest.json</code> → 200 / 7554B <b>明文 Cookie</b><br><code>/static/../../.browser-profile/Default/Network/Cookies</code> → 200 / 28672B<br>编码形式 <code>%2e%2e%2f</code> → 404（裸 <code>..</code> 即通）</td>
+<td class="c done">已修复<br>复验通过</td>
+</tr>
+</table>
+<p><b>修法</b>：改为 <code>Path(path).resolve()</code> 折叠后判定 <code>is_relative_to(STATIC_DIR.resolve())</code>，并要求 <code>is_file()</code>；目录、不存在、读取失败一律 404，不再让异常掐断连接。</p>
+
+<h3>P1 · 严重（5 条）</h3>
+<table>
+<tr><th>编号</th><th>问题</th><th>位置</th><th>实测证据 / 影响</th></tr>
+<tr><td class="c">P1-1</td>
+<td><b><code>do_GET</code> 无任何异常兜底</b>：参数异常时连接被直接关闭，客户端收到 0 字节、无状态码，浏览器只报 "Failed to fetch"，线上无法排障</td>
+<td class="c"><code>server.py:557-631</code></td>
+<td><code>?min_holders=abc</code>、<code>?limit=abc</code>、<code>?id=abc</code>、<code>/static/</code> 全部返回 0 字节并断连（服务进程不崩）。<br>其中 <code>/static/</code> 目录一例已随 P0 修复变为正常 404</td></tr>
+<tr><td class="c">P1-2</td>
+<td><b>前端静默失败</b>：<code>api()</code> 不校验 <code>r.ok</code>，<code>loadAll()</code> 的 10 个请求全部没有 <code>.catch</code>，后端异常时整页空白且零提示</td>
+<td class="c"><code>app.js:12</code><br><code>app.js:1014-1028</code></td>
+<td>实测 abort / 500 HTML / 500 JSON 三种失败，"页面可见报错提示" 均为 false。全文件仅 3 处 catch</td></tr>
+<tr><td class="c">P1-3</td>
+<td><b>CORS 通配 + 写接口零防护</b>：JSON 响应无条件带 <code>Access-Control-Allow-Origin: *</code>；5 个写接口不校验 Origin / Host / Content-Type，无 CSRF token，且请求体解析失败被静默降级为 <code>{}</code> 后照常执行</td>
+<td class="c"><code>server.py:542</code><br><code>server.py:632-687</code><br>（解析降级 <code>641-643</code>）</td>
+<td>带 <code>Origin: https://evil.example</code> 仍返回 200 + <code>ACAO:*</code> → 任意网页可跨源读走本机全部 JSON 数据。<code>Host: evil.example</code> 与空 Host 均 200（DNS rebinding 前置成立）。<br>缓解因素：Chromium 的 Private Network Access 可能拦截公网→localhost，Firefox/Safari 无此限制</td></tr>
+<tr><td class="c">P1-4</td>
+<td><b>示例数据与真实数据混流，且统计口径不过滤</b>：采集恒定把 41 条人工示例写进与真实数据同一张表；其中 <b>9 条挂在真实源名下、行级零标记</b>，无法区分。<b>净情绪指数、区域分布、按日趋势、热点热度全部不排除示例</b></td>
+<td class="c"><code>overseas/collect.py:143-155</code><br>国内：<code>ingest.py:277-299</code><br><code>ingest.py:317</code><br><code>demo_data.py:381-382</code></td>
+<td>707 条 = 666 真实 + 32 条带「示例源·」前缀 + <b>9 条伪装成真实 CN 源</b>（东方财富股吧 4、同花顺 3、雪球 2）。<br>直接后果：面板显示「未启用」的东方财富股吧、雪球，库里却各有 4 / 2 条"它们"的条目；占比 5.8% 的示例参与了所有统计。<br>国内侧：<code>load_demo</code> 清表后真实抓取只<b>追加</b>，示例标记仅存 meta 且会被抓取覆盖</td></tr>
+<tr><td class="c">P1-5</td>
+<td><b>缺失时间被填成"采集那一刻"</b>：拿不到发布时间就用 <code>datetime.now()</code> 兜底，制造虚假时间戳并污染趋势图</td>
+<td class="c"><code>overseas/collect.py:55</code><br>国内：<code>scraper/parsers/taoguba.py:100</code></td>
+<td><b>174 / 707 条</b> <code>publish_time</code> 精确等于采集秒（Nature 75、联合早报 29/27/27、同花顺 16）——真实新闻不可能都在同一分钟发布。<br>今日条目 412/707（58.3%）；<code>overseas_sentiment_daily</code> 今日 total = <b>506</b> vs 昨日 59，<b>抬高约 8.6 倍</b>。<br>根因：<code>parse_html_list</code> 恒返回空时间（联合早报×3、同花顺、东财股吧、雪球全中）</td></tr>
+</table>
+
+<h3>P2 · 一般（10 条）</h3>
+<table>
+<tr><th>编号</th><th>问题</th><th>位置</th><th>实测证据 / 影响</th></tr>
+<tr><td class="c">P2-1</td>
+<td><b>XSS 属性逃逸</b>：<code>esc()</code> 只转义 <code>&amp; &lt; &gt;</code>，<b>不转义 <code>"</code> 与 <code>'</code></b>，却被用于属性上下文（无需 <code>&lt;</code> 即可逃逸）</td>
+<td class="c"><code>app.js:19-21</code><br>调用点 <code>248 / 344 / 834 / 909 / 331</code></td>
+<td>第三方不可信内容（股吧昵称、选手昵称、外部 URL、<code>hold_since</code>）直接进入属性。未做浏览器实弹（需先污染数据库）</td></tr>
+<tr><td class="c">P2-2</td>
+<td><b>仓库卫生</b>：项目根<b>无 <code>.gitignore</code></b>，明文 Cookie、数据库备份、浏览器 profile 全部散落项目内</td>
+<td class="c">项目根</td>
+<td><code>tools/_cookies_latest.json</code>（明文 tgb.cn Cookie）、<code>tools/_user_tgbuser_only.json</code>、<code>cookies.prev-anon.json</code>、<code>.browser-profile/**</code>、两份 <code>viewer/app.db.bak-*</code>。叠加 P0-1 后均曾可被直接下载</td></tr>
+<tr><td class="c">P2-3</td>
+<td><b>「已持有 N 天」与「持仓起始日期」自相矛盾</b>：用该条记录<b>自身的</b> <code>buy_time</code> 计算，而非持仓起始日</td>
+<td class="c">持有天数计算逻辑</td>
+<td>600519 起始日 2026-09-18（今日应 4 天），12 条中 <b>10 条显示"已持有 0 天"</b>；601318 起始 07-18（应 66 天）却显示 2/52/59/34/4/43/56/41 天</td></tr>
+<tr><td class="c">P2-4</td>
+<td>人物抽屉<b>渠道徽章恒为「A 实盘大赛」</b>：<code>/api/person</code> 的 positions 不返回 <code>channel</code>，前端兜底成 <code>'A'</code></td>
+<td class="c"><code>app.js:834</code></td>
+<td>读 <code>p.channel || 'A'</code>，接口从不给该字段 → 兜底值恒生效</td></tr>
+<tr><td class="c">P2-5</td>
+<td><b>计数与展示数量不一致</b>：persons 表 170 行，接口只返回 100，前端再截到 80，界面文案却写"不遗漏任何一个名称"</td>
+<td class="c"><code>server.py:157</code>（LIMIT 100）<br><code>app.js:250</code></td>
+<td>至少 70 人在界面上不可见，而文案与实现在语义上矛盾</td></tr>
+<tr><td class="c">P2-6</td>
+<td><b>海外新闻流区域失衡</b>：「区域优先 + LIMIT 40」导致返回的 40 条全为 US，HK / GLOBAL 永远进不了新闻流</td>
+<td class="c"><code>server.py:271-275</code></td>
+<td>排序键先按区域再按热度，US 数量已超 40 → 后两类被完全挤出</td></tr>
+<tr><td class="c">P2-7</td>
+<td><b>数据源面板状态与计数不实</b>（6 个子问题）</td>
+<td class="c"><code>overseas/sources.py:74-87</code><br><code>viewer/db.py:846-850</code><br><code>overseas_sources_status</code> 表结构<br><code>server.py:309-315</code><br><code>app.js:508-519</code></td>
+<td>①「待激活」判定排在「未启用」之前 → <b>8 个 <code>enabled: false</code> 的源被显示成"待激活"</b>（Google News / Reuters / SCMP / 信报 / Investing.com / Reddit / Yahoo Finance / YouTube）<br>② <code>enabled</code> 字段<b>未落库</b>（表里没这列）→ 界面无从显示"已关闭"<br>③ 面板「N 条」是<b>去重前抓取数</b>（<code>ON CONFLICT(url,title)</code> 且 <code>source_key</code> 不在更新列）→ 联合早报三源各虚报 27 条（54/56/54 → 27/29/27）、CNBC 科技虚报 9、CNBC 经济虚报 5<br>④「已连通但无条目」被前端着色为<b>错误红</b>（PeerTube 实为客观现状）<br>⑤「示例模式」分支为<b>死代码</b>（0 命中）→ 图例承诺的"未联网时显示示例模式"从未出现<br>⑥ 面板<b>不渲染 <code>checked_at</code></b>，41 行全是 21:53:46 的旧快照，用户看不出时效</td></tr>
+<tr><td class="c">P2-8</td>
+<td>抽屉拖到最右时，<b>右下角拉伸手柄跑出视口</b>（与代码注释承诺矛盾）</td>
+<td class="c"><code>app.js:699-705</code></td>
+<td>实测 left=1280 + width=802 → 右缘 2082 &gt; 1440（视口宽），用户抓不到把手</td></tr>
+<tr><td class="c">P2-9</td>
+<td><b>缺字段直接渲染 <code>undefined</code></b>；<code>counts</code> 整体缺失还会抛错导致汇总面板全空</td>
+<td class="c"><code>app.js:47 / 1016</code></td>
+<td>#cards 6 处、人物表 2 处；接口少给字段即显形</td></tr>
+<tr><td class="c">P2-10</td>
+<td><code>chmod(0o600)</code> 在 Windows 上<b>只影响只读位、不设 ACL</b>，与注释「仅当前用户可读」不符；且 <code>except OSError: pass</code> 静默；密钥与密文同目录</td>
+<td class="c"><code>credentials.py:37-40 / 55-58</code></td>
+<td>安全性弱于文档承诺，且失败时无任何提示</td></tr>
+</table>
+
+<h3>P3 · 建议（10 条）</h3>
+<table>
+<tr><th>编号</th><th>问题</th><th>位置</th></tr>
+<tr><td class="c">P3-1</td><td>错误语义不统一：业务错误一律 <b>200 + <code>{"error"}</code></b>；404 页面泄露 <code>Server: BaseHTTP/0.6 Python/3.13.14</code></td><td class="c"><code>server.py</code> 多处</td></tr>
+<tr><td class="c">P3-2</td><td><code>?limit=-1</code> / <code>?limit=999999999</code> 无上限，均返回全表 185 行（38019B）</td><td class="c"><code>server.py</code> posts 路由</td></tr>
+<tr><td class="c">P3-3</td><td>同一「共同持仓人数」出现两种口径（000333：9 vs 10）</td><td class="c">共识/持仓两处聚合</td></tr>
+<tr><td class="c">P3-4</td><td>海外热点存在重复标题（geo_conflict 与 oil_energy 同标题）</td><td class="c"><code>overseas/hotspots.py</code></td></tr>
+<tr><td class="c">P3-5</td><td>symbol / name / kind 等参数无长度上限；请求行非 ASCII 未重新解码</td><td class="c"><code>server.py</code> 各 api_*</td></tr>
+<tr><td class="c">P3-6</td><td>缺 <code>weight</code> 时渲染出 <code>NaN</code> 与 <code>width:NaN%</code></td><td class="c"><code>app.js:273-276</code></td></tr>
+<tr><td class="c">P3-7</td><td><code>/api/sentiment</code> 若返回 JSON 数组（类型不符）→ 抛错且面板全空</td><td class="c"><code>app.js:260</code></td></tr>
+<tr><td class="c">P3-8</td><td>死接口：<code>/api/positions</code>（25KB/135 行）、<code>/api/stock_names</code>、<code>/api/login_status</code> 前端零引用</td><td class="c"><code>app.js</code>（无调用）</td></tr>
+<tr><td class="c">P3-9</td><td>单实例互斥体用 <code>Local\</code> 前缀（会话级，可跨会话绕过）；端口占用检测不校验对端身份，被占用即"直接复用"</td><td class="c"><code>desktop_app.py</code></td></tr>
+<tr><td class="c">P3-10</td><td>超长无空格 ASCII 会撑破 <code>.stk-name</code>（CSS 理论缺口，真实股票简称不会触发）</td><td class="c"><code>app.css</code></td></tr>
+</table>
+
+<h2>四、被证伪与已澄清的方向（避免误改）</h2>
+<table>
+<tr><th>此前的推断</th><th>复核结论</th></tr>
+<tr><td>存在「全局关闭 TLS 校验」</td><td><b>不成立</b>。全仓无 <code>ssl._create_default_https_context = ...</code>；<code>overseas/sources.py:35-37</code> 的 <code>_SSL</code> 是模块级局部对象，仅被第 176 行一次 <code>urlopen(context=_SSL)</code> 使用 → 影响范围<b>仅海外新闻抓取链路</b>；<code>scraper/session.py:43</code> 用 <code>requests.Session()</code>，TLS 校验正常</td></tr>
+<tr><td>存在 SQL 注入</td><td><b>不可注入</b>。<code>viewer/db.py</code> 全部语句参数化；6 处 f-string SQL（<code>db.py:301/310/326/345/988</code>、<code>demo_data.py:277</code>）插值对象全是内部常量，来自 URL 的入参全部走绑定</td></tr>
+<tr><td>服务可能绑定 <code>0.0.0.0</code></td><td><b>是 <code>127.0.0.1</code></b>（<code>server.py:695</code>、<code>launch.py:42</code>）→ 局域网暴露面不存在，相关风险等级不上调</td></tr>
+</table>
+
+<h2>五、已确认健康的部分（不必返工）</h2>
+<div class="card">
+<p><b>数据自洽性</b>：18 项交叉校验 16 项通过 —— posts 185 = 185、trades 46 = 46、players 160 = 160、positions 135 = 135、topics 15 = 15、stock_mentions 185 = 各股 mentions 求和 = 情绪分布合计、共识 min2 的 23 条 = positions 去重 symbol 数、名称解析 24/24 全覆盖；<code>net_mood</code> 重算 -5.9 一致；Σ区域 heat = <code>heat_total</code> = 22482.75 一致。</p>
+<p><b>海外热点</b>：17 个热点 <code>decision</code> 非空 17/17、<code>sectors_up_detail</code> 非空 17/17、<code>sectors_down_detail</code> 16/17（id=1184 恒指反弹确无下跌领域）、热度严格降序、字段类型正确。</p>
+<p><b>UI</b>：10 个 tab 渲染 10/10（无 undefined/NaN/null/Invalid Date、无 JS 报错、横向溢出 0）；抽屉 3 类 × 4 关闭入口 12/12；拖拽 6/6；"不遮挡所点行" 3/3（矩形相交全 false）；四主题 12/12（对比度 11.78~17.40，元素数与高度完全一致）；两档视口 4/4（顶栏 8/8 按钮命中）；空态 10/10；主页面全程无 JS 报错。</p>
+<p><b>其它</b>：无硬编码密钥（Key/Token 走环境变量）；凭据为 Fernet 密文且不在项目内；<code>login_status.detail</code> 不含 Cookie 值；主抓取链路 TLS 正常；robots 与合规过滤到位；示例 URL 主动降级不可点（顺带挡掉 <code>javascript:</code>）；写操作有锁串行化。</p>
+</div>
+
+<h2>六、优化建议</h2>
+<table>
+<tr><th>主题</th><th>建议</th></tr>
+<tr><td>安全边界</td><td>所有静态文件发送必须 <code>resolve()</code> 后判定归属；移除无条件 <code>ACAO:*</code>，改为仅回环来源放行；写接口统一校验 Origin/Host/Content-Type 并加一次性令牌；错误响应不泄露 <code>Server</code> 版本</td></tr>
+<tr><td>数据可信度</td><td>示例数据加 <code>is_seed</code> 列并在<b>所有</b>聚合中过滤；示例条目一律使用「示例源·」前缀，禁止复用真实源 key；缺失时间<b>留空</b>而非填当前时间，另设 <code>fetched_at</code>；趋势图对无时间条目显式标注条数</td></tr>
+<tr><td>可观测性</td><td><code>do_GET</code> 外层统一 try/except，异常返回 500 JSON 并记日志；前端 <code>api()</code> 校验 <code>r.ok</code> 并提供可见错误条；消除静默降级（请求体解析失败应 400 而非当空对象继续）</td></tr>
+<tr><td>口径一致性</td><td>同一指标只保留一处计算入口（持有天数、共同持仓人数）；面板计数区分"抓取数"与"入库可用数"并分别标注；持久化 <code>enabled</code> 与 <code>checked_at</code> 并在界面呈现</td></tr>
+<tr><td>前端健壮性</td><td><code>esc()</code> 补齐引号转义；所有字段读取带默认值；数值型断言非 <code>NaN</code>；拖拽/拉伸把手统一钳制在视口内；移除死代码分支与死接口</td></tr>
+<tr><td>仓库卫生</td><td>新增 <code>.gitignore</code>（<code>app.db*</code>、<code>*.bak*</code>、<code>.browser-profile/</code>、凭据导出、<code>tools/shots*/</code>）；凭据文件移出项目目录；跨平台权限处理不要只依赖 <code>chmod</code></td></tr>
+</table>
+
+<h2>七、改进规划与执行思路</h2>
+<div class="card">
+<p><b>分四批推进，按文件归属并行（三方文件不重叠，避免互相覆盖）：</b></p>
+<table>
+<tr><th>批次</th><th>目标</th><th>包含问题</th><th>涉及文件</th></tr>
+<tr><td class="c"><b>第 1 批</b><br>安全（紧急）</td><td>关闭可被外部读写的通道</td><td>P0-1 <span class="tag tok">已修</span>、P1-3、P2-1、P2-2</td><td class="c"><code>server.py</code><br><code>app.js</code><br>新增 <code>.gitignore</code></td></tr>
+<tr><td class="c"><b>第 2 批</b><br>可用性</td><td>出错时用户看得见、抓得住</td><td>P1-1、P1-2、P2-8、P2-9、P3-6、P3-7</td><td class="c"><code>server.py</code><br><code>app.js</code></td></tr>
+<tr><td class="c"><b>第 3 批</b><br>数据可信度</td><td>让统计与结论不再被示例/假时间污染</td><td>P1-4、P1-5、P2-5、P2-6、P2-7、P3-3</td><td class="c"><code>overseas/collect.py</code><br><code>viewer/db.py</code><br><code>viewer/ingest.py</code><br><code>server.py</code><br><code>app.js</code></td></tr>
+<tr><td class="c"><b>第 4 批</b><br>健壮性与卫生</td><td>收口剩余项</td><td>P2-3、P2-4、P2-10、P3-1、P3-2、P3-4、P3-5、P3-8、P3-9、P3-10</td><td class="c"><code>server.py</code><br><code>app.js/app.css</code><br><code>credentials.py</code><br><code>desktop_app.py</code></td></tr>
+</table>
+<p><b>每批的验收动作（缺一不可）</b>：① <code>py_compile</code> / <code>node --check</code>；② 服务端改动重启实例后重新探测受影响路由；③ 跑既有回归 <code>tests/ui_hotspot.js</code>（31 条）、<code>tests/ui_regression.js</code>（21 项）、<code>tests/ui_full_regression.js</code>（80 条）；④ 针对该批新增的断言脚本；⑤ 由<b>独立验证者</b>复验（不复用实现者的运行结果）。</p>
+<p><b>风险控制</b>：改批 3 会触及统计口径，属"输出会变"的改动，改动前先做数据库一致性快照（已用 <code>sqlite3 backup()</code> 的既有做法），并保留改动前后同一口径的数字对照，偏离 <b>1%</b> 视为异常需解释。P1-4 涉及删除既有示例条目，属破坏性操作，执行前单独确认。</p>
+</div>
+
+<h2>八、附：证据与产物索引</h2>
+<table>
+<tr><th>文件</th><th>内容</th></tr>
+<tr><td class="c"><code>tools/_qa_dynamic.md</code></td><td>动态功能测试全文（14 条，覆盖清单 + 问题清单 + 未覆盖项 + 优化建议）</td></tr>
+<tr><td class="c"><code>tools/_qa_security.md</code></td><td>安全专项全文（12 条，含攻击路径与代码级修法）</td></tr>
+<tr><td class="c"><code>tools/_qa_ui.md</code></td><td>UI 与数据一致性全文（80 条断言，PASS 71 / FAIL 9，含断言修正记录）</td></tr>
+<tr><td class="c"><code>tools/_qa_ui_regression.txt</code></td><td>80 条 UI 断言逐条结果</td></tr>
+<tr><td class="c"><code>tools/_qa_ui.txt</code></td><td>热点卡改造断言 31/31（上一轮）</td></tr>
+<tr><td class="c"><code>tools/_qa_rebuild.txt</code></td><td>海外热点离线重算报告（707 条新闻 → 17 热点）</td></tr>
+<tr><td class="c"><code>tools/_qa_source_truth.txt</code></td><td>数据源面板申报 vs 数据库实况逐条对账</td></tr>
+<tr><td class="c"><code>tools/_qa_source_time.txt</code></td><td>时间戳伪造取证（174/707 精确等于采集秒）</td></tr>
+<tr><td class="c"><code>tools/_qa_lead_verify_p0.txt</code></td><td>P0 路径穿越的独立复核记录（修复前 / 修复后）</td></tr>
+<tr><td class="c"><code>tools/shots_ui/</code></td><td>UI 回归截图 16 张</td></tr>
+</table>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+INFO:root:scheduler thread running
+INFO:root:scheduler started
+summary: {"person_total": 1593, "investor_total": 57, "cohold_total": 338, "stock_total": 387, "latest_date": "2026-09-04", "scope": "free", "scope_label": "十大流通股东", "min_hold": 2}
+basis: "自然人股东数据来自上市公司定期报告/临时公告披露（东财 F10）。「持股只数」= 该自然人在最新披露期中进入十大流通股东榜的股票数；多为长线牛散，披露有滞后（季报约 1 个月、临时公告约 1-2 日），仅作方向参考，不构成交易信号。"
+
+investors n = 57
+item keys: ['name', 'stock_count', 'total_ratio', 'new_cnt', 'cut_cnt', 'latest_date', 'holdings']
+   {"name": "吕强", "stock_count": "6", "total_ratio": "5.973", "new_cnt": "2", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "000676", "symbol_name": "智度股份", "end_date": "2026-06-30", "rank": 3, "ratio": 2.0158, "hold_num
+   {"name": "郑文宝", "stock_count": "3", "total_ratio": "5.102", "new_cnt": "1", "cut_cnt": "1", "latest_date": "2026-06-30", "holdings": [{"symbol": "002935", "symbol_name": "天奥电子", "end_date": "2026-06-30", "rank": 2, "ratio": 4.2389, "hold_nu
+   {"name": "张宇", "stock_count": "3", "total_ratio": "4.843", "new_cnt": "2", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "002742", "symbol_name": "冀衡医药", "end_date": "2026-06-30", "rank": 4, "ratio": 4.6046, "hold_num
+   {"name": "陈海华", "stock_count": "3", "total_ratio": "4.115", "new_cnt": "2", "cut_cnt": "1", "latest_date": "2026-06-30", "holdings": [{"symbol": "600743", "symbol_name": "华远控股", "end_date": "2026-06-30", "rank": 4, "ratio": 2.708, "hold_num
+   {"name": "陈文健", "stock_count": "3", "total_ratio": "2.119", "new_cnt": "0", "cut_cnt": "1", "latest_date": "2026-06-30", "holdings": [{"symbol": "300243", "symbol_name": "瑞丰高材", "end_date": "2026-06-30", "rank": 7, "ratio": 0.9506, "hold_nu
+   {"name": "张晓", "stock_count": "3", "total_ratio": "1.928", "new_cnt": "3", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "002106", "symbol_name": "莱宝高科", "end_date": "2026-06-30", "rank": 4, "ratio": 0.8435, "hold_num
+   {"name": "王萍", "stock_count": "3", "total_ratio": "1.916", "new_cnt": "1", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "600418", "symbol_name": "江淮汽车", "end_date": "2026-06-30", "rank": 5, "ratio": 1.0982, "hold_num
+   {"name": "张秀", "stock_count": "3", "total_ratio": "1.895", "new_cnt": "1", "cut_cnt": "2", "latest_date": "2026-06-30", "holdings": [{"symbol": "300647", "symbol_name": "超频三", "end_date": "2026-06-30", "rank": 4, "ratio": 1.1881, "hold_num"
+   {"name": "胡祖平", "stock_count": "3", "total_ratio": "1.887", "new_cnt": "3", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "600448", "symbol_name": "华纺股份", "end_date": "2026-06-30", "rank": 9, "ratio": 0.8494, "hold_nu
+   {"name": "王晓华", "stock_count": "3", "total_ratio": "1.418", "new_cnt": "1", "cut_cnt": "0", "latest_date": "2026-06-30", "holdings": [{"symbol": "002862", "symbol_name": "实丰文化", "end_date": "2026-06-30", "rank": 8, "ratio": 0.9912, "hold_nu
+
+cohold n = 338
+item keys: ['symbol', 'symbol_name', 'end_date', 'people_count', 'people']
+   {"symbol": "002360", "symbol_name": "ST同德", "end_date": "2026-06-30", "people_count": 10, "people": [{"name": "张乃蛇", "ratio": 1.0706, "rank": 1, "change": "不变"}, {"name": "祁洋", "ratio": 0.78, "rank": 2, "change": "新进"}, {"name": "朱月成", "ratio": 0.7757, "rank":
+   {"symbol": "002614", "symbol_name": "奥佳华", "end_date": "2026-06-30", "people_count": 10, "people": [{"name": "邹剑寒", "ratio": 5.1151, "rank": 1, "change": "不变"}, {"name": "李五令", "ratio": 4.5059, "rank": 2, "change": "不变"}, {"name": "吴三定", "ratio": 0.7512, "rank
+   {"symbol": "300243", "symbol_name": "瑞丰高材", "end_date": "2026-06-30", "people_count": 10, "people": [{"name": "周仕斌", "ratio": 6.0272, "rank": 1, "change": "不变"}, {"name": "桑培洲", "ratio": 3.3617, "rank": 2, "change": "减持 273.65万股"}, {"name": "陈强", "ratio": 1.14
+   {"symbol": "603429", "symbol_name": "*ST集友", "end_date": "2026-06-30", "people_count": 10, "people": [{"name": "徐善水", "ratio": 41.0508, "rank": 1, "change": "不变"}, {"name": "唐红军", "ratio": 3.3689, "rank": 2, "change": "增持 112.19万股"}, {"name": "余永恒", "ratio": 1
+   {"symbol": "001358", "symbol_name": "兴欣新材", "end_date": "2026-07-23", "people_count": 9, "people": [{"name": "何美雅", "ratio": 2.9216, "rank": 1, "change": "不变"}, {"name": "吕安春", "ratio": 2.0127, "rank": 2, "change": "不变"}, {"name": "来伟池", "ratio": 1.7475, "rank
+   {"symbol": "002137", "symbol_name": "实益达", "end_date": "2026-06-30", "people_count": 9, "people": [{"name": "陈亚妹", "ratio": 7.717, "rank": 1, "change": "不变"}, {"name": "乔昕", "ratio": 2.7327, "rank": 2, "change": "不变"}, {"name": "王星雨", "ratio": 1.161, "rank": 3

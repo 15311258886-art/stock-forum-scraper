@@ -1,0 +1,68 @@
+==============================================================================
+[淘股吧-柯基吃柠檬]  _ax_taoguba.html  bytes=80152
+------------------------------------------------------------------------------
+  小写sh                8 个  样例: ['sh600171', 'sh600520', 'sh600203']
+  小写sz                1 个  样例: ['sz002693']
+  $符号$                1 个  样例: ['$suggestDiv&&$']
+  0开头6位               1 个  样例: ['000000']
+  3开头6位               1 个  样例: ['333333']
+  quote路径             9 个  样例: ['quotes/sh600171', 'quotes/sh600520', 'quotes/sz002693', 'quotes/sh600203']
+
+  含代码特征的长链接数: 28
+     /blog/10635614                                             | 博客首页
+     /user/blog/moreTopic?userID=10635614                       | 最新主帖
+     /user/blog/moreReplyMod?userID=10635614                    | 最新跟帖
+     /user/blog/toLiveTrends?userID=10635614                    | 直播动态
+     https://shuo.tgb.cn/shuo/toBlogShuo?userID=10635614        | 我的说说
+     https://shuo.tgb.cn/video/toBlogVideo?userID=10635614      | 视频
+
+  代码上下文（前 4 条）:
+     · ungegu left" style=""> 柯基吃柠檬讨论个股 上海贝岭 <a class="taolungegu_gupiao left" href="https://www.tgb.cn/quotes/sh600171" target="_b
+     · r"> 上海贝岭 上海贝岭 <a class="taolungegu_gupiao left" href="https://www.tgb.cn/quotes/sh600171" target="_b
+     · //www.tgb.cn/quotes/sh600171" target="_blank">上海贝岭 上海贝岭 上海贝岭 <a class="taolungegu_gupiao left" href="https://www.tgb.cn/quotes/sh600520" target="_b
+     · //www.tgb.cn/quotes/sh600171" target="_blank">上海贝岭 上海贝岭 三佳科技 <a class="taolungegu_gupiao left" href="https://www.tgb.cn/quotes/sh600171" target="_b
+
+==============================================================================
+[雪球-我没有行医资格证]  _ax_xueqiu.html  bytes=210772
+------------------------------------------------------------------------------
+  SH前缀               22 个  样例: ['SH508069', 'SH508000', 'SH600282', 'SH601857', 'SH601919']
+  SZ前缀               36 个  样例: ['SZ000001', 'SZ002233', 'SZ180402', 'SZ002763']
+  0开头6位               1 个  样例: ['009933']
+  /S/路径              38 个  样例: ['/S/SH508069', '/S/SZ000001', '/S/SZ002233', '/S/SH508000', '/S/SZ180402', '/S/SZ002763', '/S/SH600282', '/S/SH601857']
+
+  含代码特征的长链接数: 95
+     /snowman/logout?url=https://www.xueqiu.com/u/6122012716    | 退出账号
+     /6122012716                                                | 我没有行医资格证
+     /6122012716/382294293                                      | 
+     /6122012716                                                | 我没有行医资格证
+     /6122012716/410585084                                      | 
+     /6122012716                                                | 我没有行医资格证
+
+  代码上下文（前 4 条）:
+     · ss="fake-anchor"> 专栏 华夏南京交通高速收米 $华夏南京交通高速公路REIT(SH508069)$ 股息入账<img src="//assets.imedao.com/ugc/images/face_regular/v1
+     · m__title"> 专栏 华夏南京交通高速收米 $华夏南京交通高速公路REIT(SH508069)$ 股息入账<img src="//assets.imedao.com/ugc/images/face_regular/v1/emoji_86.png?v=1" title="[庆祝]" alt="[庆祝]" he
+     · "fake-anchor"> 专栏 平安银行除息日之观察 今天是 $平安银行(SZ000001)$ 执行2026半年度利润分配，10派2.49元，后除息的日子。今日开盘价11.35较昨日收盘价11.6低开0.001（11.6-0.249）-
+     · ne__item__title"> 专栏 平安银行除息日之观察 今天是 $平安银行(SZ000001)$ 执行2026半年度利润分配，10派2.49元，后除息的日子。今日开盘价11.35较昨日收盘价11.6低开0.001（11.6-0.249）-11.35=0.001。而我的<a href="https://xue
+
+==============================================================================
+[新浪-新浪财经客]  _ax_sina.html  bytes=98395
+------------------------------------------------------------------------------
+  小写sh                8 个  样例: ['sh600363', 'sh600585', 'sh600869', 'sh600150', 'sh688837', 'sh600059', 'sh688041', 'sh600498']
+  小写sz               12 个  样例: ['sz000858', 'sz000792', 'sz300014', 'sz002033', 'sz301390', 'sz000651', 'sz002832', 'sz002271']
+  3开头6位              12 个  样例: ['387587', '387584', '387581', '387580']
+  4开头6位               1 个  样例: ['434242']
+
+  含代码特征的长链接数: 119
+     http://finance.sina.com.cn/stock/                          | 新浪股票
+     /?s=user&amp;a=friends&amp;uid=3031084391                  | 15关注
+     /u/3031084391?type=bar                                     | 0社区
+     /u/3031084391                                              | 新浪财经客户端
+     //weibo.com/u/3031084391                                   | 
+     /u/3031084391?type=thread                                  | 主帖
+
+  代码上下文（前 4 条）:
+     · > 热度 趋势 1 五粮液 3 <em class="ico
+     · 3 up 2 盐湖股份 3 <em class="ic
+     · 3 up 3 联创光电 3 <em class="ic
+     · 3 up 4 亿纬锂能 3 <em class="ic
+

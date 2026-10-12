@@ -1,0 +1,8 @@
+======================================================================
+A) 雪球搜索页内容体检
+======================================================================
+Traceback (most recent call last):
+  File "F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\_xsrc5.py", line 15, in <module>
+    h = r['html'] or ''
+        ~^^^^^^^^
+IndexError: No item with that key

@@ -1,0 +1,6 @@
+8765 NOT LISTENING
+=== python procs ===
+  PID 31964  
+  PID 25828  C:\Users\野比&大熊\.workbuddy\binaries\python\versions\3.13.12\python.exe "F:/AI Agent部署知识库/2026-09-20-11-36-02/_screen7.py" evening
+=== viewer_restart.log tail ===
+

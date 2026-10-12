@@ -119,9 +119,8 @@ function codeLink(code, opt) {
   const c = String(code == null ? "" : code).trim();
   const txt = opt.text == null ? c : String(opt.text);
   if (!/^\d{6}$/.test(c)) return esc(txt || "—");
-  return `<a class="${escAttr(opt.cls || "wt-sym")}" data-code-open="${escAttr(c)}" `
-       + `href="javascript:void(0)" `
-       + `title="点开「${escAttr(txt || c)}」的个股结果（重要信息 · 换手 · 持股结构 · K线 · 荐股后收益节奏 · 持仓选手），自动加载，不用再点任何按钮">${esc(txt)}</a>`;
+  return `<button type="button" class="${escAttr(opt.cls || "wt-sym")}" data-code-open="${escAttr(c)}" `
+       + `title="点开「${escAttr(txt || c)}」的个股结果（重要信息 · 换手 · 持股结构 · K线 · 荐股后收益节奏 · 持仓选手），自动加载，不用再点任何按钮">${esc(txt)}</button>`;
 }
 /* 捕获阶段委托：比目标元素的 onclick 先跑，stopPropagation 后
    同行的「选中 / 打开研报 / 跳转」等父级 handler 一律不会误触发。 */
@@ -242,7 +241,7 @@ function renderCards(c) {
   const box = $("#cards");
   if (!box) return;
   box.style.setProperty("--cn", String(CARD_KINDS.length));
-  box.innerHTML = CARD_KINDS.map(([l, kind]) => {
+  const cards = CARD_KINDS.map(([l, kind]) => {
     const n = cc[kind];
     // 2026-10-05（报告建议4 配置显性化）：选手榜 / 持仓采集这两项从来没配全过，
     // 但面板看着是完整的 —— 在卡片上挂个角标，别让人把行为反推出来的数据当「榜单结论」看。
@@ -259,6 +258,11 @@ function renderCards(c) {
       + `<div class="n">${n == null ? "—" : esc(n)}</div><div class="l">${esc(l)}</div>`
       + `<div class="more">查看明细 ›</div></div>`;
   }).join("");
+  // 2026-10-12 体验审计证据1：首屏那排「抓了多少条」是运维视角、不是决策视角 ——
+  // 收进默认折叠的「系统状态」区，让首屏直接是决策内容（今日决策 / 今日看板）。
+  // 折叠不删除：点一下仍能看到全部计数并下钻明细（绑定与交互零改动）。
+  box.innerHTML = `<details class="sys-status"><summary>系统状态 · 数据量（${CARD_KINDS.length} 类 · 点击展开看计数与明细）</summary>`
+    + `<div class="sys-grid">${cards}</div></details>`;
   bindCards();
 }
 function bindCards() {
@@ -381,10 +385,18 @@ function renderSummary(s) {
      我要帖子链接没什么意义，我哪有那么多功夫看。」
      所以这里不再铺一张「作者/时间/情绪/内容」的原帖表，改成后端先归纳好的**情绪速览**：
      总论 → 按行业 → 按个股，全是「结论 + 票数 + 一句人话」；原帖折叠在最底下，想看再看。 */
+  // 2026-10-12 体验审计 P1（① 汇总）：原来是「登录状态 + 数据量」的纯运维页 →
+  // 把**结论（近 24h 帖子情绪速览）提到最前**，登录态/抓取时间收进默认折叠的「系统状态」。
+  // 面板名保持不变（"汇总"），避免打断已有的护栏与深链接。
   $("#p-summary").innerHTML = `
-      <div class="hint hint-slim">最后抓取：${esc(ss.last_fetch_at || "尚未抓取")} ｜ 接入站点：${toArr(ss.sites).join("、") || "—"}</div>
-      <div class="card" style="margin-bottom:14px"><div class="t" style="font-weight:700;margin-bottom:8px">登录态检测</div>${login || "<span class='s'>尚未检测</span>"}</div>
-      <div id="pd-box"><div class="hint">正在归纳近 24 小时帖子情绪…</div></div>`;
+      <div id="pd-box"><div class="hint">正在归纳近 24 小时帖子情绪…</div></div>
+      <details class="sys-status" style="margin-top:14px">
+        <summary>系统状态 · 登录态与抓取（运维信息，点击展开）</summary>
+        <div style="padding:6px 0 12px">
+          <div class="hint hint-slim">最后抓取：${esc(ss.last_fetch_at || "尚未抓取")} ｜ 接入站点：${toArr(ss.sites).join("、") || "—"}</div>
+          <div class="card" style="margin-bottom:6px"><div class="t" style="font-weight:700;margin-bottom:8px">登录态检测</div>${login || "<span class='s'>尚未检测</span>"}</div>
+        </div>
+      </details>`;
   bindLoginOpen();
   Promise.all([
     api("/api/postdigest?hours=24").catch((e) => ({ ok: false, error: String((e && e.message) || e) })),
@@ -693,7 +705,16 @@ function stockCard(x, mode) {
     meta += `<span class="stk-total">共 ${total} 条提及</span>`;
   } else {
     // 2026-09-26 按王总要求：被提及次数做成高亮主标（数字加粗放大），一眼可辨。
-    meta = `<span class="stk-mention" title="该股在抓取到的帖子中被提及的总次数">被提及 <b>${x.mentions ?? 0}</b> 次</span>` +
+    // 2026-10-12 体验审计 P0-C：人气（被提及次数）与「人群态度」分开显示 ——
+    // 被讨论得多 ≠ 被看好，两个概念不能揉成一个数字，否则人气榜会被当成推荐榜。
+    const pt = x.posture;
+    const pTip = `近 72 小时帖子里对该股的明确表态：看多 ${x.posture_pos || 0} / 看空 ${x.posture_neg || 0}（共 ${x.posture_posts || 0} 帖点名）`;
+    const postureBadge = pt === "bull" ? `<span class="badge bull" title="${escAttr(pTip)}">看好</span>`
+      : pt === "bear" ? `<span class="badge bear" title="${escAttr(pTip)}">看空</span>`
+      : pt === "diverge" ? `<span class="badge neu" title="${escAttr(pTip)}">分歧</span>`
+      : "";
+    meta = `<span class="stk-mention" title="该股在抓取到的帖子中被提及的总次数（人气，不代表看好）">被提及 <b>${x.mentions ?? 0}</b> 次</span>` +
+      postureBadge +
       (x.last_time ? `<span class="chip-s">最近 ${esc(x.last_time)}</span>` : "") +
       // 最后更新：该股讨论帖来源站点的最近一次成功刷新（Request G）
       (toArr(x.sources).length ? refChip(x.sources) : "");
@@ -780,7 +801,11 @@ function renderStocks(list) {
   const missing = items.filter((x) => x && (x.name_missing || !(x.name || x.symbol_name))).length;
   // 2026-09-26 按王总反馈：删去「卡片第一行是… 第二行是…」说明条与图例（一看即知、纯占版面）；
   // 卡片密度优化走 .grid-stk（更小间距、一屏更多），被提及次数在卡片内高亮。
+  const anyPosture = items.some((x) => x && x.posture);
   $("#p-stocks").innerHTML =
+    `<div class="hint hint-slim stk-posture-hint">「被提及 N 次」= <b>人气</b>（被讨论得多）；` +
+      `<b>看好 / 看空 / 分歧</b> = 近 72 小时帖子里明确表态的方向（与「汇总 · 情绪速览」同一把尺子）。` +
+      `<b>人气高 ≠ 被看好</b>，两者分开看。${anyPosture ? "" : "（当前窗口内暂无明确表态的票，故只显示人气）"}</div>` +
     stockLegend({ name_covered: items.length - missing, name_total: items.length }, "mentions") +
     `<div class="grid grid-stk">` + items.map((x) => stockCard(x, "mentions")).join("") + `</div>`;
   bindStockCards("#p-stocks");
@@ -902,13 +927,37 @@ function openStock(symbol, anchorEl, extraHtml) {
 /* 2026-10-01 王总要求：点开个股要能看「建股之后 3/5/10 日 + 隔日」的收益节奏。
    /api/blogger/perf?code=xxx 返回该票所有被推荐记录 × 周期收益（本地毫秒级）。
    刻意用「—」而不是 0 表示还没走完 —— 0 会被读成没赚没亏。 */
+/* 2026-10-10 王总要求：短线博主荐股后要把「3/5/10 日走势简单看一看」——
+   用 perf 行自带的 series（荐股后最多 10 个交易日逐日累计%，基准=荐股日收盘）画迷你曲线。
+   红=荐股后累计上涨 / 绿=下跌（中国习惯）；没有数据 → 返回空串，绝不画假线。 */
+function btSparkSvg(series) {
+  const s = Array.isArray(series) ? series.filter((x) => x && isFinite(Number(x.chg))) : [];
+  if (s.length < 2) return "";
+  const W = 168, H = 40, PAD = 3;
+  const chgs = s.map((x) => Number(x.chg));
+  const lo = Math.min(0, ...chgs), hi = Math.max(0, ...chgs);
+  const span = (hi - lo) || 1;
+  const xAt = (i) => PAD + (i / (s.length - 1)) * (W - PAD * 2);
+  const yAt = (v) => PAD + (hi - v) / span * (H - PAD * 2);
+  const pts = chgs.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ");
+  const y0 = yAt(0);
+  const last = chgs[chgs.length - 1];
+  const col = last > 0 ? "var(--bull,#e11d48)" : (last < 0 ? "var(--bear,#16a34a)" : "var(--muted,#94a3b8)");
+  const tip = s.map((x) => `${String(x.d).slice(5).replace("-", "/")} ${Number(x.chg) > 0 ? "+" : ""}${Number(x.chg).toFixed(2)}%`).join("，");
+  return `<svg class="bt-spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="荐股后走势">
+    <line x1="${PAD}" y1="${y0.toFixed(1)}" x2="${W - PAD}" y2="${y0.toFixed(1)}" stroke="var(--border,#e2e8f0)" stroke-dasharray="3 3" stroke-width="1"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${xAt(s.length - 1).toFixed(1)}" cy="${yAt(last).toFixed(1)}" r="2.4" fill="${col}"/>
+    <title>荐股后逐日累计（基准=荐股日收盘）：${escAttr(tip)}</title></svg>`;
+}
+
 function initStockBloggerPerf(symbol) {
   const host = $("#stkBloggerPerf");
   if (!host) return;
   api(`/api/blogger/perf?code=${encodeURIComponent(symbol)}`).then((d) => {
     const rows = (d && d.rows) || [];
     if (!rows.length) {
-      host.innerHTML = `<div class="s">该票不在 237 条博主荐股池内，暂无荐股收益节奏</div>`;
+      host.innerHTML = `<div class="s">该票不在博主荐股池内，暂无荐股收益节奏</div>`;
       return;
     }
     // 区间收益（ret_since 来自源表）按「博主+推荐日」对齐
@@ -920,6 +969,8 @@ function initStockBloggerPerf(symbol) {
     });
     const cell = (v) => `<td class="${v.cls}">${v.txt}</td>`;
     const body = rows.map((r) => {
+      let series = r.series_json;
+      if (typeof series === "string") { try { series = JSON.parse(series); } catch (_) { series = null; } }
       const d8 = String(r.rec_date).slice(0, 10);
       const rs = retMap[`${r.blogger}|${d8}`];
       const base = (r.base_close == null || r.base_close === "")
@@ -929,14 +980,15 @@ function initStockBloggerPerf(symbol) {
         <td>${esc(r.blogger)}</td>
         <td class="bt-date">${esc(base)}</td>
         ${cell(btPct(r.r1))}${cell(btPct(r.r3))}${cell(btPct(r.r5))}${cell(btPct(r.r10))}
-        ${cell(rs == null || rs === "" ? btPct(null) : btPct(rs))}</tr>`;
+        ${cell(rs == null || rs === "" ? btPct(null) : btPct(rs))}
+        <td class="bt-spark-cell">${btSparkSvg(series) || '<span class="s">—</span>'}</td></tr>`;
     }).join("");
     host.innerHTML = `<div class="bt-perf-tb"><table><thead><tr>
         <th>推荐日</th><th>博主</th><th>荐股日<br>收盘价</th>
-        <th>隔日 T+1</th><th>T+3</th><th>T+5</th><th>T+10</th><th>区间收益</th>
+        <th>隔日 T+1</th><th>T+3</th><th>T+5</th><th>T+10</th><th>区间收益</th><th>荐股后走势</th>
       </tr></thead><tbody>${body}</tbody></table></div>
       <div class="s" style="margin-top:6px">口径：以该次推荐的<b>推荐日收盘价</b>为基准，往后数 N 个交易日收盘价算持有收益；
-      不足 N 个交易日显示「—」（不是 0）。本票共被推荐 <b>${rows.length}</b> 次。</div>`;
+      不足 N 个交易日显示「—」（不是 0）。走势曲线为荐股后逐日累计涨跌（悬停看逐日数值）。本票共被推荐 <b>${rows.length}</b> 次。</div>`;
   }).catch((e) => {
     host.innerHTML = `<div class="s">收益节奏暂不可用：${esc((e && e.message) || e)}</div>`;
   });
@@ -1008,8 +1060,8 @@ function renderBoardBody() {
     const mncls = m.main_net == null ? "" : (Number(m.main_net) >= 0 ? "bull" : "bear");
     const vs = m.val_score == null ? "—" : Number(m.val_score).toFixed(0);
     return `<tr>
-      <td><a class="wt-sym" data-wt-open="${escAttr(m.code)}" href="javascript:void(0)">${esc(m.code)}</a></td>
-      <td><a class="wt-sym" data-wt-open="${escAttr(m.code)}" href="javascript:void(0)">${esc(m.name || "")}</a></td>
+      <td><button type="button" class="wt-sym" data-wt-open="${escAttr(m.code)}">${esc(m.code)}</button></td>
+      <td><button type="button" class="wt-sym" data-wt-open="${escAttr(m.code)}">${esc(m.name || "")}</button></td>
       <td class="num">${m.price == null ? "—" : Number(m.price).toFixed(2)}</td>
       <td class="num ${pcls}">${p == null ? "—" : (p >= 0 ? "+" : "") + p.toFixed(2) + "%"}</td>
       <td class="num ${mncls}">${mn}</td>
@@ -1018,7 +1070,7 @@ function renderBoardBody() {
   }).join("");
   const fc = (d.flow_compare || []).map((x, i) => `<tr>
       <td class="wt-c1">${i + 1}</td>
-      <td><a class="wt-sym" data-wt-open="${escAttr(x.code)}" href="javascript:void(0)">${esc(x.name || x.code)}</a></td>
+      <td><button type="button" class="wt-sym" data-wt-open="${escAttr(x.code)}">${esc(x.name || x.code)}</button></td>
       <td class="num ${Number(x.main_net) >= 0 ? "bull" : "bear"}">${(Number(x.main_net) / 1e8).toFixed(2)} 亿</td>
     </tr>`).join("");
   const v = d.valuation || {};
@@ -1027,7 +1079,7 @@ function renderBoardBody() {
     : "估值分位未取到（接口限流，可稍后重试）";
   const lhb = (d.lhb && d.lhb.rows) || [];
   const lhbtxt = lhb.length ? lhb.map((x) => `<tr>
-      <td><a class="wt-sym" data-wt-open="${escAttr(x.code)}" href="javascript:void(0)">${esc(x.name || x.code)}</a></td>
+      <td><button type="button" class="wt-sym" data-wt-open="${escAttr(x.code)}">${esc(x.name || x.code)}</button></td>
       <td class="num">${x.pct == null ? "—" : (Number(x.pct) >= 0 ? "+" : "") + Number(x.pct).toFixed(2) + "%"}</td>
       <td class="num ${Number(x.net_yi) >= 0 ? "bull" : "bear"}">${Number(x.net_yi).toFixed(2)} 亿</td>
       <td>${esc(x.reason || "")}</td>
@@ -2461,7 +2513,7 @@ function renderLhb() {
   const winTxt = wdates.length ? `${wdates[wdates.length - 1]} ~ ${wdates[0]}` : "";
 
   box.innerHTML = `
-    <div style="margin-bottom:10px"><b>交易日</b>：${chips}</div>
+    <div style="margin-bottom:10px">${dataDayBadge(d.date)}<b>交易日</b>：${chips}</div>
     <div class="s" style="margin-bottom:10px">上榜 <b>${(d.stocks || []).length}</b> 行 · 机构席位净买 <b>${amtYi(instNet)}</b> ·
       「龙虎榜净买」= 该股榜内买入合计 − 卖出合计（交易所披露口径）；「榜后D1/D5」= 上榜后 1/5 个交易日的实际涨跌幅（最新上榜日尚未走完，显示 —）；
       同一只股票若触发多个上榜标准会按原因分行列出（非重复）。点击个股看买卖前 5 席位，点击营业部看它在扫哪些股。数据源：东方财富 datacenter（免鉴权）。</div>
@@ -2632,6 +2684,229 @@ function loadDashboard() {
   return api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); });
 }
 
+/* ================= 今日决策首页（2026-10-12 体验审计 P0-A） =================
+   报告《查看器体验审计与改造方案》第 0 步：把「今日看板」里已有的**一句话结论**写法
+   推广成全站首页 —— 打开软件一屏只答四件事：① 今天该盯哪个方向 ② 哪些票能上车
+   ③ 哪里在退潮/要躲 ④ 我自己的关注池今天有什么动静。不用再进二级菜单。
+   数据全部来自后端 /api/today_decision（复用既有口径，不新造引擎），前端只负责摆版式。 */
+const TODAY = { data: null };
+
+function loadToday() {
+  return api("/api/today_decision").then((d) => { TODAY.data = d; renderToday(); });
+}
+function tdPct(v) { return v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%"; }
+function tdCls(v) { return v == null ? "" : (v >= 0 ? "bull" : "bear"); }
+
+function renderToday() {
+  const box = $("#p-today");
+  if (!box) return;
+  const d = TODAY.data;
+  if (!d || d.ok === false) { box.innerHTML = `<div class="empty">正在汇总今日决策…</div>`; return; }
+  const dirs = toArr(d.directions), opps = toArr(d.opportunities), risks = toArr(d.risks);
+  const mw = d.mywatch || { total: 0, unread: 0, alerts: [], near: [] };
+  const tone = d.verdict_tone || "mixed";
+  const codeA = (code, name) => codeLink(code, { text: name || code, cls: "td-sym" });
+
+  // ① 方向（资金主攻 + 龙头 + 阶段判词）
+  const dirHtml = dirs.length ? dirs.map((x, i) => `
+    <div class="td-row">
+      <span class="td-rank lv-${escAttr(x.level || "cool")}">${i + 1}</span>
+      <span class="td-main"><b>${esc(x.sector)}</b>
+        <span class="td-sub">净买 <b>${x.net_yi}</b> 亿 · ${esc(x.stage)} · 上榜 ${x.onlist_n} 家</span></span>
+      ${x.leader_code ? `<span class="td-side">龙头 ${codeA(x.leader_code, x.leader_name)}</span>` : ""}
+    </div>`).join("") : `<div class="td-empty">今日暂无明确主攻方向（数据日 ${esc(d.data_date || "—")}）。</div>`;
+
+  // ② 机会（主线「可推进」名单 / 每日预测核心）—— 副行必须嵌在 td-main 内，
+  //    否则它会变成 flex 行的第二个 item 被推到最右侧（与方向/风险卡不对齐）。
+  const oppHtml = opps.length ? opps.map((x) => `
+    <div class="td-row">
+      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
+        <span class="td-sub">${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span></span>
+    </div>`).join("") : `<div class="td-empty">主线暂无可推进名单。</div>`;
+
+  // ③ 风险（板块资金净流出 / 龙虎榜净卖出 / 上榜次日跑输 / 情绪看空·分歧）
+  const riskHtml = risks.length ? risks.map((x) => `
+    <div class="td-row">
+      <span class="td-main">${x.symbol ? codeA(x.symbol, x.label) : esc(x.label)}
+        <span class="td-sub">${esc(x.detail || "")}</span></span>
+    </div>`).join("") : `<div class="td-empty">今日无明确风险信号。</div>`;
+
+  // ④ 我的票（到价触发优先，其次接近目标价的）
+  const alertRows = toArr(mw.alerts).map((a) => `
+    <div class="td-row">
+      <span class="td-main">${codeA(a.symbol, a.name)}
+        <span class="td-sub">${a.rule === "above" ? "升破" : "跌破"}目标价 ${esc(String(a.target_price))} · 触发价 ${a.price == null ? "—" : esc(String(a.price))}</span></span>
+      <span class="td-side">${esc(String(a.triggered_at || "").slice(0, 16))}</span>
+    </div>`).join("");
+  const nearRows = toArr(mw.near).map((n) => `
+    <div class="td-row">
+      <span class="td-main">${codeA(n.symbol, n.name)}
+        <span class="td-sub">现价 ${esc(String(n.last_price))} · 目标 ${esc(String(n.target_price))} · 距 ${n.dist_pct >= 0 ? "+" : ""}${esc(String(n.dist_pct))}%</span></span>
+    </div>`).join("");
+  const watchHtml = (alertRows || nearRows || `<div class="td-empty">关注池今日无到价提醒。</div>`);
+
+  box.innerHTML = `
+    <div class="td-verdict tone-${escAttr(tone)}">
+      <span class="td-v-tag">今日一句话</span>
+      <b class="td-v-text">${esc(d.verdict || "—")}</b>
+      <span class="td-v-meta">数据日 ${esc(d.data_date || "—")} · 生成于 ${esc(d.generated_at || "—")}</span>
+    </div>
+    <div class="td-grid">
+      <div class="td-card td-c-dir">
+        <div class="td-hd"><b>① 今日方向</b><span class="td-hd-sub">钱在买什么</span></div>
+        <div class="td-body">${dirHtml}</div>
+        <div class="td-foot"><a href="#overview/dashboard" onclick="selectNav('overview','dashboard',true);return false;">展开「今日看板」完整研判 ›</a></div>
+      </div>
+      <div class="td-card td-c-opp">
+        <div class="td-hd"><b>② 今日机会</b><span class="td-hd-sub">能上车的</span></div>
+        <div class="td-body">${oppHtml}</div>
+        <div class="td-foot"><a href="#watch/rate" onclick="selectNav('watch','rate',true);return false;">展开「入手概率」全市场榜 ›</a></div>
+      </div>
+      <div class="td-card td-c-risk">
+        <div class="td-hd"><b>③ 今日风险</b><span class="td-hd-sub">要躲的坑</span></div>
+        <div class="td-body">${riskHtml}</div>
+        <div class="td-foot"><a href="#money/lhb_sectors" onclick="selectNav('money','lhb_sectors',true);return false;">展开「板块动向」研判 ›</a></div>
+      </div>
+      <div class="td-card td-c-watch">
+        <div class="td-hd"><b>④ 我的票提示</b><span class="td-hd-sub">关注池 ${mw.total} 只${mw.unread ? ` · 未读 ${mw.unread}` : ""}</span></div>
+        <div class="td-body">${watchHtml}</div>
+        <div class="td-foot"><a href="#watch/watch_alerts" onclick="selectNav('watch','watch_alerts',true);return false;">展开「到价提醒」 ›</a></div>
+      </div>
+    </div>
+    <details class="td-basis"><summary>口径说明（这些结论是怎么来的）</summary><div class="td-basistxt">${esc(d.basis || "")}</div></details>
+  `;
+}
+
+/* ================= 三个「结论页」（2026-10-12 体验审计 P0-D/E/F） =================
+   报告要求给「消息与外围 / 别人怎么做 / 我的票」三个大类各置顶一个汇总结论，
+   替掉「6~9 个名单并列、得自己交叉比对」。三页共用 .td-* / .bf-* 版式：
+   结论条 → 分区列表（可点个股）→ 口径折叠。数据来自 /api/info_brief / smart_money / watch_brief。 */
+const BRIEF = { info: null, money: null, watch: null };
+const BRIEF_URL = { info: "/api/info_brief", money: "/api/smart_money", watch: "/api/watch_brief" };
+const BRIEF_BOX = { info: "#p-info_brief", money: "#p-smart_money", watch: "#p-watch_brief" };
+
+function loadBrief(kind) {
+  return api(BRIEF_URL[kind]).then((d) => { BRIEF[kind] = d; renderBrief(kind); });
+}
+function briefSym(code, name) { return codeLink(code, { text: name || code, cls: "td-sym" }); }
+function briefPct(v) {
+  return v == null ? `<span class="td-pct">—</span>`
+    : `<span class="td-pct ${v >= 0 ? "bull" : "bear"}">${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}%</span>`;
+}
+function briefShell(verdict, meta, body, basis) {
+  return `<div class="td-verdict bf-verdict"><span class="td-v-tag">结论</span>`
+    + `<b class="td-v-text">${verdict}</b><span class="td-v-meta">${meta || ""}</span></div>`
+    + body
+    + (basis ? `<details class="td-basis"><summary>口径说明（这些结论是怎么来的）</summary>`
+        + `<div class="td-basistxt">${esc(basis)}</div></details>` : "");
+}
+function briefSec(title, sub, rows, empty) {
+  return `<div class="td-card bf-card"><div class="td-hd"><b>${esc(title)}</b>`
+    + `<span class="td-hd-sub">${esc(sub || "")}</span></div>`
+    + `<div class="td-body">${rows || `<div class="td-empty">${esc(empty || "无")}</div>`}</div></div>`;
+}
+function briefRow(main, sub, side) {
+  return `<div class="td-row"><span class="td-main">${main}`
+    + (sub ? `<span class="td-sub">${sub}</span>` : "") + `</span>`
+    + (side ? `<span class="td-side">${side}</span>` : "") + `</div>`;
+}
+function briefChips(arr, fmt) {
+  return arr.length ? `<div class="bf-chips">${arr.map(fmt).join("")}</div>` : "";
+}
+
+function renderBrief(kind) {
+  const box = $(BRIEF_BOX[kind]);
+  if (!box) return;
+  const d = BRIEF[kind];
+  if (!d || d.ok === false) { box.innerHTML = `<div class="empty">正在汇总…</div>`; return; }
+
+  if (kind === "info") {
+    const items = toArr(d.items), secs = toArr(d.sectors);
+    const verdict = items.length
+      ? `今日消息面重心：<b>${esc((secs[0] && secs[0].sector) || "—")}</b> 等 <b>${secs.length}</b> 个方向被政策 / 公告 / 海外同时点到；Top${items.length} 条见下。`
+      : "本次窗口内没有取到新的政策 / 公告 / 海外消息。";
+    const rows = items.map((x) => briefRow(
+      `<span class="bf-src">${esc(x.src)}</span>${esc(x.title)}`,
+      (x.sectors.length ? `影响板块：${x.sectors.slice(0, 6).map((s) => esc(s)).join("、")}` : "")
+        + (x.note ? (x.sectors.length ? " · " : "") + esc(x.note) : "")
+        + (toArr(x.symbols).length ? " · " + toArr(x.symbols).slice(0, 4).map((s) => briefSym(s.code, s.name)).join(" ") : ""),
+      esc(x.tag) + (x.date ? `<br>${esc(x.date)}` : "")
+    )).join("");
+    const body = (d.stale_warn ? `<div class="bf-warn">⚠️ ${esc(d.stale_warn)}</div>` : "")
+      + briefSec("影响板块 · 被最多消息点到", `${secs.length} 个`,
+          briefChips(secs, (s) => `<span class="bf-chip">${esc(s.sector)}<i>${s.n}</i></span>`),
+          "本次窗口内没有带板块标签的消息")
+      + briefSec(`今日消息面 Top${items.length}`, "政策 / 国际 / 海外 / 公告 / 快讯", rows, "本次窗口内没有新消息")
+      + briefSec("各源数据日", "时效自查（陈旧源不会混进 Top）",
+          `<div class="bf-freshrow">${toArr(d.freshness).map((f) => `<span class="bf-fresh">${esc(f.label)} <b>${esc(f.latest)}</b></span>`).join("")}</div>`, "—");
+    box.innerHTML = briefShell(verdict, `窗口 ${d.window_hours} 小时 · 生成于 ${esc(d.generated_at)}`, body, d.basis);
+    return;
+  }
+
+  if (kind === "money") {
+    const cons = toArr(d.consensus), dirs = toArr(d.directions), rec = toArr(d.recent);
+    const d0 = dirs[0];
+    const verdict = d0
+      ? `聪明钱最集中的方向是 <b>${esc(d0.sector)}</b>：${d0.n} 只共识票、合计 <b>${d0.buy_holders}</b> 人次「喊买入」。`
+      : `当前没有达到门槛的多人共识（至少 ${d.min_holders} 人）。`;
+    const dirRows = dirs.map((x) => briefRow(
+      `<b>${esc(x.sector)}</b>`,
+      x.stocks.slice(0, 10).map((s) => briefSym(s.symbol, s.name) + `<i class="bf-n">${s.buy_holders}</i>`).join(" "),
+      `${x.n} 只 · ${x.buy_holders} 人次`
+    )).join("");
+    const consRows = cons.map((x) => briefRow(
+      briefSym(x.symbol, x.name) + (x.sector ? `<span class="bf-tag">${esc(x.sector)}</span>` : ""),
+      `喊买入 <b>${x.buy_holders}</b> · 喊持有 ${x.hold_holders} · 持仓快照 ${x.watch_holders}`,
+      x.pct == null ? "" : briefPct(x.pct)
+    )).join("");
+    const recRows = rec.map((x) => briefRow(
+      briefSym(x.symbol, x.name),
+      `近 ${d.days} 日 <b>${x.holders}</b> 人同向买入${x.buy_time ? " · 最近 " + esc(x.buy_time) : ""}`,
+      esc(x.sector || "")
+    )).join("");
+    const body = briefSec("共识方向", "共识票扎堆的地方", dirRows, "没有 ≥2 只共识票重合的方向")
+      + briefSec("共识榜 · 多少人喊买入", `门槛 ≥${d.min_holders} 人（已剔除「喊持有/关注」，避免虚增看多）`, consRows, "无")
+      + briefSec(`近 ${d.days} 日共同买入`, "看的是动作时点，与「现在还有多少人拿着」不是一回事", recRows, "窗口内无多人同向买入");
+    box.innerHTML = briefShell(verdict, `主线数据日 ${esc(d.mainline_date || "—")} · 生成于 ${esc(d.generated_at)}`, body, d.basis);
+    return;
+  }
+
+  // watch
+  const alerts = toArr(d.alerts), movers = toArr(d.movers), near = toArr(d.near),
+    nt = toArr(d.no_target), caut = toArr(d.caution), ml = toArr(d.on_mainline), grp = toArr(d.groups);
+  const parts = [];
+  if (d.unread) parts.push(`${d.unread} 条到价提醒待看`);
+  if (movers.length) parts.push(`当日异动最大 ${esc(movers[0].name)} ${movers[0].pct >= 0 ? "+" : ""}${Number(movers[0].pct).toFixed(2)}%`);
+  if (caut.length) parts.push(`池内 ${caut.length} 只被看空/分歧`);
+  if (ml.length) parts.push(`${ml.length} 只落在今日主线`);
+  if (nt.length) parts.push(`${nt.length} 只开了提醒却没设目标价`);
+  const verdict = `关注池 <b>${d.total}</b> 只：` + (parts.length ? parts.join("；") + "。" : "今日无异常。");
+  const body =
+    (nt.length ? `<div class="bf-warn">⚠️ 有 ${nt.length} 只已开启到价提醒但<b>没有设置目标价</b> —— 这些提醒永远不会触发。`
+      + `去「关注池」给它们标个目标价，提醒才会生效。</div>` : "")
+    + briefSec("① 到价触发", "已触发的提醒（未读优先）",
+        alerts.map((a) => briefRow(briefSym(a.symbol, a.name),
+          `${a.rule === "above" ? "升破" : "跌破"}目标价 ${esc(String(a.target_price))} · 触发价 ${a.price == null ? "—" : esc(String(a.price))}`,
+          esc(String(a.triggered_at || "").slice(0, 16)))).join(""), "无")
+    + briefSec("② 池内当日异动", `报价源：${esc(d.quote_src || "—")}`,
+        movers.map((q) => briefRow(briefSym(q.symbol, q.name), `现价 ${esc(String(q.price))}`, briefPct(q.pct))).join(""),
+        "未取到行情（本机行情源不可达，稍后重试）")
+    + briefSec("③ 接近目标价", "按与目标价的距离排序",
+        near.map((n) => briefRow(briefSym(n.symbol, n.name),
+          `现价 ${esc(String(n.last_price))} · 目标 ${esc(String(n.target_price))}`,
+          `距 ${n.dist_pct >= 0 ? "+" : ""}${esc(String(n.dist_pct))}%`)).join(""), "没有已设目标价的票")
+    + briefSec("④ 池内被看空 / 分歧", "近 72 小时帖子情绪（只认真分歧）",
+        caut.map((c) => briefRow(briefSym(c.symbol, c.name),
+          `${esc(c.text)}（看多 ${c.pos} / 看空 ${c.neg}）`,
+          c.tone === "bear" ? "看空" : "分歧")).join(""), "池内没有被看空或真分歧的票")
+    + briefSec("⑤ 池内落在今日主线", `数据日 ${esc(d.mainline_date || "—")}`,
+        ml.map((m) => briefRow(briefSym(m.symbol, m.name),
+          `${esc(m.sector)}${m.forward ? " · 同题材尚未大涨（可推进）" : ""}`,
+          m.pct == null ? "" : briefPct(m.pct))).join(""), "池内票都不在今日主线名单里")
+    + briefSec("分组", `${grp.length} 组`, briefChips(grp, (g) => `<span class="bf-chip">${esc(g.name)}<i>${g.n}</i></span>`), "—");
+  box.innerHTML = briefShell(verdict, `生成于 ${esc(d.generated_at)}`, body, d.basis);
+}
+
 /* ---------- 集合竞价区块（2026-10-01 方案 A「放在今日总览里」） ----------
  * 数据随 /api/dashboard 一起下发（d.auction），不额外发请求。
  * 三条硬口径，与后端 auction.py 一一对应，界面上原样写出来：
@@ -2675,7 +2950,7 @@ function renderAuctionBlock(a) {
     <div class="auc-kpis">
       <span class="auc-kpi"><i>竞价上涨</i><b class="${kpiCls(k.up)}">${k.up == null ? "—" : k.up}</b><em>/ 全市场 ${k.total == null ? "—" : k.total} 只</em></span>
       <span class="auc-kpi"><i>竞价下跌</i><b class="${kpiCls(k.down, true)}">${k.down == null ? "—" : k.down}</b><em>平盘 ${k.flat == null ? "—" : k.flat}</em></span>
-      <span class="auc-kpi"><i>竞价总额</i><b>${k.amount_yi == null ? "—" : k.amount_yi + " 亿"}</b><em>${k.amount_yi == null ? "历史回填日无竞价额" : "竞价量/额合计"}</em></span>
+      <span class="auc-kpi"><i>竞价总额</i><b>${k.amount_yi == null ? "—" : k.amount_yi + " 亿"}</b><em>${k.amount_yi != null ? "竞价量/额合计" : (a.is_live ? "竞价额需 9:15–9:25 采集" : "历史回填日无竞价额")}</em></span>
       <span class="auc-kpi"><i>竞价均值</i><b class="${kpiCls(k.avg_pct)}">${k.avg_pct == null ? "—" : (k.avg_pct >= 0 ? "+" : "") + k.avg_pct + "%"}</b><em>涨超 3% ${k.up_gt3 == null ? "—" : k.up_gt3} 家</em></span>
     </div>
     <div class="auc-grid">
@@ -2781,11 +3056,20 @@ function renderDashboard() {
   const fresh = (d.freshness || []).map((f) =>
     `<span class="chip-s" style="margin:2px 4px 2px 0">${esc(f.label)} <b>${esc(f.latest)}</b></span>`).join(" ");
 
+  // 2026-10-12 体验审计 P1（① 今日看板）：全站最会给结论的面板，却缺一句「置顶结论」→ 补上。
+  const f0 = focus[0];
+  const dashVerdict = f0
+    ? `今日资金主攻 <b>${esc(f0.sector)}</b>（净买 ${f0.net_yi} 亿 · 龙头 ${esc(f0.leader_name || "—")}）；共 <b>${rows.length}</b> 条主线在跟。`
+    : "今日暂无主线数据（请先运行 sector_chain.py 生成）。";
+
   box.innerHTML = `
     ${renderAuctionBlock(d.auction)}   <!-- 2026-10-01 集合竞价：开盘前第一眼看的情绪，放整屏最上面 -->
+    <div class="td-verdict"><span class="td-v-tag">结论</span>
+      <b class="td-v-text">${dashVerdict}</b>
+      <span class="td-v-meta">数据截至 ${esc(ml.date || "—")}</span></div>
     <div class="hint" style="margin-bottom:12px">
       <b>主线研判</b> —— 不列涨停榜，只答三件事：<b>资金在哪个方向</b> · <b>谁是龙头</b> · <b>同链条里谁还没动</b>。
-      数据截至 <b>${esc(ml.date || "—")}</b>（生成于 ${esc(d.generated_at || "—")}）。
+      ${dataDayBadge(ml.date)}<span class="dd-note">数据截至 <b>${esc(ml.date || "—")}</b>（生成于 ${esc(d.generated_at || "—")}）。</span>
       <b>方向参考，非买卖建议</b>。
     </div>
     ${focusHtml}
@@ -3241,7 +3525,7 @@ function renderLhbSectors() {
   const exT1H = exT1 == null ? "—" : (exT1 >= 0 ? "+" : "") + Number(exT1).toFixed(2) + "%";
   const exT3H = exT3 == null ? "未走完" : (exT3 >= 0 ? "+" : "") + Number(exT3).toFixed(2) + "%";
   box.innerHTML = `
-    <div style="margin-bottom:10px"><b>交易日</b>：${chips}</div>
+    <div style="margin-bottom:10px">${dataDayBadge(d.date)}<b>交易日</b>：${chips}</div>
     <div class="hint" style="margin-bottom:10px">
       <b>这是「方向罗盘」，不是交易信号。</b>龙虎榜上的票多为游资 / 量化拉升，涨幅常已在高位，
       <b>不具备跟买的可操作性</b>；本板块只看<b>资金是否成片扫向同一个方向</b>——同一天同一板块被多只票上榜、
@@ -3410,6 +3694,68 @@ function filterPlayers(attr, val) {
    取不到时优雅降级为只打开个股抽屉。每次渲染前清空，避免残留陈旧行。 */
 const CONSENSUS_BY_SYM = new Map();
 
+/* 2026-10-10 口径改革（王总批准）：把「喊买入(BUY)」与「喊持有(HOLD)/持仓关注快照(WATCH)」拆开计数。
+   旧口径把 HOLD 混进「看多人数」，实测中国平安 39 人=买24+持15、平安银行 31 人=买14+持17
+   （持有比买入还多），被当成「看多共识」前列。现后端已分三类返回：
+     buy_holders / hold_holders / watch_holders，holders 为三类去重总数。
+   前端用三种不同颜色的徽标区分，HOLD 单独一栏，不再与 BUY 笼统并列。 */
+
+/* 共识面板状态：min + 「仅看入围选手(Tier A)」开关。
+   ⚠️ 过滤走**后端参数** only_qualified（server.py → db.consensus_stocks），
+   理由：只有后端能在 Join players 拿到 tier，且过滤后的「去重人数」才是真值——
+   若改成前端过滤，各股 holders 仍是全量口径，会与表格里露出的明细自相矛盾。 */
+const CONSENSUS = { min: 2, onlyQualified: false };
+
+function consensusLoad() {
+  return api(`/api/consensus?min_holders=${CONSENSUS.min}` +
+             (CONSENSUS.onlyQualified ? "&only_qualified=1" : ""))
+    .then((x) => renderConsensus(toArr(x)))
+    .catch((e) => reportLoadError("共同持仓共识", e));
+}
+function consensusToggleQualified(el) {
+  CONSENSUS.onlyQualified = !!(el && el.checked);
+  consensusLoad();
+}
+
+/* 信号徽标：接口 signal ∈ {BUY, HOLD, WATCH} → 三种不同颜色，明确区分「喊买入 / 喊持有 / 持仓关注」。 */
+function signalBadge(sig) {
+  const m = { BUY: ["bull", "喊买入"], HOLD: ["hold", "喊持有"], WATCH: ["neu", "持仓/关注"] };
+  const cls = m[sig] ? m[sig][0] : "neu";
+  const txt = m[sig] ? m[sig][1] : "—";
+  return `<span class="badge ${cls}">${esc(txt)}</span>`;
+}
+
+/* 「仅看入围选手」开关（共识 / 共同买卖两个面板共用）。 */
+function qualifiedToggleHtml(scope) {
+  const on = scope === "cohold" ? COHOLD.onlyQualified : CONSENSUS.onlyQualified;
+  const fn = scope === "cohold" ? "coholdToggleQualified" : "consensusToggleQualified";
+  return `<label class="q-toggle" title="仅统计入围选手（players.tier='A'）；取消勾选恢复全量（A~F/社区晒盘）">` +
+    `<input type="checkbox"${on ? " checked" : ""} onchange="${fn}(this)"> <b>仅看入围选手</b>（Tier A）</label>`;
+}
+
+/* 共识「口径拆分」单元格：总数（中性）+ 买入(红) / 持有(琥珀) / 关注(灰) 三个分项。
+   兼容性：若后端尚未重启（返回值里还没有 buy_holders/hold_holders），退回旧的单一「共同持仓」徽标，
+   绝不在缺乏字段时渲染成「买 0 持 0」那样误导人的空口径。 */
+function consensusSplitCell(x) {
+  if (x.buy_holders == null && x.hold_holders == null) {
+    return `<span class="badge bull" title="旧口径（BUY+HOLD 合并计数）——后端未重启，口径拆分字段缺失">${x.holders ?? "—"} 人</span>` +
+      `<br/><span class="chip-s">口径拆分待后端重启生效</span>`;
+  }
+  const buy = x.buy_holders ?? 0;
+  const hold = x.hold_holders ?? 0;
+  const watch = x.watch_holders ?? 0;
+  return `<span class="badge neu" title="共同持仓/关注总人数（买+持+关注，按选手去重）">${x.holders ?? "—"} 人</span>` +
+    `<br/><span class="badge bull" title="明确「喊买入」(BUY) 的人数——「看多共识」应看这个">买 ${buy}</span> ` +
+    `<span class="badge hold" title="明确「喊持有」(HOLD) 的人数，不与买入合并计数">持 ${hold}</span>` +
+    (watch ? ` <span class="badge neu" title="持仓/关注快照（positions：关注/操作、社区晒盘），非明确喊买">关注 ${watch}</span>` : "");
+}
+
+/* 口径拆分（抽屉版）：字段缺失时整行不渲染，避免旧后端下出现「买 0 持 0」。 */
+function consensusSplitKv(x) {
+  if (x.buy_holders == null && x.hold_holders == null) return "";
+  return `<div class="kv"><div class="k">口径拆分</div><div><span class="badge bull">喊买入 ${esc(x.buy_holders ?? 0)}</span> <span class="badge hold">喊持有 ${esc(x.hold_holders ?? 0)}</span> <span class="badge neu">持仓关注 ${esc(x.watch_holders ?? 0)}</span></div></div>`;
+}
+
 function consensusExtraHtml(x) {
   if (!x) return "";
   const w = x.weighted_holders != null ? x.weighted_holders : x.holders;
@@ -3419,7 +3765,8 @@ function consensusExtraHtml(x) {
   const sources = toArr(x.sources).length ? srcCellHtml(x.sources) : `<span class="chip-s">—</span>`;
   return `<div class="detail-sub">④ 共识概况 —— 本行来自「共同持仓共识」板块</div>
     <div class="kv"><div class="k">共同持仓人数</div><div>${esc(x.holders ?? "—")} 人</div></div>
-    <div class="kv"><div class="k">加权共识</div><div>${w != null ? "加权 " + esc(w) : "—"}</div></div>
+    ${consensusSplitKv(x)}
+    <div class="kv"><div class="k">加权共识</div><div>${w != null ? "加权 " + esc(w) : "—"}${x.buy_weighted != null ? `（其中买入加权 ${esc(x.buy_weighted)}）` : ""}</div></div>
     <div class="kv"><div class="k">层级覆盖</div><div>${tiers}</div></div>
     <div class="kv"><div class="k">覆盖渠道</div><div>${channels.length ? channels.map(channelBadge).join(" ") : "—"}</div></div>
     <div class="kv"><div class="k">讨论热度</div><div>${esc(x.discuss_heat ?? "—")}</div></div>
@@ -3429,7 +3776,11 @@ function consensusExtraHtml(x) {
 function renderConsensus(list) {
   const all = toArr(list);
   if (!all.length) {
-    $("#p-consensus").innerHTML = `<div class="empty">暂无共同持仓数据。需先采集各选手持仓（collect_positions）。</div>`;
+    $("#p-consensus").innerHTML =
+      `<div class="hint coh-bar" style="margin-bottom:10px">${qualifiedToggleHtml("consensus")}</div>` +
+      `<div class="empty">暂无共同持仓数据。需先采集各选手持仓（collect_positions）。` +
+      (CONSENSUS.onlyQualified ? `<br/>当前已勾选「仅看入围选手(Tier A)」——没有 Tier A 选手命中；取消勾选可恢复全量。` : "") +
+      `</div>`;
     return;
   }
   CONSENSUS_BY_SYM.clear();   // 2026-09-26 每次渲染重建行缓存，防止旧行残留
@@ -3447,7 +3798,7 @@ function renderConsensus(list) {
       const timeChip = pl.post_time
         ? ` <span class="chip-s" title="操作发帖时间 ${escAttr(pl.post_time)}">${esc(pl.post_time.slice(5, 16))}</span>`
         : "";
-      return `<div class="chip-row">${chBadge}${esc(pl.player)} ${actionBadge(pl.action)}${timeChip} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}</div>`;
+      return `<div class="chip-row">${chBadge}${esc(pl.player)} ${pl.signal ? signalBadge(pl.signal) : actionBadge(pl.action)}${timeChip} ${pl.ratio != null ? esc(pl.ratio) + "%" : ""}${pl.cleared ? ` <span class="badge sell-full" title="该选手对该标的累计卖出≥100%">已清仓</span>` : ""}</div>`;
     }).join("");
     // 2026-10-06：来源列改「站点名 + 条数 + 可展开原始链接」，不再堆一排无语义的 ↗
     const sources = toArr(x.sources).length ? srcCellHtml(x.sources) : `<span class="chip-s">—</span>`;
@@ -3455,10 +3806,11 @@ function renderConsensus(list) {
     const channels = toArr(x.channels).filter(Boolean);
     // 层级加权共识度（A/B/C/D 沿用原权重，E/F 递减但仍计数）→ 比单纯"人数"更能代表真实共识强度
     const w = x.weighted_holders != null ? x.weighted_holders : x.holders;
+    // 2026-10-10：主列不再是单一「看多人数」——拆成 总 / 买 / 持 / 关注，避免 HOLD 虚增看多。
     return `<tr data-sym="${escAttr(x.symbol)}">
       <td><b>${esc(x.symbol_name || "名称待补全")}</b><br/><span class="stk-code">${esc(x.symbol)}</span> <span class="stk-corp">${esc(x.company || "")}</span></td>
-      <td><span class="badge bull">${x.holders ?? "—"} 人</span></td>
-      <td><span class="badge t-w" title="层级加权共识度（A~F 按权重求和）">加权 ${w ?? "—"}</span></td>
+      <td>${consensusSplitCell(x)}</td>
+      <td><span class="badge t-w" title="层级加权共识度（A~F 按权重求和，含买/持/关注）">加权 ${w ?? "—"}</span>${x.buy_weighted != null ? `<br/><span class="chip-s" title="其中「喊买入」的层级加权">买入加权 ${esc(x.buy_weighted)}</span>` : ""}</td>
       <td>${toArr(x.tiers).map(tierBadge).join(" ")}</td>
       <td>${channels.length ? channels.map(channelBadge).join(" ") : "—"}</td>
       <td><span class="chip-s">讨论热度 ${x.discuss_heat ?? "—"}</span><br/><span class="chip-s">平台 ${toArr(x.platforms).length}</span></td>
@@ -3467,9 +3819,17 @@ function renderConsensus(list) {
       ${refCell(toArr(x.platforms))}
     </tr>`;
   }).join("");
+  // 后端未重启时：/api/consensus 还会忽略 only_qualified → 勾选后行数不变。如实提示，不假装过滤成功。
+  const staleBackend = CONSENSUS.onlyQualified && all.length > 0 && all[0].only_qualified === undefined;
   $("#p-consensus").innerHTML = `
-    <div class="hint" style="margin-bottom:10px">按「同时持仓人数」降序排列；共识基数已扩大到 <b>100+ 选手池</b>（覆盖淘股吧/东财/雪球/同花顺 4 平台）。新增「层级加权共识度」：在 A/B/C/D 原权重基础上纳入 E/F 低层级（权重递减但仍计数），比单纯人数更代表真实共识强度；「层级」列展示跨 A~F 覆盖，「平台」列展示跨平台分布。<b>「来源」列</b>=该股共识的<b>原始出处</b>（哪台哪个帖/主页），按站点归并计数（如「淘股吧 8」），点后面的<b>「出处 N 条 ▾」</b>可展开全部原始链接，逐条可点新窗口打开。${freshLegend()}</div>
-    <table><thead><tr><th>股票</th><th>共同持仓</th><th>加权共识</th><th>层级覆盖</th><th>覆盖渠道</th><th>热度/平台</th><th>持仓选手明细</th><th>来源</th><th>最后更新</th></tr></thead>
+    <div class="hint coh-bar" style="margin-bottom:10px">
+      ${qualifiedToggleHtml("consensus")}
+      <span class="coh-lbl" title="口径改革：HOLD 不再并入 BUY">口径：<span class="badge bull">喊买入</span>=真实 BUY、<span class="badge hold">喊持有</span>=HOLD、<span class="badge neu">持仓/关注</span>=持仓快照（positions），三类分开计数、不合并。</span>
+      ${staleBackend ? `<span class="chip-s" style="color:var(--bear)">⚠ 过滤未生效：后端仍是旧代码，请重启 viewer/server.py</span>` : ""}
+      <span class="coh-grow"></span>
+    </div>
+    <div class="hint" style="margin-bottom:10px">按「共同持仓总人数」降序排列；共识基数已扩大到 <b>100+ 选手池</b>（覆盖淘股吧/东财/雪球/同花顺 4 平台）。<b>2026-10-10 口径改革</b>：把原先混算的 <b>HOLD（喊持有）</b> 从「看多人数」中剥离 ——「共同持仓」列现拆为 <b>总人数 / 买 N / 持 N / 关注 N</b>，<b>看多共识只看「买 N」</b>；「层级加权共识度」在 A/B/C/D 原权重基础上纳入 E/F 低层级（权重递减但仍计数），并列出<b>买入加权</b>；「层级」列展示跨 A~F 覆盖，「平台」列展示跨平台分布。已<b>一律剔除机器号</b>（资讯/播报类运营号；规则与采集端 bot_filter 对齐），避免其观点稀释真实共识。<b>「来源」列</b>=该股共识的<b>原始出处</b>（哪台哪个帖/主页），按站点归并计数（如「淘股吧 8」），点后面的<b>「出处 N 条 ▾」</b>可展开全部原始链接，逐条可点新窗口打开。${freshLegend()}</div>
+    <table><thead><tr><th>股票</th><th>口径拆分（总 / 买 / 持 / 关注）</th><th>加权共识</th><th>层级覆盖</th><th>覆盖渠道</th><th>热度/平台</th><th>持仓选手明细</th><th>来源</th><th>最后更新</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
   bindConsensus();
   applyFreshness();
@@ -3485,18 +3845,23 @@ function renderConsensus(list) {
    同一选手同一标的合并为一条，字段取「最近一笔 + 该组内最丰富者」互补。
    锚定：默认锚定「数据最新日」——按今天算会全空（离线数据没跟上今天），看起来像坏了；
         可一键切到「按今日」。当前用哪种，界面上如实标注，不做静默替换。 */
-const COHOLD = { days: 5, min: 2, anchor: "auto", data: null };
+const COHOLD = { days: 5, min: 2, anchor: "auto", data: null, onlyQualified: false };
 
 function coholdLoad(days, anchor) {
   if (days) COHOLD.days = days;
   if (anchor) COHOLD.anchor = anchor;
   return api(`/api/cohold_recent?days=${COHOLD.days}&min_holders=${COHOLD.min}` +
-             `&anchor=${encodeURIComponent(COHOLD.anchor || "auto")}`)
+             `&anchor=${encodeURIComponent(COHOLD.anchor || "auto")}` +
+             (COHOLD.onlyQualified ? "&only_qualified=1" : ""))
     .then(renderCohold)
     .catch((e) => reportLoadError("近5日共同买入", e));
 }
 function coholdDays(n) { coholdLoad(n, null); }
 function coholdAnchor(m) { coholdLoad(null, m); }
+function coholdToggleQualified(el) {
+  COHOLD.onlyQualified = !!(el && el.checked);
+  coholdLoad(null, null);
+}
 
 /* 窗口条：明确告诉用户「这个窗口是按哪一天算的」——锚定口径不透明最容易让人误判成数据坏了 */
 function coholdWindowBar(d) {
@@ -3519,6 +3884,8 @@ function coholdWindowBar(d) {
       <span class="chip-s" title="窗口锚定口径">锚定：${srcLabel}</span>${offNote}
       <span class="coh-sep"></span><span class="coh-lbl">天数</span>${days}
       <span class="coh-sep"></span>${anchors}
+      <span class="coh-sep"></span>${qualifiedToggleHtml("cohold")}
+      ${(COHOLD.onlyQualified && d.only_qualified === undefined) ? `<span class="chip-s" style="color:var(--bear)">⚠ 过滤未生效：后端仍是旧代码</span>` : ""}
       <span class="coh-grow"></span>
       <span class="chip-s" title="同一标的被至少这么多位选手在窗口内同向操作才纳入">口径：≥${esc(d.min_holders ?? COHOLD.min)} 人同向</span>
     </div>`;
@@ -3529,11 +3896,18 @@ function coholdWindowBar(d) {
    每次渲染前清空；Map 未命中时优雅降级（只打开个股抽屉，不报错）。 */
 const COHOLD_BY_KEY = new Map();
 
+/* 组别元信息：buy / sell / hold 三组的标题、色调、动词、时间列名。
+   2026-10-10：新增 hold 组（把 HOLD 从 BUY 中彻底分离出来，单独一栏显示）。 */
+function cohGroupMeta(group) {
+  if (group === "sell") return { tone: "bear", title: "共同卖出", verb: "卖出", tLabel: "卖出时间" };
+  if (group === "hold") return { tone: "hold", title: "共同持有", verb: "表态持有", tLabel: "表态时间" };
+  return { tone: "bull", title: "共同买入", verb: "买入", tLabel: "买入时间" };
+}
+
 function coholdExtraHtml(rec) {
   if (!rec || !rec.x) return "";
   const x = rec.x;
-  const buy = rec.group === "buy";
-  const title = buy ? "共同买入" : "共同卖出";
+  const meta = cohGroupMeta(rec.group);
   // 2026-10-06：抽屉内的来源也从"一坨完整 URL"改为站点名+条数，点「出处 N 条」展开原始链接
   const urls = toArr(x.urls).length ? srcCellHtml(x.urls) : `<span class="chip-s">—</span>`;
   const range = (x.first_time || x.last_time)
@@ -3541,7 +3915,7 @@ function coholdExtraHtml(rec) {
     : "—";
   const win = (rec.windowStart && rec.windowEnd) ? `${esc(rec.windowStart)} ~ ${esc(rec.windowEnd)}` : "—";
   return `<div class="detail-sub">④ 共同买卖概况 —— 本行来自「近5日共同买入」板块</div>
-    <div class="kv"><div class="k">组别</div><div><span class="badge ${buy ? "bull" : "bear"}">${title}</span></div></div>
+    <div class="kv"><div class="k">组别</div><div><span class="badge ${meta.tone}">${meta.title}</span></div></div>
     <div class="kv"><div class="k">参与人数</div><div>${esc(x.player_count ?? "—")} 人</div></div>
     <div class="kv"><div class="k">合计数量</div><div>${x.total_quantity != null ? esc(x.total_quantity) + " 股" : "—"}</div></div>
     <div class="kv"><div class="k">均价</div><div>${x.avg_price != null ? "¥" + esc(x.avg_price) : "—"}</div></div>
@@ -3551,15 +3925,15 @@ function coholdExtraHtml(rec) {
 }
 
 function coholdTable(d, group) {
-  const buy = group === "buy";
+  const meta = cohGroupMeta(group);
+  const isSell = group === "sell";
+  const isHold = group === "hold";
   const list = toArr(d[group]);
-  const tone = buy ? "bull" : "bear";
-  const title = buy ? "共同买入" : "共同卖出";
-  const tLabel = buy ? "买入时间" : "卖出时间";
   if (!list.length) {
-    return `<h3 class="coh-h">${title} <span class="chip-s">0 个标的</span></h3>
-      <div class="empty">窗口 <b>${esc(d.window_start)} ~ ${esc(d.window_end)}</b> 内没有「≥${esc(d.min_holders ?? COHOLD.min)} 位选手同时${buy ? "买入" : "卖出"}同一标的」的记录。<br/>
-      ${buy ? "共买需要多位选手在 5 天内看上同一只票，比共卖更难触发，为空属正常。" : ""}
+    return `<h3 class="coh-h">${meta.title} <span class="chip-s">0 个标的</span></h3>
+      <div class="empty">窗口 <b>${esc(d.window_start)} ~ ${esc(d.window_end)}</b> 内没有「≥${esc(d.min_holders ?? COHOLD.min)} 位选手同时${meta.verb}同一标的」的记录。<br/>
+      ${group === "buy" ? "共买需要多位选手在 5 天内看上同一只票，比共卖更难触发，为空属正常。" : ""}
+      ${COHOLD.onlyQualified ? "当前已勾选「仅看入围选手(Tier A)」——命中较少属正常，可放宽天数或取消勾选恢复全量。<br/>" : ""}
       可把天数放宽到 10 天，或切到「锚定数据最新日」再试。</div>`;
   }
   const rows = list.map((x) => {
@@ -3569,7 +3943,8 @@ function coholdTable(d, group) {
       const bits = [];
       if (p.price != null) bits.push(`¥${esc(p.price)}`);
       if (p.quantity != null) bits.push(`<b>${esc(p.quantity)}</b> 股`);
-      if (buy) {
+      if (!isSell) {
+        // 买入组与持有组都展示仓位与浮盈（持有记录多半只有「持有」表态、无价无量，自然显示为空）
         if (p.ratio != null && p.ratio !== "") bits.push(`仓位 ${esc(p.ratio)}%`);
         if (p.pct_gain != null) {
           const c = p.pct_gain >= 0 ? "var(--bull)" : "var(--bear)";
@@ -3579,10 +3954,10 @@ function coholdTable(d, group) {
         bits.push(`${p.ratio >= 100 ? "清仓" : "减仓"} ${esc(p.ratio)}%`);
       }
       if (p.ops > 1) bits.push(`<span class="chip-s">${p.ops} 笔</span>`);
-      const st = buy
-        ? (p.still_holding ? `<span class="badge hold">持有中</span>`
-          : `<span class="badge bear">买入后已卖出</span>`)
-        : `<span class="badge bear">已卖出</span>`;
+      const st = isSell
+        ? `<span class="badge bear">已卖出</span>`
+        : (p.still_holding ? `<span class="badge hold">持有中</span>`
+          : `<span class="badge bear">${isHold ? "已清仓" : "买入后已卖出"}</span>`);
       const from = toArr(p.evidence).join("+");
       return `<div class="coh-p">${ch}<b>${esc(p.player)}</b>` +
         `<span class="coh-t">${esc((p.last_time || "").slice(0, 16))}</span>` +
@@ -3591,13 +3966,13 @@ function coholdTable(d, group) {
     }).join("");
     // 2026-10-06：来源列改「站点名 + 条数 + 可展开原始链接」，不再堆一排无语义的 ↗
     const urls = toArr(x.urls).length ? srcCellHtml(x.urls) : `<span class="chip-s">—</span>`;
-    const status = buy
-      ? `<span class="chip-s">持有 ${esc(x.still_holding ?? 0)} 人</span>` +
-        (x.exited ? `<br/><span class="chip-s" style="color:var(--bear)">已卖出 ${esc(x.exited)} 人</span>` : "")
-      : `<span class="chip-s">已卖出 ${esc(x.player_count ?? 0)} 人</span>`;
+    const status = isSell
+      ? `<span class="chip-s">已卖出 ${esc(x.player_count ?? 0)} 人</span>`
+      : `<span class="chip-s">持有 ${esc(x.still_holding ?? 0)} 人</span>` +
+        (x.exited ? `<br/><span class="chip-s" style="color:var(--bear)">${isHold ? "已清仓" : "已卖出"} ${esc(x.exited)} 人</span>` : "");
     return `<tr data-sym="${escAttr(x.symbol)}" data-group="${escAttr(group)}">
       <td><b>${esc(x.symbol_name || "名称待补全")}</b><br/><span class="stk-code">${esc(x.symbol)}</span> <span class="stk-corp">${esc(x.company || "")}</span></td>
-      <td><span class="badge ${tone}">${esc(x.player_count ?? "—")} 人</span></td>
+      <td><span class="badge ${meta.tone}">${esc(x.player_count ?? "—")} 人</span></td>
       <td><span class="chip-s">合计 ${x.total_quantity != null ? esc(x.total_quantity) + " 股" : "—"}</span><br/><span class="chip-s">均价 ${x.avg_price != null ? "¥" + esc(x.avg_price) : "—"}</span></td>
       <td><span class="chip-s">${esc((x.first_time || "").slice(0, 16))}</span><br/><span class="chip-s">→ ${esc((x.last_time || "").slice(0, 16))}</span></td>
       <td>${people}</td>
@@ -3606,9 +3981,9 @@ function coholdTable(d, group) {
       ${refCell(toArr(x.sites))}
     </tr>`;
   }).join("");
-  return `<h3 class="coh-h">${title} <span class="badge ${tone}">${list.length} 个标的</span></h3>
-    <table><thead><tr><th>股票</th><th>${title}</th><th>合计数量 / 均价</th><th>时间范围</th>
-      <th>参与者明细（${tLabel} · 价格 · 数量 · ${buy ? "仓位 · 浮盈" : "卖出比例"}）</th>
+  return `<h3 class="coh-h">${meta.title} <span class="badge ${meta.tone}">${list.length} 个标的</span></h3>
+    <table><thead><tr><th>股票</th><th>${meta.title}</th><th>合计数量 / 均价</th><th>时间范围</th>
+      <th>参与者明细（${meta.tLabel} · 价格 · 数量 · ${isSell ? "卖出比例" : "仓位 · 浮盈"}）</th>
       <th>持有状态</th><th>来源</th><th>最后更新</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
@@ -3624,23 +3999,28 @@ function renderCohold(d) {
   COHOLD_BY_KEY.clear();   // 2026-09-26 每次渲染重建行缓存（买/卖两表都会在 coholdTable 里写入）
   box.innerHTML = `
     <div class="hint" style="margin-bottom:10px">
-      按「窗口内 ≥<b>${esc(d.min_holders ?? COHOLD.min)}</b> 位选手<b>同向操作</b>同一标的」聚合，<b>共买</b>（红）与<b>共卖</b>（绿）分两组列出。
+      按「窗口内 ≥<b>${esc(d.min_holders ?? COHOLD.min)}</b> 位选手<b>同向操作</b>同一标的」聚合，<b>共买</b>（红）、<b>共卖</b>（绿）、<b>共持</b>（琥珀）分三组列出。
       与左侧「共同持仓共识」<b>口径不同</b>：共识看的是<b>现在还持有</b>（持仓快照），本板块看的是<b>最近 ${esc(d.days)} 天谁同时动手</b>（动作发生时点）——
-      所以本板块能露出「窗口内已卖出」这类共识板块看不到的行。数据合并 <b>positions</b>（仓位占比/买价/现价）与 <b>trades</b>（<b>成交数量</b>、更精确的成交时刻）两张表。
+      所以本板块能露出「窗口内已卖出」这类共识板块看不到的行。<b>2026-10-10 口径改革</b>：<b>HOLD（喊持有）单独成「共同持有」组</b>，不再并入「共同买入」——
+      共买只统计真实 BUY。数据合并 <b>positions</b>（仓位占比/买价/现价）与 <b>trades</b>（<b>成交数量</b>、更精确的成交时刻）两张表。
       <b>「来源」列</b>=该标的动作的<b>原始出处</b>（帖子/主页链接），按站点归并计数，点<b>「出处 N 条 ▾」</b>展开全部原始链接。
+      三组作者集合均已<b>剔除机器号</b>（资讯/播报号）。
     </div>
     ${coholdWindowBar(d)}
     <div class="coh-legend">
-      <span class="badge bull">共同买入</span> <span class="coh-lbl">红 = 买（A股惯例）</span>
+      <span class="badge bull">共同买入</span> <span class="coh-lbl">红 = 买（A股惯例·真实 BUY）</span>
       <span class="coh-sep"></span>
       <span class="badge bear">共同卖出</span> <span class="coh-lbl">绿 = 卖</span>
+      <span class="coh-sep"></span>
+      <span class="badge hold">共同持有</span> <span class="coh-lbl">琥珀 = HOLD（单独计数、不与买入合并）</span>
     </div>
     ${coholdTable(d, "buy")}
     ${coholdTable(d, "sell")}
+    ${coholdTable(d, "hold")}
     <div class="hint" style="margin-top:12px">
       <b>数量</b>来自 trades 表的成交记录——positions 表没有这一列，所以只有持仓快照、没有成交明细的行会显示「—」，<b>不会用 0 或估算值顶替</b>。
-      <b>浮盈</b>用同一笔的买价与现价计算，不跨笔混算。<b>持有状态</b>取「买点之后是否存在该选手对该标的的卖出记录」，有则记为「买入后已卖出」。
-      ${freshLegend()}
+      <b>浮盈</b>用同一笔的买价与现价计算，不跨笔混算。<b>持有状态</b>取「动作时点之后是否存在该选手对该标的的卖出记录」，有则记为「买入后已卖出 / 已清仓」。
+      <b>共买组不含 HOLD</b>：三组按 action 精确分组（BUY / SELL / HOLD），互不重叠。${freshLegend()}
     </div>`;
   bindCohold();
   applyFreshness();
@@ -3683,11 +4063,12 @@ function openStockConsensus(sym, anchorEl) {
       <div class="kv"><div class="k">公司全称</div><div>${esc(x.company || "待补全")}</div></div>
       <div class="kv"><div class="k">上市板块</div><div>${esc(x.market || "—")}</div></div>
       <div class="kv"><div class="k">共同持仓人数</div><div>${x.holders ?? "—"} 人</div></div>
+      ${consensusSplitKv(x)}
       <div class="kv"><div class="k">覆盖渠道</div><div>${toArr(x.channels).join("、") || "—"}</div></div>
       <div class="kv"><div class="k">讨论热度</div><div>${x.discuss_heat ?? "—"}</div></div>
       <div class="kv"><div class="k">来源网址</div><div>${toArr(x.sources).map((s) => srcLink(s, s, { arrow: false })).join("<br/>") || "—"}</div></div>
       <h4 style="margin:12px 0 6px">持仓选手明细</h4>
-      ${toArr(x.players).map((pl) => `<div class="box" style="margin-bottom:8px"><div class="t">${channelBadge(pl.channel)} ${esc(pl.player)} ${actionBadge(pl.action)}</div><div class="meta">操作时间 ${esc(pl.post_time || "未披露")} ｜ 持仓比例 ${pl.ratio != null ? esc(pl.ratio) + "%" : "未披露"} ｜ ${esc(pl.site)} ｜ ${srcLink(pl.source_url, "来源")}</div></div>`).join("")}`;
+      ${toArr(x.players).map((pl) => `<div class="box" style="margin-bottom:8px"><div class="t">${channelBadge(pl.channel)} ${esc(pl.player)} ${pl.signal ? signalBadge(pl.signal) : actionBadge(pl.action)}</div><div class="meta">操作时间 ${esc(pl.post_time || "未披露")} ｜ 持仓比例 ${pl.ratio != null ? esc(pl.ratio) + "%" : "未披露"} ｜ ${esc(pl.site)} ｜ ${srcLink(pl.source_url, "来源")}</div></div>`).join("")}`;
     openDrawer(`共同持仓 · ${x.symbol_name || "名称待补全"}（${x.symbol}）`, body, anchorEl);
   }).catch((e) => reportLoadError("共同持仓详情", e));
 }
@@ -4478,8 +4859,11 @@ function loadExtref() {
 /* 2026-10-01 王总要求：28 组还是太长 → 加「只显示最近 N 天」档位（近3/7/30天、全部）。
    超出该天数的分组**不删数据**，只默认收起成一行组头（点组头 / 点「全部展开」展开），
    「打开就能扫完」。BLOG.days = 0 表示全部；BLOG.extra 是用户手动展开过的日期集合。 */
+/* 2026-10-09 王总两点要求：①博主 chip 要显示全部跟踪博主（含「待采集」）；
+   ②新增「共同推荐」筛选（同一票被多位博主同推）。
+   BLOG.mode = "all" | "overlap"：overlap 走独立视图（按同推人数降序），不吃博主/日期/排序筛选。 */
 const BLOG = { facets: null, rows: [], overlap: [], stats: [], blogger: "", q: "", sort: "date",
-               days: 7, extra: null, loaded: false, perf: {} };
+               days: 7, extra: null, loaded: false, perf: {}, mode: "all" };
 const CONTEST = { rounds: [], detail: null, cur: null, loaded: false };
 
 /* 涨跌幅着色：红涨绿跌（中国习惯）。null/空 → 中性灰，绝不吞成 0 */
@@ -4492,6 +4876,28 @@ function btPct(v) {
   return { cls: "bt-num", txt: "0.00%" };
 }
 function btMd(s) { return String(s || "").slice(5); }
+
+/* 2026-10-10 王总要求：卡片必须直接给出「现价 vs 荐股日收盘」的至今涨跌，不能干等源表结算。
+   取值优先级：① 本模型 series 末点（last_chg，最新收盘 vs 荐股日收盘）；
+   ② 源表 ret_since 兜底（0 视为源表未结算，不贴 0.00% 误导）；都没有 → null（显示 —）。 */
+function btEffRet(r) {
+  const d = String(r.rec_date || "").slice(0, 10);
+  const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`];
+  if (pf && pf.last_chg !== null && pf.last_chg !== undefined && pf.last_chg !== "") {
+    const m = Number(pf.last_chg);
+    if (isFinite(m)) return m;
+  }
+  const v = r.ret_since;
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return (isFinite(n) && n !== 0) ? n : null;
+}
+/* 卡片上的「现价」：模型 series 末点收盘价；没有 → "" */
+function btLastClose(r) {
+  const d = String(r.rec_date || "").slice(0, 10);
+  const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`];
+  return (pf && pf.last_close !== null && pf.last_close !== undefined) ? pf.last_close : "";
+}
 
 /* 「最近 N 天」阈值：返回 YYYY-MM-DD 的**本地**日期字符串（不能用 toISOString，北京时间
    早 8 小时会被算成前一天，导致当天建股被误收起）。days=0 → 返回 ""（不限）。 */
@@ -4513,27 +4919,46 @@ function btIsFolded(dateStr) {
   return String(dateStr).slice(0, 10) < cutoff;
 }
 
-/* 单张荐股卡片。2026-10-01：右侧挂 T+3/T+5/T+10 三个小指标（荐股日收盘为基准）。 */
+/* 单张荐股卡片。2026-10-01：右侧挂 T+3/T+5/T+10 三个小指标（荐股日收盘为基准）。
+   2026-10-10 王总要求：右上角大字改为「至今涨跌」（现价 vs 荐股日收盘，模型值优先），
+   指标行加「现价」与「至今」——短线博主荐股后当天就得能看到方向，不能全等 3/5/10 走完。 */
 function btCardHtml(r) {
-  const p = btPct(r.ret_since);
+  const eff = btEffRet(r);
+  const p = btPct(eff);
+  const lastClose = btLastClose(r);
   const d = String(r.rec_date || "").slice(0, 10);
   const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`] || null;
-  const metrics = [["3日", pf && pf.r3], ["5日", pf && pf.r5], ["10日", pf && pf.r10]]
-    .map(([lbl, v]) => {
-      if (v === null || v === undefined || v === "") {
-        return `<span class="bt-metric bt-metric-na" title="该周期交易日尚未走完，非 0">${lbl}<b>—</b></span>`;
-      }
-      const m = btPct(v);
-      return `<span class="bt-metric" title="${lbl} 收益（荐股日 ${esc(d)} 收盘为基准）">${lbl}<b class="${m.cls}">${m.txt}</b></span>`;
-    }).join("");
+  const metrics = [
+    ["现价", lastClose === "" ? null : lastClose, "price"],
+    ["至今", (pf && pf.last_chg != null) ? pf.last_chg : null],
+    ["3日", pf && pf.r3], ["5日", pf && pf.r5], ["10日", pf && pf.r10],
+  ].map(([lbl, v, kind]) => {
+    if (v === null || v === undefined || v === "") {
+      return `<span class="bt-metric bt-metric-na" title="${lbl}：${kind === "price" ? "尚无已结算行情" : "该周期交易日尚未走完，非 0"}">${lbl}<b>—</b></span>`;
+    }
+    if (kind === "price") {
+      return `<span class="bt-metric" title="最新已结算交易日收盘价（${esc((pf && pf.last_date) || "")}）">${lbl}<b>${esc(v)}</b></span>`;
+    }
+    const m = btPct(v);
+    return `<span class="bt-metric" title="${lbl} 收益（荐股日 ${esc(d)} 收盘为基准）">${lbl}<b class="${m.cls}">${m.txt}</b></span>`;
+  }).join("");
   return `<div class="bt-card" data-bt-sym="${escAttr(r.stock_code)}">
     <div class="bt-card-l"><span class="bt-code">${esc(r.stock_code)}</span>
       <span class="bt-name">${esc(r.stock_name)}</span>
-      <span class="bt-blog">${esc(r.blogger)}</span></div>
-    <div class="bt-card-r"><span class="${p.cls}">${p.txt}</span>
+      <span class="bt-blog">${esc(r.blogger)}</span>${btSrcBadges(r)}</div>
+    <div class="bt-card-r"><span class="${p.cls}" title="至今涨跌 = 最新已结算收盘 vs 荐股日收盘（模型自动结算，不依赖源表）">${p.txt}</span>
       <span class="bt-date">${esc(btMd(r.rec_date))}</span></div>
     <div class="bt-metrics">${metrics}</div>
     <div class="bt-note">${esc(r.note || r.video_title || "")}</div></div>`;
+}
+
+/* 来源/前瞻徽标（2026-10-11 王总要求）：source='B站' → 「B站」徽标（与存量来源区分）；
+   horizon='next_week' → 「推下周」徽标（对标当红参赛股「这周推下周」语义，但明确不混入节目板块）。 */
+function btSrcBadges(r) {
+  let h = "";
+  if (r && r.source === "B站") h += `<span class="bt-src-bili" title="来源：B站 UP 主（区别于独股九剑/抖音跟踪来源）">B站</span>`;
+  if (r && r.horizon === "next_week") h += `<span class="bt-src-nw" title="明确推荐下周走势（这周推下周），语义对标「当红参赛股」但来源为博主，不混入 BRTV 节目板块">推下周</span>`;
+  return h;
 }
 
 /* 列表：默认按建股日期倒序**分组**（王总 2026-10-01 要求 —— 237 条平铺看不清哪天建了哪些）；
@@ -4548,33 +4973,52 @@ function btListHtml(rows, groupByDate) {
     idx[d].items.push(r);
   });
   return groups.map((g) => {
-    const withRet = g.items.filter((r) => r.ret_since != null);
+    // 2026-10-10：组统计同改用 btEffRet（模型「至今」优先），源表未结算的日子也能看到真实涨跌
+    const effOf = (r) => { const v = btEffRet(r); return v === null ? null : Number(v); };
+    const withRet = g.items.filter((r) => effOf(r) !== null);
     const avg = withRet.length
-      ? withRet.reduce((s, r) => s + Number(r.ret_since), 0) / withRet.length : null;
+      ? withRet.reduce((s, r) => s + effOf(r), 0) / withRet.length : null;
     const p = btPct(avg);
-    const up = withRet.filter((r) => Number(r.ret_since) > 0).length;
-    // 源表里整组都还是 0（刚推、源表尚未结算）→ 显示「—」而不是 0.00%，
-    // 免得被读成「没赚没亏」。0 是源表真实值，我们照贴，但标注它是什么状态。
-    const allZero = withRet.length > 0 && withRet.every((r) => Number(r.ret_since) === 0);
+    const up = withRet.filter((r) => effOf(r) > 0).length;
     // 超出「最近 N 天」且没手动展开 → 收起成一行组头（数据还在，点一下就展开）
     const folded = btIsFolded(g.d);
     if (folded) {
-      const allZeroF = withRet.length > 0 && withRet.every((r) => Number(r.ret_since) === 0);
       return `<div class="bt-dgrp bt-dgrp-fold" data-bt-dgrp="${escAttr(g.d)}">
         <span class="bt-dgrp-d">${esc(g.d.slice(5).replace("-", "/"))}</span>
         <span class="bt-dgrp-n">${g.d.slice(0, 4)} · 建股 <b>${g.items.length}</b> 只</span>
         <span class="bt-dgrp-foldbtn" data-bt-fold="${escAttr(g.d)}">▸ 展开</span>
-        ${allZeroF ? `<span class="bt-dgrp-na" title="源表该日涨跌幅尚未结算（为 0）">源表未结算</span>` : ""}
         <span class="bt-dgrp-foldtip">已收起（${BLOG.days} 天以外）</span></div>`;
     }
     return `<div class="bt-dgrp"><span class="bt-dgrp-d">${esc(g.d.slice(5).replace("-", "/"))}</span>`
       + `<span class="bt-dgrp-n">${g.d.slice(0, 4)} · 建股 <b>${g.items.length}</b> 只</span>`
       + `<span class="bt-dgrp-up">上涨 ${up}/${withRet.length || g.items.length}</span>`
-      + (allZero
-          ? `<span class="bt-dgrp-na" title="源表该日涨跌幅尚未结算（为 0），非真实持平">源表未结算</span></div>`
-          : `<span class="${p.cls}">${avg === null ? "—" : p.txt}</span></div>`)
+      + `<span class="${p.cls}">${avg === null ? "—" : p.txt}</span></div>`
       + g.items.map(btCardHtml).join("");
   }).join("");
+}
+
+/* 「共同推荐」单卡：同一票被多位博主同推。
+   口径同源 —— 涨幅仍是「推荐以来区间收益」（源表值，非本模型输出），涨跌用 btPct 红涨绿跌。
+   整卡挂 data-bt-sym，沿用博主卡片既有「点卡片开个股抽屉」的机制（openStock）。 */
+function btOvlCardHtml(r) {
+  const p = btPct(r.ret_since);
+  const nb = (r.n_bloggers == null) ? "" : esc(r.n_bloggers);
+  return `<div class="bt-card bt-card-ovl" data-bt-sym="${escAttr(r.stock_code)}">
+    <div class="bt-card-l"><span class="bt-code">${esc(r.stock_code)}</span>
+      <span class="bt-name">${esc(r.stock_name)}</span>
+      <span class="bt-blog bt-blog-ovl">${nb} 位博主同推</span></div>
+    <div class="bt-card-r"><span class="${p.cls}">${p.txt}</span>
+      <span class="bt-date">推荐以来</span></div>
+    <div class="bt-note">同推：${esc(r.bloggers || "—")}</div>
+    ${r.note ? `<div class="bt-note bt-note-ovl">${esc(r.note)}</div>` : ""}</div>`;
+}
+/* 共同推荐列表：按 n_bloggers 降序、再按 ret_since 降序（同推人数越多的越靠前）。 */
+function btOvlListHtml(rows) {
+  if (!rows.length) return "";
+  const s = rows.slice().sort((a, b) =>
+    (Number(b.n_bloggers) || 0) - (Number(a.n_bloggers) || 0)
+    || ((b.ret_since == null ? -Infinity : b.ret_since) - (a.ret_since == null ? -Infinity : a.ret_since)));
+  return s.map(btOvlCardHtml).join("");
 }
 
 /* ---------- 博主荐股 ---------- */
@@ -4583,27 +5027,69 @@ function renderBloggerPanel() {
   if (!host) return;
   const F = BLOG.facets || { bloggers: [], total: 0, updated: null };
   const all = BLOG.rows;
+  const isOvl = BLOG.mode === "overlap";           // 「共同推荐」视图
+  const bloggers = toArr(F.bloggers);
+  const ovlRowsData = toArr(BLOG.overlap);
+
+  // 跟踪口径：优先用后端给的 tracked_total/tracked_with_data；字段缺失时按 bloggers 里 pending 计数自算（保证不崩）
+  const pendCount = bloggers.filter((b) => b && b.pending).length;
+  const trackedTotal = (F.tracked_total != null) ? Number(F.tracked_total) : bloggers.length;
+  const withDataCnt = (F.tracked_with_data != null) ? Number(F.tracked_with_data)
+                       : Math.max(0, bloggers.length - pendCount);
+  // 当前选中的博主是否为「待采集」（pending 且无数据）
+  const curB = bloggers.find((b) => b && b.name === BLOG.blogger);
+  const isPendingSel = !!(curB && curB.pending);
+
   // 本地筛选：博主 + 关键词（名称/代码/来源视频）
   let rows = all;
-  if (BLOG.blogger) rows = rows.filter((r) => r.blogger === BLOG.blogger);
+  if (!isOvl && BLOG.blogger) rows = rows.filter((r) => r.blogger === BLOG.blogger);
   if (BLOG.q) {
     const k = BLOG.q.trim();
     if (k) rows = rows.filter((r) => (r.stock_name || "").includes(k) || (r.stock_code || "").includes(k)
                                      || (r.video_title || "").includes(k));
   }
-  if (BLOG.sort === "ret") {
-    rows = rows.slice().sort((a, b) => (b.ret_since == null ? -Infinity : b.ret_since)
-                                     - (a.ret_since == null ? -Infinity : a.ret_since));
+  if (!isOvl) {
+    if (BLOG.sort === "ret") {
+      rows = rows.slice().sort((a, b) => (b.ret_since == null ? -Infinity : b.ret_since)
+                                       - (a.ret_since == null ? -Infinity : a.ret_since));
+    } else {
+      rows = rows.slice().sort((a, b) => String(b.rec_date).localeCompare(String(a.rec_date))
+                                       || ((a.seq || 0) - (b.seq || 0)));
+    }
   } else {
-    rows = rows.slice().sort((a, b) => String(b.rec_date).localeCompare(String(a.rec_date))
-                                     || ((a.seq || 0) - (b.seq || 0)));
+    // 共同推荐视图：只吃搜索关键词（名称/代码），排序固定按同推人数
+    rows = ovlRowsData.filter((r) => {
+      const k = (BLOG.q || "").trim();
+      if (!k) return true;
+      return (r.stock_name || "").includes(k) || (r.stock_code || "").includes(k);
+    });
   }
 
-  const chips = [{ name: "", n: F.total, last_date: null }].concat(F.bloggers || []);
+  // chip 行：全部 → ★ 共同推荐 → 各博主（含待采集）
+  const chipAll = `<a class="bt-chip${(!BLOG.blogger && !isOvl) ? " active" : ""}"
+      data-bt-blogger="">全部<i>${esc(F.total == null ? "" : F.total)}</i></a>`;
+  const ovlDisabled = ovlRowsData.length === 0;
+  const chipOvl = `<a class="bt-chip bt-chip-ovl${isOvl ? " active" : ""}${ovlDisabled ? " disabled" : ""}"
+      data-bt-ovl="1" title="${ovlDisabled ? "暂无共同推荐数据" : "同一只票被多位博主同荐"}">★ 共同推荐<i>${esc(ovlRowsData.length)}</i></a>`;
+  const chipBloggers = bloggers.map((c) => {
+    const pend = !!(c && c.pending);
+    const active = !isOvl && (BLOG.blogger || "") === c.name;
+    if (pend) {
+      return `<a class="bt-chip bt-chip-pending${active ? " active" : ""}"
+        data-bt-blogger="${escAttr(c.name)}" title="自动化跟踪中，暂无采到荐股记录">${esc(c.name)}<i>待采集</i></a>`;
+    }
+    return `<a class="bt-chip${active ? " active" : ""}"
+      data-bt-blogger="${escAttr(c.name)}">${esc(c.name)}${c.source === "B站" ? `<i class="bt-chip-bili" title="来源：B站 UP 主">B站</i>` : ""}<i>${esc(c.n)}</i></a>`;
+  }).join("");
+  const chipsHtml = chipAll + chipOvl + chipBloggers;
+
   const statsRows = BLOG.stats.map((r) => {
     const a = btPct(r.avg_ret), b = btPct(r.avg_ret_1w), u = btPct(r.up_ratio);
+    // 2026-10-09：「待核对」= 该博主尚无报价/未结算的记录数。null/缺失 → 「—」（NULL 不是 0）
+    const np = (r.n_pending === null || r.n_pending === undefined) ? "—" : esc(r.n_pending);
     return `<tr class="${/合计/.test(r.blogger || "") ? "bt-tr-sum" : ""}">
       <td>${esc(r.blogger)}</td><td class="bt-num">${esc(r.n_stock)}</td>
+      <td class="bt-num bt-pend">${np}</td>
       <td class="${a.cls}">${a.txt}</td><td class="${b.cls}">${b.txt}</td>
       <td class="${u.cls}">${u.txt}</td></tr>`;
   }).join("");
@@ -4614,9 +5100,9 @@ function renderBloggerPanel() {
       <td class="${p.cls}">${p.txt}</td><td class="bt-note">${esc(r.note)}</td></tr>`;
   }).join("") || `<tr><td colspan="6" class="empty">暂无重复推荐记录</td></tr>`;
 
-  /* 「最近 N 天」折叠统计 + 一键展开（只在日期分组模式下有意义）。 */
+  /* 「最近 N 天」折叠统计 + 一键展开（只在日期分组模式下有意义；共同推荐视图不适用）。 */
   let foldTip = "";
-  if (BLOG.sort === "date" && BLOG.days) {
+  if (!isOvl && BLOG.sort === "date" && BLOG.days) {
     const buckets = new Map();
     rows.forEach((r) => {
       const d = String(r.rec_date || "").slice(0, 10) || "未知日期";
@@ -4633,16 +5119,31 @@ function renderBloggerPanel() {
     }
   }
 
+  // 主列表：共同推荐视图 / 待采集空态 / 常规荐股列表（三选一）
+  let listHtml;
+  if (isOvl) {
+    listHtml = btOvlListHtml(rows) || `<div class="empty">暂无共同推荐数据</div>`;
+  } else if (isPendingSel) {
+    listHtml = `<div class="empty empty-pending">「${esc(BLOG.blogger)}」暂无采到荐股记录（自动化跟踪中，通常 1-2 天内补齐）</div>`;
+  } else {
+    listHtml = btListHtml(rows, BLOG.sort === "date") || `<div class="empty">无匹配的荐股记录</div>`;
+  }
+  // 计数行文案：共同推荐视图说「共同推荐 N 只」，其余保持「x / y 条」
+  const cntHtml = isOvl
+    ? `共同推荐 ${rows.length} 只`
+    : `${rows.length} / ${all.length} 条${BLOG.blogger ? " · " + esc(BLOG.blogger) : ""}`
+      + `${BLOG.sort === "date" ? " · 按建股日期倒序分组（每组内按区间收益排）" : ""}`;
+
   host.innerHTML = `
     <div class="bt-head"><h2>博主荐股</h2>
       <span class="pol-upd">${esc(F.updated || "")} 更新${BLOG.loaded ? "" : " · 加载中…"}</span>
+      <span class="bt-tracked">跟踪 <b>${trackedTotal}</b> 位博主 · 已采到 <b>${withDataCnt}</b> 位</span>
       <span class="bt-tip">「涨跌幅」为荐股发布后的区间收益，来自人工维护的源表，非本模型输出</span></div>
     <div class="bt-filter">
-      <div class="bt-chips">${chips.map((c) => `<a class="bt-chip${(BLOG.blogger || "") === c.name ? " active" : ""}"
-          data-bt-blogger="${escAttr(c.name)}">${esc(c.name || "全部")}<i>${esc(c.n)}</i></a>`).join("")}</div>
+      <div class="bt-chips">${chipsHtml}</div>
       <input class="bt-search" id="btSearch" type="search" placeholder="搜索股票名称 / 代码"
              value="${esc(BLOG.q)}" />
-      <div class="bt-sorts">
+      ${isOvl ? "" : `<div class="bt-sorts">
         <a class="bt-sort${BLOG.sort === "date" ? " active" : ""}" data-bt-sort="date">推荐日期 新→旧</a>
         <a class="bt-sort${BLOG.sort === "ret" ? " active" : ""}" data-bt-sort="ret">涨幅 高→低</a>
       </div>
@@ -4650,25 +5151,67 @@ function renderBloggerPanel() {
         <span class="bt-days-lab">只显示最近</span>
         ${[[3, "3天"], [7, "7天"], [30, "30天"], [0, "全部"]].map(([v, t]) =>
           `<a class="bt-day${BLOG.days === v ? " active" : ""}" data-bt-days="${v}">${t}</a>`).join("")}
-      </div>` : ""}
+      </div>` : ""}`}
     </div>
-    <div class="bt-cnt">${rows.length} / ${all.length} 条${BLOG.blogger ? " · " + esc(BLOG.blogger) : ""}
-      ${BLOG.sort === "date" ? " · 按建股日期倒序分组（每组内按区间收益排）" : ""}
+    <div class="bt-cnt">${cntHtml}
+      ${isOvl ? " · 按被同推人数降序（同推越多越靠前）" : ""}
       ${foldTip}</div>
-    <div class="bt-list">${btListHtml(rows, BLOG.sort === "date") ||
-      `<div class="empty">无匹配的荐股记录</div>`}</div>
+    <div class="bt-list">${listHtml}</div>
+    <div class="bt-nextweek" id="btNextWeek"></div>
     <details class="bt-detail"><summary>博主效果对比（${(BLOG.stats || []).length} 行）</summary>
-      <table class="bt-tb"><thead><tr><th>博主</th><th>推荐股票数</th><th>平均涨跌幅</th>
+      <table class="bt-tb"><thead><tr><th>博主</th><th>推荐股票数</th><th>待核对</th><th>平均涨跌幅</th>
         <th>平均一周涨幅</th><th>上涨比例</th></tr></thead><tbody>${statsRows}</tbody></table></details>
-    <details class="bt-detail"><summary>重复推荐（同一票被多位博主同荐）</summary>
+    <details class="bt-detail"><summary>重复推荐明细（同一票被多位博主同荐，共 ${ovlRowsData.length} 只）</summary>
       <table class="bt-tb"><thead><tr><th>代码</th><th>名称</th><th>博主数</th><th>博主</th>
         <th>涨跌幅</th><th>分析</th></tr></thead><tbody>${ovlRows}</tbody></table></details>`;
 
+  // 2026-10-11 王总④：在「博主荐股」面板内并排展示 B站「下周当红」堆（weekly, 147 条），与 reco 同框。
+  (function renderNextWeek() {
+    const box = $("#btNextWeek");
+    if (!box) return;
+    api("/api/bili/pile?cat=weekly&limit=4000").then((d) => {
+      const rows = toArr(d && d.rows);
+      if (!rows.length) { box.innerHTML = `<div class="empty">暂无 B站「下周当红」记录</div>`; return; }
+      const byB = new Map();
+      rows.forEach((r) => {
+        const b = r.blogger || "未知";
+        if (!byB.has(b)) byB.set(b, []);
+        byB.get(b).push(r);
+      });
+      const parts = [];
+      byB.forEach((arr, b) => {
+        const items = arr.slice().sort((x, y) => String(y.vdate || "").localeCompare(String(x.vdate || "")))
+          .map((r) => `<li><a href="${escAttr(r.url || "#")}" target="_blank" rel="noopener">${esc(r.title || "")}</a>`
+            + `<span class="bt-nw-date">${esc(String(r.vdate || "").slice(0, 10))}</span></li>`).join("");
+        parts.push(`<div class="bt-nw-b"><div class="bt-nw-h">${esc(b)}<i>${arr.length}</i></div>`
+          + `<ul class="bt-nw-l">${items}</ul></div>`);
+      });
+      box.innerHTML = `<div class="bt-nw-head">下周当红（B站 UP 主 · 共 ${rows.length} 条）</div>` + parts.join("");
+    }).catch((e) => {
+      box.innerHTML = `<div class="empty">「下周当红」加载失败：${esc(String((e && e.message) || e))}</div>`;
+    });
+  })();
+
+  // 点「全部」或任一博主 chip → 退回普通列表（mode="all"）
   $$("#p-blogger [data-bt-blogger]").forEach((a) => {
-    a.onclick = () => { BLOG.blogger = a.dataset.btBlogger || ""; renderBloggerPanel(); };
+    a.onclick = () => {
+      BLOG.mode = "all";
+      BLOG.blogger = a.dataset.btBlogger || "";
+      renderBloggerPanel();
+    };
+  });
+  // 「★ 共同推荐」chip → 切到共同推荐视图（空数据时不可点）
+  $$("#p-blogger [data-bt-ovl]").forEach((a) => {
+    a.onclick = () => {
+      if (a.classList.contains("disabled")) return;
+      BLOG.mode = "overlap";
+      BLOG.blogger = "";
+      BLOG.extra = null;
+      renderBloggerPanel();
+    };
   });
   $$("#p-blogger [data-bt-sort]").forEach((a) => {
-    a.onclick = () => { BLOG.sort = a.dataset.btSort; renderBloggerPanel(); };
+    a.onclick = () => { BLOG.mode = "all"; BLOG.sort = a.dataset.btSort; renderBloggerPanel(); };
   });
   // 「只显示最近 N 天」：切档时清掉手动展开集合（回到该档的默认折叠状态）
   $$("#p-blogger [data-bt-days]").forEach((a) => {
@@ -4725,9 +5268,17 @@ function renderBloggerPanel() {
       if (cnt) cnt.textContent = "输入中…";
     };
   }
-  $$("#p-blogger [data-bt-sym]").forEach((el) => {
-    el.onclick = () => openStock(el.dataset.btSym, el);
-  });
+  // 点荐股卡片（普通卡 + 共同推荐卡）→ 开个股详情抽屉。
+  // 2026-10-10 加固：改容器级事件委托只绑一次 —— 内联 onclick 会随某次 innerHTML
+  // 重渲染 / 渲染中断而丢，表现为「点了没反应」；委托绑在 #p-blogger 上永不丢。
+  if (!host._btSymDelegBound) {
+    host._btSymDelegBound = true;
+    host.addEventListener("click", (ev) => {
+      const el = ev.target && ev.target.closest ? ev.target.closest("[data-bt-sym]") : null;
+      if (!el || !host.contains(el)) return;
+      openStock(el.dataset.btSym, el);
+    });
+  }
 }
 
 /* ---------- 当红参赛股 ---------- */
@@ -5833,9 +6384,8 @@ function loadAll() {
   api("/api/operating").then((x) => renderOperating(toArr(x))).catch((e) => reportLoadError("正在操作股票", e));
   api("/api/players").then((x) => renderPlayers(toArr(x))).catch((e) => reportLoadError("实盘选手", e));
   if (!LHB.data) loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
-  api("/api/consensus?min_holders=2").then((x) => renderConsensus(toArr(x))).catch((e) => reportLoadError("共同持仓共识", e));
-  api(`/api/cohold_recent?days=${COHOLD.days}&min_holders=${COHOLD.min}&anchor=${encodeURIComponent(COHOLD.anchor || "auto")}`)
-    .then(renderCohold).catch((e) => reportLoadError("近5日共同买入", e));
+  consensusLoad();
+  coholdLoad(null, null);
   api("/api/persons").then((x) => renderPersons(toArr(x))).catch((e) => reportLoadError("相关人物", e));
   api("/api/sentiment").then(renderSentiment).catch((e) => reportLoadError("舆论情绪", e));
   api("/api/hotspots").then((x) => renderHotspots(x)).catch((e) => reportLoadError("近期热点", e));
@@ -6574,7 +7124,14 @@ const RS = {
   lastOk: null, status: "never", error: "", tracked: [], sources: {},
   // 2026-10-05（建议3）：调度口径字段，后端 /api/refresh_status 回传
   schedulerLastRunAt: null, schedulerEnabled: true,
+  // 2026-10-09（P0 行情新鲜度）：与「论坛帖子抓取」严格分离的行情新鲜度。
+  //   后端 /api/refresh_status 新增 market 字段（老接口无此字段时降级），或独立
+  //   /api/market_freshness 返回同一 market 对象。**绝不用帖子抓取时间冒充行情时间**。
+  //   market = { src, quote_time, server_now, lag_seconds, is_trading }
+  market: null, marketFromStatus: null, marketProbeAt: 0,
 };
+/* 盘中行情滞后超过该秒数即视为「报价不新鲜」，顶栏行情栏切警示色（2026-10-09） */
+const MARKET_STALE_SEC = 120;
 let RS_READY = false;
 let rtTimer = null;   // 自动刷新定时器
 let rtNextAt = null;  // 下一次自动刷新的时间戳（用于倒计时）
@@ -6728,6 +7285,45 @@ function fmtCountdown(sec) {
   const m = Math.floor(sec / 60), s = sec % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+/* ================= 「数据日」徽标工具（2026-10-09 P0，可复用） =================
+   背景（王总投诉）：顶栏写着「刷新在 6 分钟前」，面板里的「最新价」却是昨天（10-08）的收盘价 ——
+   因为「主力净流入榜 / 龙虎榜 / 主线研判」等面板的数据源本身就是**东财日报表（T-1）**，
+   盘中根本没有当天值。可面板上又完全不显示归属日，于是「界面刚刷新」被误当成「价是今天的」。
+   对策：凡「日报表 / 库内日快照」口径的面板，都强制调用本函数在显著位置标出**数据日**。
+   规则：
+     · 盘中快照（is_intraday=true）→ 「⚡ 盘中快照 · 更新于 HH:MM」，与「日终」视觉可辨；
+     · 归属日=今日 → 「📅 实时 / 当日 YYYY-MM-DD」；
+     · 归属日≠今日 → 「📅 数据日 YYYY-MM-DD（日终）」，琥珀警示色；
+     · NULL / 空 → 「数据日 —」中性灰，**绝不当今天**。
+   返回 HTML 字符串（已转义），可直接拼进模板。 */
+function todayStr() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function dataDayBadge(date, opts) {
+  opts = opts || {};
+  const raw = (date == null ? "" : String(date)).trim();
+  const dm = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const tm = raw.match(/[ T](\d{1,2}):(\d{2})/);
+  const day = dm ? `${dm[1]}-${String(dm[2]).padStart(2, "0")}-${String(dm[3]).padStart(2, "0")}` : "";
+  const p2 = (n) => String(n).padStart(2, "0");
+  // 句中带时间（"YYYY-MM-DD HH:MM[:SS]"）或显式 opts.time → 盘中口径优先用它
+  const hhmm = opts.time ? String(opts.time).slice(0, 5) : (tm ? `${p2(tm[1])}:${tm[2]}` : "");
+  if (opts.intraday === true) {
+    const tt = hhmm ? `更新于 ${hhmm}` : (day ? `${day} 盘中` : "盘中");
+    return `<span class="dd-badge dd-intraday" title="${escAttr("盘中快照口径：该值取自当日盘中实时采样，尚未日终结算，会随盘中变化。")}">⚡ 盘中快照 · ${esc(tt)}</span>`;
+  }
+  if (!day) {
+    return `<span class="dd-badge dd-none" title="${escAttr("该面板数据源未提供数据日，无法判定数据归属日——请勿默认当作今日数据。")}">📅 数据日 —</span>`;
+  }
+  const isToday = day === (opts.today || todayStr());
+  if (isToday && opts.allowToday !== false) {
+    return `<span class="dd-badge dd-today" title="${escAttr("数据归属日=" + day + "（今日）")}">📅 实时 / 当日 ${esc(day)}</span>`;
+  }
+  return `<span class="dd-badge dd-past" title="${escAttr("数据归属日=" + day + "，非今日 —— 属日终（T-1/历史）口径，不是当前实时值。")}">📅 数据日 ${esc(day)}<i>（日终）</i></span>`;
+}
 function safeJsonArr(s) {
   try { const v = JSON.parse(s || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; }
 }
@@ -6800,13 +7396,20 @@ function applyFreshness() {
   });
 }
 
-/* 顶栏刷新状态标识 + 下次自动刷新倒计时 */
+/* 顶栏刷新状态标识 + 下次自动刷新倒计时
+   ---------------------------------------------------------------------------
+   2026-10-09（P0 拆栏）：原先把「论坛帖子抓取」的 last_ok_at 含糊地写成
+   「已更新于 X 分钟前」，王总据此以为**行情**也是新的 —— 实则该时间与行情价格毫无关系
+   （后台只抓帖子文本 + 板块资金流采样，不抓个股行情）。现拆成**两栏物理分离**：
+     ① 帖抓取（本函数 #rsDot/#rsText）：沿用 last_ok_at，明确标注「帖抓取」；
+     ② 行情（renderMarketBar #rsMktDot/#rsMarket）：用 market.quote_time + lag_seconds，
+        盘中滞后 >120s 警示。两栏都在这一屏、一眼可辨，互不冒充。 */
 function renderRefreshBar() {
   const dot = $("#rsDot"), txt = $("#rsText"), cd = $("#rsCountdown");
   if (!dot || !txt) return;
   const d = parseLocalTime(RS.lastOk);
   const age = d ? Math.max(0, Math.round((Date.now() - d.getTime()) / 1000)) : null;
-  let cls = "rs-never", label = "刷新状态：尚未刷新";
+  let cls = "rs-never", label = "帖抓取：尚未刷新";
   if (RS.status === "ok" && d) {
     const stale = age > RS.stale;
     // 2026-10-05（报告 P1 / 建议3）统一口径：
@@ -6821,17 +7424,24 @@ function renderRefreshBar() {
     if (stale && schedFresh) {
       cls = "rs-ok";
       const sc = fmtAge(Math.max(0, Math.round((Date.now() - schedRun.getTime()) / 1000)));
-      label = `刷新状态：调度中（${sc}前刚跑完）｜数据截至 ${fmtClock(d)}`;
+      label = `帖抓取：调度中（${sc}前刚跑完）｜帖子截至 ${fmtClock(d)}`;
     } else {
-      label = `刷新状态：${stale ? "已超时" : "已更新"} ${fmtClock(d)}（${fmtAge(age)}）`;
+      label = `帖抓取：${stale ? "已超时" : "已更新"} ${fmtClock(d)}（${fmtAge(age)}）`;
     }
   } else if (RS.status === "error") {
     cls = "rs-err";
-    label = d ? `刷新状态：刷新失败（上次成功 ${fmtClock(d)}）` : "刷新状态：刷新失败";
+    label = d ? `帖抓取：抓取失败（上次成功 ${fmtClock(d)}）` : "帖抓取：抓取失败";
   }
   dot.className = "rs-dot " + cls;
   txt.textContent = label;
-  if (RS.error) txt.title = RS.error; else txt.removeAttribute("title");
+  if (RS.error) txt.title = RS.error;
+  else txt.title = "「帖抓取」＝论坛帖子文本的最近一次成功抓取时间，与行情价格无关（行情另见右侧「行情」栏）";
+  // 外层 .rb-item 的静态 title 原文是「最近一次成功刷新与下次自动刷新时刻」，拆分后已不能只指行情，
+  // 这里顺手改写成明确口径（不改 index.html，避免与其他人的并行改动冲突）。
+  const _item = dot.parentNode;
+  if (_item && _item.classList && _item.classList.contains("rb-item")) {
+    _item.title = "「帖抓取」＝论坛帖子文本的最近一次成功抓取时间；行情价格另见右侧「行情」栏（两者无关）";
+  }
   if (cd) {
     const rt = $("#realtime");
     if (rt && rt.checked && rtNextAt) {
@@ -6840,6 +7450,74 @@ function renderRefreshBar() {
       cd.textContent = "自动刷新：未开启";
     }
   }
+  renderMarketBar();   // 第二栏：行情新鲜度（独立于帖抓取）
+}
+
+/* ---------- 顶栏「行情」栏（2026-10-09 P0） ----------
+   新 DOM 由 JS 动态插入（不动 index.html，避免与其他人的并行改动冲突）：
+   位置在 #rsCountdown 之后、.spacer 之前。降级：拿不到 market 字段 → 「行情：时效未知」。 */
+function ensureMarketBar() {
+  let wrap = document.getElementById("rsMarketWrap");
+  if (wrap) return wrap;
+  const cd = document.getElementById("rsCountdown");
+  if (!cd || !cd.parentNode) return null;
+  wrap = document.createElement("span");
+  wrap.className = "rb-item rb-market rb-market-unknown";
+  wrap.id = "rsMarketWrap";
+  wrap.title = "行情新鲜度：行情源最近一笔报价的时间与相对服务端的滞后秒数（与左侧「帖抓取」无关）";
+  wrap.innerHTML = '<span class="rs-dot rs-never" id="rsMktDot"></span><span id="rsMarket">行情：时效未知</span>';
+  cd.parentNode.insertBefore(wrap, cd.nextSibling);
+  return wrap;
+}
+function renderMarketBar() {
+  const wrap = ensureMarketBar();
+  if (!wrap) return;
+  const dot = document.getElementById("rsMktDot");
+  const txt = document.getElementById("rsMarket");
+  if (!txt) return;
+  const m = RS.market;
+  if (!m || typeof m !== "object") {
+    // 降级路径：后端尚未提供行情字段 → 明确「时效未知」，绝不用帖子抓取时间冒充行情时间。
+    wrap.className = "rb-item rb-market rb-market-unknown";
+    if (dot) dot.className = "rs-dot rs-never";
+    txt.textContent = "行情：时效未知";
+    txt.title = "后端未提供行情新鲜度（/api/refresh_status 的 market 字段或 /api/market_freshness 均不可用）"
+      + "——无法判定行情是否新鲜。注意：左侧「帖抓取」时间与行情价格无关，不能拿来推断行情。";
+    return;
+  }
+  const qd = parseLocalTime(m.quote_time);
+  const clock = qd ? fmtClock(qd) : (m.quote_time ? String(m.quote_time) : "");
+  // 滞后秒数：优先用后端给的 lag_seconds；缺失则用 server_now − quote_time 现算
+  let lag = (m.lag_seconds == null) ? null : Number(m.lag_seconds);
+  if (lag == null || isNaN(lag)) {
+    const sd = parseLocalTime(m.server_now);
+    lag = (sd && qd) ? Math.max(0, Math.round((sd.getTime() - qd.getTime()) / 1000)) : null;
+  }
+  const trading = m.is_trading === true;
+  let dotCls = "rs-never", wrapExtra = "rb-market-unknown", text = "";
+  if (!clock) {
+    dotCls = "rs-never"; wrapExtra = "rb-market-unknown";
+    text = "行情：时间未知";
+  } else if (!trading) {
+    dotCls = "rs-never"; wrapExtra = "rb-market-closed";
+    text = `行情 ${clock}（休市${lag == null ? "" : ` · 滞后 ${lag} 秒`}）`;
+  } else if (lag != null && lag > MARKET_STALE_SEC) {
+    dotCls = "rs-stale"; wrapExtra = "rb-market-stale";
+    text = `行情 ${clock}（滞后 ${lag} 秒 ⚠）`;
+  } else {
+    dotCls = "rs-ok"; wrapExtra = "rb-market-ok";
+    text = `行情 ${clock}（${lag == null ? "盘中" : `滞后 ${lag} 秒`}）`;
+  }
+  if (dot) dot.className = "rs-dot " + dotCls;
+  txt.textContent = text;
+  txt.title = [
+    `行情源最近报价：${clock || "—"}`,
+    lag == null ? "" : `滞后 ${lag} 秒${trading && lag > MARKET_STALE_SEC ? "（已超 " + MARKET_STALE_SEC + " 秒，报价可能不新鲜）" : ""}`,
+    trading ? "盘中" : "休市",
+    m.src ? `来源 ${m.src}` : "",
+    m.server_now ? `服务端时间 ${m.server_now}` : "",
+  ].filter(Boolean).join(" · ");
+  wrap.className = "rb-item rb-market " + wrapExtra;
 }
 
 /* 拉取后台记录的刷新状态（每次抓取后由后端写入） */
@@ -6860,10 +7538,14 @@ function loadRefreshStatus() {
       const map = {};
       toArr(d.sources).forEach((s) => { if (s && s.source_key) map[s.source_key] = s; });
       RS.sources = map;
+      // 2026-10-09（P0）：新契约 —— refresh_status 内嵌 market 字段（老接口无此字段则保持 null）
+      RS.marketFromStatus = (d.market && typeof d.market === "object") ? d.market : null;
+      if (RS.marketFromStatus) RS.market = RS.marketFromStatus;
       RS_READY = true;
     }
     renderRefreshBar();
     applyFreshness();
+    maybeProbeMarketFreshness();
     return RS;
   }).catch(() => {
     // 接口不可用时降级：不阻塞面板渲染，「最后更新」列显示「—」。
@@ -6872,6 +7554,22 @@ function loadRefreshStatus() {
     applyFreshness();
     return RS;
   });
+}
+
+/* 行情新鲜度双契约兼容（2026-10-09 P0）：
+   优先用 /api/refresh_status 内嵌的 market；没有就（限频 5 分钟一次，避免刷 404 噪声）
+   试独立接口 /api/market_freshness。两者都拿不到时，renderMarketBar 显示「时效未知」。 */
+function maybeProbeMarketFreshness() {
+  if (RS.marketFromStatus) { renderMarketBar(); return; }         // 已内嵌，直接用
+  const now = Date.now();
+  if (now - (RS.marketProbeAt || 0) < 300000) { renderMarketBar(); return; }
+  RS.marketProbeAt = now;
+  api("/api/market_freshness").then((m) => {
+    if (m && typeof m === "object" && !m.error && (m.quote_time || m.lag_seconds != null)) {
+      RS.market = m;
+    }
+    renderMarketBar();
+  }).catch(() => { renderMarketBar(); });
 }
 
 /* 立即抓取一次并刷新全部面板 */
@@ -7040,8 +7738,14 @@ function renderWatch() {
   const tabs = [`<a class="wt-tab${WATCH.selGroup === "all" ? " active" : ""}" data-wt-group="all">全部 <b>${all.length}</b></a>`]
     .concat(gtabs).join("")
     + `<a class="wt-tab wt-tab-add" id="wtGroupAddTab" title="新增分组">＋ 新分组</a>`;
+  /* 无有效行情的标的（停牌 / 未开盘 / 当日无成交）：后端一律回空，这里只把「为什么是 —」讲清楚。
+     历史 bug（2026-10-09 王总带截图纠）：这类票曾在界面显示「0.00 / -100%」= 拿停牌零成交价当行情算出来的假跌幅。 */
+  const noQuote = items.filter((it) => it.price === null || it.price === undefined || it.price === "").length;
+  const noQuoteHint = noQuote
+    ? `<div class="hint wt-noquote"><b>${noQuote} 只标的当前无有效行情</b>（停牌 / 未开盘 / 当日无成交）——当前价与涨跌一律显示 «—»，<b>不以 0 或 -100% 充数</b>；这类标的也不参与到价检测。</div>`
+    : "";
   const rows = items.map(watchRow).join("") ||
-    `<tr><td colspan="11" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
+    `<tr><td colspan="12" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
   host.innerHTML = `
     <div class="wt-head">
       <h2>关注池 <span class="muted wt-sub">${d.checked_at ? "更新于 " + esc(d.checked_at) : ""}</span></h2>
@@ -7053,6 +7757,7 @@ function renderWatch() {
       </div>
     </div>
     <div class="wt-tabs">${tabs}</div>
+    ${noQuoteHint}
     <div class="wt-tw"><table class="wt-tb"><thead><tr>
       <th>代码 / 名称</th><th title="加入自选那一刻的价格快照">加入时价</th><th>当前价</th><th>涨跌</th><th>目标价</th><th>距目标</th>
       <th>关注度</th><th>板块</th><th>关注天数</th><th>加入至今</th><th>备注</th><th>操作</th>
@@ -7079,7 +7784,7 @@ function watchRow(it) {
   const dist = it.to_target_pct;
   const days = it.days_watched;
   return `<tr>
-    <td class="wt-c1"><a class="wt-sym" data-wt-open="${escAttr(it.symbol)}" href="javascript:void(0)">${esc(it.symbol)}</a> <span class="wt-nm">${esc(it.name || "")}</span>${it.kind === "fund" ? ' <span class="wt-kind">基</span>' : ""}</td>
+    <td class="wt-c1"><button type="button" class="wt-sym" data-wt-open="${escAttr(it.symbol)}">${esc(it.symbol)}</button> <span class="wt-nm">${esc(it.name || "")}</span>${it.kind === "fund" ? ' <span class="wt-kind">基</span>' : ""}</td>
     <td>${wtMoney(it.price_at_add)}</td>
     <td>${wtMoney(it.price)}</td>
     <td>${wtPct(it.pct)}</td>
@@ -7103,7 +7808,7 @@ function renderWatchAlerts() {
     const rule = a.rule === "above" ? "上破 ↑" : "下穿 ↓";
     return `<tr class="${a.read ? "" : "wt-unread"}">
       <td>${esc(a.triggered_at || "")}</td>
-      <td class="wt-c1"><a class="wt-sym" data-wt-alert-open="${escAttr(a.symbol)}" href="javascript:void(0)">${esc(a.symbol)}</a> <span class="wt-nm">${esc(a.name || "")}</span></td>
+      <td class="wt-c1"><button type="button" class="wt-sym" data-wt-alert-open="${escAttr(a.symbol)}">${esc(a.symbol)}</button> <span class="wt-nm">${esc(a.name || "")}</span></td>
       <td>${rule}</td>
       <td>${wtMoney(a.target_price)}</td>
       <td>${wtMoney(a.triggered_price)}</td>
@@ -7352,6 +8057,9 @@ function openWatchGroupMgrModal() {
    URL 采用 `#大类/子类` 深链接，刷新与浏览器前进/后退都能保持位置。 */
 const NAV = [
   { key: "overview", label: "今日总览", icon: "◎", items: [
+    // 2026-10-12 体验审计 P0-A：新增「今日决策」并置于首位 —— 它成为默认落地页，
+    // 打开软件第一眼就是结论（方向/机会/风险/我的票），不用再进二级菜单。
+    { tab: "today", label: "今日决策" },
     { tab: "dashboard", label: "今日看板" },
     { tab: "summary", label: "汇总" },
     { tab: "prediction", label: "每日预测" }] },
@@ -7364,6 +8072,8 @@ const NAV = [
     { tab: "moneyflow", label: "资金流向" }] },
   // ③ 消息与外围：事——热点、资讯、国际、政策、科技、海外（原「行情研判」后半 + 「增强功能」的资讯公告）
   { key: "info", label: "消息与外围", icon: "◈", items: [
+    // 2026-10-12 体验审计 P0-D：9 个子项并列、单点看不完 → 置顶「消息面汇总」给今日结论
+    { tab: "info_brief", label: "消息面汇总" },
     { tab: "topics", label: "近期热点" },
     { tab: "geo_events", label: "国际局势" },
     { tab: "geo_policy", label: "全球政策雷达" },
@@ -7374,9 +8084,13 @@ const NAV = [
     // 以国家官方口径（国务院/部委文件 + 中央级快讯）为准，省市地方默认过滤，
     // 每条带影响板块与传导逻辑；「个股快讯/公告」抽出为并列面板（tab key 仍为 news，深链接不变）。
     { tab: "policy", label: "政策风向" },
-    { tab: "news", label: "个股快讯公告" }] },
+    { tab: "news", label: "个股快讯公告" },
+    // 2026-10-11 王总第三回合①：B站视频级分堆的「情绪/大势」堆（3865 条）单独立项
+    { tab: "bili_sentiment", label: "市场情绪" }] },
   // ④ 别人怎么做：实盘——选手/牛散**实际**在买卖什么（原「实盘选手」易名，子项不变）
   { key: "players", label: "别人怎么做", icon: "▦", items: [
+    // 2026-10-12 体验审计 P0-E：6 个名单并列、得自己交叉比对 → 置顶「聪明钱共识」合成 1 条结论
+    { tab: "smart_money", label: "聪明钱共识" },
     { tab: "players", label: "选手与渠道" },
     { tab: "operating", label: "正在操作股票" },
     { tab: "niusan", label: "牛散追踪" },
@@ -7402,6 +8116,8 @@ const NAV = [
   // 标目标价、到价提醒。数据来自独立模块 watchlib.py（表 watch_*，零 JOIN、零外部关联）。
   // ⑥ 我的票：我自己的——自选、提醒、选股、诊股（原「自选池」+ 「增强功能」的选股/诊股/多资产）
   { key: "watch", label: "我的票", icon: "★", items: [
+    // 2026-10-12 体验审计 P0-F：这一类的旧子项全是"工具"，缺"我的票今天有没有事" → 置顶「今日提示」
+    { tab: "watch_brief", label: "今日提示" },
     { tab: "watch", label: "关注池" },
     { tab: "watch_alerts", label: "到价提醒" },
     // 2026-10-05 王总：把「入手值得率」从智能选股里单独立成板块，与同面板的「连续阴跌」并列。
@@ -7425,13 +8141,16 @@ const NAV = [
   // 它们是抓取管道的运维信息，看盘时无用；数据照常采集落库（refresh_status / raw_pages 不变），
   // 面板与渲染函数（#p-sources / #p-archive / #p-fetchlog 及 renderXPanel）一并保留，
   // 需要复原时把这三项加回下面 items 即可，后端无需改动。
-  { key: "learn", label: "复盘成长", icon: "✎", items: [
+  // 2026-10-12 体验审计 P1（部分）：复盘/学习是**盘后**动作，盘中用不到却占一级导航 →
+  // 打上 pinned 标记，renderNav 会把它沉到左栏最底部、并用「盘后」分隔线与盘中决策项隔开。
+  { key: "learn", label: "复盘成长", icon: "✎", pinned: true, items: [
     // ⚠️ 本类的子项有**两个来源**：① 运行时从 kb_sources.yaml 读到的知识轨道（排在横条最前，
     // 按各轨道的 order 排序）；② 下面写死的固定项。轨道加载后 itemsOfCat 的 learn 分支会
     // 重建整个列表，故固定项必须在该分支里**显式并回**，否则轨道一回来它们就从横条上消失。
     // 此处 items 仅是「轨道尚未加载回来」时的占位，勿把知识轨道写在这里（会与动态项重复）。
     { tab: "strategy_lab", label: "策略回测" },
-    { tab: "learn_tracks", label: "学习轨道管理" }] },
+    { tab: "learn_tracks", label: "学习轨道管理" },
+    { tab: "growth", label: "成长总览" }] },
 ];
 let CURRENT = { cat: NAV[0].key, tab: NAV[0].items[0].tab };
 
@@ -7444,7 +8163,7 @@ function catOf(tab) { return NAV.find((c) => c.items.some((i) => i.tab === tab))
 function renderNav() {
   const side = $("#sidenav");
   if (!side) return;
-  side.innerHTML = `<div class="rail-head">导航</div>` + NAV.map((c) => {
+  const navItem = (c) => {
     const open = c.key === CURRENT.cat;
     const items = itemsOfCat(c);   // 动态轨道（跟我学习 / 知识获取）在运行时由 kb_sources.yaml 决定
     return `<a class="nav-item${open ? " active" : ""}" data-cat="${escAttr(c.key)}" ` +
@@ -7452,7 +8171,13 @@ function renderNav() {
       `<span class="ni-ico" aria-hidden="true">${esc(c.icon || "")}</span>` +
       `<span class="ni-txt">${esc(c.label)}</span>` +
       `<span class="ni-n">${items.length}</span></a>`;
-  }).join("");
+  };
+  // 2026-10-12（P1 部分）：盘后项（复盘成长）沉到最底部，用「盘后」分隔线与盘中决策项隔开。
+  const main = NAV.filter((c) => !c.pinned);
+  const pinned = NAV.filter((c) => c.pinned);
+  side.innerHTML = `<div class="rail-head">导航</div>` + main.map(navItem).join("")
+    + (pinned.length ? `<div class="rail-sep" title="盘后动作（复盘 / 学习），盘中一般用不到"><span>盘后</span></div>`
+        + pinned.map(navItem).join("") : "");
   $$("#sidenav .nav-item").forEach((a) => {
     // 切大类时落到该类的第一个子板块；已是当前类则保持原选中项，避免"点一下跳回第一项"
     a.onclick = (e) => {
@@ -7661,7 +8386,7 @@ function screenerBoardsBody(st) {
       rows.sort((a, b) => (b[sortK] == null ? -9e9 : b[sortK]) - (a[sortK] == null ? -9e9 : a[sortK]));
       const trs = rows.map((r, i) => `<tr>
         <td class="wt-c1">${i + 1}</td>
-        <td><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+        <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
         <td>${esc(r.name || "")}</td>
         <td>${wtMoney(r.price)}</td><td>${wtPct(r.pct)}</td>
         <td>${r.turnover == null ? '<span class="muted">—</span>' : Number(r.turnover).toFixed(2) + "%"}</td>
@@ -7731,7 +8456,7 @@ function screenerDeclineBody(st) {
     } else if (mode === "top" && dc.data_mode === "top") {
       const rows = scCurrentRows(st).map((r, i) => `<tr>
         <td class="wt-c1">${i + 1}</td>
-        <td><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+        <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
         <td>${esc(r.name || "")}</td>
         <td>${wtMoney(r.price)}</td>
         <td>${wtPct(r.last_pct)}</td>
@@ -7751,7 +8476,7 @@ function screenerDeclineBody(st) {
     } else {
       const rows = scCurrentRows(st).map((r, i) => `<tr>
         <td class="wt-c1">${i + 1}</td>
-        <td><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+        <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
         <td>${esc(r.name || "")}</td>
         <td>${wtMoney(r.price)}</td>
         <td><b>${r.down_days}</b> / ${r.days} 天</td>
@@ -7843,16 +8568,49 @@ function rateTick(tick, n) {
          `<span class="tl-rt ${ret >= 0 ? "bull" : "bear"}">${ret > 0 ? "+" : ""}${ret.toFixed(2)}%</span>`;
 }
 /* 「最值得入手价」单元格（2026-10-05 王总需求）。
-   算法值可手填覆盖：失焦即存。dist＝现价/买点-1，正数＝还要跌这么多才够得着买点。 */
+   算法值可手填覆盖：失焦即存。dist＝现价/买点-1，正数＝还要跌这么多才够得着买点。
+
+   2026-10-12 按进哥拍板的 A+B 方案改（原「已到/跌破买点，可分批买入」被质疑：依据不清 + 与五维混读）：
+   A 文案与依据对齐：这一格是**纯价格结构单一口径**（近20日振幅回撤 + 近60日收盘20%分位支撑），
+     **不含**换手率/量能/资金流/情绪/板块 —— 所以不再用"可分批买入"这种行动建议口吻陈述，
+     并把"依据是什么 + 不含什么"写进 title，避免被当成"综合了五维之后的结论"。
+   B 双确认：只有「五维换手档位 ≥ A」**且** dist ≤ 0（价格到位）才给「可分批」字样；
+     档位不够就只报价格事实，并在 title 里说明为什么没给。
+     于是「可分批」= 价格到位 且 换手形态对，两套口径才真正联动。 */
 function rateIdealCell(r) {
   const v = (r.ideal_buy != null && r.ideal_buy !== "") ? Number(r.ideal_buy) : "";
   const dist = r.ideal_dist != null ? Number(r.ideal_dist) : null;
-  const cls = dist == null ? "" : (dist <= 0 ? "bp-at" : (dist <= 8 ? "bp-near" : "bp-wait"));
-  const tip = dist == null ? "数据不足" :
-    (dist <= 0 ? "已到/跌破买点，可分批" : `距买点还差 ${dist.toFixed(2)}%`);
+  const gap = r.ideal_gap != null ? Math.abs(Number(r.ideal_gap)) : null;
+  const grade = r.grade || "";
+  const strong = grade === "A+" || grade === "A";      // 五维档位 ≥ A
+  const reached = dist != null && dist <= 0;           // 价格到位（dist==0＝买点被截到现价，也算到位）
+  const buy = reached && strong;                       // 双确认
+  const cls = dist == null ? ""
+    : (buy ? "bp-buy" : (reached ? "bp-at" : (dist <= 8 ? "bp-near" : "bp-wait")));
+
+  // A：只陈述价格事实，不喊"买入"
+  let tip;
+  if (dist == null) tip = "数据不足";
+  else if (dist > 0) tip = `距买点还差 ${dist.toFixed(2)}%`;
+  else {
+    const px = dist < 0 ? `低于测算买点 ${Math.abs(dist).toFixed(2)}%` : "已到测算买点";
+    tip = buy ? `${px} · 可分批` : px;
+  }
+
+  // A：摊开依据 + 明说不含什么；B：讲清"给了/没给可分批"的理由
+  const algo = "测算买点 = 现价回撤"
+    + (gap == null ? "（近20日振幅×3，限5%~25%）" : gap.toFixed(1) + "%（近20日振幅×3，限5%~25%）")
+    + "，并与近60日收盘 20% 分位（支撑）取较高者，最高不超过现价；可手填覆盖（失焦保存）";
+  const scope = "⚠ 本格仅「价格结构」单一口径 —— 不含换手率、量能、资金流、情绪、板块";
+  const why = dist == null ? ""
+    : buy ? `五维换手档位 ${grade}（≥A）＋ 价格到位 → 双确认，给「可分批」`
+    : reached ? `五维换手档位 ${grade || "—"}（未达 A）→ 本格只报价格到位，不给「可分批」（口径 B：双确认才给）`
+    : "";
+  const title = [algo, scope, why].filter(Boolean).join("　｜　");
+
   return `<input class="bp-in ${cls}" data-bp-code="${escAttr(r.code)}" value="${v === "" ? "" : v.toFixed(2)}"
-      title="最值得入手价：默认按这只票近 20 日振幅 + 近 60 日支撑算，可手填覆盖（失焦自动保存）" />
-    <span class="bp-d ${cls}">${tip}</span>`;
+      title="${escAttr(title)}" />
+    <span class="bp-d ${cls}" title="${escAttr(title)}">${esc(tip)}</span>`;
 }
 /* 跟踪列：锚点日（首次标注，锁死）→ 今天，标注价 → 现价，以及涨跌幅。
    红＝已越过买点（踏空/轮到别人吃肉），绿＝还在买点下方（等得到，可买）。 */
@@ -7884,7 +8642,7 @@ function rateTrackCell(r, bm) {
 function rateRow(r, i, bm) {
   return `<tr>
     <td class="wt-c1">${i + 1}</td>
-    <td><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+    <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
     <td>${esc(r.name || "")}</td>
     <td>${r.price == null ? '<span class="muted">—</span>' : Number(r.price).toFixed(2)}</td>
     <td class="rate-ideal">${rateIdealCell(r)}</td>
@@ -7902,16 +8660,25 @@ function rateTable(d) {
   const bm = d.buy_map || {};
   const body = (d.rows || []).map((r, i) => rateRow(r, i, bm)).join("") ||
     `<tr><td colspan="10" class="muted wt-empty">全市场没有可评分的股票（行情源异常？），请稍后重试。</td></tr>`;
+  // 2026-10-12 A+B：把「最值得入手」这一格的两个层级讲清楚 ——
+  // 免得「可分批」被读成"综合了五维/资料库之后的结论"（进哥的原始质疑）。
+  const legend = `<div class="rate-bp-legend">
+    <b>最值得入手</b> 这一格是<b>纯价格结构</b>算法：现价回撤（近 20 日振幅×3，限 5%~25%）与
+    近 60 日收盘 20% 分位（支撑）取较高者、且不超过现价 —— 只看日K，
+    <b>不含换手率 / 量能 / 资金流 / 情绪 / 板块</b>。
+    <span class="lg-buy">可分批</span> = <b>双确认</b>：价格已到测算买点 <b>且</b> 右侧「档位」达到 A / A+（五维换手综合 ≥85 分）；
+    档位不够时只报「已到测算买点」、不给「可分批」。鼠标停在该格上可看这只票的具体依据。
+  </div>`;
   return `<div class="wt-tw"><table class="wt-tb sc-dn-tb"><thead><tr>
     <th>#</th><th>代码</th><th>名称</th><th>现价</th><th>最值得入手</th><th>跟踪（锚点→今）</th>
     <th>位置分位</th><th>入手概率</th><th>档位</th><th>提示（场景判据 · 五维分解 · 动作建议）</th>
-  </tr></thead><tbody>${body}</tbody></table></div>`;
+  </tr></thead><tbody>${body}</tbody></table></div>` + legend;
 }
 function rateDayCard(day, open) {
   const isToday = day.snap_date === new Date().toISOString().slice(0, 10);
   const rows = (day.items || []).map((it) => `<tr>
     <td class="wt-c1">${esc(it.rank)}</td>
-    <td><a class="wt-sym" data-wt-open="${escAttr(it.code)}" href="javascript:void(0)">${escAttr(it.code)}</a></td>
+    <td><button type="button" class="wt-sym" data-wt-open="${escAttr(it.code)}">${escAttr(it.code)}</button></td>
     <td>${esc(it.name || "")}</td>
     <td>${it.price == null ? '<span class="muted">—</span>' : Number(it.price).toFixed(2) + vsTargetSpan(it.track && it.track.diff)}</td>
     ${RATE_TTL.map((n) => `<td class="tl-cell">${rateTick(it.ticks && it.ticks[String(n)], n)}${rateTickSub(it.ticks && it.ticks[String(n)])}</td>`).join("")}
@@ -8403,7 +9170,7 @@ function renderScreener() {
     const qualCols = hasQualData ? qualKeys : [];
     const rows = list.map((r, i) => `<tr>
       <td class="wt-c1">${i + 1}</td>
-      <td data-sc-col="code"><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+      <td data-sc-col="code"><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
       <td data-sc-col="name">${esc(r.name || "")}</td><td data-sc-col="industry">${esc(r.industry || "")}</td>
       <td data-sc-col="pe">${wtMoney(r.pe)}</td><td data-sc-col="pb">${wtMoney(r.pb)}</td><td data-sc-col="ps">${wtMoney(r.ps)}</td>
       <td data-sc-col="peg">${wtMoney(r.peg)}</td><td data-sc-col="pcf">${wtMoney(r.pcf)}</td>
@@ -8573,7 +9340,7 @@ function renderMoneyflow() {
   if (mf.mode === "rank") {
     const rows = (d.rows || []).map((r, i) => `<tr>
       <td class="wt-c1">${i + 1}</td>
-      <td><a class="wt-sym" data-wt-open="${escAttr(r.code)}" href="javascript:void(0)">${esc(r.code)}</a></td>
+      <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
       <td>${esc(r.name || "")}</td>
       <td>${wtMoney(r.price)}</td><td>${wtPct(r.pct)}</td>
       <td>${featMoney(r.main_net)}</td><td>${wtPct(r.main_pct)}</td>
@@ -8582,7 +9349,13 @@ function renderMoneyflow() {
       d.negative_cache
         ? `<br><span class="wt-tip wt-neg">东财源本次不可达，已按 <b>30 分钟负缓存</b>直接返回（${esc(d.cached_at || "")} 记下，还剩约 ${esc(d.neg_min_left ?? "")} 分钟）。点「强制重试」可立刻重打一次。</span>`
         : ""}</td></tr>`;
-    body = `<div class="wt-tw"><table class="wt-tb"><thead><tr>
+    // 2026-10-09（P0）：主力净流入榜是**东财日终报表（T-1）**口径，表头的「最新价」其实是
+    // 该数据日的收盘价。旧版本整屏没有任何日期，王总把「界面刚刷新」误当成「价是今天的」。
+    // 现强制在表格上方标出数据归属日（in_intraday=true 时改标「盘中快照」）。
+    const rkDay = d.data_date || d.trade_date || "";
+    body = `<div class="dd-bar">${dataDayBadge(rkDay, { intraday: d.is_intraday === true, time: d.data_time })}
+        <span class="dd-note">本榜为东财<b>日终报表</b>口径，「最新价」是该数据日的收盘/快照价，<b>不是当前实时价</b>。</span></div>
+      <div class="wt-tw"><table class="wt-tb"><thead><tr>
       <th>#</th><th>代码</th><th>名称</th><th>最新价</th><th>涨跌幅</th>
       <th>主力净流入</th><th>净占比</th><th>超大单</th><th>大单</th>
     </tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -8628,9 +9401,9 @@ function renderMoneyflow() {
         return `<span class="bf-mems">` + ms.map((m) => {
           const p = m.pct == null ? null : Number(m.pct);
           const cls = p == null ? "" : (p > 0 ? "up" : (p < 0 ? "dn" : ""));
-          return `<a class="bf-mem" data-wt-open="${escAttr(m.code)}" href="javascript:void(0)"` +
+          return `<button type="button" class="bf-mem" data-wt-open="${escAttr(m.code)}"` +
             ` title="${escAttr(m.code + " " + m.name + (m.price != null ? "  现价 " + m.price : ""))}">` +
-            `${esc(m.name)}${p == null ? "" : `<i class="${cls}">${p > 0 ? "+" : ""}${p.toFixed(2)}%</i>`}</a>`;
+            `${esc(m.name)}${p == null ? "" : `<i class="${cls}">${p > 0 ? "+" : ""}${p.toFixed(2)}%</i>`}</button>`;
         }).join("") + `</span>`;
       }
       return r.leader
@@ -8720,6 +9493,7 @@ function renderMoneyflow() {
       <button class="btn primary" id="mfGo">查询</button></div>
       ${r.ok ? `<div class="feat-kpis">${cell(r.main_net, "主力净流入")}${cell(r.huge_net, "超大单")}
         ${cell(r.big_net, "大单")}${cell(r.mid_net, "中单")}${cell(r.small_net, "小单")}</div>
+        <div class="dd-bar">${dataDayBadge(r.date, { intraday: r.is_intraday === true, time: r.data_time })}</div>
         <div class="hint">最新交易日：${esc(r.date || "—")}</div>
         <div class="wt-tw"><div class="feat-recent-row">近 6 日：${recent || "—"}</div></div>`
         : `<div class="hint wt-foot">${r.reason || "请输入代码查询个股主力资金净流入（超大单/大单/中单/小单）。"}</div>${r.tip ? `<div class="hint wt-foot">提示：${esc(r.tip)}</div>` : ""}`}`;
@@ -8731,7 +9505,7 @@ function renderMoneyflow() {
     <div class="wt-tabs">${tabs}</div>${body}
     <div class="hint wt-foot">${mf.mode === "board"
       ? "板块资金流：快照来自新浪财经（主源）/ 东方财富（兜底），曲线优先东方财富当日分钟、被风控时回退本机采样累积。每 2 分钟自动刷新（非实时）；主力净流入正为流入、负为流出。"
-      : `主力净流入为机构/大单净买入口径；正为净流入、负为净流出。数据为东财推送，仅供参考。${d && d.ok === false ? "如长时间失败可点「🔄 强制重试」切换 ut，或检查代理/VPN 是否拦截 push2.eastmoney.com。" : ""}`}</div>`;
+      : `主力净流入为机构/大单净买入口径；正为净流入、负为净流出。数据为东财<b>日终报表</b>推送（非盘中实时），归属日见表格上方「数据日」标注，仅供参考。${d && d.ok === false ? "如长时间失败可点「🔄 强制重试」切换 ut，或检查代理/VPN 是否拦截 push2.eastmoney.com。" : ""}`}</div>`;
   if (mf.mode === "board") { renderBoardFlowCurve(); bindBoardFlowControls(); }
   else { stopBoardFlowAuto(); }
   $$("#p-moneyflow [data-mf-mode]").forEach((el) => el.onclick = () => {
@@ -9361,7 +10135,7 @@ function renderDiag() {
         `<span class="feat-recent"><b>${esc(x.date || "")}</b> ${featMoney(x.main_net)}</span>`).join("");
       mfSec = `<div class="feat-kpis">${cell(m.main_net, "主力净流入")}${cell(m.huge_net, "超大单")}
         ${cell(m.big_net, "大单")}${cell(m.mid_net, "中单")}${cell(m.small_net, "小单")}</div>
-        <div class="hint">最新交易日：${esc(m.date || "—")}（净占比 ${wtPct(m.main_pct)}）· 数据源：${esc(m.source_label || m.source || "—")}</div>
+        <div class="hint">${dataDayBadge(m.date, { intraday: m.is_intraday === true, time: m.data_time })}最新交易日：${esc(m.date || "—")}（净占比 ${wtPct(m.main_pct)}）· 数据源：${esc(m.source_label || m.source || "—")}</div>
         <div class="wt-tw"><div class="feat-recent-row">近 ${m.recent.length} 日：${recent || "—"}</div></div>`;
     } else {
       mfSec = `<div class="hint wt-foot">资金流向暂缺：${esc(m.reason || "无数据")}</div>`;
@@ -9968,7 +10742,7 @@ function renderResearch() {
     <td>${r.has_target ? wtMoney(r.target) : '<span class="muted" title="该报告未给目标价（业内新版趋势）">—</span>'}</td>
     <td>${r.pe != null ? wtMoney(r.pe) : '<span class="muted">—</span>'}</td>
     <td>${esc(r.date || "")}</td>
-    <td>${r.stock_code ? `<a class="wt-sym" data-feat-open="${escAttr(r.stock_code)}" href="javascript:void(0)">${esc(r.stock_code)}</a> ${esc(r.stock || "")}` : esc(r.stock || "")}</td>
+    <td>${r.stock_code ? `<button type="button" class="wt-sym" data-feat-open="${escAttr(r.stock_code)}">${esc(r.stock_code)}</button> ${esc(r.stock || "")}` : esc(r.stock || "")}</td>
   </tr>`).join("") || `<tr><td colspan="7" class="muted wt-empty">${d.ok === false ? "接口异常：" + esc(d.reason || "未取到数据") : (rs.onlyTar ? "勾选状态下无带目标价研报。取消勾选可看全部（多数券商新版报告用预测 PE 替代目标价）。" : "暂无研报数据。")}</td></tr>`;
   const rtHtml = rt && rt.ok ? (() => {
     const dist = rt.dist || {}, tot = rt.total_orgs || 1;
@@ -10046,7 +10820,7 @@ function renderMultiquote() {
     const c = (r.code || "").trim();
     const isA = /^\d{6}$/.test(c);                                  // A 股 / ETF / 基金
     const isHK = /^\d{4,5}$/.test(c) && Number(c) > 0 && Number(c) <= 99999;  // 港股
-    if (isA || isHK) return `<a class="wt-sym" data-feat-open="${escAttr(c)}" href="javascript:void(0)">${esc(c)}</a>`;
+    if (isA || isHK) return `<button type="button" class="wt-sym" data-feat-open="${escAttr(c)}">${esc(c)}</button>`;
     if (c) return `<span class="wt-sym-disabled" title="跨市场标的暂不在详情范围（美股/债券）">${esc(c)}</span>`;
     return "—";
   };
@@ -10477,12 +11251,30 @@ function renderPolicy() {
 /* ---------- 二级导航：内容区顶部的横向平铺子板块 ----------
    只重绘横条，不碰面板、不写 hash。与 selectNav 分开是为了让「学习轨道列表异步到达
    → 横条多出一项」这件事不会反向触发面板切换而形成递归。 */
+/* 2026-10-12 体验审计 P2「命名偏行话」：少数真的需要一句大白话的项，悬停即见释义。
+   只补确实容易误解的，不把整条横条塞满说明（报告：首次出现给一句释义即可）。 */
+const TAB_HINTS = {
+  stocks: "被帖子讨论最多的股票。讨论多 ≠ 看好 —— 卡片上另有「看好 / 看空 / 分歧」标注。",
+  watch_brief: "你自己的关注池今天有没有事：到价 / 异动 / 被看空 / 落在主线。",
+  watch_alerts: "到价提醒：给关注池的票设了目标价后，价格触及时在这里报信（没设目标价就不会响）。",
+  rate: "入手概率 = 换手率等技术面规则给全市场打的分档排名，是规则的历史胜率参考，不是对个股的预测。",
+  screener: "智能选股 = 按多条件（估值 / 持股 / 质量 / 值得率）在 5000+ 只里筛候选，再人工判断。",
+  cohold: "近5日共同买入 = 看「最近谁同时动手了」（动作时点）；与「共同持仓共识」的「现在还有谁拿着」不是一回事。",
+  consensus: "共同持仓共识 = 「现在还有多少人一起拿着」，按人数排序。",
+  extref_rank: "信源胜率榜 = 各荐股信源的历史命中率排行，用来判断谁说的话更值得听。",
+  extref_soft: "荐股验证报告 = 外部投顾/平台的荐股信号，逐条回测它们后来到底涨没涨。",
+  smart_money: "把选手 / 牛散 / 共识 / 近5日共买等多个名单合成一条结论：多人同时买的方向与个股。",
+  info_brief: "把政策 / 国际 / 海外 / 公告 / 快讯压成一屏：今日消息面 Top5 与影响板块。",
+  today: "一屏四卡：今日方向 / 机会 / 风险 / 我的票提示 —— 打开软件第一眼就该看这个。",
+};
+
 function paintSubnav(cat, tab) {
   const bar = $("#subnav");
   if (!bar) return;
   const items = itemsOfCat(cat);
   bar.innerHTML = items.map((i) =>
     `<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" ` +
+    `title="${escAttr(TAB_HINTS[i.tab] || i.label)}" ` +
     `href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`).join("") +
     // 带知识库轨道的分类（学习中心）横条右端保留知识库上下文（状态 chip + 立即吸取）
     (DYN_CATS[cat.key]
@@ -10564,6 +11356,17 @@ function selectNav(catKey, tabKey, push) {
   // 各有专属渲染，不走 ensureKbDocFor —— 否则会给 buffett 误建 #p-learn_buffett 并发起无意义的 KB 请求。
   if (DYN_CATS[cat.key] && /^learn_/.test(tab) && tab !== "learn_tracks") ensureKbDocFor(docKeyOfTab(tab));
   if (tab === "learn_tracks") renderKbTracks();
+  // 今日决策（2026-10-12 体验审计 P0-A）：新的默认落地页 —— 一屏四卡（方向/机会/风险/我的票）
+  if (tab === "today") {
+    if (TODAY.data) renderToday();
+    else loadToday().catch((e) => reportLoadError("今日决策", e));
+  }
+  // 三个「结论页」（P0-D/E/F）：消息面汇总 / 聪明钱共识 / 我的票·今日提示
+  if (tab === "info_brief" || tab === "smart_money" || tab === "watch_brief") {
+    const _k = { info_brief: "info", smart_money: "money", watch_brief: "watch" }[tab];
+    if (BRIEF[_k]) renderBrief(_k);
+    else loadBrief(_k).catch((e) => reportLoadError(tab, e));
+  }
   // 今日看板：决策入口（默认落地页）——进入时按需（重）渲染，兜住"先拿数据、后面板才建"的时序
   if (tab === "dashboard") {
     if (DASH.data) renderDashboard();
@@ -10601,6 +11404,11 @@ function selectNav(catKey, tabKey, push) {
     if (LAB.data) renderStrategyLab();
     else loadStrategyLab();
   }
+  // 成长总览（growth 面板）：进入时按需（重）渲染 —— 五区 Tab 在面板内切换，不占用顶部横条
+  if (tab === "growth") {
+    if (GROWTH.data) renderGrowth();
+    else loadGrowth().catch((e) => reportLoadError("成长总览", e));
+  }
   // 入手概率（2026-10-05 新板块，与「智能选股」并列）：进入即渲染，已拿过数据就只重绘
   if (tab === "rate") {
     if (FEAT.rate.data || FEAT.rate.error) renderRate();
@@ -10624,6 +11432,320 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "policy") loadPolicy();
   // 2026-09 行业龙头全景（王总拍板）：进入即拉真实市值排名；沙箱 available:False 时面板只提示
   if (tab === "industry-leaders") loadIndustryLeaders();
+  // 2026-10-11 王总第三回合：B站视频级分堆三处新面板
+  // ① 市场情绪（info）；③ 技术·价值教学（learn）；② B站博主分组框（learn）
+  if (tab === "bili_sentiment") renderBiliPile("sentiment", "#p-bili_sentiment", true);
+  if (tab === "bili_techvalue") loadBiliMethods();
+  if (tab === "bili_authors") renderBiliAuthors();
+}
+
+/* ================= 复盘成长 · 成长总览（growth 面板，2026-10-09 新增）=============
+   数据全部来自现有只读 API 复用 + 1 个新增只读 API（/api/growth/adjust_log）：
+     · /api/growth/adjust_log  → 权重演化时序 + 最近调整（A 区曲线 + D 区最近调整共用）
+     · /api/prediction/scores  → 各信号当前权重（D 区权重条）
+     · /api/prediction/track   → 逐日命中率轨迹（A 区右图，窗口可切）
+     · /api/prediction/today   → 今日若重跑预览（D 区下，只读不重跑）
+   隔离纪律：knowledge_source / growth_notes 是本期预留隔离表，前端只读占位，不 JOIN 预测表；
+   冲突理论【不合并、不加权平均】，严格按 source_key 并排展示（见 renderGrowthC 注释）。 */
+
+// 信号色彩板：12 色，顺序【严格对齐】predictor.SIGNALS，保证权重线颜色与信号一一对应。
+// 不引图表库、不新造整套色系，仅作为十二路信号的分类标识色。
+const GROWTH_PALETTE = ["#2563eb", "#16a34a", "#dc2626", "#d97706", "#7c3aed", "#0891b2",
+                        "#db2777", "#65a30d", "#ea580c", "#0d9488", "#9333ea", "#475569"];
+
+const GROWTH = { data: null, error: null, zone: "A", hitWindow: 3 };
+
+function loadGrowth() {
+  const box = $("#p-growth");
+  // 2026-10-12 修潜伏 bug：本函数被 selectNav 以 `loadGrowth().catch(...)` 调用，
+  // 早退必须返回 Promise —— 裸 `return`（undefined）会让 selectNav 抛
+  // 「Cannot read properties of undefined (reading 'catch')」，症状是点某个页签后
+  // **整站后续页签全部切不动**（导航类护栏 verify_nav 正是被它打崩的）。
+  if (!box) return Promise.resolve();
+  if (GROWTH.data) { renderGrowth(); return Promise.resolve(); }
+  box.innerHTML = `<div class="empty">正在读取成长数据…</div>`;
+  // 隔离表（knowledge_source / growth_notes）本期未抓取，无数据也安全；
+  // 这里把 sources 默认置空数组，隔离开关 UI 据此渲染空态（不另起写 API，保持只读契约单一）。
+  // ⚠️ 必须 return：调用方是 `loadGrowth().catch(...)`，不 return 就是 undefined.catch → 抛错。
+  return Promise.all([
+    api("/api/growth/adjust_log").catch((e) => ({ ok: false, error: String(e) })),
+    api("/api/prediction/scores").catch((e) => ({ ok: false, error: String(e) })),
+    api("/api/prediction/track").catch((e) => ({ ok: false, error: String(e) })),
+    api("/api/prediction/today").catch((e) => ({ ok: false, error: String(e) })),
+  ]).then(([adj, scores, track, today]) => {
+    GROWTH.data = { adj, scores, track, today, sources: [] };
+    renderGrowth();
+  }).catch((e) => reportLoadError("成长总览", e));
+}
+
+function growthEmpty(msg) { return `<div class="empty">${esc(msg || "暂无数据")}</div>`; }
+
+function renderGrowth() {
+  const box = $("#p-growth");
+  if (!box) return;
+  const d = GROWTH.data;
+  if (!d) { box.innerHTML = growthEmpty("成长数据加载中…"); return; }
+  const adj = d.adj || {};
+  if (!adj.ok) {
+    box.innerHTML = growthEmpty("成长面板数据加载失败：" + esc((adj && adj.error) || "无数据"));
+    return;
+  }
+  const zones = [
+    { z: "A", label: "A 判断进化" },
+    { z: "D", label: "D 校准自检" },
+    { z: "B", label: "B 教训沉淀*" },
+    { z: "C", label: "C 知识轨道*" },
+    { z: "E", label: "E 论点验证*" },
+  ];
+  const tabs = zones.map((x) =>
+    `<button class="gzone-tab${GROWTH.zone === x.z ? " active" : ""}" onclick="growthSetZone('${x.z}')">${esc(x.label)}</button>`
+  ).join("");
+  box.innerHTML = `
+    <div class="growth-head">
+      <div class="growth-title">复盘成长 · 成长总览</div>
+      <div class="growth-sub">看得见自己在成长、能沉淀教训、能整合外部知识（A / D 为本期权读区，B / C / E 为占位）</div>
+    </div>
+    <div class="gzone-tabs">${tabs}</div>
+    <div class="gzone-body" id="gzoneBody"></div>`;
+  const body = $("#gzoneBody");
+  if (GROWTH.zone === "A") renderGrowthA(body);
+  else if (GROWTH.zone === "D") renderGrowthD(body);
+  else if (GROWTH.zone === "B") renderGrowthB(body);
+  else if (GROWTH.zone === "C") renderGrowthC(body);
+  else renderGrowthE(body);
+}
+
+function growthSetZone(z) { GROWTH.zone = z; renderGrowth(); }
+
+function growthSetWindow(w) {
+  GROWTH.hitWindow = w;
+  if (GROWTH.zone === "A") { const b = $("#gzoneBody"); if (b) renderGrowthA(b); }
+}
+
+/* 手绘 SVG：多序列折线（固定 viewBox，复用全局令牌，不引图表库）。
+   series: [{ key, color, points:[{x,y}] }]，x/y 已归一化到 [0,1]（x:横向比例, y:纵向比例）。
+   纪律：<2 点不连线；<3 点画虚线（样本不足诚实呈现）。 */
+function growthSvg(series, opts) {
+  opts = opts || {};
+  const W = 680, H = 240, PADL = 38, PADR = 12, PADT = 12, PADB = 26;
+  const plotW = W - PADL - PADR, plotH = H - PADT - PADB;
+  const xAt = (x) => PADL + x * plotW;
+  const yAt = (y) => PADT + (1 - y) * plotH;
+  let grid = "";
+  for (let i = 0; i <= 4; i++) {
+    const gy = (PADT + (i / 4) * plotH).toFixed(1);
+    grid += `<line x1="${PADL}" y1="${gy}" x2="${W - PADR}" y2="${gy}" stroke="var(--border,#e2e8f0)" stroke-width="1"/>`;
+  }
+  let lines = "";
+  (series || []).forEach((s) => {
+    const pts = (s.points || []).filter((p) => isFinite(p.x) && isFinite(p.y));
+    if (pts.length < 2) return;                 // <2 点不连线（占位由调用方负责）
+    const poly = pts.map((p) => `${xAt(p.x).toFixed(1)},${yAt(p.y).toFixed(1)}`).join(" ");
+    const dashed = pts.length < 3 ? ` stroke-dasharray="4 3"` : "";   // <3 点画虚线
+    const tip = (s.name || s.key || "") + " 序列";
+    lines += `<polyline points="${poly}" fill="none" stroke="${s.color || "#888"}" stroke-width="1.8" ` +
+      `stroke-linejoin="round" stroke-linecap="round"${dashed}><title>${escAttr(tip)}</title></polyline>`;
+  });
+  return `<svg class="growth-svg" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" ` +
+    `role="img" aria-label="${escAttr(opts.label || "曲线")}">${grid}${lines}</svg>`;
+}
+
+/* ---- A 区：判断进化轨迹 ---- */
+function renderGrowthA(body) {
+  const adj = GROWTH.data.adj || {};
+  const track = GROWTH.data.track || {};
+  const sigs = adj.signals || [];
+  const series = adj.weights_series || {};
+  const caliber = adj.caliber || {};
+
+  // 左：权重演化曲线（动态按 signals.length 维画折线，绝不硬编码 6/12）
+  const maxW = Math.max(0.34, ...sigs.map((s) =>
+    (series[s.key] || []).reduce((m, p) => Math.max(m, p.weight || 0), 0)));
+  const weightLines = sigs.map((s, i) => {
+    const arr = series[s.key] || [];
+    if (!arr.length) return null;
+    const pts = arr.map((p, k) => ({ x: arr.length > 1 ? k / (arr.length - 1) : 0,
+                                      y: (p.weight || 0) / maxW }));
+    return { key: s.key, color: GROWTH_PALETTE[i % GROWTH_PALETTE.length], points: pts,
+             name: s.name, icon: s.icon };
+  }).filter(Boolean);
+  const drawable = weightLines.filter((l) => l.points.length >= 2);   // <2 点不画
+  const weightSvg = drawable.length
+    ? growthSvg(drawable, { label: "信号权重演化" })
+    : growthEmpty("尚无足够权重演化样本（需 ≥2 个调整点；样本<3 画虚线，<2 不连线）");
+  const legend = sigs.map((s, i) => {
+    const has = (series[s.key] || []).length > 0;
+    return `<span class="gw-legend-item${has ? "" : " gw-dim"}">` +
+      `<i style="background:${GROWTH_PALETTE[i % GROWTH_PALETTE.length]}"></i>${esc(s.icon || "")} ${esc(s.name || s.key)}</span>`;
+  }).join("");
+
+  // 右：每日命中率轨迹（T+1/3/5/10 可切）
+  const days = (track.days || []).filter((dy) => dy && dy.all && dy.all["t" + GROWTH.hitWindow] &&
+    dy.all["t" + GROWTH.hitWindow].hit_rate != null);
+  const hitPts = days.map((dy, k) => {
+    const v = Math.max(0, Math.min(1, dy.all["t" + GROWTH.hitWindow].hit_rate || 0));
+    return { x: days.length > 1 ? k / (days.length - 1) : 0, y: v };
+  });
+  const hitSvg = hitPts.length >= 2
+    ? growthSvg([{ key: "hit", color: "var(--accent,#2563eb)", points: hitPts }],
+                { label: "每日命中率 T+" + GROWTH.hitWindow })
+    : growthEmpty("尚无 T+" + GROWTH.hitWindow + " 命中率数据");
+
+  const winBtns = [1, 3, 5, 10].map((w) =>
+    `<button class="pred-pill${GROWTH.hitWindow === w ? " on" : ""}" onclick="growthSetWindow(${w})">T+${w}</button>`).join("");
+
+  body.innerHTML = `
+    <div class="growth-split">
+      <div class="card">
+        <div class="card-h">① 信号权重演化曲线<span class="card-hint">横轴=调整日期，纵轴=权重</span></div>
+        ${weightSvg}
+        <div class="gw-legend">${legend}</div>
+      </div>
+      <div class="card">
+        <div class="card-h">② 每日预测命中率轨迹</div>
+        <div class="gw-win">窗口：${winBtns}</div>
+        ${hitSvg}
+      </div>
+    </div>
+    <div class="growth-note">${esc(caliber.label || "权重口径说明暂缺")}　·　曲线只按近 2 年样本统计；样本&lt;3 点画虚线，&lt;2 点不连线。</div>`;
+}
+
+/* ---- D 区：校准自检 ---- */
+function renderGrowthD(body) {
+  const adj = GROWTH.data.adj || {};
+  const scores = GROWTH.data.scores || {};
+  const today = GROWTH.data.today || {};
+  const recent = adj.recent_adjusts || [];
+
+  // 上：各信号当前权重条（按 kind 分组）
+  const groupBars = (arr, kindLabel) => {
+    const list = (arr || []).slice(0, 16);
+    if (!list.length) return `<div class="gw-grp"><div class="gw-grp-h">${esc(kindLabel)}</div>${growthEmpty("暂无" + kindLabel + "权重")}</div>`;
+    const bars = list.map((s) => {
+      const w = Math.round((s.weight || 0) * 100);
+      const meta = (GROWTH.data.adj.signals || []).find((x) => x.key === s.key);
+      const icon = meta ? meta.icon : "•";
+      return `<div class="pred-sb-row">
+        <span class="pred-sb-ic">${esc(icon)}</span>
+        <span class="pred-sb-nm">${esc(s.name || s.key)}</span>
+        <span class="pred-sb-bar"><i style="width:${Math.min(100, w)}%"></i></span>
+        <span class="pred-sb-v">权${w}%</span>
+      </div>`;
+    }).join("");
+    return `<div class="gw-grp"><div class="gw-grp-h">${esc(kindLabel)}（${list.length}）</div>${bars}</div>`;
+  };
+  const barsHtml = groupBars(scores.signals, "信号权重") +
+                   groupBars(scores.schools, "流派命中") +
+                   groupBars(scores.strategies, "策略命中");
+
+  // 中：最近调整（before → after + 原因）
+  const adjHtml = recent.length
+    ? recent.map((a) => {
+        const meta = (GROWTH.data.adj.signals || []).find((x) => x.key === a.signal_key);
+        const name = meta ? meta.name : a.signal_key;
+        const b = a.weight_before == null ? "—" : (a.weight_before * 100).toFixed(1) + "%";
+        const af = a.weight_after == null ? "—" : (a.weight_after * 100).toFixed(1) + "%";
+        return `<div class="gw-adj-row">
+          <span class="gw-adj-sig">${esc(name || a.signal_key || "")}</span>
+          <span class="gw-adj-w">${b} → ${af}</span>
+          <span class="gw-adj-reason">${esc(a.reason || "")}</span>
+          <span class="gw-adj-date">${esc((a.log_date || "").slice(0, 10))}</span>
+        </div>`;
+      }).join("")
+    : growthEmpty("尚无权重调整记录");
+
+  // 下：今日若重跑预览（只读不重跑）
+  let rerunHtml;
+  if (!today || today.ok === false) rerunHtml = growthEmpty("今日预测数据加载失败");
+  else if (!today.has_data) rerunHtml = growthEmpty("尚无预测记录，无法预览「今日若重跑」");
+  else {
+    const items = today.items || [];
+    const mv = today.market_view || "（无研判）";
+    rerunHtml = `<div class="gw-rerun">
+      <div class="gw-rerun-head"><span class="gw-badge">只读预览 · 未实际重跑</span>
+        <span class="gw-muted">运行日 ${esc((today.run_date || "").slice(0, 10))} · 条目 ${items.length}</span></div>
+      <div class="gw-rerun-mv">${esc(mv)}</div>
+      <div class="gw-rerun-hint">当前权重快照见上方「信号权重」；要真正重跑请到「每日预测」面板点「重新生成」。</div>
+    </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="card">
+      <div class="card-h">① 各信号当前权重（按 kind 分组）</div>
+      ${barsHtml}
+    </div>
+    <div class="card">
+      <div class="card-h">② 最近一次权重调整（before → after + 原因）</div>
+      ${adjHtml}
+    </div>
+    <div class="card">
+      <div class="card-h">③ 今日若重跑会怎么判（预览）</div>
+      ${rerunHtml}
+    </div>`;
+}
+
+/* ---- B 区：教训沉淀（占位）---- */
+function renderGrowthB(body) {
+  body.innerHTML = `
+    <div class="card">
+      <div class="card-h">B 教训沉淀 · 自动「人话卡片」<span class="card-hint">P1 占位</span></div>
+      ${growthEmpty("暂无自动教训卡片（后续由 adjust_log.reason + 回测结论聚合生成）")}
+    </div>
+    <div class="card">
+      <div class="card-h">B 教训沉淀 · 我的手工笔记<span class="card-hint">growth_notes 占位</span></div>
+      <textarea class="gw-notes" placeholder="本期 growth_notes 仅建表 + 占位，笔记增删改接口留待下一迭代（不混入只读 adjust_log）" disabled></textarea>
+      <div class="gw-hint">笔记接口（POST/GET/DELETE /api/growth/notes）为 P1 轻量项，本期不实现，确保只读 API 与写 API 隔离。</div>
+    </div>`;
+}
+
+/* ---- C 区：知识轨道整合 + 外部知识武器库（隔离）---- */
+function renderGrowthC(body) {
+  const sources = GROWTH.data.sources || [];
+  // ⚠️ 隔离纪律（代码注释级约束）：冲突理论【不合并、不加权平均】，严格按 source_key 并排展示，
+  // 每条标注来源与 trust_score；仅 promoted=1（用户显式确认）才允许经二次确认+可回滚流程回写
+  // predictor_score.weight（P2 才实现，本期仅留字段与开关占位）。
+  const cats = ["technical_emotion", "macro_strategy"];
+  const catHtml = cats.map((c) => {
+    const rows = sources.filter((s) => s.category === c);
+    const list = rows.length
+      ? rows.map((s) => {
+          const ts = s.trust_score == null ? 0 : Math.round(s.trust_score * 100);
+          return `<div class="gw-src-row">
+            <span class="gw-src-key">${esc(s.source_key || "")}</span>
+            <span class="gw-src-name">${esc(s.name || "")}</span>
+            <span class="gw-switch ${s.enabled ? "on" : "off"}" title="独立开关，停用仅置 enabled=0，不影响其它来源">${s.enabled ? "启用" : "停用"}</span>
+            <span class="gw-trust" title="该来源可信度评分（0~1），验证结果只写本列，默认不回写 predictor_score.weight">可信度 ${ts}%</span>
+          </div>`;
+        }).join("")
+      : growthEmpty("暂无「" + esc(c) + "」类外部知识源（本期未接入抓取，预留隔离位）");
+    return `<div class="gw-cat"><div class="gw-cat-h">外部知识武器库 · ${esc(c)}</div>${list}</div>`;
+  }).join("");
+
+  body.innerHTML = `
+    <div class="card">
+      <div class="card-h">C 知识轨道整合 · 外部知识武器库<span class="card-hint">隔离机制 · P1 占位</span></div>
+      ${catHtml}
+      <div class="gw-hint">隔离纪律：不同来源的冲突理论【不合并、不加权平均】，严格按 source_key 并排展示并标注来源与可信度。
+        仅当 promoted=1（用户显式确认）才允许经二次确认 + 可回滚流程回写 predictor_score.weight（P2 才实现，本期仅留字段与开关占位）。</div>
+    </div>`;
+}
+
+/* ---- E 区：论点验证闭环（占位）---- */
+function renderGrowthE(body) {
+  body.innerHTML = `
+    <div class="card">
+      <div class="card-h">E 论点验证闭环<span class="card-hint">P1 占位</span></div>
+      <div class="gw-flow">
+        <div class="gw-flow-step">① 博主论点</div>
+        <div class="gw-flow-arrow">→</div>
+        <div class="gw-flow-step">② 信号化</div>
+        <div class="gw-flow-arrow">→</div>
+        <div class="gw-flow-step">③ 回测 / 实盘</div>
+        <div class="gw-flow-arrow">→</div>
+        <div class="gw-flow-step">④ 沉淀</div>
+      </div>
+      ${growthEmpty("论点验证闭环本期仅占位（依赖 P2 抓取 + 提权闭环，暂不实现）")}
+    </div>`;
 }
 
 /* ================= 巴菲特选股策略（学习板块单列） =================
@@ -10949,7 +12071,9 @@ function tracksOfCat(catKey) {
 function itemsOfCat(cat) {
   if (!cat) return [];
   if (!DYN_CATS[cat.key]) return cat.items;
-  const tracks = tracksOfCat(cat.key);
+  // 2026-10-11 王总第三回合②：B站 UP 主（bili_*）不再逐个占横条（"一人一横条很累、不清晰"），
+  // 统一收进「B站博主」分组框（renderBiliAuthors 按类聚合），故从扁平横条里剔除。
+  const tracks = tracksOfCat(cat.key).filter((d) => !/^bili_/.test(d.docKey || ""));
   // 学习中心：动态知识轨道（内容优先）在前，固定子板块在后。
   // ⚠️ 陷阱（设计文档 §2 决策 5）：此分支用 tracks.concat(...) 重建子项，写在 NAV.learn.items
   // 里的静态项会被**整体丢弃**。故固定子板块必须在此**显式并回**，否则轨道一加载回来，
@@ -10957,7 +12081,12 @@ function itemsOfCat(cat) {
   const fixed = [
     { tab: "strategy_lab", label: "策略回测" },
     { tab: "buffett", label: "巴菲特选股" },
+    // 2026-10-11 王总第三回合②：B站 UP 主按类分组框（点名开该人知识沉淀）
+    { tab: "bili_authors", label: "B站博主" },
+    // 2026-10-11 王总第三回合③：技术面/价值面两堆（3306/397 条）独立入口
+    { tab: "bili_techvalue", label: "技术·价值教学" },
     { tab: "learn_tracks", label: "学习轨道管理" },
+    { tab: "growth", label: "成长总览" },
   ];
   // 固定子板块（策略回测 / 巴菲特选股 / 学习轨道管理）无论轨道是否加载回来都要在场：
   // 否则深链接 #learn/buffett 在 KB 轨道未拉回时会被 items.some 判为未知、静默回退到首项（策略回测），
@@ -11006,13 +12135,96 @@ function ensureKbDocFor(docKey, force) {
 /* 兼容旧调用点（顶栏状态 chip / 面板内按钮 onclick="ensureKbDoc(true)"） */
 function ensureKbDoc(force) { return ensureKbDocFor(KB.key, force); }
 
+/* ---------- 「学习中心 → B站 UP 主知识沉淀」主视图（kind="article"） ----------
+   主题文章型：按作者自身知识体系组织的 H2 分章 + H3 小节 + 要点/段落/表格。
+   与「中短线炒股」(report) 和「基础常识」(glossary) 并列的第三种渲染；
+   与后端 kb.parse_article 一一对应（2026-10-11 新增）。 */
+function renderKbArticle(box, d, docKey) {
+  if (!box) return;
+  renderKbStateChip(docKey, d);
+  if (!d) { box.innerHTML = `<div class="empty">正在读取知识库…</div>`; return; }
+  if (d.status === "empty") {
+    box.innerHTML = `<div class="empty">${esc(d.message || "尚未吸取知识库")}<br/><br/>` +
+      `来源文件：<code>${esc(d.source_path || "未找到")}</code><br/><br/>` +
+      `<button class="btn primary" onclick="kbReload('${escAttr(docKey)}')">立即吸取</button> ` +
+      `<button class="btn" onclick="showTab('learn_tracks')">查看学习轨道管理</button></div>`;
+    return;
+  }
+  const m = d.meta || {};
+  const f = freshnessOf([docKey]);
+  const sections = toArr(d.sections);
+  const metaNotes = toArr(d.meta_notes);
+  const outline = toArr(d.outline);
+
+  const toc = outline.map((o) =>
+    `<a class="kb-toc-item" data-sec="kba-${escAttr(o.key)}" href="#kba-${escAttr(o.key)}">` +
+    `<span>${esc(o.title)}</span><span class="kb-toc-n">${o.count || 0}</span></a>`).join("");
+
+  // 一段正文（段落 / 列表 / 注记 / 表格）的通用渲染，章与小节复用
+  const blockHtml = (blk) => {
+    const ps = toArr(blk.paragraphs), its = toArr(blk.items), ns = toArr(blk.notes), tbs = toArr(blk.tables);
+    let h = "";
+    if (ns.length) h += `<div class="kb-note">${ns.map((x) => mdBold(x)).join("<br/>")}</div>`;
+    if (ps.length) h += ps.map((p) => `<p class="kb-p">${mdBold(p)}</p>`).join("");
+    if (its.length) h += `<ul class="kb-ul">${its.map((t) => `<li>${mdBold(t)}</li>`).join("")}</ul>`;
+    if (tbs.length) h += tbs.map((t) => `<div class="kb-block"><div class="kb-block-h">${esc(t.title || "表格")}</div>${mdTable(t)}</div>`).join("");
+    return h;
+  };
+
+  const sectionHtml = sections.map((s) => {
+    const subs = toArr(s.subsections);
+    return `<section class="kb-sec" id="kba-${escAttr(s.key)}">
+      <div class="kb-sec-h">${esc(s.title)}
+        ${subs.length ? `<span class="kb-hint">${subs.length} 个小节</span>` : ""}</div>
+      ${blockHtml(s)}
+      ${subs.length ? `<div class="kb-subs">${subs.map((sub) =>
+        `<div class="kb-sub"><div class="kb-sub-h">${esc(sub.title)}</div>${blockHtml(sub)}</div>`).join("")}</div>` : ""}
+    </section>`;
+  }).join("");
+
+  box.innerHTML = `
+    <div class="kb-head">
+      <div class="kb-head-l">
+        <h2>${esc(d.title || m.title || "知识沉淀")}</h2>
+        <div class="kb-head-meta">
+          <span class="chip-s">版本 ${esc(d.version || "—")}</span>
+          <span class="chip-s">${m.section_total ?? sections.length} 章 · ${m.node_total ?? d.node_count ?? 0} 个知识点</span>
+          <span class="chip-s chip-fresh ${freshCls(f.state)}" title="${escAttr(freshTitle(f))}">${freshLine(f, "学习内容")}</span>
+        </div>
+        <div class="kb-head-src">来源文件：<code>${esc(d.source_path || "—")}</code>
+          ${d.source_mtime ? `｜上游修改：${esc(d.source_mtime)}` : ""}
+          ｜吸取：${esc(d.ingested_at || "—")}
+        </div>
+      </div>
+      <div class="kb-head-r">
+        <button class="btn sm" onclick="ensureKbDocFor('${escAttr(docKey)}', true)">重新读取</button>
+        <button class="btn sm primary" onclick="kbReload('${escAttr(docKey)}')">立即吸取</button>
+      </div>
+    </div>
+    ${KB.error ? `<div class="hint">上次读取告警：${esc(KB.error)}</div>` : ""}
+    ${metaNotes.length ? `<div class="kb-note kb-note-src">${metaNotes.map((x) => mdBold(x)).join("<br/>")}</div>` : ""}
+    <div class="kb-toc">${toc}</div>
+    ${sectionHtml}`;
+
+  box.querySelectorAll(".kb-toc-item").forEach((a) => {
+    a.onclick = (e) => {
+      e.preventDefault();
+      const t = box.querySelector("#" + CSS.escape(a.dataset.sec));
+      if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  });
+  requestAnimationFrame(() => markWideTables(box));
+}
+
 /* 渲染总入口：按文档类型分派。
+   - kind === "article"  → 「B站 UP 主知识沉淀」视图（主题文章型，按作者知识体系分章）
    - kind === "glossary" → 「基础常识 / 名词解释」视图（价值投资指标等）
    - 其它 → 原「中短线炒股」判读视图（结论/流派/回测/风险） */
 function renderKbDocFor(docKey) {
   const box = ensurePanel("learn_" + docKey);
   if (!box) return;
   const d = KB.docs[docKey];
+  if (d && d.kind === "article") { renderKbArticle(box, d, docKey); return; }
   if (d && d.kind === "glossary") { renderKbGlossary(box, d, docKey); return; }
   renderKbDocBody(box, d, docKey);
 }
@@ -11104,6 +12316,8 @@ function renderKbStateChip(docKey, doc) {
 
 /* 知识库正文里偶有 markdown 加粗记号（如评级 **B**），展示前去掉记号只留文字 */
 function mdPlain(s) { return String(s == null ? "" : s).replace(/\*\*/g, "").replace(/\s+/g, " ").trim(); }
+// 文章型渲染用：先转义再让 **粗体** / *斜体* 生效（数据来自本地可信 md，转义后安全）
+function mdBold(s) { return esc(String(s == null ? "" : s)).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>"); }
 
 /* 「跟我学习 → 中短线炒股」主视图：把整份知识库按「结论 → 流派 → 对比 → 误区 → 回测 → 来源 → 风险」铺开。
    设计口径：① 每一块都给出**来源与规模**（几位博主 / 几条策略），不做无出处的断言；
@@ -11246,6 +12460,8 @@ function renderKbDocBody(box, d, docKey) {
   // 宽表提示：必须等 innerHTML 落地、浏览器算出布局后再量——
   // 同一帧内读取时 scrollWidth 恰好等于 clientWidth，会恒判为"不溢出"
   requestAnimationFrame(() => markWideTables(box));
+  // 2026-10-11 王总：中短线炒股主库顶部加「一键筛股」——直接给当前买点票结论
+  if (docKey === "zdx_stock") injectBiliScanBar(box);
 }
 
 /* ---------- 「知识获取 → 基础常识」主视图（kind="glossary"） ----------
@@ -12017,6 +13233,8 @@ function renderPrediction() {
         <span class="kline-chip chip-s" data-sym="${escAttr(it.symbol)}" title="${escAttr((it.name || it.symbol) + " " + it.symbol)} 点击看详情">${esc(it.name || it.symbol)}<span class="stk-code">${escAttr(it.symbol)}</span></span>
         <span class="pred-tier">${it.tier === "core" ? "核心" : "观察"}</span>
         <span class="pred-score" title="综合得分">${Math.round((it.score || 0) * 100)}</span>
+        ${(it.board ? `<span class="pred-frame-tag" style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:11px;background:rgba(14,116,144,.12);color:#0E7490;border:1px solid rgba(14,116,144,.3)" title="第①层 板块方向（资金往哪去）">板块:${esc(it.board)}</span>` : "")}
+        ${(it.conc ? `<span class="pred-frame-tag" style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:11px;background:rgba(14,116,144,.12);color:#0E7490;border:1px solid rgba(14,116,144,.3)" title="第②层 股东结构（集中度/板块前30%户数最小）">股东:${esc(it.conc)}${it.holder30 ? "·前30%" : ""}</span>` : "")}
       </div>
       <div class="pred-badges">${badges}</div>
       <div class="pred-reason">${esc(it.reason || "")}</div>
@@ -12199,6 +13417,26 @@ function renderPrediction() {
     : "";
   const staleHint = d && d.stale_reason
     ? `<div class="pred-stale-hint">${esc(d.stale_reason)}</div>` : "";
+  /* 三件套（2026-10-12 体验审计 P0-B）：历史命中率 + 样本量 + 生成依据。
+     报告原话「结论没有信心/样本量标注；三层框架未在页面上标明」—— 这里一次补齐，
+     并把「该信几分」显式说出来：样本不足就写「仅供研究」，不假装很准。 */
+  const sumN = (sum.t5 && sum.t5.n) || 0;
+  const conf = sumN >= 100 ? "样本充足" : sumN >= 30 ? "样本偏少" : "样本不足（仅供研究）";
+  const confCls = sumN >= 100 ? "ok" : sumN >= 30 ? "warn" : "bad";
+  const trio = `<div class="pred-trio">
+      <div class="pred-trio-item">
+        <div class="pred-trio-k">历史命中率（跑赢候选池同期等权）</div>
+        <div class="pred-trio-v">${hitCell(1)}${hitCell(3)}${hitCell(5)}${hitCell(10)}</div>
+      </div>
+      <div class="pred-trio-item">
+        <div class="pred-trio-k">样本量 · 该信几分</div>
+        <div class="pred-trio-v">样本 n=<b>${sumN}</b> · <b class="pred-conf ${confCls}">${conf}</b></div>
+      </div>
+      <div class="pred-trio-item">
+        <div class="pred-trio-k">生成依据（三层框架）</div>
+        <div class="pred-trio-v">① 板块方向（资金往哪去）→ ② 股东结构（户数集中度前 30%）→ ③ ${sigKeys.length} 路信号共振加权；纯本地引擎，不调大模型。每只票卡上都标了它命中的层级与理由。</div>
+      </div>
+    </div>`;
   box.innerHTML = `
     <div class="pred-head">
       <div>
@@ -12208,6 +13446,7 @@ function renderPrediction() {
       <button class="btn" id="predRegen" onclick="predRun(true)">重新生成</button>
     </div>
     ${staleHint}
+    ${trio}
     ${ctl}
     ${predCatchupBar()}
     ${body}
@@ -12224,7 +13463,7 @@ function renderPrediction() {
         </div>
       </div>
     </div>
-    <div class="pred-note">说明：纯本地信号引擎（无大模型）。每日收盘后自动复盘 T+3/T+5/T+10 收益，按实盘命中率贝叶斯收缩调权，越用越贴合本池。所有预测日永久沉淀，可随时调取回看。推荐仅供研究，非买卖建议；ST/退市警示股已单独标注。</div>
+    <div class="pred-note">说明：纯本地信号引擎（无大模型）。① <b>动量冷却</b>：预测日前 5 日累计涨幅越大的票越易被短线均值回归，按超额涨幅降权，整体偏向「回调后的买点」；② <b>自我学习</b>：每日收盘后复盘 T+1/T+3/T+5/T+10 收益，按实盘命中率贝叶斯收缩自动调权（T+1/T+3 已纳入主轴，机构结构类信号因历史跑输被自动压低），越用越贴合本池；③ <b>命中口径</b> = 跑赢候选池同期等权平均（≈50% 即随机水平），非个股绝对涨跌。所有预测日永久沉淀可回看。推荐仅供研究，非买卖建议；ST/退市股已单独标注。</div>
   `;
 
   // 绑定个股详情入口（只给 6 位 A 股代码挂，遵循全局硬规则）
@@ -12232,4 +13471,447 @@ function renderPrediction() {
     const code = el.dataset.sym || "";
     if (/^\d{6}$/.test(code)) el.onclick = () => openStock(code, el);
   });
+}
+
+/* ============ 2026-10-11/12 王总第三回合：B站视频级分堆面板 ============
+   数据来自 /api/bili/pile（bili_pile 表，由 load_bili_piles.py 全量灌入）。
+   2026-10-12 王总追加：市场情绪面板（withConsensus=true）先给结论——
+   ① 博主集中聊的板块方向 ② 点名最多的个股；原始视频堆下沉为「证据」。 */
+function renderBiliPile(cat, mountSel, withConsensus) {
+  const box = $(mountSel);
+  if (!box) return;
+  box.innerHTML = `<div class="empty">正在读取 B站分堆数据…</div>`;
+  const consP = withConsensus
+    ? api("/api/bili/consensus?cat=" + encodeURIComponent(cat) + "&days=30").catch(() => null)
+    : Promise.resolve(null);
+  consP
+    .then((cons) => {
+      const consHtml = cons && cons.ok ? buildBiliConsensus(cons) : "";
+      return api("/api/bili/pile?cat=" + encodeURIComponent(cat) + "&limit=4000").then((d) => {
+        const rows = (d && d.rows) || [];
+        box.innerHTML = consHtml + buildBiliEvidence(rows, cat);
+      });
+    })
+    .catch((e) => { box.innerHTML = `<div class="empty">加载失败：${esc(apiErrText(e))}</div>`; });
+}
+
+/* 结论区：板块方向 + 个股热度（2026-10-12 王总：先给结论，标题堆降级为证据） */
+function buildBiliConsensus(cons) {
+  const secs = toArr(cons.sectors);
+  const stks = toArr(cons.stocks);
+  const secHtml = secs.length
+    ? secs.map((s) => `
+      <div class="bc-row">
+        <div class="bc-name">${esc(s.sector)} <span class="bc-tone tone-${esc(s.tone)}">${esc(s.tone_label)}</span></div>
+        <div class="bc-bar"><span style="width:${s.w}%"></span></div>
+        <div class="bc-meta">${s.n} 条视频 · ${s.bloggers_n} 位博主</div>
+      </div>`).join("")
+    : `<div class="bc-empty">近 ${cons.days} 天没有明确的板块指向</div>`;
+  const stkHtml = stks.length
+    ? stks.map((s) => `
+      <div class="bc-row">
+        <div class="bc-name">${codeLink(s.code, { text: s.name })} <span class="bc-tone tone-${esc(s.tone)}">${esc(s.tone_label)}</span></div>
+        <div class="bc-bar"><span style="width:${s.w}%"></span></div>
+        <div class="bc-meta">${s.n} 次点名 · ${s.bloggers_n} 位博主</div>
+      </div>`).join("")
+    : `<div class="bc-empty">近 ${cons.days} 天博主没点名具体个股</div>`;
+  const basis = toArr(cons.basis).map((b) => `<li>${esc(b)}</li>`).join("");
+  return `
+    <div class="bc-wrap">
+      <div class="bc-verdict"><span class="bc-flag">结论</span>${esc(cons.verdict || "")}</div>
+      <div class="bc-cols">
+        <div class="bc-col"><div class="bc-col-h">① 博主集中聊的板块方向</div>${secHtml}</div>
+        <div class="bc-col"><div class="bc-col-h">② 点名最多的个股（可点开看诊断）</div>${stkHtml}</div>
+      </div>
+      <details class="bc-basis"><summary>这个结论怎么算的（口径）</summary><ul>${basis}</ul></details>
+    </div>`;
+}
+
+/* 证据区：原始视频堆，按博主聚合（王总：链接本身对决策没意义，下沉为证据备查） */
+function buildBiliEvidence(rows, cat) {
+  if (!rows.length) {
+    return `<div class="bc-ev"><div class="bc-ev-h">证据 · 原始视频堆（按博主聚合）</div><div class="empty">该分堆暂无视频</div></div>`;
+  }
+  const byB = {};
+  rows.forEach((r) => { (byB[r.blogger] = byB[r.blogger] || []).push(r); });
+  const html = Object.keys(byB).sort().map((b) => {
+    const items = byB[b].map((r) => {
+      const link = r.url
+        ? `<a href="${escAttr(r.url)}" target="_blank" rel="noopener" style="color:var(--accent,#0E7490);text-decoration:none">${esc(r.title)}</a>`
+        : esc(r.title);
+      return `<li style="padding:3px 0;border-bottom:1px dashed rgba(128,128,128,.18)">` +
+             `<span style="color:var(--muted,#888);font-size:12px;margin-right:8px">${esc(r.vdate || "")}</span>${link}</li>`;
+    }).join("");
+    return `<div style="margin:10px 0;padding:10px 12px;background:var(--panel,#fff);border:1px solid var(--line,#e5e7eb);border-radius:10px">` +
+           `<div style="font-weight:600;margin-bottom:6px">@${esc(b)} <span style="color:var(--muted,#888);font-weight:400;font-size:12px">${byB[b].length} 条</span></div>` +
+           `<ul style="list-style:none;margin:0;padding:0">${items}</ul></div>`;
+  }).join("");
+  return `<div class="bc-ev"><div class="bc-ev-h">证据 · 原始视频堆（按博主聚合，${rows.length} 条）</div>${html}</div>`;
+}
+
+/* ============ 2026-10-11 王总第三回合②：B站 UP 主按类分组框 ============
+   2026-10-11 晚 重构（王总指出前后不一致）：原实现读「知识轨道注册表」（yaml+kb_doc，
+   固定 7 人），删了数据的博主仍显示、新加的博主进不来。现改为**以 bili_pile 真实数据为准**：
+   价值/技术/情绪三堆按博主实际视频聚合；有知识轨道的博主标「有知识库」、点名进知识沉淀，
+   没有的点开看该人视频列表——注册表与数据从此不会再度脱节。 */
+const BILI_BLOGGER_TRACK = {
+  "土斯土耶夫斯基": "bili_tusi", "吃素的牛筋丸": "bili_niujin", "鼠柚子Aura": "bili_shuyouzi",
+  "土豆看财报": "bili_tudou", "李大霄": "bili_lidaxiao", "知行图表交易": "bili_zhixing",
+};
+const BILI_GROUP_ORDER = [
+  { key: "value", label: "价值主播" },
+  { key: "technical", label: "技术主播" },
+  { key: "sentiment", label: "情绪主播" },
+];
+function renderBiliAuthors() {
+  const box = $("#p-bili_authors");
+  if (!box) return;
+  box.innerHTML = `<div class="empty">正在读取 B站博主数据…</div>`;
+  api("/api/bili/pile?limit=5000")
+    .then((d) => {
+      const rows = (d && d.rows) || [];
+      if (!rows.length) { box.innerHTML = `<div class="empty">后台暂无 B站视频数据（bili_pile 为空）</div>`; return; }
+      const byB = {};
+      rows.forEach((r) => {
+        if (r.cat === "weekly") return;   // 「下周当红」不算三堆归属
+        const o = (byB[r.blogger] = byB[r.blogger] || { value: 0, technical: 0, sentiment: 0, total: 0, last: "" });
+        o[r.cat] = (o[r.cat] || 0) + 1;
+        o.total += 1;
+        if ((r.vdate || "") > o.last) o.last = r.vdate || "";
+      });
+      const html = BILI_GROUP_ORDER.map((g) => {
+        const members = Object.keys(byB).filter((b) => byB[b][g.key] > 0)
+          .sort((a, b) => (byB[b][g.key] - byB[a][g.key]) || (byB[b].total - byB[a].total));
+        if (!members.length) return "";
+        /* 2026-10-12 王总：原 btn sm 小药丸 + 11px 内联字太小看不清 → 改股票卡片式大卡（.ba-card，样式在 app.css） */
+        const cards = members.map((b) => {
+          const o = byB[b], dk = BILI_BLOGGER_TRACK[b];
+          const oths = BILI_GROUP_ORDER.filter((x) => x.key !== g.key && o[x.key] > 0)
+            .map((x) => `<span class="ba-oth">${esc(x.label.slice(0, 2))} <b>${o[x.key]}</b></span>`).join("");
+          return `<div class="ba-card${dk ? " has-kb" : ""}" data-blogger="${escAttr(b)}" data-dk="${escAttr(dk || "")}" ` +
+            `title="最近更新 ${esc(o.last)} · 三堆共 ${o.total} 条 · 点${dk ? "看知识沉淀" : "开视频列表"}">` +
+            `<div class="ba-head"><span class="ba-name">${esc(b)}</span>${dk ? `<span class="ba-kb">有知识库</span>` : ""}</div>` +
+            `<div class="ba-sub">最近更新 ${esc(o.last || "—")} · 三堆共 ${o.total} 条</div>` +
+            `<div class="ba-stat">${esc(g.label.slice(0, 2))}视频<b>${o[g.key]}</b>条</div>` +
+            (oths ? `<div class="ba-others">${oths}</div>` : `<div class="ba-others ba-none">仅本类有视频</div>`) +
+            `</div>`;
+        }).join("");
+        return `<div class="ba-sec"><div class="ba-sec-hd">${esc(g.label)} <span>${members.length} 人</span></div>` +
+          `<div class="ba-grid">${cards}</div></div>`;
+      }).join("");
+      box.innerHTML = `<div style="margin-bottom:10px;color:var(--muted,#888);font-size:13px">B站 UP 主按类分组 · 与后台视频数据实时同步 · 点「有知识库」的看知识沉淀，其余看视频列表</div>${html}`;
+      $$("#p-bili_authors .ba-card[data-blogger]").forEach((btn) => {
+        btn.onclick = () => {
+          const dk = btn.dataset.dk;
+          if (dk) selectNav("learn", "learn_" + dk, true);
+          else openBiliBloggerVideos(btn.dataset.blogger);
+        };
+      });
+    })
+    .catch((e) => { box.innerHTML = `<div class="empty">加载失败：${esc(apiErrText(e))}</div>`; });
+}
+function openBiliBloggerVideos(blogger) {
+  api("/api/bili/pile?blogger=" + encodeURIComponent(blogger) + "&limit=2000")
+    .then((d) => {
+      const rows = (d && d.rows) || [];
+      const items = rows.map((r) => {
+        const link = r.url
+          ? `<a href="${escAttr(r.url)}" target="_blank" rel="noopener" style="color:var(--accent,#0E7490);text-decoration:none">${esc(r.title)}</a>`
+          : esc(r.title);
+        return `<li style="padding:3px 0;border-bottom:1px dashed rgba(128,128,128,.18)">` +
+          `<span style="color:var(--muted,#888);font-size:12px;margin-right:8px">${esc(r.vdate || "")}</span>${link}</li>`;
+      }).join("");
+      openDrawer("@B站@" + blogger + " · 视频列表（" + rows.length + " 条）",
+        rows.length ? `<ul style="list-style:none;margin:0;padding:0">${items}</ul>` : `<div class="empty">该博主暂无视频数据</div>`, null);
+    })
+    .catch((e) => { openDrawer("@B站@" + blogger, `<div class="empty">加载失败：${esc(apiErrText(e))}</div>`, null); });
+}
+
+/* ============ 2026-10-11 王总第三回合③：技术·价值教学「方法卡片网格」 ============
+   王总痛点：旧的视频列表（谁发的/何时发的/忽悠描述）没价值；要的是一格一方法、
+   方法短名+人话总结、回测胜率/收益看得见、点开看样例。数据来自 /api/bili/methods。 */
+const BILI_METHODS = { data: null, error: null };
+
+function mtRatingClass(rating) {
+  if (!rating) return "mt-rat-un";
+  if (rating.indexOf("优秀") >= 0) return "mt-rat-a";
+  if (rating.indexOf("良好") >= 0) return "mt-rat-b";
+  if (rating.indexOf("一般") >= 0) return "mt-rat-c";
+  if (rating.indexOf("较差") >= 0) return "mt-rat-d";
+  return "mt-rat-un";
+}
+function mtPct(v) {
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  if (isNaN(n)) return "—";
+  return (n > 0 ? "+" : "") + n.toFixed(1) + "%";
+}
+function mtNumCls(v) { const n = Number(v); if (isNaN(n)) return ""; return n >= 0 ? "mt-num-bull" : "mt-num-bear"; }
+
+function loadBiliMethods() {
+  const box = $("#p-bili_techvalue");
+  if (!box) return;
+  if (BILI_METHODS.data) { renderBiliMethods(); return; }
+  box.innerHTML = `<div class="empty">正在读取方法卡片数据…</div>`;
+  api("/api/bili/methods?cat=technical,value")
+    .then((d) => { BILI_METHODS.data = d; renderBiliMethods(); })
+    .catch((e) => { BILI_METHODS.error = e; box.innerHTML = `<div class="empty">加载失败：${esc(apiErrText(e))}</div>`; });
+}
+
+function renderBiliMethods() {
+  const box = $("#p-bili_techvalue");
+  if (!box) return;
+  const d = BILI_METHODS.data;
+  if (!d || !d.methods) { box.innerHTML = `<div class="empty">暂无方法数据</div>`; return; }
+  const ms = d.methods || [];
+  const head =
+    `<div class="mt-head"><div class="mt-head-l">共 <b>${esc(d.total || 0)}</b> 条教学视频 · 归并为 <b>${ms.length}</b> 个方法 · 未归类 <b>${esc(d.unmatched || 0)}</b> 条</div>`
+    + `<div class="mt-head-r">一格一方法 · 点卡片看样例视频与回测口径</div></div>`
+    + `<details class="mt-basis"><summary>数字口径（点开看，重要）</summary>`
+    + (d.basis || []).map((b) => `<div class="mt-basis-row">${esc(b)}</div>`).join("")
+    + `</details>`;
+  const cards = ms.map((m) => {
+    const b = m.best || {};
+    const mapped = m.mapped;
+    const back = mapped
+      ? `<div class="mt-back">`
+        + `<span class="mt-rat ${mtRatingClass(b.rating)}">${esc(b.rating || "—")}</span>`
+        + `<span class="mt-back-num"><i>胜率</i><b>${b.win_rate != null ? Number(b.win_rate).toFixed(1) + "%" : "—"}</b></span>`
+        + `<span class="mt-back-num"><i>区间收益</i><b class="${mtNumCls(b.total_return)}">${mtPct(b.total_return)}</b></span>`
+        + `<span class="mt-back-num"><i>样本</i><b>${b.trades != null ? b.trades + " 笔" : "—"}</b></span>`
+        + `</div>`
+        + `<div class="mt-strat">回测规则：${esc(b.name || b.key || "")}</div>`
+      : `<div class="mt-back mt-back-un"><span class="mt-rat mt-rat-un">未回测</span>`
+        + `<span class="mt-un-note">暂无可量化选股规则，不编造数字</span></div>`;
+    return `<div class="mt-card ${mapped ? "mt-card-ok" : "mt-card-un"}" data-mt-key="${escAttr(m.key)}" role="button" tabindex="0">`
+      + `<div class="mt-card-head"><span class="mt-name">${esc(m.name)}</span>`
+        + `<span class="mt-kind ${m.kind === "价值面" ? "mt-kind-val" : "mt-kind-tech"}">${esc(m.kind)}</span></div>`
+      + `<div class="mt-sum">${esc(m.summary)}</div>`
+      + `<div class="mt-meta"><span>${m.n} 条视频</span><span>${m.bloggers_n} 位博主</span>`
+        + `${m.last_date ? `<span>最近 ${esc(m.last_date)}</span>` : ""}</div>`
+      + back + `</div>`;
+  }).join("");
+  box.innerHTML = head + `<div class="mt-grid">${cards}</div>`;
+  $$("#p-bili_techvalue .mt-card").forEach((el) => {
+    const open = () => { const m = ms.find((x) => x.key === el.dataset.mtKey); if (m) openBiliMethodDrawer(m); };
+    el.onclick = open;
+    el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
+  });
+  // 2026-10-11 王总：「技术·价值教学」页顶部也放「一键筛股」入口
+  injectBiliScanBar(box);
+}
+
+function openBiliMethodDrawer(m) {
+  const b = m.best || {};
+  const stratRows = (m.strategies || []).map((s) =>
+    `<tr><td>${esc(s.name || s.key)}</td>`
+    + `<td class="mt-c-rat ${mtRatingClass(s.rating)}">${esc(s.rating || "—")}</td>`
+    + `<td class="num">${s.win_rate != null ? Number(s.win_rate).toFixed(1) + "%" : "—"}</td>`
+    + `<td class="num ${mtNumCls(s.total_return)}">${mtPct(s.total_return)}</td>`
+    + `<td class="num">${s.trades != null ? s.trades : "—"}</td>`
+    + `<td class="num">${s.rank != null ? s.rank : "—"}</td></tr>`
+  ).join("");
+  const samples = (m.samples || []).map((s) => {
+    const link = s.url
+      ? `<a href="${escAttr(s.url)}" target="_blank" rel="noopener" style="color:var(--accent,#0E7490);text-decoration:none">${esc(s.title)}</a>`
+      : esc(s.title);
+    return `<li><span class="mt-samp-date">${esc(s.vdate || "")}</span>${link}</li>`;
+  }).join("");
+  const html =
+    `<div class="mt-dlg-head"><span class="mt-name">${esc(m.name)}</span>`
+    + `<span class="mt-kind ${m.kind === "价值面" ? "mt-kind-val" : "mt-kind-tech"}">${esc(m.kind)}</span></div>`
+    + `<p class="mt-dlg-sum">${esc(m.summary)}</p>`
+    + `<div class="mt-dlg-stat"><span><b>${m.n}</b> 条视频</span><span><b>${m.bloggers_n}</b> 位博主</span>`
+    + `<span>热门：${(m.top_bloggers || []).map(esc).join("、") || "—"}</span></div>`
+    + (m.mapped
+        ? `<h4 class="mt-dlg-h">回测表现（近两年真实回测 · 库内候选池）</h4>`
+          + `<table class="mt-tbl"><thead><tr><th>规则</th><th>评级</th><th>胜率</th><th>区间收益</th><th>样本</th><th>排名</th></tr></thead>`
+          + `<tbody>${stratRows}</tbody></table>`
+        : `<div class="mt-dlg-un">该方法暂无可量化的选股规则，未做回测——不编造数字。</div>`)
+    + `<h4 class="mt-dlg-h">样例视频（最近 ${Math.min((m.samples || []).length, 40)} 条）</h4>`
+    + (samples ? `<ul class="mt-samp">${samples}</ul>` : `<div class="mt-dlg-un">无样例</div>`);
+  openDrawer("方法 · " + m.name, html, null);
+}
+
+/* ========== 一键筛股（2026-10-11 王总需求） ==========
+   结论为主、解释可下钻：
+   - 顶部「⚡ 一键筛股」按钮 + 结果区；
+   - 后端单飞扫全A股（≈2~3 分钟），前端 4s 轮询拿 warming/done；
+   - 命中票卡片：股票 + 收盘价 + 涨跌幅 + 命中战法 chips（chip 显「入手值得率」+ 评级）；
+   - 点战法 chip → 抽屉看该战法解释 + 该规则历史回测数字。 */
+const BILI_SCAN = { polling: false };
+
+function injectBiliScanBar(box) {
+  if (!box) return;
+  if (box.querySelector("#bili-scan-bar")) { loadBiliScan(false); return; }  // 重渲染：不重复插，仅刷新
+  ensureBiliScanStyle();
+  const bar = document.createElement("div");
+  bar.className = "bili-scan-bar";
+  bar.id = "bili-scan-bar";
+  bar.innerHTML =
+    `<div class="bili-scan-bar-l">`
+    + `<button class="btn primary" id="bili-scan-btn" onclick="loadBiliScan(false)">⚡ 一键筛股（当前买点票）</button>`
+    + `<span class="bili-scan-status" id="bili-scan-status">加载中…</span>`
+    + `</div>`
+    + `<div class="bili-scan-bar-r">`
+    + `<button class="btn sm" title="清除当日缓存，重新扫一遍全A股" onclick="loadBiliScan(true)">强制重扫</button>`
+    + `</div>`;
+  const result = document.createElement("div");
+  result.className = "bili-scan-result";
+  result.id = "bili-scan-result";
+  box.insertBefore(bar, box.firstChild);
+  box.insertBefore(result, bar.nextSibling);
+  loadBiliScan(false);   // 打开即取：有缓存直出，无缓存触发后台扫描
+}
+
+function ensureBiliScanStyle() {
+  if (document.getElementById("bili-scan-style")) return;
+  const s = document.createElement("style");
+  s.id = "bili-scan-style";
+  s.textContent = BILI_SCAN_CSS;
+  document.head.appendChild(s);
+}
+
+const BILI_SCAN_CSS = `
+.bili-scan-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:12px 16px;margin:0 0 14px;background:color-mix(in srgb,var(--accent) 10%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--accent) 40%,var(--border));border-radius:12px;position:sticky;top:0;z-index:5}
+.bili-scan-status{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bili-scan-result{margin:0 0 16px}
+.bili-scan-summary{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.bili-scan-summary .chip-s{background:var(--panel)}
+.bili-scan-meth{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.bili-scan-meth .bili-meth{font-size:12px;padding:3px 9px;border:1px solid var(--border);border-radius:999px;
+  background:var(--panel);color:var(--text)}
+.bili-scan-meth .bili-meth b{color:var(--accent);margin-left:4px}
+.bili-scan-hits{display:flex;flex-direction:column;gap:8px}
+.bili-hit{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.bili-hit-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.bili-hit-name{font-weight:800;font-size:15px;color:var(--text)}
+.bili-hit-code{font-size:12px;color:var(--muted)}
+.bili-hit-close{font-size:13px;color:var(--text);font-variant-numeric:tabular-nums}
+.bili-hit-pct{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.bili-hit-pct.up{color:var(--bull)}
+.bili-hit-pct.down{color:var(--bear)}
+.bili-hit-n{margin-left:auto;font-size:12px;color:var(--muted)}
+.bili-hit-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bili-hit-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 9px;cursor:pointer;
+  border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:999px;
+  background:color-mix(in srgb,var(--accent) 12%,var(--panel));color:var(--text)}
+.bili-hit-chip:hover{filter:brightness(1.1);border-color:var(--accent)}
+.bili-hit-chip .c-name{font-weight:700}
+.bili-hit-chip .c-win{font-variant-numeric:tabular-nums;color:var(--accent)}
+.bili-scan-basis{margin:12px 0 0}
+.bili-scan-empty{padding:14px 16px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);text-align:center}
+.bili-scan-err{padding:14px 16px;border:1px solid var(--bear);border-radius:10px;color:var(--bear);
+  background:color-mix(in srgb,var(--bear) 8%,transparent)}
+`;
+
+function loadBiliScan(force) {
+  const status = document.getElementById("bili-scan-status");
+  if (status && !BILI_SCAN.polling) status.innerHTML = "请求中…";
+  api("/api/bili/scan" + (force ? "?force=1" : ""))
+    .then((d) => {
+      if (d.status === "warming") {
+        if (status) status.innerHTML = `扫描中：${esc(d.note || "")}${d.total ? `（${d.done || 0}/${d.total}）` : ""} · ${d.elapsed_s || 0}s`;
+        if (!BILI_SCAN.polling) {
+          BILI_SCAN.polling = true;
+          setTimeout(() => { BILI_SCAN.polling = false; loadBiliScan(false); }, 4000);
+        }
+      } else if (d.status === "done") {
+        if (status) status.innerHTML = `已更新 · 数据日期 ${esc(d.data_date || d.date || "")}`;
+        renderBiliScanResult(d);
+        BILI_SCAN.polling = false;
+      } else if (d.status === "error") {
+        if (status) status.innerHTML = "扫描失败";
+        renderBiliScanResult(d);
+        BILI_SCAN.polling = false;
+      } else {
+        if (status) status.innerHTML = "";
+        BILI_SCAN.polling = false;
+      }
+    })
+    .catch((e) => {
+      if (status) status.innerHTML = "请求失败：" + esc(apiErrText(e));
+      BILI_SCAN.polling = false;
+    });
+}
+
+function renderBiliScanResult(d) {
+  const el = document.getElementById("bili-scan-result");
+  if (!el) return;
+  if (d.status === "error") {
+    el.innerHTML = `<div class="bili-scan-err">扫描失败：${esc(String(d.error || "未知错误"))}。可稍后点「强制重扫」重试。</div>`;
+    return;
+  }
+  const sum = `<div class="bili-scan-summary">`
+    + `<span class="chip-s">数据日期 ${esc(d.data_date || d.date || "—")}</span>`
+    + `<span class="chip-s">扫描范围 全A股 ${d.universe || 0} 只</span>`
+    + `<span class="chip-s">实际扫描 ${d.scanned || 0} 只</span>`
+    + `<span class="chip-s">命中买点 ${d.total_hits || 0} 只</span>`
+    + (d.elapsed_s != null ? `<span class="chip-s">耗时 ${d.elapsed_s}s</span>` : "")
+    + `</div>`;
+  const meth = (d.methods && d.methods.length)
+    ? `<div class="bili-scan-meth">${d.methods.map((m) =>
+        `<span class="bili-meth" title="${escAttr((m.name || "") + "：命中 " + (m.n_hits || 0) + " 只")}">${esc(m.name || m.key)}<b>${m.n_hits || 0}</b></span>`).join("")}</div>`
+    : "";
+  const basis = (d.basis && d.basis.length)
+    ? `<details class="bili-scan-basis mt-basis"><summary>口径与免责（点开看，重要）</summary>`
+      + d.basis.map((b) => `<div class="mt-basis-row">${esc(b)}</div>`).join("") + `</details>`
+    : "";
+  let hits = "";
+  if (!d.hits || !d.hits.length) {
+    hits = `<div class="bili-scan-empty">本次扫描全A股，没有股票恰好落在知识库战法的买点上（市场风格不在这些战法上）。可过段时间或收盘后再看。</div>`;
+  } else {
+    const max = d.hits.length;
+    hits = `<div class="bili-scan-hits">${d.hits.map((h) => {
+      const chips = h.items.map((it) => {
+        const r = it.rating || "";
+        return `<button class="bili-hit-chip" title="点开看「${escAttr(it.mname)}」战法解释与该规则历史回测" `
+          + `onclick="biliScanStratExplain('${escAttr(it.mkey)}','${escAttr(it.skey)}')">`
+          + `<span class="c-name">${esc(it.mname)}</span>`
+          + (it.win_rate != null ? `<span class="c-win">入手${Number(it.win_rate).toFixed(0)}%</span>` : "")
+          + (r ? `<span class="c-rat mt-rat ${mtRatingClass(r)}">${esc(r)}</span>` : "")
+          + `</button>`;
+      }).join("");
+      const pctCls = (h.pct == null) ? "" : (h.pct >= 0 ? "up" : "down");
+      const pctTxt = (h.pct == null) ? "" : `${h.pct >= 0 ? "+" : ""}${h.pct.toFixed(2)}%`;
+      return `<div class="bili-hit">`
+        + `<div class="bili-hit-top">`
+        + codeLink(h.code, { text: h.name || h.code, cls: "bili-hit-name wt-sym" })
+        + codeLink(h.code, { cls: "bili-hit-code wt-sym" })
+        + (h.close != null ? `<span class="bili-hit-close">${Number(h.close).toFixed(2)}</span>` : "")
+        + (h.pct != null ? `<span class="bili-hit-pct ${pctCls}">${pctTxt}</span>` : "")
+        + `<span class="bili-hit-n">命中 ${h.n} 个战法 · <b style="font-weight:600;color:var(--muted)">点股票名看个股详情</b></span>`
+        + `</div>`
+        + `<div class="bili-hit-chips">${chips}</div>`
+        + `</div>`;
+    }).join("")}</div>`
+      + (max >= 200 ? `<div class="bili-scan-empty" style="border-style:solid;margin-top:8px">已达单页上限 200 只（全市场命中可能更多），优先展示命中战法多、入手值得率高的。</div>` : "");
+  }
+  el.innerHTML = sum + meth + hits + basis;
+}
+
+function biliScanStratExplain(mkey, skey) {
+  const draw = (ms) => {
+    const m = ms.find((x) => x.key === mkey) || {};
+    const s = (m.strategies || []).find((x) => x.key === skey) || {};
+    const html = `<div class="mt-dlg-head"><span class="mt-name">${esc(m.name || mkey)}</span>`
+      + `<span class="mt-kind ${m.kind === "价值面" ? "mt-kind-val" : "mt-kind-tech"}">${esc(m.kind || "技术面")}</span></div>`
+      + `<p class="mt-dlg-sum">${esc(m.summary || "（该方法暂无一句话总结）")}</p>`
+      + `<h4 class="mt-dlg-h">本战法本次命中的规则（历史回测口径）</h4>`
+      + `<table class="mt-tbl"><thead><tr><th>规则</th><th>评级</th><th>胜率</th><th>区间收益</th><th>样本</th><th>排名</th></tr></thead><tbody>`
+      + `<tr><td>${esc(s.name || skey)}</td>`
+      + `<td class="mt-c-rat ${mtRatingClass(s.rating)}">${esc(s.rating || "—")}</td>`
+      + `<td class="num">${s.win_rate != null ? Number(s.win_rate).toFixed(1) + "%" : "—"}</td>`
+      + `<td class="num ${mtNumCls(s.total_return)}">${mtPct(s.total_return)}</td>`
+      + `<td class="num">${s.trades != null ? s.trades : "—"}</td>`
+      + `<td class="num">${s.rank != null ? s.rank : "—"}</td></tr></tbody></table>`
+      + `<div class="mt-dlg-un" style="margin-top:10px">「入手值得率」= 该规则近两年回测的每笔交易胜率（库内候选池），是<b>规则的历史胜率</b>，不是这只票的预测。扫描范围为全A股，与回测候选池口径不同；盘中最后一根K线未收盘，信号以收盘复核为准。</div>`;
+    openDrawer("战法解释 · " + (m.name || mkey), html, null);
+  };
+  if (BILI_METHODS.data && BILI_METHODS.data.methods) { draw(BILI_METHODS.data.methods); return; }
+  api("/api/bili/methods?cat=technical,value")
+    .then((dd) => { BILI_METHODS.data = dd; draw(dd.methods || []); })
+    .catch(() => draw([]));
 }

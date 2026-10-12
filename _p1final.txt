@@ -1,0 +1,10 @@
+error 总数 = 0
+名单内主页 URL 重复 = {'https://guba.sina.com.cn/u/5786320669': 2}
+   同一主页多名: https://guba.sina.com.cn/u/5786320669 -> ['拥抱着你我', '我很穷']
+
+== 最终计数 ==
+  sina: 帖子 810 条，有帖选手 49，状态 {'ok': 48, 'empty': 3}
+  xueqiu: 帖子 655 条，有帖选手 33，状态 {'ok': 33}
+  合计帖子 = 1465
+  sina publish_time 非空 810/810
+  xueqiu publish_time 非空 655/655

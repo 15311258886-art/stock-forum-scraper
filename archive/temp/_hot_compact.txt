@@ -1,0 +1,1053 @@
+### COLUMNS: id, key, title, topic, driver_sources, driver_regions, direction, related_markets, related_symbols, domestic_sectors, transmission, amplification, cross_check, amplification_factor, confidence, heat, evidence, first_seen, updated_at, overview, variables, sectors_up, sectors_down, sectors_up_detail, sectors_down_detail, decision
+### HOTSPOT COUNT: 17
+
+=== [1] 科技与AI · 国外舆情聚合（157 条） ===
+  topic: 科技与AI
+  confidence: 0.75
+  heat: 5410.5
+  driver_sources: CNBC,HKEX 香港交易所（新闻稿）,HKEX 联交所（通告/规则）,Hacker News（科技社区）,TechCrunch,The Verge,Ars Technica,Wired,ZDNet,Slashdot,Nature,Phys.org,Live Science,MIT Technology Review,CNBC 经济,CNBC 科技,Fortune,Nasdaq 市场新闻,GitHub 趋势仓库
+  driver_regions: US,HK,GLOBAL
+  overview: 海外科技巨头资本开支与新产品周期变化，映射到国内算力与半导体供应链。
+  variables: AI 资本开支 ↑,算力订单 ↑,消费电子备货 ↑
+  sectors_up: AI算力,半导体,消费电子
+  sectors_down: 传统消费电子代工（低阶）
+  sectors_up_detail: [{"sector": "AI算力", "symbols": [{"code": "300308", "name": "中际旭创"}, {"code": "000977", "name": "浪潮信息"}, {"code": "002230", "name": "科大讯飞"}, {"code": "603019", "name": "中科曙光"}, {"code": "688041", "name": "海光信息"}]}, {"sector": "半导体", "symbols": [{"code": "688981", "name": "中芯国际"}, {"code": "002371", "name": "北方华创"}, {"code": "002049", "name": "紫光国微"}, {"code": "688012", "name": "中微公司"}, {"code": "688041", "name": "海光信息"}]}, {"sector": "消费电子", "symbols": [{"code": "002475", "name": "立讯精密"}, {"code": "002241", "name": "歌尔股份"}, {"code": "000725", "name": "京东方A"}, {"code": "300433", "name": "蓝思科技"}, {"code": "002938", "name": "鹏鼎控股"}]}]
+  sectors_down_detail: [{"sector": "传统消费电子代工（低阶）", "symbols": [{"code": "002045", "name": "国光电器"}, {"code": "002681", "name": "奋达科技"}, {"code": "002351", "name": "漫步者"}, {"code": "002241", "name": "歌尔股份"}]}]
+  transmission: 海外科技巨头资本开支与新产品周期 → 国内算力/半导体/消费电子供应链订单弹性。
+  amplification: 国外源 23 家、157 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [Slashdot] Waymo Says Its Self-Driving Cars Reduced Injury-Causing Accidents by 82% | https://tech.slashdot.org/story/26/09/27/0134224/waymo-says-its-self-driving-cars-reduced-injury-causing-accidents-by-82?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [Slashdot] KDE and GNOME Developers Ponder How to Handle AI-Generated Contributions | https://tech.slashdot.org/story/26/09/24/1928229/kde-and-gnome-developers-ponder-how-to-handle-ai-generated-contributions?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [CNBC 科技] Meta and Microsoft led tech stocks higher last week despite soaring bond yields | https://www.cnbc.com/2026/09/26/meta-microsoft-led-tech-higher-this-week-despite-soaring-bond-yields.html
+    - [ZDNet] Windows 11 out-of-band update fixes audio glitch and other bugs – grab it now | https://www.zdnet.com/business/windows-11-out-of-band-update-fixes-audio-glitch/
+    - [示例源·CNBC] ASML and Applied Materials slide on China export restriction headlines | https://example.local/seed/asml-amat-slide
+    - [ZDNet] AI agent kill switch urged by Okta-led alliance – how businesses could make it work | https://www.zdnet.com/innovation/okta-blueprint-alliance-ai-agents-oauth-kill-switch/
+
+=== [2] 顶刊科研突破：技术路线与商业化预期重塑 ===
+  topic: 金融与汇率
+  confidence: 0.73
+  heat: 4377.15
+  driver_sources: HKEX 联交所（通告/规则）,Hacker News（科技社区）,Ars Technica,Wired,ZDNet,Slashdot,Nature,Phys.org,Live Science,New Scientist,MIT Technology Review
+  driver_regions: HK,US,GLOBAL
+  overview: 顶刊（《Nature》《Science》）或顶级会议发布重大科研论文 / 技术突破，改变相关产业的技术路线与商业化预期。
+  variables: 技术商业化预期 ↑,产业链订单预期 ↑,主题资金关注度 ↑,估值溢价 ↑
+  sectors_up: AI算力,创新药,新材料,量子科技
+  sectors_down: 传统燃油车链,传统能源
+  sectors_up_detail: [{"sector": "AI算力", "symbols": [{"code": "300308", "name": "中际旭创"}, {"code": "000977", "name": "浪潮信息"}, {"code": "002230", "name": "科大讯飞"}, {"code": "603019", "name": "中科曙光"}, {"code": "688041", "name": "海光信息"}]}, {"sector": "创新药", "symbols": [{"code": "600276", "name": "恒瑞医药"}, {"code": "688180", "name": "君实生物"}, {"code": "002422", "name": "科伦药业"}, {"code": "002399", "name": "海普瑞"}]}, {"sector": "新材料", "symbols": [{"code": "600309", "name": "万华化学"}, {"code": "600143", "name": "金发科技"}, {"code": "002648", "name": "卫星化学"}, {"code": "300487", "name": "蓝晓科技"}]}, {"sector": "量子科技", "symbols": [{"code": "688027", "name": "国盾量子"}, {"code": "000555", "name": "神州信息"}, {"code": "300520", "name": "科大国创"}, {"code": "002281", "name": "光迅科技"}]}]
+  sectors_down_detail: [{"sector": "传统燃油车链", "symbols": [{"code": "600104", "name": "上汽集团"}, {"code": "601633", "name": "长城汽车"}, {"code": "000625", "name": "长安汽车"}, {"code": "601238", "name": "广汽集团"}]}, {"sector": "传统能源", "symbols": [{"code": "601088", "name": "中国神华"}, {"code": "601857", "name": "中国石油"}, {"code": "600028", "name": "中国石化"}, {"code": "600188", "name": "兖矿能源"}]}]
+  transmission: 顶刊论文证实技术可行性 → 产业界加速投入、一级市场估值抬升 → A 股对应技术链（算力 / 创新药 / 新材料 / 量子）获主题资金追捧；同时被替代的旧技术路线面临估值下修。
+  amplification: 科研突破在境外科技媒体传播快，但国内解读存在 1~3 日滞后，且需「可商业化」验证 → 初始放大中等（1.35），若后续无产业跟进则快速衰减。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(6):
+    - [Live Science] NASA teases new PRIMA telescope that could see what even the James Webb telescope can't | https://www.livescience.com/space/space-exploration/nasa-teases-new-prima-telescope-that-could-peer-even-deeper-into-the-infrared-universe-than-the-james-webb-space-telescope
+    - [Live Science] Harvest Moon 2026: See the first full moon of autumn rise alongside Saturn tonight | https://www.livescience.com/space/the-moon/the-full-harvest-moon-rises-with-saturn-this-weekend-heres-how-to-get-the-best-views
+    - [Ars Technica] With PRIMA, NASA will try to build a billion-dollar space telescope in record time | https://arstechnica.com/space/2026/09/nasa-green-lights-billion-dollar-infrared-observatory-for-launch-in-early-2030s/
+    - [示例源·CNBC] Peer-reviewed study on quantum computing sends related technology shares higher | https://example.local/seed/quantum-peer-review
+    - [Slashdot] Is Microsoft Quietly Killing Off Its 'Copilot+ PC' Brand? | https://tech.slashdot.org/story/26/09/25/0420247/is-microsoft-quietly-killing-off-its-copilot-pc-brand?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [Live Science] Best binoculars 2026: The ultimate buying guide for birdwatching, stargazing and more | https://www.livescience.com/products/optics/best-binoculars-the-ultimate-buying-guide
+
+=== [3] 金融与汇率 · 国外舆情聚合（99 条） ===
+  topic: 金融与汇率
+  confidence: 0.75
+  heat: 2858.25
+  driver_sources: CNBC,HKEX 香港交易所（新闻稿）,HKEX 联交所（通告/规则）,ZDNet,Slashdot,Nature,CNBC 经济,CNBC 科技,Nasdaq 市场新闻
+  driver_regions: US,HK,GLOBAL
+  overview: 美元与美债收益率、人民币汇率变动，影响外资流向与权重股估值。
+  variables: 美元指数 ±,美债收益率 ±,北向资金流向 ±
+  sectors_up: 券商,黄金
+  sectors_down: 出口链（人民币升值）,银行（息差）
+  sectors_up_detail: [{"sector": "券商", "symbols": [{"code": "600030", "name": "中信证券"}, {"code": "300059", "name": "东方财富"}, {"code": "601688", "name": "华泰证券"}, {"code": "600999", "name": "招商证券"}, {"code": "000776", "name": "广发证券"}]}, {"sector": "黄金", "symbols": [{"code": "600547", "name": "山东黄金"}, {"code": "600489", "name": "中金黄金"}, {"code": "601899", "name": "紫金矿业"}, {"code": "600988", "name": "赤峰黄金"}, {"code": "002237", "name": "恒邦股份"}]}]
+  sectors_down_detail: [{"sector": "出口链（人民币升值）", "symbols": [{"code": "000333", "name": "美的集团"}, {"code": "002032", "name": "苏泊尔"}, {"code": "002475", "name": "立讯精密"}, {"code": "600690", "name": "海尔智家"}]}, {"sector": "银行（息差）", "symbols": [{"code": "600036", "name": "招商银行"}, {"code": "601398", "name": "工商银行"}, {"code": "601939", "name": "建设银行"}, {"code": "601166", "name": "兴业银行"}]}]
+  transmission: 美元与美债收益率变动 → 人民币汇率与外资流向 → 影响权重股与券商弹性。
+  amplification: 国外源 10 家、99 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [Slashdot] Raspberry Pi Stock Jumps 30% as Demand Surges. (And Boards Now Locked to Their Original RAM Size) | https://hardware.slashdot.org/story/26/09/25/0554208/raspberry-pi-stock-jumps-30-as-demand-surges-and-boards-now-locked-to-their-original-ram-size?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [HKEX 联交所（通告/规则）] Reminder to Participants on Reviewing HKATS Risk Functions -Pre-Trade Risk Management ("PTRM") Limits in the D | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260909_MO_DT_215_26?sc_lang=en
+    - [HKEX 联交所（通告/规则）] Northbound Trading under Shanghai-Hong Kong Stock Connect - Additional Practice Session for Shanghai Stock Exc | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_134_26?sc_lang=en
+    - [CNBC] Supply glut, lab-grown alternatives: What's behind the fall of diamond prices to record lows | https://www.cnbc.com/2026/09/26/whats-behind-the-fall-of-diamond-prices-to-record-lows.html
+    - [Nasdaq 市场新闻] 1 Top Warren Buffett Stock Trading 21% Below Its All-Time High That Can Double a $1,000 Investment in 5 Years | https://www.nasdaq.com/articles/1-top-warren-buffett-stock-trading-21-below-its-all-time-high-can-double-1000-investment-5
+    - [CNBC 科技] Xi arrives in D.C., Treasury yields hit multiyear highs, McDonald's growth plan and more in Morning Squawk | https://www.cnbc.com/2026/09/24/5-things-to-know-before-the-stock-market-opens.html
+
+=== [4] 地缘冲突升级：油价与避险资产同步上行、出行链承压 ===
+  topic: 能源与大宗
+  confidence: 0.87
+  heat: 1110.5
+  driver_sources: CNBC,Ars Technica,Wired,Nature,Live Science,CNBC 科技,Fortune
+  driver_regions: US,GLOBAL
+  overview: 地缘冲突或局部战争升级：涉及能源主产区、关键航运要道或大国博弈，全球避险情绪与能源供给预期同步抬升。
+  variables: 布伦特原油价格 ↑,黄金价格 ↑,避险指数(VIX) ↑,油轮/集装箱运费 ↑,风险偏好 ↓
+  sectors_up: 石油石化,油气服务,油运,军工,黄金,煤炭
+  sectors_down: 航空机场,物流快递,旅游酒店,下游化工,可选消费
+  sectors_up_detail: [{"sector": "石油石化", "symbols": [{"code": "601857", "name": "中国石油"}, {"code": "600028", "name": "中国石化"}, {"code": "600938", "name": "中国海油"}, {"code": "002493", "name": "荣盛石化"}, {"code": "601233", "name": "桐昆股份"}]}, {"sector": "油气服务", "symbols": [{"code": "601808", "name": "中海油服"}, {"code": "600583", "name": "海油工程"}, {"code": "002353", "name": "杰瑞股份"}, {"code": "300191", "name": "潜能恒信"}]}, {"sector": "油运", "symbols": [{"code": "601872", "name": "招商轮船"}, {"code": "600026", "name": "中远海能"}, {"code": "600798", "name": "宁波海运"}, {"code": "002320", "name": "海峡股份"}]}, {"sector": "军工", "symbols": [{"code": "600760", "name": "中航沈飞"}, {"code": "600893", "name": "航发动力"}, {"code": "000768", "name": "中航西飞"}, {"code": "002179", "name": "中航光电"}, {"code": "600038", "name": "中直股份"}]}, {"sector": "黄金", "symbols": [{"code": "600547", "name": "山东黄金"}, {"code": "600489", "name": "中金黄金"}, {"code": "601899", "name": "紫金矿业"}, {"code": "600988", "name": "赤峰黄金"}, {"code": "002237", "name": "恒邦股份"}]}, {"sector": "煤炭", "symbols": [{"code": "601088", "name": "中国神华"}, {"code": "601225", "name": "陕西煤业"}, {"code": "600188", "name": "兖矿能源"}, {"code": "601898", "name": "中煤能源"}, {"code": "000983", "name": "山西焦煤"}]}]
+  sectors_down_detail: [{"sector": "航空机场", "symbols": [{"code": "601111", "name": "中国国航"}, {"code": "600029", "name": "南方航空"}, {"code": "600115", "name": "中国东航"}, {"code": "600009", "name": "上海机场"}, {"code": "000089", "name": "深圳机场"}]}, {"sector": "物流快递", "symbols": [{"code": "002352", "name": "顺丰控股"}, {"code": "002120", "name": "韵达股份"}, {"code": "600233", "name": "圆通速递"}, {"code": "002468", "name": "申通快递"}]}, {"sector": "旅游酒店", "symbols": [{"code": "601888", "name": "中国中免"}, {"code": "600138", "name": "中青旅"}, {"code": "600754", "name": "锦江酒店"}, {"code": "600258", "name": "首旅酒店"}]}, {"sector": "下游化工", "symbols": [{"code": "600309", "name": "万华化学"}, {"code": "000830", "name": "鲁西化工"}, {"code": "600426", "name": "华鲁恒升"}, {"code": "600409", "name": "三友化工"}]}, {"sector": "可选消费", "symbols": [{"code": "000333", "name": "美的集团"}, {"code": "000651", "name": "格力电器"}, {"code": "600690", "name": "海尔智家"}, {"code": "601633", "name": "长城汽车"}]}]
+  transmission: 冲突升级或航道受阻 → 原油供给预期收紧、油价上行 → 上游油气盈利上修，油运与军工直接受益，避险资金推升黄金；同时航油与物流成本上升压制航空、快递、旅游，下游化工毛利承压。
+  amplification: 地缘议题在国外媒体与社交平台传播极快，且常伴随油价即时反应 → 属高放大主题（上限 1.6）；但情绪衰减同样快，停火/缓和消息会迅速反向。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(6):
+    - [示例源·CNBC] Brent crude jumps as geopolitical tension raises oil supply risk | https://example.local/seed/brent-geo-risk
+    - [CNBC] Oil gains over 1% as Trump rejects Iranian proposal to reopen Hormuz Strait | https://www.cnbc.com/2026/09/28/oil-price-today-wti-brent-trump-iran.html
+    - [CNBC 科技] Trump and Xi dined with AI's biggest names. Here's what we know about tech talks so far | https://www.cnbc.com/2026/09/25/the-tech-download-trump-xi-ai-talks.html
+    - [Fortune] As soaring energy prices crush businesses, France rolls out a new $500 million aid package, including help wit | https://fortune.com/2026/09/27/energy-prices-businesses-france-500-million-aid-package-commuting-heating-costs/
+    - [示例源·Reuters] Middle East conflict escalates as missile strikes threaten key shipping lane | https://example.local/seed/geo-conflict-shipping
+    - [Wired] War Bros Didn’t Always Rule Silicon Valley | https://www.wired.com/story/war-bros-didnt-always-rule-silicon-valley/
+
+=== [5] AI 资本开支上修（英伟达业绩驱动）：光模块·服务器·液冷受益 ===
+  topic: 科技与AI
+  confidence: 0.89
+  heat: 968.0
+  driver_sources: CNBC,MarketWatch,Wired,Slashdot,CNBC 科技,Nasdaq 市场新闻
+  driver_regions: US
+  overview: 英伟达业绩 / 指引超预期，海外 AI 资本开支上修。
+  variables: AI 资本开支 ↑,800G/1.6T 光模块需求 ↑,服务器与液冷订单 ↑
+  sectors_up: AI算力,光模块,服务器,液冷
+  sectors_down: 传统通用服务器,非AI消费电子
+  sectors_up_detail: [{"sector": "AI算力", "symbols": [{"code": "300308", "name": "中际旭创"}, {"code": "000977", "name": "浪潮信息"}, {"code": "002230", "name": "科大讯飞"}, {"code": "603019", "name": "中科曙光"}, {"code": "688041", "name": "海光信息"}]}, {"sector": "光模块", "symbols": [{"code": "300308", "name": "中际旭创"}, {"code": "300394", "name": "天孚通信"}, {"code": "300502", "name": "新易盛"}, {"code": "002281", "name": "光迅科技"}]}, {"sector": "服务器", "symbols": [{"code": "000977", "name": "浪潮信息"}, {"code": "601138", "name": "工业富联"}, {"code": "603019", "name": "中科曙光"}, {"code": "000938", "name": "紫光股份"}]}, {"sector": "液冷", "symbols": [{"code": "002837", "name": "英维克"}, {"code": "300602", "name": "飞荣达"}, {"code": "603912", "name": "佳力图"}, {"code": "300499", "name": "高澜股份"}]}]
+  sectors_down_detail: [{"sector": "传统通用服务器", "symbols": [{"code": "000977", "name": "浪潮信息"}, {"code": "601138", "name": "工业富联"}, {"code": "000938", "name": "紫光股份"}, {"code": "603019", "name": "中科曙光"}]}, {"sector": "非AI消费电子", "symbols": [{"code": "002475", "name": "立讯精密"}, {"code": "002241", "name": "歌尔股份"}, {"code": "300433", "name": "蓝思科技"}, {"code": "000725", "name": "京东方A"}]}]
+  transmission: 英伟达业绩/指引超预期 → 海外 AI 资本开支上修 → 国内光模块（800G/1.6T）、服务器代工、液冷与 PCB 环节订单能见度提升。
+  amplification: 国外源（媒体 + 财经博主）密度高、情绪一致看多，与国内 AI 板块热度叠加 → 中等偏强放大（1.4）。
+  cross_check: 国内源有 2 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。
+  evidence(6):
+    - [示例源·CNBC] Nvidia beats expectations, data center revenue surges on AI capex boom | https://example.local/seed/nvda-beat
+    - [MarketWatch] Micron could dethrone Nvidia and become the biggest driver of S&P 500 profit growth | https://www.marketwatch.com/story/micron-could-dethrone-nvidia-and-become-the-biggest-driver-of-s-p-500-profit-growth-d62e0e68?mod=mw_rss_topstories
+    - [CNBC 科技] Oracle sends 'force majeure' notice about data center project — stock drops 3% | https://www.cnbc.com/2026/09/24/oracle-data-center-force-majeure.html
+    - [示例源·Seeking Alpha] AI capex cycle intact: optical module demand upside into 2027 | https://example.local/seed/optical-upside
+    - [Slashdot] Just How Big is the AI Buildout - and How Risky? | https://slashdot.org/story/26/09/25/230252/just-how-big-is-the-ai-buildout---and-how-risky?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [CNBC 科技] Palo Alto CEO says slowing down AI is ‘unrealistic’, extinction threat ‘extremely small’ | https://www.cnbc.com/2026/09/24/palo-alto-networks-nikesh-arora-ai-slowdown.html
+
+=== [6] 海外疫情舆论升温：防疫链短催化、出行与消费承压 ===
+  topic: 国外疫情舆论
+  confidence: 0.76
+  heat: 863.25
+  driver_sources: CNBC,Ars Technica,Wired,ZDNet,Slashdot,Phys.org,Live Science,New Scientist,MIT Technology Review,CNBC 科技
+  driver_regions: US,GLOBAL
+  overview: 境外疫情 / 流感舆论升温，WHO 或 CDC 提示扩散风险。
+  variables: 疫苗与检测需求 ↑,防疫物资需求 ↑,出行意愿 ↓
+  sectors_up: 疫苗,体外诊断,中药,口罩防护
+  sectors_down: 航空机场,旅游酒店,线下消费,影院
+  sectors_up_detail: [{"sector": "疫苗", "symbols": [{"code": "300122", "name": "智飞生物"}, {"code": "002007", "name": "华兰生物"}, {"code": "300142", "name": "沃森生物"}, {"code": "688739", "name": "成大生物"}]}, {"sector": "体外诊断", "symbols": [{"code": "300244", "name": "迪安诊断"}, {"code": "300676", "name": "华大基因"}, {"code": "002022", "name": "科华生物"}, {"code": "300482", "name": "万孚生物"}]}, {"sector": "中药", "symbols": [{"code": "002603", "name": "以岭药业"}, {"code": "000538", "name": "云南白药"}, {"code": "600436", "name": "片仔癀"}, {"code": "600085", "name": "同仁堂"}, {"code": "000999", "name": "华润三九"}]}, {"sector": "口罩防护", "symbols": [{"code": "002382", "name": "蓝帆医疗"}, {"code": "300677", "name": "英科医疗"}, {"code": "000652", "name": "泰达股份"}]}]
+  sectors_down_detail: [{"sector": "航空机场", "symbols": [{"code": "601111", "name": "中国国航"}, {"code": "600029", "name": "南方航空"}, {"code": "600115", "name": "中国东航"}, {"code": "600009", "name": "上海机场"}, {"code": "000089", "name": "深圳机场"}]}, {"sector": "旅游酒店", "symbols": [{"code": "601888", "name": "中国中免"}, {"code": "600138", "name": "中青旅"}, {"code": "600754", "name": "锦江酒店"}, {"code": "600258", "name": "首旅酒店"}]}, {"sector": "线下消费", "symbols": [{"code": "601888", "name": "中国中免"}, {"code": "002027", "name": "分众传媒"}, {"code": "600138", "name": "中青旅"}, {"code": "600754", "name": "锦江酒店"}]}, {"sector": "影院", "symbols": [{"code": "002739", "name": "儒意电影"}, {"code": "300251", "name": "光线传媒"}, {"code": "601595", "name": "上海电影"}, {"code": "002027", "name": "分众传媒"}]}]
+  transmission: 国外疫情舆论升温 → 全球防疫物资与疫苗需求预期抬升 → 国内疫苗/检测/中药短催化；同时压制出行、航空、线下消费的风险偏好。
+  amplification: 疫情类议题在境外媒体与社交平台传播极快，一旦 WHO/CDC 表态，国内媒体会同步转载 → 情绪传导存在 1~3 日滞后，放大系数先高后衰减。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(6):
+    - [示例源·MarketWatch] Airline and travel stocks slide as pandemic-era concerns resurface | https://example.local/seed/airlines-slide
+    - [ZDNet] How Cisco is confronting the security crisis of agentic AI | https://www.zdnet.com/paid-content/article/how-cisco-is-confronting-the-security-crisis-of-agentic-ai/
+    - [Live Science] A surprising slab of salt shines at the summit of the Sahara's tallest peak | https://www.livescience.com/planet-earth/volcanoes/a-surprising-slab-of-salt-shines-at-the-summit-of-the-saharas-tallest-peak-earth-from-space
+    - [Slashdot] F-Droid 2.0: FOSS Android Appstore Continues Updating Despite Google's Pending 'Developer Verification' Plan | https://news.slashdot.org/story/26/09/25/0344225/f-droid-20-foss-android-appstore-continues-updating-despite-googles-pending-developer-verification-plan?utm_source=rss1.0mainlinkanon&utm_medium=feed
+    - [MIT Technology Review] Roundtables: The Deadly Failures of The Virtual Border Wall | https://www.technologyreview.com/2026/09/22/1144890/roundtables-the-deadly-failures-of-the-virtual-border-wall/
+    - [CNBC 科技] Palo Alto CEO says slowing down AI is ‘unrealistic’, extinction threat ‘extremely small’ | https://www.cnbc.com/2026/09/24/palo-alto-networks-nikesh-arora-ai-slowdown.html
+
+=== [7] 消费与医药 · 国外舆情聚合（15 条） ===
+  topic: 消费与医药
+  confidence: 0.75
+  heat: 664.0
+  driver_sources: CNBC,MarketWatch,Live Science,New Scientist,CNBC 经济
+  driver_regions: US,GLOBAL
+  overview: 海外医药政策与消费趋势变化，映射到国内创新药出海与消费品需求。
+  variables: 创新药出海预期 ↑,海外消费需求 ±,CXO 订单 ±
+  sectors_up: 创新药,CXO
+  sectors_down: 低迷消费品,旅游零售
+  sectors_up_detail: [{"sector": "创新药", "symbols": [{"code": "600276", "name": "恒瑞医药"}, {"code": "688180", "name": "君实生物"}, {"code": "002422", "name": "科伦药业"}, {"code": "002399", "name": "海普瑞"}]}, {"sector": "CXO", "symbols": [{"code": "603259", "name": "药明康德"}, {"code": "300347", "name": "泰格医药"}, {"code": "300759", "name": "康龙化成"}, {"code": "603456", "name": "九洲药业"}, {"code": "002821", "name": "凯莱英"}]}]
+  sectors_down_detail: [{"sector": "低迷消费品", "symbols": [{"code": "600887", "name": "伊利股份"}, {"code": "603288", "name": "海天味业"}, {"code": "000895", "name": "双汇发展"}, {"code": "601888", "name": "中国中免"}]}, {"sector": "旅游零售", "symbols": [{"code": "601888", "name": "中国中免"}, {"code": "002251", "name": "步步高"}, {"code": "000759", "name": "中百集团"}, {"code": "600693", "name": "东百集团"}]}]
+  transmission: 海外医药政策与消费趋势 → 国内创新药出海预期与消费品需求映射。
+  amplification: 国外源 7 家、15 条条目构成议题密度；放大系数 1.5（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [CNBC] Audemars Piguet says its Royal Pop collaboration with Swatch is breaking sales records, despite luxury watch s | https://www.cnbc.com/2026/09/26/audemars-piguet-and-royal-pop-defy-luxury-watch-slump-and-tariffs.html
+    - [示例源·Seeking Alpha] Obesity drug demand drives pharma upgrade cycle; supply chain expands | https://example.local/seed/obesity-drug
+    - [CNBC 经济] Novo is betting on its next chapter as Eli Lilly gains more ground in GLP-1s | https://www.cnbc.com/2026/09/25/novo-eli-lilly-obesity-drugs.html
+    - [CNBC] Many homeowners have a big insurance coverage gap — and don't even know it | https://www.cnbc.com/2026/09/26/homeowners-insurance-coverage-gap.html
+    - [CNBC 经济] Cat owners are spending more and boosting pet retailers | https://www.cnbc.com/2026/09/24/cat-ownership-food-sales-dog-demand.html
+    - [CNBC 经济] Hundreds of flights into Newark, New York, Philadelphia disrupted after Verizon fiber line cut | https://www.cnbc.com/2026/09/21/newark-philadelphia-nyc-flight-disruptions.html
+
+=== [8] 境外重大自然灾害：重建链需求抬升、保险与区域消费承压 ===
+  topic: 自然灾害与洪涝
+  confidence: 0.79
+  heat: 616.25
+  driver_sources: Wired,Nature,Phys.org,Live Science
+  driver_regions: US,GLOBAL
+  overview: 境外重大自然灾害（洪涝 / 台风 / 地震）：造成人员转移、基建损毁与区域供应链中断，并带来后续重建需求。
+  variables: 农产品/粮食价格 ↑,建材(水泥/防水)需求 ↑,保险赔付 ↑,区域物流时效 ↓,重建投资 ↑
+  sectors_up: 水利建设,建材(水泥/防水/管材),工程机械,农业种植,应急装备
+  sectors_down: 保险,区域旅游,受灾航线航空,当地地产
+  sectors_up_detail: [{"sector": "水利建设", "symbols": [{"code": "601669", "name": "中国电建"}, {"code": "002060", "name": "广东建工"}, {"code": "600502", "name": "安徽建工"}, {"code": "000598", "name": "兴蓉环境"}]}, {"sector": "建材(水泥/防水/管材)", "symbols": [{"code": "600585", "name": "海螺水泥"}, {"code": "002271", "name": "东方雨虹"}, {"code": "000786", "name": "北新建材"}, {"code": "600801", "name": "华新建材"}, {"code": "002372", "name": "伟星新材"}]}, {"sector": "工程机械", "symbols": [{"code": "600031", "name": "三一重工"}, {"code": "000157", "name": "中联重科"}, {"code": "000425", "name": "徐工机械"}, {"code": "603338", "name": "浙江鼎力"}, {"code": "600761", "name": "安徽合力"}]}, {"sector": "农业种植", "symbols": [{"code": "600598", "name": "北大荒"}, {"code": "000998", "name": "隆平高科"}, {"code": "002041", "name": "登海种业"}, {"code": "600313", "name": "农发种业"}]}, {"sector": "应急装备", "symbols": [{"code": "603300", "name": "海南华铁"}, {"code": "002583", "name": "海能达"}, {"code": "000099", "name": "中信海直"}, {"code": "300523", "name": "辰安科技"}]}]
+  sectors_down_detail: [{"sector": "保险", "symbols": [{"code": "601318", "name": "中国平安"}, {"code": "601601", "name": "中国太保"}, {"code": "601628", "name": "中国人寿"}, {"code": "601336", "name": "新华保险"}]}, {"sector": "区域旅游", "symbols": [{"code": "000888", "name": "峨眉山A"}, {"code": "600593", "name": "大连圣亚"}, {"code": "000430", "name": "张家界"}, {"code": "002033", "name": "丽江股份"}]}, {"sector": "受灾航线航空", "symbols": [{"code": "600115", "name": "中国东航"}, {"code": "601111", "name": "中国国航"}, {"code": "600029", "name": "南方航空"}, {"code": "601021", "name": "春秋航空"}]}, {"sector": "当地地产", "symbols": [{"code": "000002", "name": "万科A"}, {"code": "600048", "name": "保利发展"}, {"code": "001979", "name": "招商蛇口"}, {"code": "000069", "name": "华侨城A"}]}]
+  transmission: 灾害损毁基建与农田 → 短期农产品供给受影响、粮价预期上行，灾后重建带动水利/建材/工程机械订单；同时保险赔付上升压制险企利润，受灾区域旅游、航线与地产需求走弱。
+  amplification: 灾害在境外媒体密集报道，但影响地域性强、对 A 股以主题映射为主 → 放大系数中等（1.3），持续性取决于重建资金落地节奏。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(6):
+    - [示例源·Reuters] Record monsoon floods damage cropland, raising food security concerns | https://example.local/seed/flood-cropland-food
+    - [Live Science] A surprising slab of salt shines at the summit of the Sahara's tallest peak | https://www.livescience.com/planet-earth/volcanoes/a-surprising-slab-of-salt-shines-at-the-summit-of-the-saharas-tallest-peak-earth-from-space
+    - [Live Science] The devastating Nepal floods highlighted the danger of glaciers. Here's where the next disaster may occur. | https://www.livescience.com/planet-earth/climate-change/the-devastating-nepal-floods-highlighted-the-danger-of-glaciers-heres-where-the-next-disaster-may-occur
+    - [示例源·Reuters] Drought hits harvest in key exporting region; wheat shortage deepens | https://example.local/seed/drought-wheat-shortage
+    - [Phys.org] Canals full, roads submerged as Bangkok declares flood disaster | https://phys.org/news/2026-09-canals-full-roads-submerged-bangkok.html
+    - [Live Science] Hurricane Polo exploded in intensity in just 24 hours. Is the 'super' El Niño to blame? | https://www.livescience.com/planet-earth/how-did-hurricane-polo-get-so-powerful
+
+=== [9] 能源与大宗 · 国外舆情聚合（11 条） ===
+  topic: 能源与大宗
+  confidence: 0.75
+  heat: 544.25
+  driver_sources: Seeking Alpha,HKEX 联交所（通告/规则）,Nature,Phys.org,Live Science,CNBC 经济
+  driver_regions: US,HK,GLOBAL
+  overview: 国际大宗商品（原油 / 煤炭 / 有色）价格波动，改变上下游盈利分配。
+  variables: 大宗价格 ↑,上游盈利 ↑,下游制造成本 ↑
+  sectors_up: 石油石化,煤炭,有色金属
+  sectors_down: 下游制造,交运物流
+  sectors_up_detail: [{"sector": "石油石化", "symbols": [{"code": "601857", "name": "中国石油"}, {"code": "600028", "name": "中国石化"}, {"code": "600938", "name": "中国海油"}, {"code": "002493", "name": "荣盛石化"}, {"code": "601233", "name": "桐昆股份"}]}, {"sector": "煤炭", "symbols": [{"code": "601088", "name": "中国神华"}, {"code": "601225", "name": "陕西煤业"}, {"code": "600188", "name": "兖矿能源"}, {"code": "601898", "name": "中煤能源"}, {"code": "000983", "name": "山西焦煤"}]}, {"sector": "有色金属", "symbols": [{"code": "601899", "name": "紫金矿业"}, {"code": "601600", "name": "中国铝业"}, {"code": "600362", "name": "江西铜业"}, {"code": "000630", "name": "铜陵有色"}, {"code": "600111", "name": "北方稀土"}]}]
+  sectors_down_detail: [{"sector": "下游制造", "symbols": [{"code": "600690", "name": "海尔智家"}, {"code": "000333", "name": "美的集团"}, {"code": "600031", "name": "三一重工"}, {"code": "000651", "name": "格力电器"}]}, {"sector": "交运物流", "symbols": [{"code": "601919", "name": "中远海控"}, {"code": "601111", "name": "中国国航"}, {"code": "002352", "name": "顺丰控股"}, {"code": "601006", "name": "大秦铁路"}]}]
+  transmission: 国际大宗价格波动 → 上游资源股盈利弹性，下游制造成本压力。
+  amplification: 国外源 7 家、11 条条目构成议题密度；放大系数 1.5（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [示例源·MarketWatch] Treasury yields fall; gold hits record high on easing expectations | https://example.local/seed/gold-record
+    - [CNBC 经济] Coca-Cola hires Rob Gehring from Monster Energy to run its North American operations | https://www.cnbc.com/2026/09/25/monster-coca-cola-rob-gehring.html
+    - [Seeking Alpha] Oil climbs, stock futures slip as Trump rejects Iran’s Hormuz proposal | https://seekingalpha.com/news/4647414-oil-climbs-stock-futures-slip-as-trump-rejects-irans-hormuz-proposal?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+    - [Phys.org] Waste bulrush transformed into copper-enhanced material for dye removal from wastewater | https://phys.org/news/2026-09-bulrush-copper-material-dye-wastewater.html
+    - [Live Science] Why does lithium work against bipolar disorder? | https://www.livescience.com/health/medicine-drugs/why-does-lithium-work-against-bipolar-disorder
+    - [Nature] Author Correction: Large recoverable elastic energy in chiral metamaterials via twist buckling | https://www.nature.com/articles/s41586-026-11189-w
+
+=== [10] 国际形势 · 国外舆情聚合（6 条） ===
+  topic: 国际形势
+  confidence: 0.75
+  heat: 489.5
+  driver_sources: CNBC,HKEX 联交所（通告/规则）,Hacker News（科技社区）,Ars Technica,Live Science
+  driver_regions: US,HK,GLOBAL
+  overview: 国际形势趋于紧张（制裁 / 出口管制 / 地缘博弈），外部不确定性上升。
+  variables: 外部不确定性 ↑,自主可控政策力度 ↑,外需订单 ↓
+  sectors_up: 国产替代,军工,能源安全,农业
+  sectors_down: 外需出口链,跨境物流
+  sectors_up_detail: [{"sector": "国产替代", "symbols": [{"code": "688981", "name": "中芯国际"}, {"code": "002371", "name": "北方华创"}, {"code": "688041", "name": "海光信息"}, {"code": "688111", "name": "金山办公"}, {"code": "603986", "name": "兆易创新"}]}, {"sector": "军工", "symbols": [{"code": "600760", "name": "中航沈飞"}, {"code": "600893", "name": "航发动力"}, {"code": "000768", "name": "中航西飞"}, {"code": "002179", "name": "中航光电"}, {"code": "600038", "name": "中直股份"}]}, {"sector": "能源安全", "symbols": [{"code": "601857", "name": "中国石油"}, {"code": "601088", "name": "中国神华"}, {"code": "600900", "name": "长江电力"}, {"code": "601899", "name": "紫金矿业"}]}, {"sector": "农业", "symbols": [{"code": "600598", "name": "北大荒"}, {"code": "000998", "name": "隆平高科"}, {"code": "002714", "name": "牧原股份"}, {"code": "002385", "name": "大北农"}]}]
+  sectors_down_detail: [{"sector": "外需出口链", "symbols": [{"code": "000333", "name": "美的集团"}, {"code": "600690", "name": "海尔智家"}, {"code": "002475", "name": "立讯精密"}, {"code": "002032", "name": "苏泊尔"}]}, {"sector": "跨境物流", "symbols": [{"code": "002352", "name": "顺丰控股"}, {"code": "603128", "name": "华贸物流"}, {"code": "601598", "name": "中国外运"}, {"code": "002889", "name": "东方嘉盛"}]}]
+  transmission: 国际形势紧张 → 外部不确定性上升 → 自主可控与安全主题受资金关注，外需链承压。
+  amplification: 国外源 5 家、6 条条目构成议题密度；放大系数 1.3（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [HKEX 联交所（通告/规则）] United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (Yemen) Regulation 20 | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260914_LSD_059_2026?sc_lang=en
+    - [HKEX 联交所（通告/规则）] United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (Afghanistan) Regulat | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260903_LSD_056_2026?sc_lang=en
+    - [Live Science] Fragment of world's oldest peace treaty unearthed in Turkey | https://www.livescience.com/archaeology/ancient-egyptians/we-have-found-traces-of-peace-thousands-of-years-old-fragment-of-worlds-oldest-known-peace-treaty-found-in-turkey
+    - [CNBC] Trump, Xi wrap state visit centered on spectacle over substance. Here are the top takeaways | https://www.cnbc.com/2026/09/25/trump-xi-summit-takeaways.html
+    - [Hacker News（科技社区）] Fragment of oldest known peace treaty found in Turkey | https://www.livescience.com/archaeology/ancient-egyptians/we-have-found-traces-of-peace-thousands-of-years-old-fragment-of-worlds-oldest-known-peace-treaty-found-in-turkey
+    - [Ars Technica] After seven years, a spacecraft company is releasing its Otters into the wild | https://arstechnica.com/space/2026/09/after-seven-years-a-spacecraft-company-is-releasing-its-otters-into-the-wild/
+
+=== [11] 美联储利率预期变动：美元与外资流向扰动权重股 ===
+  topic: 金融与汇率
+  confidence: 0.82
+  heat: 354.75
+  driver_sources: CNBC,MarketWatch
+  driver_regions: US
+  overview: 美联储降息 / 加息预期变化，美元指数与美债收益率波动。
+  variables: 美元指数 ↓,美债收益率 ↓,北向资金净流入 ↑,黄金价格 ↑
+  sectors_up: 券商,黄金,非银金融,地产
+  sectors_down: 出口链(汇兑),银行(息差收窄)
+  sectors_up_detail: [{"sector": "券商", "symbols": [{"code": "600030", "name": "中信证券"}, {"code": "300059", "name": "东方财富"}, {"code": "601688", "name": "华泰证券"}, {"code": "600999", "name": "招商证券"}, {"code": "000776", "name": "广发证券"}]}, {"sector": "黄金", "symbols": [{"code": "600547", "name": "山东黄金"}, {"code": "600489", "name": "中金黄金"}, {"code": "601899", "name": "紫金矿业"}, {"code": "600988", "name": "赤峰黄金"}, {"code": "002237", "name": "恒邦股份"}]}, {"sector": "非银金融", "symbols": [{"code": "601318", "name": "中国平安"}, {"code": "601601", "name": "中国太保"}, {"code": "601628", "name": "中国人寿"}, {"code": "600030", "name": "中信证券"}, {"code": "300059", "name": "东方财富"}]}, {"sector": "地产", "symbols": [{"code": "000002", "name": "万科A"}, {"code": "001979", "name": "招商蛇口"}, {"code": "600048", "name": "保利发展"}, {"code": "000069", "name": "华侨城A"}, {"code": "600383", "name": "金地集团"}]}]
+  sectors_down_detail: [{"sector": "出口链(汇兑)", "symbols": [{"code": "002475", "name": "立讯精密"}, {"code": "000333", "name": "美的集团"}, {"code": "002594", "name": "比亚迪"}, {"code": "600690", "name": "海尔智家"}]}, {"sector": "银行(息差收窄)", "symbols": [{"code": "600036", "name": "招商银行"}, {"code": "601398", "name": "工商银行"}, {"code": "601939", "name": "建设银行"}, {"code": "601288", "name": "农业银行"}, {"code": "601166", "name": "兴业银行"}]}]
+  transmission: 美联储降息预期 → 美元走弱、人民币汇率压力缓解 → 北向资金回流预期升温，利好券商与黄金；若紧缩超预期则反向压制成长与地产。
+  amplification: 宏观利率议题连续多日出现在国外媒体头条，属持续性主题 → 放大系数中等（1.25），但耐久度高。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。
+  evidence(4):
+    - [示例源·CNBC] Fed signals possible rate cut as inflation cools, dollar slips | https://example.local/seed/fed-rate-cut
+    - [CNBC] The 10-year Treasury yield is at its highest in nearly two decades. How we got here | https://www.cnbc.com/2026/09/26/10-year-treasury-yield-is-at-its-highest-in-19-years-how-we-got-here.html
+    - [MarketWatch] Look closer, and Wall Street’s rally is showing cracks | https://www.marketwatch.com/story/look-closer-and-wall-streets-rally-is-showing-cracks-94952048?mod=mw_rss_topstories
+    - [CNBC] Here are the 4 big things we're watching in the stock market in the week ahead | https://www.cnbc.com/2026/09/27/here-are-the-4-big-things-were-watching-in-the-stock-market-in-the-week-ahead.html
+
+=== [12] 国际油价上行：上游石油石化盈利上修、下游成本抬升 ===
+  topic: 能源与大宗
+  confidence: 0.72
+  heat: 339.5
+  driver_sources: 
+  driver_regions: GLOBAL,US
+  overview: OPEC+ 减产或地缘扰动推升原油价格。
+  variables: 布伦特原油价格 ↑,上游盈利 ↑,下游原料成本 ↑
+  sectors_up: 石油石化,油气服务,煤炭
+  sectors_down: 下游化工,航空机场,物流快递
+  sectors_up_detail: [{"sector": "石油石化", "symbols": [{"code": "601857", "name": "中国石油"}, {"code": "600028", "name": "中国石化"}, {"code": "600938", "name": "中国海油"}, {"code": "002493", "name": "荣盛石化"}, {"code": "601233", "name": "桐昆股份"}]}, {"sector": "油气服务", "symbols": [{"code": "601808", "name": "中海油服"}, {"code": "600583", "name": "海油工程"}, {"code": "002353", "name": "杰瑞股份"}, {"code": "300191", "name": "潜能恒信"}]}, {"sector": "煤炭", "symbols": [{"code": "601088", "name": "中国神华"}, {"code": "601225", "name": "陕西煤业"}, {"code": "600188", "name": "兖矿能源"}, {"code": "601898", "name": "中煤能源"}, {"code": "000983", "name": "山西焦煤"}]}]
+  sectors_down_detail: [{"sector": "下游化工", "symbols": [{"code": "600309", "name": "万华化学"}, {"code": "000830", "name": "鲁西化工"}, {"code": "600426", "name": "华鲁恒升"}, {"code": "600409", "name": "三友化工"}]}, {"sector": "航空机场", "symbols": [{"code": "601111", "name": "中国国航"}, {"code": "600029", "name": "南方航空"}, {"code": "600115", "name": "中国东航"}, {"code": "600009", "name": "上海机场"}, {"code": "000089", "name": "深圳机场"}]}, {"sector": "物流快递", "symbols": [{"code": "002352", "name": "顺丰控股"}, {"code": "002120", "name": "韵达股份"}, {"code": "600233", "name": "圆通速递"}, {"code": "002468", "name": "申通快递"}]}]
+  transmission: OPEC+ 减产或地缘扰动推升油价 → 上游石油石化盈利上修，下游化工与交运成本上升。
+  amplification: 油价属高频国际议题、国外源密度高，但对 A 股传导偏温和 → 放大系数偏低（1.15）。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(3):
+    - [示例源·CNBC] Brent crude jumps as geopolitical tension raises oil supply risk | https://example.local/seed/brent-geo-risk
+    - [示例源·Seeking Alpha] Oilfield services earnings to benefit from higher crude prices | https://example.local/seed/oilfield-earnings
+    - [示例源·Reuters] OPEC+ extends output cuts; Brent crude climbs above recent range | https://example.local/seed/opec-cuts
+
+=== [13] 全球粮食减产 / 出口限制：种植与农资受益、养殖与食品加工承压 ===
+  topic: 自然灾害与洪涝
+  confidence: 0.82
+  heat: 295.25
+  driver_sources: 
+  driver_regions: GLOBAL,US
+  overview: 主产区气候异常（干旱 / 洪涝）或出口国实施出口限制，导致粮食减产、全球粮价与农产品价格上行。
+  variables: CBOT 小麦/玉米价格 ↑,全球粮价指数 ↑,化肥农药需求 ↑,饲料成本 ↑,CPI 食品分项 ↑
+  sectors_up: 种业,种植业,农垦,化肥农药,农机
+  sectors_down: 养殖(饲料成本),饲料,食品加工,调味品,白酒(用粮成本)
+  sectors_up_detail: [{"sector": "种业", "symbols": [{"code": "000998", "name": "隆平高科"}, {"code": "002041", "name": "登海种业"}, {"code": "600313", "name": "农发种业"}, {"code": "002385", "name": "大北农"}]}, {"sector": "种植业", "symbols": [{"code": "600598", "name": "北大荒"}, {"code": "601118", "name": "海南橡胶"}, {"code": "600108", "name": "亚盛集团"}, {"code": "000713", "name": "国投丰乐"}]}, {"sector": "农垦", "symbols": [{"code": "600598", "name": "北大荒"}, {"code": "601118", "name": "海南橡胶"}, {"code": "600108", "name": "亚盛集团"}, {"code": "000019", "name": "深粮控股"}]}, {"sector": "化肥农药", "symbols": [{"code": "000792", "name": "盐湖股份"}, {"code": "600096", "name": "云天化"}, {"code": "600486", "name": "扬农化工"}, {"code": "600141", "name": "兴发集团"}]}, {"sector": "农机", "symbols": [{"code": "601038", "name": "一拖股份"}, {"code": "300022", "name": "吉峰科技"}, {"code": "603766", "name": "隆鑫通用"}]}]
+  sectors_down_detail: [{"sector": "养殖(饲料成本)", "symbols": [{"code": "002714", "name": "牧原股份"}, {"code": "000876", "name": "新希望"}, {"code": "300498", "name": "温氏股份"}, {"code": "002124", "name": "天邦食品"}]}, {"sector": "饲料", "symbols": [{"code": "002385", "name": "大北农"}, {"code": "000876", "name": "新希望"}, {"code": "002311", "name": "海大集团"}, {"code": "002548", "name": "金新农"}]}, {"sector": "食品加工", "symbols": [{"code": "000895", "name": "双汇发展"}, {"code": "002557", "name": "洽洽食品"}, {"code": "002216", "name": "三全食品"}, {"code": "600872", "name": "中炬高新"}]}, {"sector": "调味品", "symbols": [{"code": "603288", "name": "海天味业"}, {"code": "600872", "name": "中炬高新"}, {"code": "002507", "name": "涪陵榨菜"}, {"code": "603317", "name": "天味食品"}]}, {"sector": "白酒(用粮成本)", "symbols": [{"code": "600519", "name": "贵州茅台"}, {"code": "000858", "name": "五粮液"}, {"code": "000568", "name": "泸州老窖"}, {"code": "600809", "name": "山西汾酒"}, {"code": "002304", "name": "洋河股份"}]}]
+  transmission: 减产 → 全球粮价上行 → 种植收益改善带动种业 / 种植 / 农垦，种植意愿提升拉动化肥农药与农机需求；同时饲料与食品加工原料成本上升，养殖、食品加工、调味品及用粮的白酒毛利承压。
+  amplification: 粮食议题多由 FAO / USDA 等国际机构发布，国外源权威度高、国内同步报道快 → 放大系数中等偏强（1.4），且伴随通胀预期具备持续性。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。
+  evidence(4):
+    - [示例源·Bloomberg] Export curbs on rice after poor harvest lift global food security worries | https://example.local/seed/rice-export-curbs
+    - [示例源·Reuters] Record monsoon floods damage cropland, raising food security concerns | https://example.local/seed/flood-cropland-food
+    - [示例源·Reuters] Drought hits harvest in key exporting region; wheat shortage deepens | https://example.local/seed/drought-wheat-shortage
+    - [示例源·MarketWatch] Grain prices surge on crop failure fears; fertilizer demand seen rising | https://example.local/seed/grain-crop-failure
+
+=== [14] 国际新闻热点 · 国外舆情聚合（6 条） ===
+  topic: 国际新闻热点
+  confidence: 0.75
+  heat: 265.0
+  driver_sources: CNBC,MarketWatch,CNBC 经济,CNBC 科技,Fortune
+  driver_regions: US
+  overview: 国际宏观新闻（利率 / 通胀 / GDP / 大选）改变全球风险偏好。
+  variables: 全球风险偏好 ±,美元指数 ±,北向资金流向 ±
+  sectors_up: 券商,黄金
+  sectors_down: 高估值成长,出口链
+  sectors_up_detail: [{"sector": "券商", "symbols": [{"code": "600030", "name": "中信证券"}, {"code": "300059", "name": "东方财富"}, {"code": "601688", "name": "华泰证券"}, {"code": "600999", "name": "招商证券"}, {"code": "000776", "name": "广发证券"}]}, {"sector": "黄金", "symbols": [{"code": "600547", "name": "山东黄金"}, {"code": "600489", "name": "中金黄金"}, {"code": "601899", "name": "紫金矿业"}, {"code": "600988", "name": "赤峰黄金"}, {"code": "002237", "name": "恒邦股份"}]}]
+  sectors_down_detail: [{"sector": "高估值成长", "symbols": [{"code": "688256", "name": "寒武纪"}, {"code": "300750", "name": "宁德时代"}, {"code": "300015", "name": "爱尔眼科"}, {"code": "688111", "name": "金山办公"}]}, {"sector": "出口链", "symbols": [{"code": "000333", "name": "美的集团"}, {"code": "002475", "name": "立讯精密"}, {"code": "600690", "name": "海尔智家"}, {"code": "000651", "name": "格力电器"}]}]
+  transmission: 国际宏观新闻（利率/通胀/GDP）改变全球风险偏好 → 通过汇率与外资流向影响 A 股核心资产。
+  amplification: 国外源 5 家、6 条条目构成议题密度；放大系数 1.3（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [CNBC] History shows financial calamities occur when rates rise rapidly like this: 'Something always breaks' | https://www.cnbc.com/2026/09/24/history-shows-financial-calamities-occur-when-rates-rise-rapidly-like-this-something-always-breaks.html
+    - [Fortune] The U.S. economy is running hot and stuck on a hamster wheel as GDP growth must outpace borrowing costs—or ris | https://fortune.com/2026/09/27/us-economy-gdp-growth-bond-yields-borrowing-costs-debt-spiral/
+    - [MarketWatch] A ‘death cross’ is coming for the dollar. Why Trump will be happy. | https://www.marketwatch.com/story/a-death-cross-is-coming-for-the-dollar-why-trump-will-be-happy-0766303d?mod=mw_rss_topstories
+    - [CNBC 经济] McDonald's CEO expects high inflation, lackluster traffic are here to stay | https://www.cnbc.com/2026/09/23/mcdonalds-investor-day-ceo-chris-kempczinksi-inflation.html
+    - [CNBC 科技] Trump says Scott Bessent won't be AI czar | https://www.cnbc.com/2026/09/25/trump-bessent-ai-czar.html
+    - [CNBC] India's viral Cockroach Party calls election panel head 'biggest threat' to democracy. Here's why it matters | https://www.cnbc.com/2026/09/25/india-cockroach-party-election-protest-democracy.html
+
+=== [15] 港股流动性与南向资金改善：恒生科技与 A+H 估值修复 ===
+  topic: 金融与汇率
+  confidence: 0.75
+  heat: 229.5
+  driver_sources: HKEX 联交所（通告/规则）
+  driver_regions: HK
+  overview: 港股流动性与南向资金改善，恒指与科技板块走强。
+  variables: 南向资金净流入 ↑,恒生科技估值 ↑,港股成交额 ↑
+  sectors_up: 港股互联网,A+H金融,券商
+  sectors_down: 
+  sectors_up_detail: [{"sector": "港股互联网", "symbols": [{"code": "300059", "name": "东方财富"}, {"code": "002027", "name": "分众传媒"}, {"code": "601360", "name": "三六零"}, {"code": "002230", "name": "科大讯飞"}]}, {"sector": "A+H金融", "symbols": [{"code": "601318", "name": "中国平安"}, {"code": "601628", "name": "中国人寿"}, {"code": "601398", "name": "工商银行"}, {"code": "600036", "name": "招商银行"}, {"code": "601288", "name": "农业银行"}]}, {"sector": "券商", "symbols": [{"code": "600030", "name": "中信证券"}, {"code": "300059", "name": "东方财富"}, {"code": "601688", "name": "华泰证券"}, {"code": "600999", "name": "招商证券"}, {"code": "000776", "name": "广发证券"}]}]
+  sectors_down_detail: []
+  transmission: 港股流动性与南向资金改善 → 恒生科技与 A+H 标的估值修复，并向外溢至 A 股券商与互联网板块。
+  amplification: 港股议题的国外源以官方披露与港媒为主，情绪平稳 → 放大系数偏低（1.1），但方向确定性较高。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(6):
+    - [示例源·AAStocks] 恒指反弹 港股科技股领涨 南向资金持续净流入 | https://example.local/seed/hsi-rebound
+    - [示例源·HKEX] HKEX reports stronger southbound turnover and rising new listing applications | https://example.local/seed/hkex-turnover
+    - [HKEX 联交所（通告/规则）] Trading Arrangements of Hang Seng AI Advancement ETF | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_149_2026Sep25193240?sc_lang=en
+    - [HKEX 联交所（通告/规则）] Trading Arrangements of CSOP Hang Seng Pioneer Technology Index ETF | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_145_2026Sep24184723?sc_lang=en
+    - [HKEX 联交所（通告/规则）] Trading Arrangements of Fullgoal Hang Seng HK-US Robotics ETF | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_146_2026Sep25184737?sc_lang=en
+    - [HKEX 联交所（通告/规则）] Display of Previous Closing Price of Invesco QQQ TrustSM, Series 1 (stock codes 3455 - HKD counter, 9455 - USD | https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260916_NIS_SMD_144_2026?sc_lang=en
+
+=== [16] 对华电动车加征关税：出口链承压、内需替代加速 ===
+  topic: 国际形势
+  confidence: 0.69
+  heat: 118.8
+  driver_sources: 
+  driver_regions: GLOBAL
+  overview: 欧美对华电动车 / 光伏加征关税，出口敞口承压。
+  variables: 出口关税成本 ↑,海外建厂资本开支 ↑,出口订单 ↓
+  sectors_up: 内需替代链,海外产能布局企业
+  sectors_down: 新能源车出口,光伏出口,锂电出口链
+  sectors_up_detail: [{"sector": "内需替代链", "symbols": [{"code": "002594", "name": "比亚迪"}, {"code": "300750", "name": "宁德时代"}, {"code": "601012", "name": "隆基绿能"}, {"code": "000333", "name": "美的集团"}]}, {"sector": "海外产能布局企业", "symbols": [{"code": "002594", "name": "比亚迪"}, {"code": "300750", "name": "宁德时代"}, {"code": "601012", "name": "隆基绿能"}, {"code": "600438", "name": "通威股份"}, {"code": "000333", "name": "美的集团"}]}]
+  sectors_down_detail: [{"sector": "新能源车出口", "symbols": [{"code": "002594", "name": "比亚迪"}, {"code": "601127", "name": "赛力斯"}, {"code": "600104", "name": "上汽集团"}, {"code": "601633", "name": "长城汽车"}, {"code": "000625", "name": "长安汽车"}]}, {"sector": "光伏出口", "symbols": [{"code": "601012", "name": "隆基绿能"}, {"code": "600438", "name": "通威股份"}, {"code": "002129", "name": "TCL中环"}, {"code": "300274", "name": "阳光电源"}, {"code": "688599", "name": "天合光能"}]}, {"sector": "锂电出口链", "symbols": [{"code": "300750", "name": "宁德时代"}, {"code": "002460", "name": "赣锋锂业"}, {"code": "002466", "name": "天齐锂业"}, {"code": "300014", "name": "亿纬锂能"}, {"code": "002074", "name": "国轩高科"}]}]
+  transmission: 美国/欧盟对华电动车加征关税 → 直接出口敞口承压、海外建厂节奏前移；中长期倒逼国内产能出海与内需替代。
+  amplification: 关税议题往往伴随政治表态反复，国外源高频但情绪摆动大 → 放大系数中等（1.3），波动放大明显。
+  cross_check: 国内源有 1 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。
+  evidence(1):
+    - [示例源·Bloomberg] Chinese EV makers accelerate overseas plants to blunt tariff impact | https://example.local/seed/ev-overseas-plants
+
+=== [17] 供应链与制造 · 国外舆情聚合（3 条） ===
+  topic: 供应链与制造
+  confidence: 0.69
+  heat: 106.0
+  driver_sources: CNBC 科技
+  driver_regions: US,GLOBAL
+  overview: 海外供应链扰动（罢工 / 港口拥堵 / 关税），影响航运价格与出口交付节奏。
+  variables: 航运运价 ↑,交付周期 ↑,出口订单节奏 ±
+  sectors_up: 航运港口,物流
+  sectors_down: 依赖准时交付的出口制造
+  sectors_up_detail: [{"sector": "航运港口", "symbols": [{"code": "601919", "name": "中远海控"}, {"code": "600018", "name": "上港集团"}, {"code": "601872", "name": "招商轮船"}, {"code": "601018", "name": "宁波港"}, {"code": "600026", "name": "中远海能"}]}, {"sector": "物流", "symbols": [{"code": "002352", "name": "顺丰控股"}, {"code": "603128", "name": "华贸物流"}, {"code": "002120", "name": "韵达股份"}, {"code": "600233", "name": "圆通速递"}]}]
+  sectors_down_detail: [{"sector": "依赖准时交付的出口制造", "symbols": [{"code": "002475", "name": "立讯精密"}, {"code": "601138", "name": "工业富联"}, {"code": "002938", "name": "鹏鼎控股"}, {"code": "000333", "name": "美的集团"}]}]
+  transmission: 海外供应链扰动（罢工/拥堵/关税） → 航运价格与出口交付节奏波动。
+  amplification: 国外源 2 家、3 条条目构成议题密度；放大系数 1.0（>1 为放大，<1 为衰减）。
+  cross_check: 国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。
+  evidence(3):
+    - [CNBC 科技] U.S. appeals court upholds Pentagon designation of Anthropic as supply chain risk | https://www.cnbc.com/2026/09/25/pentagon-anthropic-ai-risk-appeals-court.html
+    - [示例源·Reuters] Red Sea shipping disruptions lift container rates and delay deliveries | https://example.local/seed/red-sea
+    - [CNBC 科技] Chinese authorities reportedly in possession of F-35 components in Hong Kong | https://www.cnbc.com/2026/09/24/chinaf-f35-components-hong-kong.html
+
+########## 四类事件命中 ##########
+news rows: 692 ; sources: Ars Technica、CNBC、CNBC 科技、CNBC 经济、Fortune、GitHub 趋势仓库、HKEX 联交所（通告/规则）、HKEX 香港交易所（新闻稿）、Hacker News（科技社区）、Live Science、MIT Technology Review、MarketWatch、Nasdaq 市场新闻、Nature、New Scientist、Phys.org、Seeking Alpha、Slashdot、TechCrunch、The Verge、Wired、ZDNet、东方财富股吧、同花顺、示例源·AAStocks、示例源·Bloomberg、示例源·CNBC、示例源·HKEX、示例源·MarketWatch、示例源·Reuters、示例源·Seeking Alpha、联合早报（东南亚）、联合早报（国际）、联合早报（新加坡）、雪球
+
+=== ①地缘冲突与战争 : 命中 83 / 真实 77 / 示例 6 ===
+  [2026-09-28] (CNBC) Oil gains over 1% as Trump rejects Iranian proposal to reopen Hormuz Strait
+      https://www.cnbc.com/2026/09/28/oil-price-today-wti-brent-trump-iran.html
+  [2026-09-27] (CNBC) At NFL games this season, drone defense tech aims to bring down disruptions
+      https://www.cnbc.com/2026/09/27/nfl-drone-defense-tech-game-disruptions.html
+  [2026-09-28] (CNBC) Iran's foreign minister says Tehran ready for 'doomsday' war with U.S., but leaves diplomacy on the table
+      https://www.cnbc.com/2026/09/27/iran-foreign-minister-keeps-indirect-talks-with-us-open-state-media.html
+  [2026-09-27] (CNBC) Meta's Muse agent is attacking one of the economy's most profitable weak spots
+      https://www.cnbc.com/2026/09/27/meta-muse-ai-personal-agent.html
+  [2026-09-27] (CNBC) Apple faces $5.7 billion patent infringement verdict over iPhone and Apple Watch haptics
+      https://www.cnbc.com/2026/09/26/apple-taction-technology-patent-infringement-verdict.html
+  [2026-09-27] (CNBC) Boeing flags 737 Max software glitch affecting some automated approach functions
+      https://www.cnbc.com/2026/09/26/boeing-737-max-navigation-software-glitch.html
+  [2026-09-26] (CNBC) Many homeowners have a big insurance coverage gap — and don't even know it
+      https://www.cnbc.com/2026/09/26/homeowners-insurance-coverage-gap.html
+  [2026-09-28] (Seeking Alpha) Oil climbs, stock futures slip as Trump rejects Iran’s Hormuz proposal
+      https://seekingalpha.com/news/4647414-oil-climbs-stock-futures-slip-as-trump-rejects-irans-hormuz-proposal?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news
+  [2026-09-14] (HKEX 联交所（通告/规则）) United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (Yemen) Regulation 2019 (Amendment) Regul
+      https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260914_LSD_059_2026?sc_lang=en
+  [2026-09-03] (HKEX 联交所（通告/规则）) United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (Afghanistan) Regulation 2022 (Cap. 537CN
+      https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260903_LSD_056_2026?sc_lang=en
+  [2026-09-28] (Hacker News（科技社区）) Lunar Terminator Paradox
+      https://notes.secretsauce.net/notes/2026/09/27_lunar-terminator-paradox.html
+  [2026-09-28] (Hacker News（科技社区）) My Recent Woodworking Projects
+      https://notoriousbfg.com/recent-woodworking-projects/
+  [2026-09-28] (Hacker News（科技社区）) Show HN: Cartopolis, interactive globe-sized 3D world
+      https://code.garage44.eu/jeroen/cartopolis
+  [2026-09-28] (Hacker News（科技社区）) When did Google get so weird?
+      https://sancho.bearblog.dev/google-weird/
+  [2026-09-28] (Hacker News（科技社区）) Have an LLC
+      https://zachholman.com/posts/you-should-have-an-llc
+  [2026-09-28] (Hacker News（科技社区）) Self-Hosting on the Dark Web
+      https://david.alvarezrosa.com/posts/self-hosting-on-the-dark-web/
+  [2026-09-28] (Hacker News（科技社区）) Alan Kay's answer to “Did the ENIAC have a BIOS”?
+      https://www.quora.com/Did-the-ENIAC-have-a-BIOS/answer/Alan-Kay-11
+  [2026-09-28] (Hacker News（科技社区）) Imp is a full port of DSPy to the BEAM
+      https://github.com/deepfates/imp
+  [2026-09-28] (Hacker News（科技社区）) What I did at Recurse Center
+      https://thill.me/2026/09/11/what-i-did-at-rc.html
+  [2026-09-28] (Hacker News（科技社区）) Show HN: Lofi Cities – Pixel-art city nights with browser-generated lofi
+      https://loficities.com/
+  [2026-09-28] (Hacker News（科技社区）) Oral history of John Chowning, inventor of FM synthesis [video]
+      https://www.youtube.com/watch?v=e1Xn3030IvM
+  [2026-09-28] (Hacker News（科技社区）) Ember-1
+      https://fireworks.ai/blog/ember-1
+  [2026-09-28] (Hacker News（科技社区）) Don't couple your Go code to GitHub
+      https://iain.rocks/blog/dont-couple-your-go-code-to-github
+  [2026-09-27] (Hacker News（科技社区）) Show HN: TinyAIArena watch AI agents battle it out
+      https://tinyaiarena.com/
+  [2026-09-27] (Hacker News（科技社区）) The Normalization of Inexplicable Failures
+      https://www.ihatethefuture.com/2026/09/the-normalization-of-inexplicable.html
+  [2026-09-27] (Hacker News（科技社区）) Fragment of oldest known peace treaty found in Turkey
+      https://www.livescience.com/archaeology/ancient-egyptians/we-have-found-traces-of-peace-thousands-of-years-old-fragment-of-worlds-oldest-known-peace-treaty-found-in-turkey
+  [2026-09-27] (Hacker News（科技社区）) In an $80 motel room, a discovery to shed light on the origins of life
+      https://www.nytimes.com/2026/09/26/science/motel-science-discovery.html
+  [2026-09-27] (Hacker News（科技社区）) Replacing the old battery on rechargeable bike lights
+      https://jvns.ca/blog/2026/09/27/replacing-the-old-battery-on-rechargeable-bike-lights/
+  [2026-09-27] (Hacker News（科技社区）) Faster prompt lookup drafting in llama.cpp
+      https://jadidbourbaki.github.io/blog/prompt-lookup-llama-cpp/
+  [2026-09-27] (Hacker News（科技社区）) Video CDs Break Windows Explorer
+      https://clydesnotes.blogspot.com/2026/08/video-cds-break-windows-explorer.html
+  [2026-09-27] (The Verge) OpenAI agents tried to ‘bruteforce’ a UN website
+      https://www.theverge.com/ai-artificial-intelligence/1001178/openai-agents-bruteforce-un-website
+  [2026-09-26] (The Verge) Apple hit with $5.7 billion in damages over haptic patents
+      https://www.theverge.com/tech/1001118/apple-hit-with-5-7-billion-in-damages-over-haptic-patents
+  [2026-09-27] (Ars Technica) How the Smithsonian became the latest front in Trump’s culture war
+      https://arstechnica.com/tech-policy/2026/09/how-the-smithsonian-became-the-latest-front-in-trumps-culture-war/
+  [2026-09-26] (Ars Technica) Court rules Pentagon can blacklist Anthropic for refusing to enable Claude features
+      https://arstechnica.com/tech-policy/2026/09/court-rules-trump-can-blacklist-anthropic-for-refusing-to-enable-claude-features/
+  [2026-09-27] (Wired) You Don’t Need to Pay for Distraction-Blocking Software
+      https://www.wired.com/story/you-dont-need-to-pay-for-distraction-blocking-software/
+  [2026-09-25] (Wired) War Bros Didn’t Always Rule Silicon Valley
+      https://www.wired.com/story/war-bros-didnt-always-rule-silicon-valley/
+  [2026-09-25] (Wired) I Think I Found an AI Agent Worth the Risk
+      https://www.wired.com/story/i-finally-found-an-ai-agent-worth-the-risk/
+  [2026-09-25] (ZDNet) This one WatchOS 27 feature just solved my biggest issue with Apple Watch
+      https://www.zdnet.com/uncategorized/watchos-27-update-fix-apple-watch/
+  [2026-09-25] (ZDNet) Your LG TV is constantly collecting your data – here’s how to stop it
+      https://www.zdnet.com/home-and-office/lg-tv-data-collection-how-to-factory-reset-and-why-you-need-to/
+  [2026-09-18] (ZDNet) Fake calendar invites can infect your system, and they’re surging – how to protect yourself
+      https://www.zdnet.com/tech/fake-calendar-invites-malware/
+  [2026-09-17] (ZDNet) Bose returns with new open earbuds (and a refreshed favorite)
+      https://www.zdnet.com/tech/bose-ultra-earbuds-sport-open-earbuds/
+  [2026-09-15] (ZDNet) How Cisco is confronting the security crisis of agentic AI
+      https://www.zdnet.com/paid-content/article/how-cisco-is-confronting-the-security-crisis-of-agentic-ai/
+  [2026-09-27] (Slashdot) New Tin-based Solar Cells Trap Heat 1,000 Times Longer, Could Beat 33% Limit
+      https://hardware.slashdot.org/story/26/09/26/0716210/new-tin-based-solar-cells-trap-heat-1000-times-longer-could-beat-33-limit?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-27] (Slashdot) KDE and GNOME Developers Ponder How to Handle AI-Generated Contributions
+      https://tech.slashdot.org/story/26/09/24/1928229/kde-and-gnome-developers-ponder-how-to-handle-ai-generated-contributions?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-25] (Slashdot) F-Droid 2.0: FOSS Android Appstore Continues Updating Despite Google's Pending 'Developer Verification' Plan
+      https://news.slashdot.org/story/26/09/25/0344225/f-droid-20-foss-android-appstore-continues-updating-despite-googles-pending-developer-verification-plan?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-28] (Nature) Gravitational tug-of-war inside Earth is changing the length of our days
+      https://www.nature.com/articles/d41586-026-03018-x
+  [2026-09-28] (Phys.org) Who is responsible for limiting global warming to 1.5°?
+      https://phys.org/news/2026-09-responsible-limiting-global.html
+  [2026-09-28] (Phys.org) How has evolution shaped men's and women's minds? A new book tells an outdated story
+      https://phys.org/news/2026-09-evolution-men-women-minds-outdated.html
+  [2026-09-27] (Phys.org) Why earwigs infected by parasitic worms head towards water
+      https://phys.org/news/2026-09-earwigs-infected-parasitic-worms.html
+  [2026-09-27] (Phys.org) Engineers teach spacecraft to 'dream' their way to the space station
+      https://phys.org/news/2026-09-spacecraft-space-station.html
+  [2026-09-27] (Live Science) A giant cosmic 'fart' is making a wobbling zombie star repeatedly flash us, 'groundbreaking' observations reveal
+      https://www.livescience.com/space/astronomy/a-giant-cosmic-fart-is-making-a-wobbling-zombie-star-repeatedly-flash-us-groundbreaking-observations-reveal
+  [2026-09-26] (Live Science) NASA teases new PRIMA telescope that could see what even the James Webb telescope can't
+      https://www.livescience.com/space/space-exploration/nasa-teases-new-prima-telescope-that-could-peer-even-deeper-into-the-infrared-universe-than-the-james-webb-space-telescope
+  [2026-09-25] (Live Science) Author Rose George dives into the dark depths of the fishing industry
+      https://www.livescience.com/animals/fish/if-you-do-want-to-be-a-criminal-there-is-no-better-place-to-do-it-author-rose-george-dives-into-the-dark-depths-of-the-fishing-industry
+  [2026-09-24] (Live Science) Japan switches on its first full-stack room-temperature quantum computer — and scientists plan to scale it up to 10,000 qubits
+      https://www.livescience.com/technology/quantum/japan-switches-on-its-first-full-stack-room-temperature-quantum-computer-and-scientists-plan-to-scale-it-up-to-10-000-qubits
+  [2026-09-23] (Live Science) Google DeepMind's latest AI tool promises a new era for genetics research, but experts warn to take its predictions with caution
+      https://www.livescience.com/technology/artificial-intelligence/google-deepminds-latest-ai-tool-promises-a-new-era-for-genetics-research-but-experts-warn-to-take-its-predictions-with-caution
+  [2026-09-23] (Live Science) 3,000-year-old burial of ancient Egyptian horse found — and a nearby stone carving depicts a captured prisoner
+      https://www.livescience.com/archaeology/ancient-egyptians/3-000-year-old-burial-of-ancient-egyptian-horse-found-and-a-nearby-stone-carving-depicts-a-captured-prisoner
+  [2026-09-23] (Live Science) Weird spikes poking through a teen's eyelid turned out to be a wayward tooth
+      https://www.livescience.com/health/anatomy/diagnostic-dilemma-weird-spikes-poking-through-a-teens-eyelid-turned-out-to-be-a-wayward-tooth
+  [2026-09-23] (Live Science) US heading for unprecedented El Niño winter: Here's what to expect
+      https://www.livescience.com/planet-earth/climate-change/us-heading-for-unprecedented-el-nino-winter-heres-what-to-expect
+  [2026-09-22] (Live Science) 700-year-old skull from China is first ever skeletal evidence of nose amputation
+      https://www.livescience.com/archaeology/ancient-china/14th-century-woman-in-china-lost-her-nose-to-amputation-likely-as-punishment-for-stealing-or-adultery
+  [2026-09-22] (Live Science) New LightTok chip converts light directly into 'tokens' for AI — slashing energy use in drones and other autonomous machines
+      https://www.livescience.com/technology/electronics/new-lighttok-chip-converts-light-directly-into-tokens-for-ai-slashing-energy-use-in-drones-and-other-autonomous-machines
+  [2026-09-24] (New Scientist) Taking HRT in perimenopause may ward off cardiovascular disease
+      https://www.newscientist.com/article/2590688-taking-hrt-in-perimenopause-may-ward-off-cardiovascular-disease/?utm_campaign=RSS|NSNS&utm_content=home&utm_medium=RSS&utm_source=NSNS
+  [2026-09-28] (CNBC 经济) Lowe's is launching a drone delivery service in partnership with DoorDash, Alphabet
+      https://www.cnbc.com/2026/09/24/lowes-drones-delivery-doordash-alphabet.html
+  [2026-09-23] (CNBC 经济) Autonomous trucking company Aurora looks to accelerate toward profitability
+      https://www.cnbc.com/2026/09/22/aurora-autonomous-semi-ride.html
+  [2026-09-22] (CNBC 经济) Paramount and state AGs settle lawsuit, allowing Warner Bros. merger to proceed
+      https://www.cnbc.com/2026/09/21/paramount-reaches-settlement-over-warner-bros-merger.html
+  [2026-09-22] (CNBC 经济) Hundreds of flights into Newark, New York, Philadelphia disrupted after Verizon fiber line cut
+      https://www.cnbc.com/2026/09/21/newark-philadelphia-nyc-flight-disruptions.html
+  [2026-09-20] (CNBC 经济) Budget airline king Bill Franke warms to first-class seats and premium upgrades
+      https://www.cnbc.com/2026/09/20/bill-franke-frontier-spirit-budget-airlines.html
+  [2026-09-25] (CNBC 科技) Trump and Xi dined with AI's biggest names. Here's what we know about tech talks so far
+      https://www.cnbc.com/2026/09/25/the-tech-download-trump-xi-ai-talks.html
+  [2026-09-25] (CNBC 科技) Meta gets to consumer AI device market before OpenAI, but Zuckerberg's strategy remains unproven
+      https://www.cnbc.com/2026/09/24/meta-mark-zuckerberg-muse-charm-openai-agent.html
+  [2026-09-28] (Fortune) The U.S. may soon receive $600 million worth of Iranian oil that was seized earlier in the war, putting an ancient body of maritim
+      https://fortune.com/2026/09/27/us-600-million-iranian-oil-seizure-naval-blockade-prize-law/
+  [2026-09-27] (Fortune) British police arrest five men for allegedly preparing a terrorism attack with explosives on a base used by U.S. bombers for Iran 
+      https://fortune.com/2026/09/27/british-police-arrest-raf-fairford-terrorism-attack-explosives-us-air-force-bombers-iran-war/
+  [2026-09-27] (Fortune) As soaring energy prices crush businesses, France rolls out a new $500 million aid package, including help with commuting and heat
+      https://fortune.com/2026/09/27/energy-prices-businesses-france-500-million-aid-package-commuting-heating-costs/
+  [2026-09-28] (Nasdaq 市场新闻) 1 Top Warren Buffett Stock Trading 21% Below Its All-Time High That Can Double a $1,000 Investment in 5 Years
+      https://www.nasdaq.com/articles/1-top-warren-buffett-stock-trading-21-below-its-all-time-high-can-double-1000-investment-5
+  [20260927] (联合早报（国际）) 特朗普回拒伊朗方案 德黑兰：重开霍尔木兹海峡条件绝不妥协
+      https://www.zaobao.com/news/world/story20260927-9744947
+  [20260927] (联合早报（国际）) 美媒：朝鲜测试结合无人机与导弹的蜂群攻击战术
+      https://www.zaobao.com/news/world/story20260927-9745022
+  [20260927] (联合早报（国际）) 特朗普拒绝重开霍尔木兹方案 伊朗军方称做好迎战准备
+      https://www.zaobao.com/news/world/story20260927-9744581
+  [20260927] (联合早报（东南亚）) 国际特稿：地缘红利被美国红线压缩 东南亚突围须整合硬实力
+      https://www.zaobao.com/news/sea/story20260927-9688634
+  [20260925] (联合早报（东南亚）) 安华：马中同意延长东铁路线至马泰边境
+      https://www.zaobao.com/news/sea/story20260925-9736397
+
+=== ②洪涝等自然灾害 : 命中 30 / 真实 26 / 示例 4 ===
+  [2026-09-28] (CNBC) Nor'easter delays hundreds of flights, airlines waive change fees
+      https://www.cnbc.com/2026/09/25/flights-storm-new-york-boston-east-coast.html
+  [2026-09-24] (Wired) Why This Weekend’s Nor’easter Is Like a Hurricane
+      https://www.wired.com/story/this-weeks-noreaster-forecast/
+  [2026-09-28] (Nature) Nepal’s floods expose issues with climate-disaster funding — firmer policies are needed fast
+      https://www.nature.com/articles/d41586-026-03016-z
+  [2026-09-28] (Nature) AI bots are flooding researchers with requests for money and time
+      https://www.nature.com/articles/d41586-026-03005-2
+  [2026-09-28] (Phys.org) Japan's 2011 tsunami sparked fish hybridization, but species boundaries largely held
+      https://phys.org/news/2026-09-japan-tsunami-fish-hybridization-species.html
+  [2026-09-28] (Phys.org) Why volcanic crystals are black boxes for tracking magma's journey to the Earth's surface
+      https://phys.org/news/2026-09-volcanic-crystals-black-tracking-magma.html
+  [2026-09-27] (Phys.org) Powerful storm pummels Northeast US with rain, high winds
+      https://phys.org/news/2026-09-powerful-storm-pummels-northeast-high.html
+  [2026-09-27] (Phys.org) Why AI has trouble predicting the fury of hurricane intensity
+      https://phys.org/news/2026-09-ai-fury-hurricane-intensity.html
+  [2026-09-26] (Phys.org) Millions in the US Northeast brace for a powerful storm
+      https://phys.org/news/2026-09-millions-northeast-brace-powerful-storm.html
+  [2026-09-26] (Phys.org) Canals full, roads submerged as Bangkok declares flood disaster
+      https://phys.org/news/2026-09-canals-full-roads-submerged-bangkok.html
+  [2026-09-26] (Phys.org) Indonesia fires threaten critically endangered orangutan: IUCN
+      https://phys.org/news/2026-09-indonesia-threaten-critically-endangered-orangutan.html
+  [2026-09-24] (Live Science) Hurricane Polo exploded in intensity in just 24 hours. Is the 'super' El Niño to blame?
+      https://www.livescience.com/planet-earth/how-did-hurricane-polo-get-so-powerful
+  [2026-09-23] (Live Science) Earth's crust is 'unzipping' beneath Italy — and that could explain most of the earthquakes in the region
+      https://www.livescience.com/planet-earth/earths-crust-is-unzipping-beneath-italy-and-that-could-explain-most-of-the-earthquakes-in-the-region
+  [2026-09-22] (Live Science) A surprising slab of salt shines at the summit of the Sahara's tallest peak
+      https://www.livescience.com/planet-earth/volcanoes/a-surprising-slab-of-salt-shines-at-the-summit-of-the-saharas-tallest-peak-earth-from-space
+  [2026-09-21] (Live Science) The devastating Nepal floods highlighted the danger of glaciers. Here's where the next disaster may occur.
+      https://www.livescience.com/planet-earth/climate-change/the-devastating-nepal-floods-highlighted-the-danger-of-glaciers-heres-where-the-next-disaster-may-occur
+  [20260927] (联合早报（国际）) 美国强劲秋季风暴席卷东北部多地 数万户断电一人死亡
+      https://www.zaobao.com/news/world/story20260927-9745178
+  [20260927] (联合早报（国际）) 英国美军基地附近发生重大事件 警方逮捕五人疏散居民
+      https://www.zaobao.com/news/world/story20260927-9744074
+  [20260927] (联合早报（国际）) 印度尼泊尔暴雨洪灾造成70死 10人遭雪崩掩埋失踪
+      https://www.zaobao.com/news/world/story20260927-9743926
+  [20260927] (联合早报（东南亚）) 曼谷洪灾持续水位居高不下 逾5万户家庭受影响
+      https://www.zaobao.com/news/sea/story20260927-9745078
+  [20260927] (联合早报（东南亚）) 曼谷洪水趋缓 素万那普机场泰航行李处理仍受影响
+      https://www.zaobao.com/news/sea/story20260927-9743795
+  [20260927] (联合早报（东南亚）) 曼谷大雨洪水未退 近4900人撤离避难
+      https://www.zaobao.com/news/sea/story20260927-9743438
+  [20260926] (联合早报（东南亚）) 柬埔寨10省遭洪灾 逾2万5000户受影响
+      https://www.zaobao.com/news/sea/story20260926-9741980
+  [20260926] (联合早报（东南亚）) 泰国曼谷暴雨成灾全市列为灾区 首相提前结束访英回国
+      https://www.zaobao.com/news/sea/story20260926-9741605
+  [20260926] (联合早报（东南亚）) 印尼成立新管理局 防控泥炭地林火
+      https://www.zaobao.com/news/sea/story20260926-9740873
+  [20260926] (联合早报（东南亚）) 马国沙巴州京那巴当岸清晨发生3.3级地震
+      https://www.zaobao.com/news/sea/story20260926-9740159
+  [20260926] (联合早报（东南亚）) 连日强降雨引发严重洪灾 曼谷全市为洪水灾区
+      https://www.zaobao.com/news/sea/story20260926-9739932
+
+=== ③重大科研论文发布 : 命中 71 / 真实 68 / 示例 3 ===
+  [2026-09-27] (Hacker News（科技社区）) Fragment of oldest known peace treaty found in Turkey
+      https://www.livescience.com/archaeology/ancient-egyptians/we-have-found-traces-of-peace-thousands-of-years-old-fragment-of-worlds-oldest-known-peace-treaty-found-in-turkey
+  [2026-09-27] (Hacker News（科技社区）) In an $80 motel room, a discovery to shed light on the origins of life
+      https://www.nytimes.com/2026/09/26/science/motel-science-discovery.html
+  [2026-09-25] (Ars Technica) With PRIMA, NASA will try to build a billion-dollar space telescope in record time
+      https://arstechnica.com/space/2026/09/nasa-green-lights-billion-dollar-infrared-observatory-for-launch-in-early-2030s/
+  [2026-09-25] (Ars Technica) Trump admin using AI to deny medical care for seniors in disastrous experiment
+      https://arstechnica.com/health/2026/09/trump-admin-using-ai-to-deny-medical-care-for-seniors-in-disastrous-experiment/
+  [2026-09-27] (Wired) Some Pancreatic Cells Are Just One Genetic Tweak Away From Treating Diabetes
+      https://www.wired.com/story/pancreatic-cells-just-one-genetic-tweak-away-from-treating-diabetes/
+  [2026-09-25] (Wired) Party Invite Phishing Scams Are the New Missed Connections
+      https://www.wired.com/story/party-invite-phishing-scams-are-the-new-missed-connections/
+  [2026-09-24] (Wired) The Ovary Is Surprisingly Active After Menopause. Scientists Are Trying to Figure Out Why
+      https://www.wired.com/story/ovary-activity-after-menopause/
+  [2026-09-18] (ZDNet) Businesses finally seeing AI ROI, but 62% can’t handle the storage demands
+      https://www.zdnet.com/business/ai-storage-demand-seagate-study/
+  [2026-09-27] (Slashdot) New Tin-based Solar Cells Trap Heat 1,000 Times Longer, Could Beat 33% Limit
+      https://hardware.slashdot.org/story/26/09/26/0716210/new-tin-based-solar-cells-trap-heat-1000-times-longer-could-beat-33-limit?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-26] (Slashdot) AI Finds So Many Linux Bugs, Canonical Changes to a Two-Week Stable Release Update Cycle
+      https://news.slashdot.org/story/26/09/26/0559227/ai-finds-so-many-linux-bugs-canonical-changes-to-a-two-week-stable-release-update-cycle?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-26] (Slashdot) Is Microsoft Quietly Killing Off Its 'Copilot+ PC' Brand?
+      https://tech.slashdot.org/story/26/09/25/0420247/is-microsoft-quietly-killing-off-its-copilot-pc-brand?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-26] (Slashdot) Meta Made 43M Misleading Statements, New Mexico Jury Finds, Including on Its Cambridge Analytica Response
+      https://tech.slashdot.org/story/26/09/26/0042239/meta-made-43m-misleading-statements-new-mexico-jury-finds-including-on-its-cambridge-analytica-response?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-25] (Slashdot) There's a New Way to Break RSA Encryption
+      https://it.slashdot.org/story/26/09/24/1652228/theres-a-new-way-to-break-rsa-encryption?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-25] (Slashdot) Asteroids Named After Tom Lehrer and 'Weird Al' Yankovic
+      https://science.slashdot.org/story/26/09/24/009238/asteroids-named-after-tom-lehrer-and-weird-al-yankovic?utm_source=rss1.0mainlinkanon&utm_medium=feed
+  [2026-09-28] (Nature) Briefing Chat: Why scientists made papyrus scrolls, then burnt them
+      https://www.nature.com/articles/d41586-026-03041-y
+  [2026-09-28] (Nature) Why science wouldn’t exist without alchemy, curiosity and great writing: Books in brief
+      https://www.nature.com/articles/d41586-026-03032-z
+  [2026-09-28] (Nature) Exclusive: Sham scientific societies are misleading star researchers
+      https://www.nature.com/articles/d41586-026-02980-w
+  [2026-09-28] (Nature) AI bots are flooding researchers with requests for money and time
+      https://www.nature.com/articles/d41586-026-03005-2
+  [2026-09-28] (Nature) GLP-1 drugs fail to help some people lose weight — scientists are on a quest for answers
+      https://www.nature.com/articles/d41586-026-03020-3
+  [2026-09-28] (Nature) Reference genomes and fossils revise bat family phylogeny and biogeography
+      https://www.nature.com/articles/s41586-026-11007-3
+  [2026-09-28] (Nature) Anomalous metal and superconducting phases in rhombohedral graphene
+      https://www.nature.com/articles/s41586-026-11033-1
+  [2026-09-28] (Nature) Lack of female researchers and participants in regenerative-medicine research holds everyone back
+      https://www.nature.com/articles/d41586-026-02857-y
+  [2026-09-28] (Nature) How to stay smart in the age of AI: the science of critical thinking
+      https://www.nature.com/articles/d41586-026-02930-6
+  [2026-09-28] (Nature) Vast cellular gene-expression atlas could transform how scientists understand brain ageing and disease
+      https://www.nature.com/articles/d41586-026-02770-4
+  [2026-09-28] (Nature) A guide to the Nature Index
+      https://www.nature.com/articles/d41586-026-02858-x
+  [2026-09-28] (Nature) Best clock ever: timekeeper based on lutetium atoms wows researchers
+      https://www.nature.com/articles/d41586-026-03019-w
+  [2026-09-28] (Nature) Genome project opens the next chapter for studying bat evolution
+      https://www.nature.com/articles/d41586-026-02637-8
+  [2026-09-28] (Phys.org) Can Bionic Reading really help you read faster? Scientists put it to the test
+      https://phys.org/news/2026-09-bionic-faster-scientists.html
+  [2026-09-28] (Phys.org) Soil protection measures can make agri-photovoltaics more sustainable
+      https://phys.org/news/2026-09-soil-agri-photovoltaics-sustainable.html
+  [2026-09-27] (Phys.org) Waste bulrush transformed into copper-enhanced material for dye removal from wastewater
+      https://phys.org/news/2026-09-bulrush-copper-material-dye-wastewater.html
+  [2026-09-27] (Phys.org) Astronomers discover a radio galaxy with evidence of four separate jet outbursts
+      https://phys.org/news/2026-09-astronomers-radio-galaxy-evidence-jet.html
+  [2026-09-27] (Phys.org) DNA reveals chemosynthesis genes in bacteria living on coral reef fish gills
+      https://phys.org/news/2026-09-dna-reveals-chemosynthesis-genes-bacteria.html
+  [2026-09-27] (Phys.org) Pumpkin-derived enzyme weakens peanut proteins' binding to allergy antibodies in lab tests
+      https://phys.org/news/2026-09-pumpkin-derived-enzyme-weakens-peanut.html
+  [2026-09-26] (Phys.org) Crop protection: A new method for understanding insect sexual communication
+      https://phys.org/news/2026-09-crop-method-insect-sexual-communication.html
+  [2026-09-26] (Phys.org) Lead isotopes trace Malawi's mysterious copper ingot hoard to Congo's Kipushi mine
+      https://phys.org/news/2026-09-isotopes-malawi-mysterious-copper-ingot.html
+  [2026-09-26] (Phys.org) Digital textbooks significantly boost students' intrinsic learning motivation
+      https://phys.org/news/2026-09-digital-textbooks-significantly-boost-students.html
+  [2026-09-26] (Phys.org) Indonesia fires threaten critically endangered orangutan: IUCN
+      https://phys.org/news/2026-09-indonesia-threaten-critically-endangered-orangutan.html
+  [2026-09-27] (Live Science) James Webb telescope shares one of its biggest images ever, with record-breaking stars hiding in the dust
+      https://www.livescience.com/space/astronomy/james-webb-telescope-shares-one-of-its-biggest-images-ever-with-record-breaking-stars-hiding-in-the-dust-space-photo-of-the-week
+  [2026-09-27] (Live Science) What is the closest any object has gotten to the sun?
+      https://www.livescience.com/space/astronomy/what-is-the-closest-any-object-has-gotten-to-the-sun
+  [2026-09-26] (Live Science) NASA teases new PRIMA telescope that could see what even the James Webb telescope can't
+      https://www.livescience.com/space/space-exploration/nasa-teases-new-prima-telescope-that-could-peer-even-deeper-into-the-infrared-universe-than-the-james-webb-space-telescope
+  [2026-09-25] (Live Science) 'Everything we know about space travel is going to change within a decade': The fusion breakthrough that could unlock a path to th
+      https://www.livescience.com/space/space-exploration/everything-we-know-about-space-travel-is-going-to-change-within-a-decade-the-fusion-breakthrough-that-could-unlock-a-path-to-the-stars
+  [2026-09-25] (Live Science) Rare armored dinosaur found in Japan may have ancestors that migrated across a land bridge 100 million years ago
+      https://www.livescience.com/animals/dinosaurs/rare-armored-dinosaur-found-in-japan-may-have-ancestors-that-migrated-across-a-land-bridge-100-million-years-ago
+  [2026-09-24] (Live Science) Could Comet 3I/ATLAS teach us about life beyond Earth? Scientists say the story's not over yet.
+      https://www.livescience.com/space/comets/could-comet-3i-atlas-teach-us-about-life-beyond-earth-scientists-say-the-storys-not-over-yet
+  [2026-09-24] (Live Science) Japan switches on its first full-stack room-temperature quantum computer — and scientists plan to scale it up to 10,000 qubits
+      https://www.livescience.com/technology/quantum/japan-switches-on-its-first-full-stack-room-temperature-quantum-computer-and-scientists-plan-to-scale-it-up-to-10-000-qubits
+  [2026-09-24] (Live Science) Earth's first bats didn't come from where we thought, landmark genetic study reveals
+      https://www.livescience.com/animals/land-mammals/earths-first-bats-didnt-come-from-where-we-thought-landmark-genetic-study-reveals
+  [2026-09-23] (Live Science) Astronomers detected radio signals coming from an exoplanet for the first time. Spoiler alert: It's not aliens.
+      https://www.livescience.com/space/exoplanets/astronomers-detected-radio-signals-coming-from-an-exoplanet-for-the-first-time-spoiler-alert-its-not-aliens
+  [2026-09-23] (Live Science) 'It has become very dire in a lot of places': New map reveals exactly where humans are adding and removing precious fresh water on
+      https://www.livescience.com/planet-earth/it-has-become-very-dire-in-a-lot-of-places-new-map-reveals-exactly-where-humans-are-adding-and-removing-precious-fresh-water-on-earth
+  [2026-09-23] (Live Science) Google DeepMind's latest AI tool promises a new era for genetics research, but experts warn to take its predictions with caution
+      https://www.livescience.com/technology/artificial-intelligence/google-deepminds-latest-ai-tool-promises-a-new-era-for-genetics-research-but-experts-warn-to-take-its-predictions-with-caution
+  [2026-09-23] (Live Science) The hunt for extraterrestrial life is fundamentally flawed. But there's a fix.
+      https://www.livescience.com/space/extraterrestrial-life/our-hunt-for-extraterrestrial-life-has-a-big-blind-spot-opinion
+  [2026-09-23] (Live Science) Newfound 'fire amoeba from the Cascades' sets record for the hottest temperature complex life can survive at
+      https://www.livescience.com/planet-earth/evolution/newfound-fire-amoeba-from-the-cascades-sets-record-for-the-hottest-temperature-complex-life-can-survive-at
+  [2026-09-23] (Live Science) Vera C. Rubin Observatory detects one of the smallest and faintest satellite galaxies ever seen
+      https://www.livescience.com/space/astronomy/vera-rubin-observatory-detects-one-of-the-smallest-and-faintest-satellite-galaxies-ever-seen-before-the-telescopes-mission-even-began
+  [2026-09-23] (Live Science) US heading for unprecedented El Niño winter: Here's what to expect
+      https://www.livescience.com/planet-earth/climate-change/us-heading-for-unprecedented-el-nino-winter-heres-what-to-expect
+  [2026-09-22] (Live Science) Scientists identify 'sweet spot' for early stage of life on Earth that preceded LUCA, the ancestor of all living things
+      https://www.livescience.com/planet-earth/evolution/scientists-identify-sweet-spot-for-early-stage-of-life-on-earth-that-preceded-luca-the-ancestor-of-all-living-things
+  [2026-09-22] (Live Science) 'Once every 130 years': A huge new crater on the moon could be a giant leap for lunar science, researcher says
+      https://www.livescience.com/space/the-moon/we-only-expect-to-encounter-that-once-every-130-years-a-huge-new-crater-on-the-moon-could-mean-a-giant-leap-for-lunar-science-veteran-researcher-says
+  [2026-09-22] (Live Science) New LightTok chip converts light directly into 'tokens' for AI — slashing energy use in drones and other autonomous machines
+      https://www.livescience.com/technology/electronics/new-lighttok-chip-converts-light-directly-into-tokens-for-ai-slashing-energy-use-in-drones-and-other-autonomous-machines
+  [2026-09-22] (Live Science) What are you most excited for NASA's Roman Space Telescope to find?
+      https://www.livescience.com/space/astronomy/what-are-you-most-excited-for-nasas-roman-space-telescope-to-find
+  [2026-09-22] (Live Science) Spaceflight may harm the reproductive system of astronauts' kids and grandkids, early mouse study suggests
+      https://www.livescience.com/health/reproductive-health/spaceflight-may-harm-the-reproductive-system-of-astronauts-kids-and-grandkids-early-mouse-study-suggests
+  [2026-09-22] (Live Science) Scientists made a paper battery you can swallow to power internal medical devices
+      https://www.livescience.com/health/scientists-made-a-paper-battery-you-can-swallow-to-power-internal-medical-devices
+  [2026-09-20] (Live Science) 'On our way to groundbreaking science': Stars turn neon-green in first test image from NASA's Roman telescope
+      https://www.livescience.com/space/astronomy/we-are-on-our-way-to-groundbreaking-science-stars-turn-neon-green-in-first-test-image-from-nasas-roman-telescope-space-photo-of-the-week
+  [2026-09-19] (Live Science) Scientists build a DNA computer that can perform calculations in a drop of water
+      https://www.livescience.com/technology/computing/scientists-build-a-dna-computer-that-can-perform-calculations-in-a-drop-of-water
+  [2026-09-19] (Live Science) An 'impossible' black hole merger may finally be solved — but it raises an even bigger mystery
+      https://www.livescience.com/space/astronomy/an-impossible-black-hole-merger-may-finally-be-solved-thanks-to-einsteins-relativity-but-it-raises-an-even-bigger-mystery
+  [2026-09-25] (New Scientist) Anthropic’s discovery will, at best, be just another gene-editing tool
+      https://www.newscientist.com/article/2590769-has-anthropics-claude-really-made-a-discovery-comparable-to-crispr/?utm_campaign=RSS|NSNS&utm_content=home&utm_medium=RSS&utm_source=NSNS
+  [2026-09-25] (New Scientist) The first season of Heroes is almost perfect – here’s why
+      https://www.newscientist.com/article/2590275-the-first-season-of-heroes-is-almost-perfect-heres-why/?utm_campaign=RSS|NSNS&utm_content=home&utm_medium=RSS&utm_source=NSNS
+  [2026-09-24] (MIT Technology Review) AI is dominating the conversation at Climate Week
+      https://www.technologyreview.com/2026/09/24/1145048/ai-climate-week/
+  [20260927] (联合早报（国际）) 南非又发现一具女尸 两个多月发现女受害者增至11人
+      https://www.zaobao.com/news/world/story20260927-9745588
+  [20260927] (联合早报（国际）) 研究：寻求聊天机器人陪伴的青少年更感孤独
+      https://www.zaobao.com/news/world/story20260927-9744182
+  [2026-09-28] (同花顺) 突破百万台在即，机器人细分赛道，高歌猛进！12股获融资客加仓
+      https://news.10jqka.com.cn/20260928/c680290208.shtml
+  [2026-09-28] (同花顺) 中美达成八点成果共识
+      https://news.10jqka.com.cn/20260926/c680286099.shtml
+
+=== ④粮食歉收与减产 : 命中 12 / 真实 7 / 示例 5 ===
+  [2026-09-28] (Nature) Agricultural liming is a carbon sink in the Mississippi River Basin
+      https://www.nature.com/articles/s41586-026-11040-2
+  [2026-09-28] (Nature) A widespread agricultural practice is an unexpected CO 2 sink
+      https://www.nature.com/articles/d41586-026-02646-7
+  [2026-09-28] (Phys.org) Soil protection measures can make agri-photovoltaics more sustainable
+      https://phys.org/news/2026-09-soil-agri-photovoltaics-sustainable.html
+  [2026-09-26] (Phys.org) Crop protection: A new method for understanding insect sexual communication
+      https://phys.org/news/2026-09-crop-method-insect-sexual-communication.html
+  [2026-09-26] (Live Science) Harvest Moon 2026: See the first full moon of autumn rise alongside Saturn tonight
+      https://www.livescience.com/space/the-moon/the-full-harvest-moon-rises-with-saturn-this-weekend-heres-how-to-get-the-best-views
+  [2026-09-26] (Live Science) New kind of AI audio chip transforms earbuds into always-on 'intelligent' devices that run without a smartphone. How does it work?
+      https://www.livescience.com/technology/electronics/new-kind-of-ai-audio-chip-transforms-earbuds-into-always-on-intelligent-devices-that-run-without-a-smartphone-how-does-it-work
+  [2026-09-23] (Live Science) Astronomers detected radio signals coming from an exoplanet for the first time. Spoiler alert: It's not aliens.
+      https://www.livescience.com/space/exoplanets/astronomers-detected-radio-signals-coming-from-an-exoplanet-for-the-first-time-spoiler-alert-its-not-aliens
+
+########## 09-28 当日条目（按 publish_time） ##########
+  [2026-09-28 05:38:59] (CNBC) Taxpayer-funded Trump ads draw bipartisan scrutiny ahead of midterms
+  [2026-09-28 08:32:09] (CNBC) Oil gains over 1% as Trump rejects Iranian proposal to reopen Hormuz Strait
+  [2026-09-28 03:13:27] (CNBC) Anthropic CEO Amodei set to meet with Trump after missing state dinner
+  [2026-09-28 02:45:27] (CNBC) Iran's foreign minister says Tehran ready for 'doomsday' war with U.S., but leaves diplomacy on the table
+  [2026-09-28 07:33:21] (CNBC) Apple, Microsoft, and Meta prove stock picking for individuals is not a fool's errand
+  [2026-09-28 02:43:21] (CNBC) Nor'easter delays hundreds of flights, airlines waive change fees
+  [2026-09-28 00:16:43] (CNBC) Here are the 4 big things we're watching in the stock market in the week ahead
+  [2026-09-28 03:23:29] (CNBC 科技) Trump to have dinner with Anthropic CEO Amodei at the White House
+  [2026-09-28 03:02:10] (CNBC 经济) Lowe's is launching a drone delivery service in partnership with DoorDash, Alphabet
+  [2026-09-28 07:29:37] (Fortune) The U.S. may soon receive $600 million worth of Iranian oil that was seized earlier in the war, putting an ancient body of maritim
+  [2026-09-28 04:53:52] (Fortune) Walmart CEO says that the retail giant and its AI shopping assistant aren’t using personal information to set prices amid rollout 
+  [2026-09-28 04:20:06] (Fortune) Thinking about buying stocks instead of a home as mortgage rates top 7%? The S&P 500 has blown away the housing market over the pa
+  [2026-09-28 01:24:48] (Fortune) The U.S. economy is running hot and stuck on a hamster wheel as GDP growth must outpace borrowing costs—or risk getting sucked int
+  [2026-09-28 02:35:09] (Fortune) Sand deficit: Coastal erosion is so bad in California that the residents of this mostly Republican city may tax themselves to rest
+  [2026-09-28 02:18:28] (Fortune) Giorgio Armani’s will requires the sale of a 15% stake in his empire within 18 months of his death. LVMH, L’Oréal and EssilorLuxot
+  [2026-09-28 05:06:17] (Hacker News（科技社区）) Lunar Terminator Paradox
+  [2026-09-28 04:33:55] (Hacker News（科技社区）) My Recent Woodworking Projects
+  [2026-09-28 04:14:53] (Hacker News（科技社区）) Show HN: Cartopolis, interactive globe-sized 3D world
+  [2026-09-28 04:12:54] (Hacker News（科技社区）) When did Google get so weird?
+  [2026-09-28 04:04:37] (Hacker News（科技社区）) Have an LLC
+  [2026-09-28 04:03:36] (Hacker News（科技社区）) Self-Hosting on the Dark Web
+  [2026-09-28 03:37:05] (Hacker News（科技社区）) Alan Kay's answer to “Did the ENIAC have a BIOS”?
+  [2026-09-28 03:28:23] (Hacker News（科技社区）) Imp is a full port of DSPy to the BEAM
+  [2026-09-28 03:04:19] (Hacker News（科技社区）) What I did at Recurse Center
+  [2026-09-28 02:44:30] (Hacker News（科技社区）) Show HN: Lofi Cities – Pixel-art city nights with browser-generated lofi
+  [2026-09-28 02:02:43] (Hacker News（科技社区）) Oral history of John Chowning, inventor of FM synthesis [video]
+  [2026-09-28 01:31:53] (Hacker News（科技社区）) Ember-1
+  [2026-09-28 00:50:58] (Hacker News（科技社区）) Don't couple your Go code to GitHub
+  [2026-09-28 06:00:00] (MarketWatch) ‘I want to make her proud’: My mother, a divorcée, died and I’m her executor. Do I need to file for probate?
+  [2026-09-28 05:45:00] (MarketWatch) ‘We lived within our means’: I earned $30,000 as a pastor and still retired comfortably. Why don’t you tell people that?
+  [2026-09-28 03:21:00] (MarketWatch) A ‘death cross’ is coming for the dollar. Why Trump will be happy.
+  [2026-09-28 00:45:00] (MarketWatch) Social Security overpaid my 82-year-old mother by $20,000. What else is hiding in her finances?
+  [2026-09-28 00:00:00] (MarketWatch) My husband and I are in our 50s and have no kids. We have $2 million in IRAs and 401(k)s. Do we really need a will?
+  [2026-09-28 00:00:00] (MarketWatch) ‘It doesn’t seem fair’: I’m retired and have plenty of money. Why can’t I qualify for a retail credit card?
+  [2026-09-28 08:20:00] (Nasdaq 市场新闻) Elon Musk Just Gave Nvidia Investors More Good News. Is the Stock a Buy?
+  [2026-09-28 08:15:15] (Nasdaq 市场新闻) SoundHound AI vs. BigBear.ai: Revenue Trends Reveal Key Insights About These Artificial Intelligence Companies
+  [2026-09-28 07:58:01] (Nasdaq 市场新闻) Nebius Is Raising the Price of Its AI Compute on Oct. 1. Here's What That Says About the Shortage.
+  [2026-09-28 07:35:06] (Nasdaq 市场新闻) Salesforce vs. Palantir Technologies: What Revenue Trends Reveal to Investors About These Tech Giants
+  [2026-09-28 07:33:18] (Nasdaq 市场新闻) Malaysia Stock Market May Find Traction On Monday
+  [2026-09-28 07:32:00] (Nasdaq 市场新闻) A $10,000 Investment in SpaceX Will Be Worth This Much by 2030
+  [2026-09-28 07:18:18] (Nasdaq 市场新闻) Japan Stock Market May Add To Its Winnings On Monday
+  [2026-09-28 07:03:18] (Nasdaq 市场新闻) Win Streak May Continue For South Korea Shares
+  [2026-09-28 06:24:00] (Nasdaq 市场新闻) Here's How Many Shares of Coca-Cola You'd Need for $10,000 in Yearly Dividends
+  [2026-09-28 06:20:01] (Nasdaq 市场新闻) Bristol Myers Squibb vs. Novo Nordisk: Which Healthcare Stock Is a Better Buy in 2026?
+  [2026-09-28 05:50:00] (Nasdaq 市场新闻) 1 Top Warren Buffett Stock Trading 21% Below Its All-Time High That Can Double a $1,000 Investment in 5 Years
+  [2026-09-28 05:34:01] (Nasdaq 市场新闻) I'd Buy Amazon Stock While It Sits 12% Below Its Record
+  [2026-09-28 05:27:01] (Nasdaq 市场新闻) 3 Simple Reasons I'd Rather Own Nvidia Than SpaceX
+  [2026-09-28 05:05:00] (Nasdaq 市场新闻) GE Vernova vs. Bloom Energy: Which AI Power Stock Has the Edge?
+  [2026-09-28 05:05:00] (Nasdaq 市场新闻) SpaceX vs. Tesla: Which Will Be the Largest Company at the End of 2027?
+  [2026-09-28 09:02:10] (Nature) Briefing Chat: Why scientists made papyrus scrolls, then burnt them
+  [2026-09-28 09:02:10] (Nature) Why science wouldn’t exist without alchemy, curiosity and great writing: Books in brief
+  [2026-09-28 09:02:10] (Nature) Anthropic’s AI biolab finds ‘CRISPR-like’ DNA in viruses. What’s next?
+  [2026-09-28 09:02:10] (Nature) Chemists struggle to ditch hazardous solvents — even after decades of ‘green’ efforts
+  [2026-09-28 09:02:10] (Nature) Nepal’s floods expose issues with climate-disaster funding — firmer policies are needed fast
+  [2026-09-28 09:02:10] (Nature) Exclusive: Sham scientific societies are misleading star researchers
+  [2026-09-28 09:02:10] (Nature) OpenAI's research chief talks of ‘cultural reset’ after wild few weeks
+  [2026-09-28 09:02:10] (Nature) AI bots are flooding researchers with requests for money and time
+  [2026-09-28 09:02:10] (Nature) Bumblebees don’t mind a little plastic in their honeypots
+  [2026-09-28 09:02:10] (Nature) Youthful fans of YouTube sports videos stick to the sofa
+  [2026-09-28 09:02:10] (Nature) GLP-1 drugs fail to help some people lose weight — scientists are on a quest for answers
+  [2026-09-28 09:02:10] (Nature) AI system helps lab devices ‘talk’ with each other — streamlining research
+  [2026-09-28 09:02:10] (Nature) AI agent hacks government website for first time: why this breach matters
+  [2026-09-28 09:02:10] (Nature) Daily briefing: Will AI really be the death of us all?
+  [2026-09-28 09:02:10] (Nature) AlphaFold ‘goes viral’: database adds protein complexes of common viruses
+  [2026-09-28 09:02:10] (Nature) Author Correction: Large recoverable elastic energy in chiral metamaterials via twist buckling
+  [2026-09-28 09:02:10] (Nature) Chiral oxazolidinones via biocatalytic aziridination of unactivated alkenes
+  [2026-09-28 09:02:10] (Nature) Bank accounts reveal the fingerprints of abusive financial control
+  [2026-09-28 09:02:10] (Nature) Competition heats up in the regenerative-medicine ranks
+  [2026-09-28 09:02:10] (Nature) Huge hoard of metal bars hints at vast Iron Age trade
+  [2026-09-28 09:02:10] (Nature) The gene-regulatory evolution of the human skeleton
+  [2026-09-28 09:02:10] (Nature) The anthropogenic fingerprint on emerging infectious diseases
+  [2026-09-28 09:02:10] (Nature) Gravitational torque drives multidecadal variations in length of day
+  [2026-09-28 09:02:10] (Nature) Single-nucleus transcriptome-wide association study of human brain disorders
+  [2026-09-28 09:02:10] (Nature) Lu + optical frequency references with accuracy verified at the 19th digit
+  [2026-09-28 09:02:10] (Nature) Sequence-encoded hexagonal lattices in multichannel peptide nanofibrils
+  [2026-09-28 09:02:10] (Nature) Banking records reveal characteristics of financial abuse
+  [2026-09-28 09:02:10] (Nature) Hepatocytes promote liver metastasis of pancreatic cancer by providing serine
+  [2026-09-28 09:02:10] (Nature) A design approach for bitopic kinase inhibitors
+  [2026-09-28 09:02:10] (Nature) A methanogen hydrolase reveals the structure of archaeal peptidoglycan
+  [2026-09-28 09:02:10] (Nature) Reference genomes and fossils revise bat family phylogeny and biogeography
+  [2026-09-28 09:02:10] (Nature) mTORC1 drives cell-autonomous astrocyte reactivity in tuberous sclerosis
+  [2026-09-28 09:02:10] (Nature) Targeting ZMYND8 unleashes IL-2 signalling to override T cell exhaustion
+  [2026-09-28 09:02:10] (Nature) Anomalous metal and superconducting phases in rhombohedral graphene
+  [2026-09-28 09:02:10] (Nature) Lifespan single-cell transcriptomic atlas of the human prefrontal cortex
+  [2026-09-28 09:02:10] (Nature) Agricultural liming is a carbon sink in the Mississippi River Basin
+  [2026-09-28 09:02:10] (Nature) Stacking-induced direct band gap in CVD-grown 1H MoS 2 bilayers
+  [2026-09-28 09:02:10] (Nature) TRAM promotes Toll-like-receptor-free myddosome signal transduction
+  [2026-09-28 09:02:10] (Nature) Lsp2 links mTORC1 to TOP mRNA translation and lifespan in Drosophila
+  [2026-09-28 09:02:10] (Nature) Lsp2 links early-life diet to adult translation and lifespan in Drosophila
+  [2026-09-28 09:02:10] (Nature) The lipidomic architecture of the mouse brain
+  [2026-09-28 09:02:10] (Nature) Single-cell atlas of transcriptomic vulnerability across brain disorders
+  [2026-09-28 09:02:10] (Nature) MMEJ repair of breaks at TA repeats maintains ecDNA and cancer fitness
+  [2026-09-28 09:02:10] (Nature) A quadruped robot designed to complete a marathon on a single battery charge
+  [2026-09-28 09:02:10] (Nature) Neuronal detection of social actions directs collective escape behaviour
+  [2026-09-28 09:02:10] (Nature) Organic two-dimensional van der Waals heterostructures
+  [2026-09-28 09:02:10] (Nature) The mutational dynamics of the Arabidopsis centromeres
+  [2026-09-28 09:02:10] (Nature) Brain lipids are organized into zones — and reorganized during pregnancy
+  [2026-09-28 09:02:10] (Nature) Efficient yet stable large perovskite solar modules made using surface treatment
+  [2026-09-28 09:02:10] (Nature) Lack of female researchers and participants in regenerative-medicine research holds everyone back
+  [2026-09-28 09:02:10] (Nature) Gravitational tug-of-war inside Earth is changing the length of our days
+  [2026-09-28 09:02:10] (Nature) There’s a new form of boron — and it’s really weird
+  [2026-09-28 09:02:10] (Nature) In praise of human teachers: universities must resist outsourcing everything to AI
+  [2026-09-28 09:02:10] (Nature) ‘Remarkably encouraging’: stem-cell treatments for autoimmune diseases enter new phase
+  [2026-09-28 09:02:10] (Nature) A plant that reproduces sexually but has clone-like offspring
+  [2026-09-28 09:02:10] (Nature) Daily briefing: Read the text inside a charred, rolled-up scroll
+  [2026-09-28 09:02:10] (Nature) Landmark map of human brain’s gene activity holds clues to Alzheimer’s disease and more
+  [2026-09-28 09:02:10] (Nature) How to stay smart in the age of AI: the science of critical thinking
+  [2026-09-28 09:02:10] (Nature) Vast cellular gene-expression atlas could transform how scientists understand brain ageing and disease
+  [2026-09-28 09:02:10] (Nature) The human skeleton’s unique adaptations relied on gene regulatory changes
+  [2026-09-28 09:02:10] (Nature) Gravitational forces inside Earth drag some decades out — and make others fly by
+  [2026-09-28 09:02:10] (Nature) A guide to the Nature Index
+  [2026-09-28 09:02:10] (Nature) How do I rekindle my motivation for earning my PhD?
+  [2026-09-28 09:02:10] (Nature) Best clock ever: timekeeper based on lutetium atoms wows researchers
+  [2026-09-28 09:02:10] (Nature) A widespread agricultural practice is an unexpected CO 2 sink
+  [2026-09-28 09:02:10] (Nature) Conifer trees can prosper half a world away from their usual home
+  [2026-09-28 09:02:10] (Nature) Genome project opens the next chapter for studying bat evolution
+  [2026-09-28 09:02:10] (Nature) What is needed for regenerative medicine to flourish?
+  [2026-09-28 09:02:10] (Nature) Surprising protein links dietary restriction to increased lifespan in flies
+  [2026-09-28 09:02:10] (Nature) The courier
+  [2026-09-28 09:02:10] (Nature) Biosecurity must protect human functional capacity
+  [2026-09-28 09:02:10] (Nature) Why insects need their own protected areas
+  [2026-09-28 09:02:10] (Nature) A global safety net for climate-risk intelligence is urgently needed
+  [2026-09-28 09:02:10] (Nature) What happens in Vegas: one lecturer’s hunt for a projector
+  [2026-09-28 09:02:10] (Nature) Dust in the wind is on the decline
+  [2026-09-28 08:30:06] (Phys.org) What the smell of a soil can tell us about soil health
+  [2026-09-28 05:00:01] (Phys.org) Who is responsible for limiting global warming to 1.5°?
+  [2026-09-28 04:00:01] (Phys.org) Japan's 2011 tsunami sparked fish hybridization, but species boundaries largely held
+  [2026-09-28 03:00:01] (Phys.org) Why volcanic crystals are black boxes for tracking magma's journey to the Earth's surface
+  [2026-09-28 02:00:06] (Phys.org) Finding homes for whales and dolphins when parks close isn't easy—sea sanctuaries aren't the answer
+  [2026-09-28 01:40:01] (Phys.org) Can Bionic Reading really help you read faster? Scientists put it to the test
+  [2026-09-28 01:00:01] (Phys.org) Soil protection measures can make agri-photovoltaics more sustainable
+  [2026-09-28 00:10:01] (Phys.org) More moral language doesn't always mean more engagement online
+  [2026-09-28 00:00:01] (Phys.org) How has evolution shaped men's and women's minds? A new book tells an outdated story
+  [2026-09-28 07:51:58] (Seeking Alpha) Oil climbs, stock futures slip as Trump rejects Iran’s Hormuz proposal
+  [2026-09-28 06:00:07] (Seeking Alpha) Here are the major earnings before the open Monday
+  [2026-09-28 05:35:00] (Seeking Alpha) IDT Corporation Q4 2026 Earnings Preview
+  [2026-09-28 05:35:00] (Seeking Alpha) Jefferies Financial Group Q3 2026 Earnings Preview
+  [2026-09-28 05:35:00] (Seeking Alpha) Vail Resorts Q4 2026 Earnings Preview
+  [2026-09-28 05:02:53] (Seeking Alpha) Global markets: US stocks rise, Europe slips, Asia mixed
+  [2026-09-28 05:01:23] (Seeking Alpha) U.S. pours billions into critical minerals push to loosen China’s grip
+  [2026-09-28 04:34:28] (TechCrunch) Anthropic’s CEO is about to have dinner with President Trump
+  [2026-09-28 03:57:30] (TechCrunch) Can Muse overcome Meta’s trust issues?
+  [2026-09-28 00:30:00] (TechCrunch) Anthropic’s Dario Amodei gets the SNL treatment
+  [2026-09-28 00:02:00] (TechCrunch) TechCrunch Mobility: AV companies pick their lanes
+  [2026-09-28 09:02:11] (同花顺) 巨头出手！英伟达持续加码玻璃基板
+  [2026-09-28 09:02:11] (同花顺) 国内首部，AI电影正式定档！概念股稀缺(附名单)
+  [2026-09-28 09:02:11] (同花顺) 央行货币政策委员会例会释放新信号，加大逆周期调节力度
+  [2026-09-28 09:02:11] (同花顺) 本周，千亿解禁！国货航等4股规模最大（附名单）
+  [2026-09-28 09:02:11] (同花顺) 突破百万台在即，机器人细分赛道，高歌猛进！12股获融资客加仓
+  [2026-09-28 09:02:11] (同花顺) 中美达成八点成果共识
+  [2026-09-28 09:02:11] (同花顺) 新基金延募现象频发 被动产品成“滞销”重灾区
+  [2026-09-28 09:02:11] (同花顺) 国庆假期临近，持股还是持币过节？机构研判来了
+  [2026-09-28 09:02:11] (同花顺) 美股三大指数高开高走，道指涨0.93%终结周线三连跌，苹果创历史新高
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 萧郡瑜：巫统的两道难题
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 曼谷洪灾持续水位居高不下 逾5万户家庭受影响
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 国阵与各阵营周一讨论甲州选举合作
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 调查森州宪政危机 警方周一传召大臣与10名行政议员录供
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 马国F1巴林大奖赛部署约700保安交管人员
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 缅甸拳在内战中流行 从自卫中收获尊重尊严
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 阿末扎希将见森州议员 讨论宪政危机解方
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 曼谷洪水趋缓 素万那普机场泰航行李处理仍受影响
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 槟城车子停放位置不当阻碍交通 民众游客合力移车
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 曼谷大雨洪水未退 近4900人撤离避难
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 国际特稿：地缘红利被美国红线压缩 东南亚突围须整合硬实力
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 柬埔寨10省遭洪灾 逾2万5000户受影响
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 印尼渡轮沉没事死亡人数升至64人
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 泰国曼谷暴雨成灾全市列为灾区 首相提前结束访英回国
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 现行法律无居家服刑条例 马律师公会拟挑战纳吉特赦
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 柔佛哥打丁宜第二大桥通车 舒缓交通惠及逾万道路使用者
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 印尼成立新管理局 防控泥炭地林火
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 菲副总统莎拉否认收受20亿比索现金
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 马国沙巴州京那巴当岸清晨发生3.3级地震
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 连日强降雨引发严重洪灾 曼谷全市为洪水灾区
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 中美竞争加剧压缩亚细安政策空间 专家吁不选边站推动经济多元化
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 称已铲除大型诈骗园区 柬埔寨转而追查幕后主谋
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 纳吉获有条件特赦后首次露面 申请暂缓一马案刑罚以免阻碍居家服刑安排
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 安华：马中同意延长东铁路线至马泰边境
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 印尼经济团队承诺加强协调 稳定市场信心
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 印尼免费餐发生致命意外 专家促检讨食安程序
+  [2026-09-28 09:02:11] (联合早报（东南亚）) 避免选手烟霾中长跑 马国古晋马拉松赛事取消
+  [2026-09-28 09:02:11] (联合早报（国际）) 韩国要求乌克兰就公开朝鲜战俘移交正式道歉
+  [2026-09-28 09:02:11] (联合早报（国际）) 特朗普约见Anthropic阿莫代伊 重申反对放缓AI
+  [2026-09-28 09:02:11] (联合早报（国际）) 英美军驻地附近捕五人 特朗普：他们企图制造巨大破坏
+  [2026-09-28 09:02:11] (联合早报（国际）) 特朗普：本周料与伊朗展开更多谈判
+  [2026-09-28 09:02:11] (联合早报（国际）) 教宗良十四世：安乐死不能视为“正常”
+  [2026-09-28 09:02:11] (联合早报（国际）) 南非又发现一具女尸 两个多月发现女受害者增至11人
+  [2026-09-28 09:02:11] (联合早报（国际）) 中美峰会后高市与特朗普通话 重申同盟关系
+  [2026-09-28 09:02:11] (联合早报（国际）) 瑞士公投否决收紧中立政策提案
+  [2026-09-28 09:02:11] (联合早报（国际）) 特朗普回拒伊朗方案 德黑兰：重开霍尔木兹海峡条件绝不妥协
+  [2026-09-28 09:02:11] (联合早报（国际）) 以色列财长促吞并加沙地带及黎巴嫩南部部分地区
+  [2026-09-28 09:02:11] (联合早报（国际）) 刚果（金）东部沉船事故造成至少12人死亡
+  [2026-09-28 09:02:11] (联合早报（国际）) 韩国三军人清理巡逻路遭地雷炸伤 韩军与联合国军展开调查
+  [2026-09-28 09:02:11] (联合早报（国际）) 美国强劲秋季风暴席卷东北部多地 数万户断电一人死亡
+  [2026-09-28 09:02:11] (联合早报（国际）) 【美国中期选举】参众两院选情再恶化 “红色暗流”或将共和党人拖入深渊
+  [2026-09-28 09:02:11] (联合早报（国际）) 美媒：朝鲜测试结合无人机与导弹的蜂群攻击战术
+  [2026-09-28 09:02:11] (联合早报（国际）) 英国首相承诺改革社会护理 方案留待下届大选提出
+  [2026-09-28 09:02:11] (联合早报（国际）) 日本高科技诈骗猖獗 日均损失10亿日元
+  [2026-09-28 09:02:11] (联合早报（国际）) 特朗普拒绝重开霍尔木兹方案 伊朗军方称做好迎战准备
+  [2026-09-28 09:02:11] (联合早报（国际）) 英国首相暂不支持希思罗机场建第三跑道
+  [2026-09-28 09:02:11] (联合早报（国际）) 研究：寻求聊天机器人陪伴的青少年更感孤独
+  [2026-09-28 09:02:11] (联合早报（国际）) 英国美军基地附近发生重大事件 警方逮捕五人疏散居民
+  [2026-09-28 09:02:11] (联合早报（国际）) 硅谷巨头办AI院校 培育新世代科技人才
+  [2026-09-28 09:02:11] (联合早报（国际）) 印度尼泊尔暴雨洪灾造成70死 10人遭雪崩掩埋失踪
+  [2026-09-28 09:02:11] (联合早报（国际）) 美国学校吹起“反科技”风 限制学生使用科技产品和AI
+  [2026-09-28 09:02:11] (联合早报（国际）) 医疗数据库遭AI入侵事件 澳洲参议院传召OpenAI与Anthropic总裁质询
+  [2026-09-28 09:02:11] (联合早报（国际）) 南非发生两起酒吧枪击事件 共造成27人死亡
+  [2026-09-28 09:02:11] (联合早报（国际）) 沙特首都学校无预警改线上教学一周
+  [2026-09-28 09:02:11] (联合早报（国际）) 习特二会后 美日领导人再通电话
+  [2026-09-28 09:02:11] (联合早报（国际）) 【视频】习近平时隔11年对美进行国事访问 特朗普亲自在停机坪迎接
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 回理会推出三措施 助回教家庭落实遗产规划
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 维文：AI发展难刹车 全球须速建立共同规则和防护机制
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 新加坡外长维文：中美关系暂处“休战” 须持续对话化解分歧
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 中三女生习武不让须眉 滨海湾花园耍大旗竞技
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 黄姜饭义卖会今年目标 为总统挑战筹款15万元
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 芽笼士乃设调解工作组 助居民及早化解纠纷
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 脱下白袍从政 赛义德哈伦：政策不能只从临床视角制定
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 文莱王储比拉赫访新 将与黄循财总理主持年轻领袖计划活动
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 政策咨询讨论不能无休止 徐芳达：政府须适时作决定
+  [2026-09-28 09:02:11] (联合早报（新加坡）) SIMBA发生数据外泄事件 逾2.3万名客户资料受影响
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 婴儿保姆试点计划推出一年多 照顾逾百宝宝获家长好评
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 制定全国气候适应计划 东南区举办对话会征集意见
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 又见野猴作乱！这次在树上“乱丢纸巾”
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 称设计师吞款要客户补上 装修公司加价不果停工须赔2万元
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 陈振声赴法德 展开六天介绍访问
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 实龙岗中村庄“最酷空间” 楼下买菜楼上自习
+  [2026-09-28 09:02:11] (联合早报（新加坡）) “让爱传出去”第16年 212名学生与各族裔长者同乐
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 【红蚂蚁】不戴头盔、车篮子载人 危险骑行要管到什么程度才够？
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 停车五分钟要收10万元？停车场管理层：已更换零件
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 两阿叔巴士内叫阵 车长及时劝解
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 称为孙筹医药费 女佣屡偷首饰现金
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 八邑会馆迎97周年 明年办4000人国际潮团联谊年会
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 太原王氏公会庆90周年 办千人宴筹款扩建大厦
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 碧山乌鸦袭人 一小时六人遭殃
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 印尼女邀投资不见回酬 男子恐损15.7万元报警
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 清洁工见宝马狂烧 连取11灭火器
+  [2026-09-28 09:02:11] (联合早报（新加坡）) 星期天多区PSI破百 医生：N95口罩有效防霾
+
+########## 09-27 当日条目 ##########
+  [2026-09-27 19:00:12] (Ars Technica) How the Smithsonian became the latest front in Trump’s culture war
+  [2026-09-27 23:22:03] (CNBC) At NFL games this season, drone defense tech aims to bring down disruptions
+  [2026-09-27 23:35:34] (CNBC) Debt-hungry AI companies face increased risk as bond yields spike
+  [2026-09-27 22:33:22] (CNBC) Meta's Muse agent is attacking one of the economy's most profitable weak spots
+  [2026-09-27 00:57:57] (CNBC) Apple faces $5.7 billion patent infringement verdict over iPhone and Apple Watch haptics
+  [2026-09-27 01:10:32] (CNBC) OpenAI expands review of model behavior after more rogue agent incidents emerge
+  [2026-09-27 19:33:15] (CNBC) Top Wall Street analysts like these 3 dividend stocks for steady income
+  [2026-09-27 05:55:01] (CNBC) Boeing flags 737 Max software glitch affecting some automated approach functions
+  [2026-09-27 05:21:04] (CNBC) Trump says he approved new fuel economy standards, rolling back Biden-era rules
+  [2026-09-27 02:46:48] (CNBC) White House moves to block $810 million in funding through pocket rescission
+  [2026-09-27 03:23:56] (CNBC) Here's exactly what Paramount promised Hollywood to land WBD — and why some are still skeptical
+  [2026-09-27 00:21:31] (CNBC 科技) Meta and Microsoft led tech stocks higher last week despite soaring bond yields
+  [2026-09-27 23:04:58] (Fortune) British police arrest five men for allegedly preparing a terrorism attack with explosives on a base used by U.S. bombers for Iran 
+  [2026-09-27 22:31:31] (Fortune) As soaring energy prices crush businesses, France rolls out a new $500 million aid package, including help with commuting and heat
+  [2026-09-27 22:21:09] (Fortune) One of the most biting insults in Alaska politics is hitting someone with the ‘Lower 48’ label — and it’s central to the U.S. Sena
+  [2026-09-27 23:51:28] (Hacker News（科技社区）) Show HN: TinyAIArena watch AI agents battle it out
+  [2026-09-27 23:26:40] (Hacker News（科技社区）) The Normalization of Inexplicable Failures
+  [2026-09-27 22:35:10] (Hacker News（科技社区）) Fragment of oldest known peace treaty found in Turkey
+  [2026-09-27 22:30:55] (Hacker News（科技社区）) In an $80 motel room, a discovery to shed light on the origins of life
+  [2026-09-27 21:30:11] (Hacker News（科技社区）) Replacing the old battery on rechargeable bike lights
+  [2026-09-27 03:57:24] (Hacker News（科技社区）) Faster prompt lookup drafting in llama.cpp
+  [2026-09-27 03:30:39] (Hacker News（科技社区）) Video CDs Break Windows Explorer
+  [2026-09-27 20:00:00] (Live Science) A giant cosmic 'fart' is making a wobbling zombie star repeatedly flash us, 'groundbreaking' observations reveal
+  [2026-09-27 18:00:00] (Live Science) James Webb telescope shares one of its biggest images ever, with record-breaking stars hiding in the dust
+  [2026-09-27 17:00:00] (Live Science) What is the closest any object has gotten to the sun?
+  [2026-09-27 23:15:00] (MarketWatch) My friend is terminally ill. Should she sell her rental home and pay $100,000 in capital gains?
+  [2026-09-27 23:00:00] (MarketWatch) I’m 77, pay rent and live off Social Security, but I help homeless people. Why are so many people going hungry?
+  [2026-09-27 22:00:00] (MarketWatch) Micron could dethrone Nvidia and become the biggest driver of S&P 500 profit growth
+  [2026-09-27 21:00:00] (MarketWatch) Look closer, and Wall Street’s rally is showing cracks
+  [2026-09-27 06:01:00] (New Scientist) Blood test could gauge if a baby has a dangerous infection in 15 minutes
+  [2026-09-27 22:30:05] (Phys.org) Waste bulrush transformed into copper-enhanced material for dye removal from wastewater
+  [2026-09-27 22:20:05] (Phys.org) Astronomers discover a radio galaxy with evidence of four separate jet outbursts
+  [2026-09-27 20:00:05] (Phys.org) DNA reveals chemosynthesis genes in bacteria living on coral reef fish gills
+  [2026-09-27 18:40:01] (Phys.org) Powerful storm pummels Northeast US with rain, high winds
+  [2026-09-27 08:30:01] (Phys.org) Why AI has trouble predicting the fury of hurricane intensity
+  [2026-09-27 06:30:02] (Phys.org) NEET with a disability: What's holding back visually impaired young people who want to work
+  [2026-09-27 05:00:07] (Phys.org) Looking for #womenshealth information on Instagram? 4 out of 10 posts are ads
+  [2026-09-27 05:00:01] (Phys.org) Black hole jets reach far beyond galaxies' visible edges, potentially deciding their fate
+  [2026-09-27 04:00:02] (Phys.org) Why earwigs infected by parasitic worms head towards water
+  [2026-09-27 03:00:01] (Phys.org) Pumpkin-derived enzyme weakens peanut proteins' binding to allergy antibodies in lab tests
+  [2026-09-27 02:00:01] (Phys.org) Engineers teach spacecraft to 'dream' their way to the space station
+  [2026-09-27 01:00:01] (Phys.org) Sparse layers of 10-nanometer silver particles boost CO production from CO₂
+  [2026-09-27 00:00:01] (Phys.org) A real-time look inside spacecraft heat shields during extreme heat conditions
+  [2026-09-27 23:34:00] (Slashdot) Just How Big is the AI Buildout - and How Risky?
+  [2026-09-27 19:04:00] (Slashdot) Waymo Says Its Self-Driving Cars Reduced Injury-Causing Accidents by 82%
+  [2026-09-27 14:34:00] (Slashdot) After Dozens of Incidents at OpenAI and Anthropic, OpenAI Pauses Model Training to Build More Safeguards
+  [2026-09-27 10:04:00] (Slashdot) New Tin-based Solar Cells Trap Heat 1,000 Times Longer, Could Beat 33% Limit
+  [2026-09-27 05:36:00] (Slashdot) China and the US Say They've Agreed to Start Talks About AI
+  [2026-09-27 01:04:00] (Slashdot) KDE and GNOME Developers Ponder How to Handle AI-Generated Contributions
+  [2026-09-27 23:00:00] (TechCrunch) Sennheiser Momentum 5 review: Great sound, incredible battery life, and few compromises
+  [2026-09-27 09:40:30] (TechCrunch) PNOE’s new face mask wants to make lab-grade breath testing a self-serve affair
+  [2026-09-27 09:30:00] (TechCrunch) Google tests buying from Walmart-owned Flipkart through Gemini and AI Mode in India
+  [2026-09-27 05:02:06] (TechCrunch) Insurers claim AI is already increasing healthcare costs
+  [2026-09-27 04:24:45] (TechCrunch) TikTok agrees to pay at least $100M in Alabama settlement
+  [2026-09-27 01:44:00] (TechCrunch) Meta and YouTube say they will run ads for ‘Musk’ documentary after all
+  [2026-09-27 01:00:00] (TechCrunch) Levoit’s new air purifier is for the pet odors that have taken over your apartment
+  [2026-09-27 19:50:48] (The Verge) Out of the Park Baseball lets me enjoy baseball even when the Mets suck
+  [2026-09-27 16:46:36] (The Verge) Engram is a sampler that turns broken AI hallucinations into music
+  [2026-09-27 13:21:07] (The Verge) OpenAI agents tried to ‘bruteforce’ a UN website
+  [2026-09-27 08:28:24] (The Verge) Why OLPC’s $100 laptop never stood a chance
+  [2026-09-27 07:51:16] (The Verge) The smart home graveyard is getting crowded
+  [2026-09-27 19:30:00] (Wired) Best Party Speakers (2026): JBL, Sony, Marshall, and More
+  [2026-09-27 19:02:00] (Wired) What’s the Best Pet DNA Test? We Tested the Most Popular Ones
+  [2026-09-27 18:15:00] (Wired) You Don’t Need to Pay for Distraction-Blocking Software
+  [2026-09-27 18:00:00] (Wired) The Data Center Backlash Should Also Be a Climate Reckoning. It Isn’t Yet
+  [2026-09-27 17:30:00] (Wired) Nicotine Is Mounting a Comeback in the Wellness Movement
+  [2026-09-27 17:00:00] (Wired) Some Pancreatic Cells Are Just One Genetic Tweak Away From Treating Diabetes
+  ... 09-27 真实条目合计 67

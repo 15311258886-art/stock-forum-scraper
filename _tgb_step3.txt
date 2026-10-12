@@ -1,0 +1,21 @@
+=== 存储状态 ===  Cookie 19 条，保存于 2026-10-01 18:17:03
+    meta: {'count': 19, 'saved_at': '2026-10-01 18:17:03', 'source_url': 'https://www.tgb.cn/', 'captured_at': '2026-10-01 18:16:43', 'user_agent': ''}
+
+=== 注入 ===
+    get_cookies() 返回 19 条
+
+=== 匿名（不带 Cookie）访问 https://www.tgb.cn/user/getMoreListAction ===
+  [匿名] HTTP 200  491ms  30062B
+      关键词: 个人中心=0  超级动态=0  hd_unlogin=0  扫码登录=1  超话=0  我的关注=0
+
+=== 注入新 Cookie（inject_cookies 返回 18 条）后 ===
+    会话里生效 18 个: 893eedf422617c96_gdp_cs1, 893eedf422617c96_gdp_gio_id, 893eedf422617c96_gdp_sequence_ids, 893eedf422617c96_gdp_session_id, 893eedf422617c96_gdp_session_id_39232467-a87f-48ed-804e-b516db12ed32, JSESSIONID, _c_WBKFRo, acw_tc, agree, creatorStatus15299129, gdp_user_id, loginStatus, onedayyszc, showStatus15299129, ssxmod_itna, ssxmod_itna2, tgbpwd, tgbuser
+    Cookie 请求头回显 0 字符
+    头片段(脱敏): ...
+    verify_login => True   (命中已登录标志「个人中心」)
+  [带Cookie] HTTP 200  4154ms  74081B
+      关键词: 个人中心=2  超级动态=2  hd_unlogin=0  扫码登录=0  超话=0  我的关注=6
+  [带Cookie-首页] HTTP 200  4199ms  107105B
+      关键词: 个人中心=1  超级动态=0  hd_unlogin=0  扫码登录=0  超话=0  我的关注=2
+
+    ensure_login => OK  方式=cookie

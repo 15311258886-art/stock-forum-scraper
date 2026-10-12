@@ -1,0 +1,8 @@
+{
+  "_comment": "复制本文件为 mcp_keys.json 并填入真实密钥（mcp_keys.json 不提交、不入库）。",
+  "ths-ifind-mcp": {"api_key": "YOUR_IFIND_KEY", "endpoint": "", "extra": {}},
+  "wind-aifin": {"api_key": "YOUR_WIND_KEY", "endpoint": "", "extra": {}},
+  "em-miaoxiang-skills": {"api_key": "YOUR_EM_KEY", "endpoint": "", "extra": {}},
+  "tdx-mcp": {"api_key": "YOUR_TDX_KEY", "endpoint": "", "extra": {}},
+  "hsjuyuan-mcp": {"api_key": "YOUR_HS_KEY", "endpoint": "", "extra": {}}
+}

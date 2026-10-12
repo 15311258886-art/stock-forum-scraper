@@ -1,0 +1,17 @@
+总帖子 = 2532 {'sina': 810, 'xueqiu': 655, 'taoguba': 1067}
+  sina: 帖子 810，有帖选手 49，状态 {'ok': 48, 'empty': 3}
+  xueqiu: 帖子 655，有帖选手 33，状态 {'ok': 33}
+  taoguba: 帖子 1067，有帖选手 136，状态 {'ok': 136, 'partial': 3}
+
+-- 非 ok 清单 --
+  [empty] sina | 红利实战 | 主贴 0 条，新增 0
+  [empty] sina | 我很穷 | 主贴 19 条，新增 0
+  [empty] sina | 牵牛尉 | 主贴 0 条，新增 0
+  [partial] taoguba | 4世3公袁本初 | 博客列表 30 篇，新增正文 0 篇，详情失败 10
+  [partial] taoguba | 合肥颍上路 | 博客列表 2 篇，新增正文 0 篇，详情失败 2
+  [partial] taoguba | 楽先生 | 博客列表 30 篇，新增正文 0 篇，详情失败 10
+
+taoguba 有帖选手 136；=10篇 85；<10篇 51
+sina publish_time 非空 810/810
+xueqiu publish_time 非空 655/655
+taoguba publish_time 非空 1067/1067

@@ -225,6 +225,45 @@ def test_trade_calendar_not_stale():
     return True
 
 
+# ---------------------------------------------------------------- 6) 采集闸误用日K（2026-10-09 竞价面板退回昨天）
+def test_auction_gate_allows_intraday_real_trading_day():
+    """采集闸回归：真实交易日**盘中**，日K还没印出今天时，闸也必须放行。
+
+    复刻 2026-10-09 实录：Sina 日K最新=10-08（不含今日），腾讯行情时间戳=今日。
+    干净代码：is_trading_day 走 2026 确定性日历兜底 -> True，live_quote_date -> 今日 -> 放行。
+    若有人退回「日K-only」判据（旧的 _is_trading_day），放行会变 False -> 本测试 FAIL。
+    另验：行情源还在报昨天（休市/未开盘）时必须挡，不得拿上一交易日存量冒充今日。
+    """
+    today = "2026-10-09"
+    oc = dict(auction._TD_CACHE)
+    olive = dict(auction._LIVE_DATE_CACHE)
+    osina, osample = auction.sina_kline_dates, auction._sample_quote_date
+    try:
+        auction._TD_CACHE.clear()
+        auction._TD_CACHE.update({"days": None, "ts": 0.0, "asof": None, "last_try": 0.0})
+        auction._LIVE_DATE_CACHE.update({"date": None, "ts": 0.0})
+        # 盘中：Sina 日K不含今日（正是 10-09 实录：最新只到 10-08）
+        auction.sina_kline_dates = lambda sym, n=40: [{"day": d} for d in ["2026-09-30", "2026-10-08"]]
+        # 行情源在报今天
+        auction._sample_quote_date = lambda: today
+        allow = auction._today_collectable(today)
+        # 反向：行情源还在报昨天 -> 必须挡
+        auction._LIVE_DATE_CACHE.update({"date": None, "ts": 0.0})
+        auction._sample_quote_date = lambda: "2026-10-08"
+        block = auction._today_collectable(today)
+    finally:
+        auction._TD_CACHE.clear()
+        auction._TD_CACHE.update(oc)
+        auction._LIVE_DATE_CACHE.clear()
+        auction._LIVE_DATE_CACHE.update(olive)
+        auction.sina_kline_dates = osina
+        auction._sample_quote_date = osample
+
+    assert allow is True, "真实交易日盘中（日K无今日、行情报今天）必须放行，实际 %r" % allow
+    assert block is False, "行情源报昨天（休市/未开盘）必须挡，实际 %r" % block
+    return True
+
+
 # ---------------------------------------------------------------- 直接运行入口
 if __name__ == "__main__":
     tests = [
@@ -233,6 +272,7 @@ if __name__ == "__main__":
         test_asof_isolation,
         test_survivorship_delisted_exit,
         test_trade_calendar_not_stale,
+        test_auction_gate_allows_intraday_real_trading_day,
     ]
     fails = []
     for t in tests:

@@ -1,0 +1,43 @@
+### consensus_stocks(min_holders=2)  [全量]
+   601318 中国平安      total= 39  buy= 24 hold= 15 watch=  0  w=18.65 bw=11.9
+   300750 宁德时代      total= 37  buy= 30 hold=  7 watch=  0  w=18.85 bw=15.7
+   600519 贵州茅台      total= 35  buy= 25 hold=  9 watch=  1  w=16.35 bw=11.25
+   000001 平安银行      total= 31  buy= 14 hold= 17 watch=  0  w=16.15 bw=8.5
+   600127 金健米业      total=  5  buy=  2 hold=  1 watch=  2  w=3.48 bw=1.24
+   000066 中国长城      total=  5  buy=  0 hold=  0 watch=  5  w=3.1 bw=0.0
+   300024 机器人       total=  4  buy=  0 hold=  0 watch=  4  w=2.86 bw=0.0
+   000678 襄阳轴承      total=  4  buy=  3 hold=  0 watch=  1  w=2.31 bw=1.69
+   000978 桂林旅游      total=  4  buy=  0 hold=  0 watch=  4  w=3.62 bw=0.0
+   000890 法尔胜       total=  4  buy=  0 hold=  0 watch=  4  w=2.48 bw=0.0
+
+### consensus_stocks(min_holders=2, only_qualified=True)  [仅 Tier A]
+   300750 宁德时代      total=  4  buy=  4 hold=  0 watch=  0  w=4.0 bw=4.0
+   000001 平安银行      total=  4  buy=  4 hold=  0 watch=  0  w=4.0 bw=4.0
+   000978 桂林旅游      total=  3  buy=  0 hold=  0 watch=  3  w=3.0 bw=0.0
+   002585 双星新材      total=  3  buy=  0 hold=  0 watch=  3  w=3.0 bw=0.0
+   601318 中国平安      total=  2  buy=  2 hold=  0 watch=  0  w=2.0 bw=2.0
+   300505 川金诺       total=  2  buy=  0 hold=  0 watch=  2  w=2.0 bw=0.0
+   600103 青山纸业      total=  2  buy=  0 hold=  0 watch=  2  w=2.0 bw=0.0
+
+### cohold_recent(days=5)  [全量]
+  window 2026-10-05 ~ 2026-10-09 | only_qualified False
+  [buy] 5 组
+      600519 贵州茅台      pc=10 holds=10
+      300750 宁德时代      pc=9 holds=9
+      601318 中国平安      pc=5 holds=5
+      000001 平安银行      pc=3 holds=3
+      600663 陆家嘴       pc=2 holds=2
+  [hold] 4 组
+      601318 中国平安      pc=5 holds=5
+      300750 宁德时代      pc=4 holds=4
+      000001 平安银行      pc=4 holds=3
+      600519 贵州茅台      pc=2 holds=2
+  [sell] 2 组
+      300750 宁德时代      pc=8 holds=0
+      600519 贵州茅台      pc=2 holds=0
+
+### cohold_recent(days=5, only_qualified=True)  [仅 Tier A]
+  only_qualified True tier_scope A
+  [buy] 0 组
+  [hold] 0 组
+  [sell] 0 组

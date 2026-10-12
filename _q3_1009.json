@@ -1,0 +1,738 @@
+[
+ {
+  "title": "科技与AI · 国外舆情聚合（142 条）",
+  "topic": "科技与AI",
+  "overview": "海外科技巨头资本开支与新产品周期变化，映射到国内算力与半导体供应链。",
+  "variables": "AI 资本开支 ↑,算力订单 ↑,消费电子备货 ↑",
+  "sectors_up": "AI算力,半导体,消费电子",
+  "sectors_down": "传统消费电子代工（低阶）",
+  "sectors_up_detail": "[{\"sector\": \"AI算力\", \"symbols\": [{\"code\": \"300308\", \"name\": \"中际旭创\"}, {\"code\": \"000977\", \"name\": \"浪潮信息\"}, {\"code\": \"002230\", \"name\": \"科大讯飞\"}, {\"code\": \"603019\", \"name\": \"中科曙光\"}, {\"code\": \"688041\", \"name\": \"海光信息\"}]}, {\"sector\": \"半导体\", \"symbols\": [{\"code\": \"688981\", \"name\": \"中芯国际\"}, {\"code\": \"002371\", \"name\": \"北方华创\"}, {\"code\": \"002049\", \"name\": \"紫光国微\"}, {\"code\": \"688012\", \"name\": \"中微公司\"}, {\"code\": \"688041\", \"name\": \"海光信息\"}]}, {\"sector\": \"消费电子\", \"symbols\": [{\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"002241\", \"name\": \"歌尔股份\"}, {\"code\": \"000725\", \"name\": \"京东方A\"}, {\"code\": \"300433\", \"name\": \"蓝思科技\"}, {\"code\": \"002938\", \"name\": \"鹏鼎控股\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"传统消费电子代工（低阶）\", \"symbols\": [{\"code\": \"002045\", \"name\": \"国光电器\"}, {\"code\": \"002681\", \"name\": \"奋达科技\"}, {\"code\": \"002351\", \"name\": \"漫步者\"}, {\"code\": \"002241\", \"name\": \"歌尔股份\"}]}]",
+  "transmission": "海外科技巨头资本开支与新产品周期 → 国内算力/半导体/消费电子供应链订单弹性。",
+  "amplification": "国外源 23 家、142 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "方向偏多：主攻 AI算力、半导体、消费电子；阶段回避 传统消费电子代工（低阶）。属短期催化。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "US",
+  "_live_urls": [
+   {
+    "t": "HubSpot Cuts 660 Jobs In AI Restructuring",
+    "u": "https://slashdot.org/story/26/10/06/2055209/hubspot-cuts-660-jobs-in-ai-restructuring?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+    "s": "Slashdot",
+    "p": ""
+   },
+   {
+    "t": "Stock Market Today, Oct. 8: Tech Stocks Slide as Treasury Yields and Oil Prices Surge",
+    "u": "https://www.nasdaq.com/articles/stock-market-today-oct-8-tech-stocks-slide-treasury-yields-and-oil-prices-surge",
+    "s": "Nasdaq 市场新闻",
+    "p": ""
+   },
+   {
+    "t": "Amazon overhauls aging devices lineup with higher-priced Alexa tablet, dumping the budget Fire",
+    "u": "https://www.cnbc.com/2026/10/08/amazon-alexa-tablet-release.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Amazon overhauls aging devices lineup with higher-priced Alexa tablet, dumping the budget Fire",
+    "u": "https://www.cnbc.com/2026/10/08/amazon-alexa-tablet-release.html",
+    "s": "CNBC 科技",
+    "p": ""
+   },
+   {
+    "t": "Republican megadonors dominate 2026 midterm election as crypto and AI money surges, CNBC analysis finds",
+    "u": "https://www.cnbc.com/2026/10/08/2026-midterm-election-megadonors.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Tristan Harris’ Tech Nonprofit Is Laying Off Most Staff and Going ‘Founder-Led’",
+    "u": "https://www.wired.com/story/tristan-harris-tech-nonprofit-is-laying-off-most-staff-and-going-founder-led/",
+    "s": "Wired",
+    "p": ""
+   }
+  ],
+  "_seed_urls": []
+ },
+ {
+  "title": "顶刊科研突破：技术路线与商业化预期重塑",
+  "topic": "国际新闻热点",
+  "overview": "顶刊（《Nature》《Science》）或顶级会议发布重大科研论文 / 技术突破，改变相关产业的技术路线与商业化预期。",
+  "variables": "技术商业化预期 ↑,产业链订单预期 ↑,主题资金关注度 ↑,估值溢价 ↑",
+  "sectors_up": "AI算力,创新药,新材料,量子科技",
+  "sectors_down": "传统燃油车链,传统能源",
+  "sectors_up_detail": "[{\"sector\": \"AI算力\", \"symbols\": [{\"code\": \"300308\", \"name\": \"中际旭创\"}, {\"code\": \"000977\", \"name\": \"浪潮信息\"}, {\"code\": \"002230\", \"name\": \"科大讯飞\"}, {\"code\": \"603019\", \"name\": \"中科曙光\"}, {\"code\": \"688041\", \"name\": \"海光信息\"}]}, {\"sector\": \"创新药\", \"symbols\": [{\"code\": \"600276\", \"name\": \"恒瑞医药\"}, {\"code\": \"688180\", \"name\": \"君实生物\"}, {\"code\": \"002422\", \"name\": \"科伦药业\"}, {\"code\": \"002399\", \"name\": \"海普瑞\"}]}, {\"sector\": \"新材料\", \"symbols\": [{\"code\": \"600309\", \"name\": \"万华化学\"}, {\"code\": \"600143\", \"name\": \"金发科技\"}, {\"code\": \"002648\", \"name\": \"卫星化学\"}, {\"code\": \"300487\", \"name\": \"蓝晓科技\"}]}, {\"sector\": \"量子科技\", \"symbols\": [{\"code\": \"688027\", \"name\": \"国盾量子\"}, {\"code\": \"000555\", \"name\": \"神州信息\"}, {\"code\": \"300520\", \"name\": \"科大国创\"}, {\"code\": \"002281\", \"name\": \"光迅科技\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"传统燃油车链\", \"symbols\": [{\"code\": \"600104\", \"name\": \"上汽集团\"}, {\"code\": \"601633\", \"name\": \"长城汽车\"}, {\"code\": \"000625\", \"name\": \"长安汽车\"}, {\"code\": \"601238\", \"name\": \"广汽集团\"}]}, {\"sector\": \"传统能源\", \"symbols\": [{\"code\": \"601088\", \"name\": \"中国神华\"}, {\"code\": \"601857\", \"name\": \"中国石油\"}, {\"code\": \"600028\", \"name\": \"中国石化\"}, {\"code\": \"600188\", \"name\": \"兖矿能源\"}]}]",
+  "transmission": "顶刊论文证实技术可行性 → 产业界加速投入、一级市场估值抬升 → A 股对应技术链（算力 / 创新药 / 新材料 / 量子）获主题资金追捧；同时被替代的旧技术路线面临估值下修。",
+  "amplification": "科研突破在境外科技媒体传播快，但国内解读存在 1~3 日滞后，且需「可商业化」验证 → 初始放大中等（1.35），若后续无产业跟进则快速衰减。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "方向偏多：主攻 AI算力、创新药、新材料；阶段回避 传统燃油车链、传统能源。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.73，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Inflation on many everyday items was entirely due to tariffs, NY Fed says",
+    "u": "https://www.cnbc.com/2026/10/08/inflation-tariffs-trump-fed-consumer-goods.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Weight-loss drugs show signs of slowing biological aging, say drugmakers",
+    "u": "https://www.technologyreview.com/2026/10/06/1145836/weight-loss-drugs-glp1-lilly-novo-aging-clocks/",
+    "s": "MIT Technology Review",
+    "p": ""
+   },
+   {
+    "t": "Bees struggle to smell flowers when air pollutants combine",
+    "u": "https://phys.org/news/2026-10-bees-struggle-air-pollutants-combine.html",
+    "s": "Phys.org",
+    "p": ""
+   },
+   {
+    "t": "Real-time oxygen measurements expose hidden losses in solar water splitting",
+    "u": "https://phys.org/news/2026-10-real-oxygen-expose-hidden-losses.html",
+    "s": "Phys.org",
+    "p": ""
+   },
+   {
+    "t": "Fired OpenAI safety researchers dispute misconduct claims, warn of chilling effect",
+    "u": "https://techcrunch.com/2026/10/08/fired-openai-safety-researchers-dispute-misconduct-claims-warn-of-chilling-effect/",
+    "s": "TechCrunch",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/quantum-peer-review"
+  ]
+ },
+ {
+  "title": "金融与汇率 · 国外舆情聚合（110 条）",
+  "topic": "金融与汇率",
+  "overview": "美元与美债收益率、人民币汇率变动，影响外资流向与权重股估值。",
+  "variables": "美元指数 ±,美债收益率 ±,北向资金流向 ±",
+  "sectors_up": "券商,黄金",
+  "sectors_down": "出口链（人民币升值）,银行（息差）",
+  "sectors_up_detail": "[{\"sector\": \"券商\", \"symbols\": [{\"code\": \"600030\", \"name\": \"中信证券\"}, {\"code\": \"300059\", \"name\": \"东方财富\"}, {\"code\": \"601688\", \"name\": \"华泰证券\"}, {\"code\": \"600999\", \"name\": \"招商证券\"}, {\"code\": \"000776\", \"name\": \"广发证券\"}]}, {\"sector\": \"黄金\", \"symbols\": [{\"code\": \"600547\", \"name\": \"山东黄金\"}, {\"code\": \"600489\", \"name\": \"中金黄金\"}, {\"code\": \"601899\", \"name\": \"紫金矿业\"}, {\"code\": \"600988\", \"name\": \"赤峰黄金\"}, {\"code\": \"002237\", \"name\": \"恒邦股份\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"出口链（人民币升值）\", \"symbols\": [{\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"002032\", \"name\": \"苏泊尔\"}, {\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"600690\", \"name\": \"海尔智家\"}]}, {\"sector\": \"银行（息差）\", \"symbols\": [{\"code\": \"600036\", \"name\": \"招商银行\"}, {\"code\": \"601398\", \"name\": \"工商银行\"}, {\"code\": \"601939\", \"name\": \"建设银行\"}, {\"code\": \"601166\", \"name\": \"兴业银行\"}]}]",
+  "transmission": "美元与美债收益率变动 → 人民币汇率与外资流向 → 影响权重股与券商弹性。",
+  "amplification": "国外源 13 家、110 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 券商、黄金；规避 出口链（人民币升值）、银行（息差）。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "US",
+  "_live_urls": [
+   {
+    "t": "Veea regains full Nasdaq listing compliance; shares surge",
+    "u": "https://seekingalpha.com/news/4651623-veea-regains-full-nasdaq-listing-compliance-shares-surge?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news",
+    "s": "Seeking Alpha",
+    "p": ""
+   },
+   {
+    "t": "Options traders start calling bottom on bond rout after 'bullet bid' 10-year auction",
+    "u": "https://www.cnbc.com/2026/10/08/options-traders-start-calling-bottom-on-bond-rout-after-bullet-bid-10-year-auction.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "HKEX, HKMA, DFSA and Nasdaq Dubai Form Strategic Working Group to Strengthen Hong Kong-Dubai Financial Market Connectivity",
+    "u": "https://www.hkex.com.hk/News/News-Release/2026/260910news?sc_lang=en",
+    "s": "HKEX 香港交易所（新闻稿）",
+    "p": ""
+   },
+   {
+    "t": "Renewal of Contract of HKEX Chief Executive Officer",
+    "u": "https://www.hkex.com.hk/News/News-Release/2026/260817news?sc_lang=en",
+    "s": "HKEX 香港交易所（新闻稿）",
+    "p": ""
+   },
+   {
+    "t": "HKEX, CIPS Sign MOU to Strengthen Hong Kong’s Offshore RMB Settlement Infrastructure",
+    "u": "https://www.hkex.com.hk/News/News-Release/2026/2607071news?sc_lang=en",
+    "s": "HKEX 香港交易所（新闻稿）",
+    "p": ""
+   },
+   {
+    "t": "Appointment of HKEX Risk Management Committee (Statutory) Member",
+    "u": "https://www.hkex.com.hk/News/News-Release/2026/2607062news?sc_lang=en",
+    "s": "HKEX 香港交易所（新闻稿）",
+    "p": ""
+   }
+  ],
+  "_seed_urls": []
+ },
+ {
+  "title": "海外疫情舆论升温：防疫链短催化、出行与消费承压",
+  "topic": "国际形势",
+  "overview": "境外疫情 / 流感舆论升温，WHO 或 CDC 提示扩散风险。",
+  "variables": "疫苗与检测需求 ↑,防疫物资需求 ↑,出行意愿 ↓",
+  "sectors_up": "疫苗,体外诊断,中药,口罩防护",
+  "sectors_down": "航空机场,旅游酒店,线下消费,影院",
+  "sectors_up_detail": "[{\"sector\": \"疫苗\", \"symbols\": [{\"code\": \"300122\", \"name\": \"智飞生物\"}, {\"code\": \"002007\", \"name\": \"华兰生物\"}, {\"code\": \"300142\", \"name\": \"沃森生物\"}, {\"code\": \"688739\", \"name\": \"成大生物\"}]}, {\"sector\": \"体外诊断\", \"symbols\": [{\"code\": \"300244\", \"name\": \"迪安诊断\"}, {\"code\": \"300676\", \"name\": \"华大基因\"}, {\"code\": \"002022\", \"name\": \"科华生物\"}, {\"code\": \"300482\", \"name\": \"万孚生物\"}]}, {\"sector\": \"中药\", \"symbols\": [{\"code\": \"002603\", \"name\": \"以岭药业\"}, {\"code\": \"000538\", \"name\": \"云南白药\"}, {\"code\": \"600436\", \"name\": \"片仔癀\"}, {\"code\": \"600085\", \"name\": \"同仁堂\"}, {\"code\": \"000999\", \"name\": \"华润三九\"}]}, {\"sector\": \"口罩防护\", \"symbols\": [{\"code\": \"002382\", \"name\": \"蓝帆医疗\"}, {\"code\": \"300677\", \"name\": \"英科医疗\"}, {\"code\": \"000652\", \"name\": \"泰达股份\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"航空机场\", \"symbols\": [{\"code\": \"601111\", \"name\": \"中国国航\"}, {\"code\": \"600029\", \"name\": \"南方航空\"}, {\"code\": \"600115\", \"name\": \"中国东航\"}, {\"code\": \"600009\", \"name\": \"上海机场\"}, {\"code\": \"000089\", \"name\": \"深圳机场\"}]}, {\"sector\": \"旅游酒店\", \"symbols\": [{\"code\": \"601888\", \"name\": \"中国中免\"}, {\"code\": \"600138\", \"name\": \"中青旅\"}, {\"code\": \"600754\", \"name\": \"锦江酒店\"}, {\"code\": \"600258\", \"name\": \"首旅酒店\"}]}, {\"sector\": \"线下消费\", \"symbols\": [{\"code\": \"601888\", \"name\": \"中国中免\"}, {\"code\": \"002027\", \"name\": \"分众传媒\"}, {\"code\": \"600138\", \"name\": \"中青旅\"}, {\"code\": \"600754\", \"name\": \"锦江酒店\"}]}, {\"sector\": \"影院\", \"symbols\": [{\"code\": \"002739\", \"name\": \"儒意电影\"}, {\"code\": \"300251\", \"name\": \"光线传媒\"}, {\"code\": \"601595\", \"name\": \"上海电影\"}, {\"code\": \"002027\", \"name\": \"分众传媒\"}]}]",
+  "transmission": "国外疫情舆论升温 → 全球防疫物资与疫苗需求预期抬升 → 国内疫苗/检测/中药短催化；同时压制出行、航空、线下消费的风险偏好。",
+  "amplification": "疫情类议题在境外媒体与社交平台传播极快，一旦 WHO/CDC 表态，国内媒体会同步转载 → 情绪传导存在 1~3 日滞后，放大系数先高后衰减。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "方向偏多：主攻 疫苗、体外诊断、中药；阶段回避 航空机场、旅游酒店。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.76，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "A startup founder who served time in prison is looking to court an untapped market: ex-cons",
+    "u": "https://techcrunch.com/2026/10/08/a-startup-founder-who-served-time-in-prison-is-looking-to-court-an-untapped-market-ex-cons/",
+    "s": "TechCrunch",
+    "p": ""
+   },
+   {
+    "t": "How AI is redefining Wall Street jobs — and boosting demand for this new 'hottest skill' by 1,721%",
+    "u": "https://www.cnbc.com/2026/10/02/ai-redefining-wall-street-jobs.html",
+    "s": "CNBC 经济",
+    "p": ""
+   },
+   {
+    "t": "Who owns AI risk at work? Business and tech leaders can’t agree, PwC survey finds",
+    "u": "https://www.zdnet.com/innovation/pwc-digital-trust-insights-2027-ai-risk-responsibility/",
+    "s": "ZDNet",
+    "p": ""
+   },
+   {
+    "t": "Trump admin suspends green cards to Microsoft as Vance accuses the company of replacing laid-off workers with ‘foreign indentured servants’",
+    "u": "https://fortune.com/2026/10/08/trump-admin-green-card-microsoft-domestic-workers/",
+    "s": "Fortune",
+    "p": ""
+   },
+   {
+    "t": "Trump's former defense secretary sees no end in sight for Iran war — to the benefit of America's 'greatest adversary'",
+    "u": "https://www.cnbc.com/2026/10/08/trump-iran-war-mark-esper.html",
+    "s": "CNBC",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/airlines-slide"
+  ]
+ },
+ {
+  "title": "地缘冲突升级：油价与避险资产同步上行、出行链承压",
+  "topic": "国际形势",
+  "overview": "地缘冲突或局部战争升级：涉及能源主产区、关键航运要道或大国博弈，全球避险情绪与能源供给预期同步抬升。",
+  "variables": "布伦特原油价格 ↑,黄金价格 ↑,避险指数(VIX) ↑,油轮/集装箱运费 ↑,风险偏好 ↓",
+  "sectors_up": "石油石化,油气服务,油运,军工,黄金,煤炭",
+  "sectors_down": "航空机场,物流快递,旅游酒店,下游化工,可选消费",
+  "sectors_up_detail": "[{\"sector\": \"石油石化\", \"symbols\": [{\"code\": \"601857\", \"name\": \"中国石油\"}, {\"code\": \"600028\", \"name\": \"中国石化\"}, {\"code\": \"600938\", \"name\": \"中国海油\"}, {\"code\": \"002493\", \"name\": \"荣盛石化\"}, {\"code\": \"601233\", \"name\": \"桐昆股份\"}]}, {\"sector\": \"油气服务\", \"symbols\": [{\"code\": \"601808\", \"name\": \"中海油服\"}, {\"code\": \"600583\", \"name\": \"海油工程\"}, {\"code\": \"002353\", \"name\": \"杰瑞股份\"}, {\"code\": \"300191\", \"name\": \"潜能恒信\"}]}, {\"sector\": \"油运\", \"symbols\": [{\"code\": \"601872\", \"name\": \"招商轮船\"}, {\"code\": \"600026\", \"name\": \"中远海能\"}, {\"code\": \"600798\", \"name\": \"宁波海运\"}, {\"code\": \"002320\", \"name\": \"海峡股份\"}]}, {\"sector\": \"军工\", \"symbols\": [{\"code\": \"600760\", \"name\": \"中航沈飞\"}, {\"code\": \"600893\", \"name\": \"航发动力\"}, {\"code\": \"000768\", \"name\": \"中航西飞\"}, {\"code\": \"002179\", \"name\": \"中航光电\"}, {\"code\": \"600038\", \"name\": \"中直股份\"}]}, {\"sector\": \"黄金\", \"symbols\": [{\"code\": \"600547\", \"name\": \"山东黄金\"}, {\"code\": \"600489\", \"name\": \"中金黄金\"}, {\"code\": \"601899\", \"name\": \"紫金矿业\"}, {\"code\": \"600988\", \"name\": \"赤峰黄金\"}, {\"code\": \"002237\", \"name\": \"恒邦股份\"}]}, {\"sector\": \"煤炭\", \"symbols\": [{\"code\": \"601088\", \"name\": \"中国神华\"}, {\"code\": \"601225\", \"name\": \"陕西煤业\"}, {\"code\": \"600188\", \"name\": \"兖矿能源\"}, {\"code\": \"601898\", \"name\": \"中煤能源\"}, {\"code\": \"000983\", \"name\": \"山西焦煤\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"航空机场\", \"symbols\": [{\"code\": \"601111\", \"name\": \"中国国航\"}, {\"code\": \"600029\", \"name\": \"南方航空\"}, {\"code\": \"600115\", \"name\": \"中国东航\"}, {\"code\": \"600009\", \"name\": \"上海机场\"}, {\"code\": \"000089\", \"name\": \"深圳机场\"}]}, {\"sector\": \"物流快递\", \"symbols\": [{\"code\": \"002352\", \"name\": \"顺丰控股\"}, {\"code\": \"002120\", \"name\": \"韵达股份\"}, {\"code\": \"600233\", \"name\": \"圆通速递\"}, {\"code\": \"002468\", \"name\": \"申通快递\"}]}, {\"sector\": \"旅游酒店\", \"symbols\": [{\"code\": \"601888\", \"name\": \"中国中免\"}, {\"code\": \"600138\", \"name\": \"中青旅\"}, {\"code\": \"600754\", \"name\": \"锦江酒店\"}, {\"code\": \"600258\", \"name\": \"首旅酒店\"}]}, {\"sector\": \"下游化工\", \"symbols\": [{\"code\": \"600309\", \"name\": \"万华化学\"}, {\"code\": \"000830\", \"name\": \"鲁西化工\"}, {\"code\": \"600426\", \"name\": \"华鲁恒升\"}, {\"code\": \"600409\", \"name\": \"三友化工\"}]}, {\"sector\": \"可选消费\", \"symbols\": [{\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"000651\", \"name\": \"格力电器\"}, {\"code\": \"600690\", \"name\": \"海尔智家\"}, {\"code\": \"601633\", \"name\": \"长城汽车\"}]}]",
+  "transmission": "冲突升级或航道受阻 → 原油供给预期收紧、油价上行 → 上游油气盈利上修，油运与军工直接受益，避险资金推升黄金；同时航油与物流成本上升压制航空、快递、旅游，下游化工毛利承压。",
+  "amplification": "地缘议题在国外媒体与社交平台传播极快，且常伴随油价即时反应 → 属高放大主题（上限 1.6）；但情绪衰减同样快，停火/缓和消息会迅速反向。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。",
+  "decision": "结构性分化：做多 石油石化、油气服务、油运；规避 航空机场、物流快递、旅游酒店。确定性 0.87，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Treasury sanctions 17 tankers linked to Iran's 'shadow fleet' in economic pressure campaign",
+    "u": "https://www.cnbc.com/2026/10/08/iran-treasury-sanctions-shadow-fleet.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "US plans livestream of execution by firing squad",
+    "u": "https://www.theverge.com/tech/1008530/us-government-livestream-execution-firing-squad-fort-hood",
+    "s": "The Verge",
+    "p": ""
+   },
+   {
+    "t": "Trump says U.S. will not attack Iran before midterm election",
+    "u": "https://www.cnbc.com/2026/10/08/iran-war-trump-midterm-election.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Oil prices jump as Iran steps up tanker attacks, hurricane threatens U.S. Gulf production",
+    "u": "https://www.cnbc.com/2026/10/08/oil-prices-today-brent-wti-hormuz.html",
+    "s": "CNBC",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/brent-geo-risk",
+   "https://example.local/seed/geo-conflict-shipping"
+  ]
+ },
+ {
+  "title": "AI 资本开支上修（英伟达业绩驱动）：光模块·服务器·液冷受益",
+  "topic": "科技与AI",
+  "overview": "英伟达业绩 / 指引超预期，海外 AI 资本开支上修。",
+  "variables": "AI 资本开支 ↑,800G/1.6T 光模块需求 ↑,服务器与液冷订单 ↑",
+  "sectors_up": "AI算力,光模块,服务器,液冷",
+  "sectors_down": "传统通用服务器,非AI消费电子",
+  "sectors_up_detail": "[{\"sector\": \"AI算力\", \"symbols\": [{\"code\": \"300308\", \"name\": \"中际旭创\"}, {\"code\": \"000977\", \"name\": \"浪潮信息\"}, {\"code\": \"002230\", \"name\": \"科大讯飞\"}, {\"code\": \"603019\", \"name\": \"中科曙光\"}, {\"code\": \"688041\", \"name\": \"海光信息\"}]}, {\"sector\": \"光模块\", \"symbols\": [{\"code\": \"300308\", \"name\": \"中际旭创\"}, {\"code\": \"300394\", \"name\": \"天孚通信\"}, {\"code\": \"300502\", \"name\": \"新易盛\"}, {\"code\": \"002281\", \"name\": \"光迅科技\"}]}, {\"sector\": \"服务器\", \"symbols\": [{\"code\": \"000977\", \"name\": \"浪潮信息\"}, {\"code\": \"601138\", \"name\": \"工业富联\"}, {\"code\": \"603019\", \"name\": \"中科曙光\"}, {\"code\": \"000938\", \"name\": \"紫光股份\"}]}, {\"sector\": \"液冷\", \"symbols\": [{\"code\": \"002837\", \"name\": \"英维克\"}, {\"code\": \"300602\", \"name\": \"飞荣达\"}, {\"code\": \"603912\", \"name\": \"佳力图\"}, {\"code\": \"300499\", \"name\": \"高澜股份\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"传统通用服务器\", \"symbols\": [{\"code\": \"000977\", \"name\": \"浪潮信息\"}, {\"code\": \"601138\", \"name\": \"工业富联\"}, {\"code\": \"000938\", \"name\": \"紫光股份\"}, {\"code\": \"603019\", \"name\": \"中科曙光\"}]}, {\"sector\": \"非AI消费电子\", \"symbols\": [{\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"002241\", \"name\": \"歌尔股份\"}, {\"code\": \"300433\", \"name\": \"蓝思科技\"}, {\"code\": \"000725\", \"name\": \"京东方A\"}]}]",
+  "transmission": "英伟达业绩/指引超预期 → 海外 AI 资本开支上修 → 国内光模块（800G/1.6T）、服务器代工、液冷与 PCB 环节订单能见度提升。",
+  "amplification": "国外源（媒体 + 财经博主）密度高、情绪一致看多，与国内 AI 板块热度叠加 → 中等偏强放大（1.4）。",
+  "cross_check": "国内源有 3 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。",
+  "decision": "方向偏多：主攻 AI算力、光模块、服务器；阶段回避 传统通用服务器、非AI消费电子。属短期催化。确定性 0.89，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "US",
+  "_live_urls": [
+   {
+    "t": "Micron, Nvidia and AI chip stocks fall as report on OpenAI’s revenue causes ‘undue concern’",
+    "u": "https://www.marketwatch.com/story/micron-nvidia-and-ai-chip-stocks-fall-as-report-on-openais-revenue-causes-undue-concern-2a2bcf53?mod=mw_rss_topstories",
+    "s": "MarketWatch",
+    "p": ""
+   },
+   {
+    "t": "Microsoft and Nvidia Unveil Surface Laptop Ultra For $2,599",
+    "u": "https://hardware.slashdot.org/story/26/10/07/1812223/microsoft-and-nvidia-unveil-surface-laptop-ultra-for-2599?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+    "s": "Slashdot",
+    "p": ""
+   },
+   {
+    "t": "Russia's internet giant Yandex halts operations at major data center after drone attack",
+    "u": "https://www.cnbc.com/2026/10/08/russia-yandex-ukraine-drone-strike-data-center.html",
+    "s": "CNBC 科技",
+    "p": ""
+   },
+   {
+    "t": "Advanced Micro Devices vs. ASML: Which Semiconductor Stock Is a Better Buy in 2026?",
+    "u": "https://www.nasdaq.com/articles/advanced-micro-devices-vs-asml-which-semiconductor-stock-better-buy-2026",
+    "s": "Nasdaq 市场新闻",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/nvda-beat",
+   "https://example.local/seed/optical-upside"
+  ]
+ },
+ {
+  "title": "消费与医药 · 国外舆情聚合（14 条）",
+  "topic": "消费与医药",
+  "overview": "海外医药政策与消费趋势变化，映射到国内创新药出海与消费品需求。",
+  "variables": "创新药出海预期 ↑,海外消费需求 ±,CXO 订单 ±",
+  "sectors_up": "创新药,CXO",
+  "sectors_down": "低迷消费品,旅游零售",
+  "sectors_up_detail": "[{\"sector\": \"创新药\", \"symbols\": [{\"code\": \"600276\", \"name\": \"恒瑞医药\"}, {\"code\": \"688180\", \"name\": \"君实生物\"}, {\"code\": \"002422\", \"name\": \"科伦药业\"}, {\"code\": \"002399\", \"name\": \"海普瑞\"}]}, {\"sector\": \"CXO\", \"symbols\": [{\"code\": \"603259\", \"name\": \"药明康德\"}, {\"code\": \"300347\", \"name\": \"泰格医药\"}, {\"code\": \"300759\", \"name\": \"康龙化成\"}, {\"code\": \"603456\", \"name\": \"九洲药业\"}, {\"code\": \"002821\", \"name\": \"凯莱英\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"低迷消费品\", \"symbols\": [{\"code\": \"600887\", \"name\": \"伊利股份\"}, {\"code\": \"603288\", \"name\": \"海天味业\"}, {\"code\": \"000895\", \"name\": \"双汇发展\"}, {\"code\": \"601888\", \"name\": \"中国中免\"}]}, {\"sector\": \"旅游零售\", \"symbols\": [{\"code\": \"601888\", \"name\": \"中国中免\"}, {\"code\": \"002251\", \"name\": \"步步高\"}, {\"code\": \"000759\", \"name\": \"中百集团\"}, {\"code\": \"600693\", \"name\": \"东百集团\"}]}]",
+  "transmission": "海外医药政策与消费趋势 → 国内创新药出海预期与消费品需求映射。",
+  "amplification": "国外源 9 家、14 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 创新药、CXO；规避 低迷消费品、旅游零售。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "The Download: weight-loss drugs slowing aging and carbon dioxide batteries",
+    "u": "https://www.technologyreview.com/2026/10/07/1145895/the-download-weight-loss-drugs-slow-aging-carbon-dioxide-batteries/",
+    "s": "MIT Technology Review",
+    "p": ""
+   },
+   {
+    "t": "Why airfares could rise even more, but airline profits won't",
+    "u": "https://www.cnbc.com/2026/10/05/airfare-prices-airline-profits.html",
+    "s": "CNBC 经济",
+    "p": ""
+   },
+   {
+    "t": "Klarna's 2026 Outlook: Business Expansion Targets Sustainable Profitability",
+    "u": "https://www.nasdaq.com/articles/klarnas-2026-outlook-business-expansion-targets-sustainable-profitability",
+    "s": "Nasdaq 市场新闻",
+    "p": ""
+   },
+   {
+    "t": "Study documents beef industry group's early efforts to counter climate concerns",
+    "u": "https://phys.org/news/2026-10-documents-beef-industry-group-early.html",
+    "s": "Phys.org",
+    "p": ""
+   },
+   {
+    "t": "Modelo owner Constellation is getting creative to bring back beer drinkers as overall demand weakens",
+    "u": "https://www.cnbc.com/2026/10/07/constellation-brands-earnings-beer-demand.html",
+    "s": "CNBC 经济",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/obesity-drug"
+  ]
+ },
+ {
+  "title": "境外重大自然灾害：重建链需求抬升、保险与区域消费承压",
+  "topic": "能源与大宗",
+  "overview": "境外重大自然灾害（洪涝 / 台风 / 地震）：造成人员转移、基建损毁与区域供应链中断，并带来后续重建需求。",
+  "variables": "农产品/粮食价格 ↑,建材(水泥/防水)需求 ↑,保险赔付 ↑,区域物流时效 ↓,重建投资 ↑",
+  "sectors_up": "水利建设,建材(水泥/防水/管材),工程机械,农业种植,应急装备",
+  "sectors_down": "保险,区域旅游,受灾航线航空,当地地产",
+  "sectors_up_detail": "[{\"sector\": \"水利建设\", \"symbols\": [{\"code\": \"601669\", \"name\": \"中国电建\"}, {\"code\": \"002060\", \"name\": \"广东建工\"}, {\"code\": \"600502\", \"name\": \"安徽建工\"}, {\"code\": \"000598\", \"name\": \"兴蓉环境\"}]}, {\"sector\": \"建材(水泥/防水/管材)\", \"symbols\": [{\"code\": \"600585\", \"name\": \"海螺水泥\"}, {\"code\": \"002271\", \"name\": \"东方雨虹\"}, {\"code\": \"000786\", \"name\": \"北新建材\"}, {\"code\": \"600801\", \"name\": \"华新建材\"}, {\"code\": \"002372\", \"name\": \"伟星新材\"}]}, {\"sector\": \"工程机械\", \"symbols\": [{\"code\": \"600031\", \"name\": \"三一重工\"}, {\"code\": \"000157\", \"name\": \"中联重科\"}, {\"code\": \"000425\", \"name\": \"徐工机械\"}, {\"code\": \"603338\", \"name\": \"浙江鼎力\"}, {\"code\": \"600761\", \"name\": \"安徽合力\"}]}, {\"sector\": \"农业种植\", \"symbols\": [{\"code\": \"600598\", \"name\": \"北大荒\"}, {\"code\": \"000998\", \"name\": \"隆平高科\"}, {\"code\": \"002041\", \"name\": \"登海种业\"}, {\"code\": \"600313\", \"name\": \"农发种业\"}]}, {\"sector\": \"应急装备\", \"symbols\": [{\"code\": \"603300\", \"name\": \"海南华铁\"}, {\"code\": \"002583\", \"name\": \"海能达\"}, {\"code\": \"000099\", \"name\": \"中信海直\"}, {\"code\": \"300523\", \"name\": \"辰安科技\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"保险\", \"symbols\": [{\"code\": \"601318\", \"name\": \"中国平安\"}, {\"code\": \"601601\", \"name\": \"中国太保\"}, {\"code\": \"601628\", \"name\": \"中国人寿\"}, {\"code\": \"601336\", \"name\": \"新华保险\"}]}, {\"sector\": \"区域旅游\", \"symbols\": [{\"code\": \"000888\", \"name\": \"峨眉山A\"}, {\"code\": \"600593\", \"name\": \"大连圣亚\"}, {\"code\": \"000430\", \"name\": \"张家界\"}, {\"code\": \"002033\", \"name\": \"丽江股份\"}]}, {\"sector\": \"受灾航线航空\", \"symbols\": [{\"code\": \"600115\", \"name\": \"中国东航\"}, {\"code\": \"601111\", \"name\": \"中国国航\"}, {\"code\": \"600029\", \"name\": \"南方航空\"}, {\"code\": \"601021\", \"name\": \"春秋航空\"}]}, {\"sector\": \"当地地产\", \"symbols\": [{\"code\": \"000002\", \"name\": \"万科A\"}, {\"code\": \"600048\", \"name\": \"保利发展\"}, {\"code\": \"001979\", \"name\": \"招商蛇口\"}, {\"code\": \"000069\", \"name\": \"华侨城A\"}]}]",
+  "transmission": "灾害损毁基建与农田 → 短期农产品供给受影响、粮价预期上行，灾后重建带动水利/建材/工程机械订单；同时保险赔付上升压制险企利润，受灾区域旅游、航线与地产需求走弱。",
+  "amplification": "灾害在境外媒体密集报道，但影响地域性强、对 A 股以主题映射为主 → 放大系数中等（1.3），持续性取决于重建资金落地节奏。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "结构性分化：做多 水利建设、建材(水泥/防水/管材)、工程机械；规避 保险、区域旅游、受灾航线航空。确定性 0.79，情绪放大 1.55 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Oil prices jump as Iran steps up tanker attacks, hurricane threatens U.S. Gulf production",
+    "u": "https://www.cnbc.com/2026/10/08/oil-prices-today-brent-wti-hormuz.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Tropical Storm Isaias Set to Be First Atlantic Hurricane of 2026 Season",
+    "u": "https://www.wired.com/story/tropical-storm-isaias-first-atlantic-hurricane-2026/",
+    "s": "Wired",
+    "p": ""
+   },
+   {
+    "t": "OpenAI’s math solutions aren’t meeting the field’s standards yet",
+    "u": "https://techcrunch.com/2026/10/08/openais-math-solutions-arent-meeting-the-fields-standards-yet/",
+    "s": "TechCrunch",
+    "p": ""
+   },
+   {
+    "t": "Australia’s current wildfire crisis linked to colonial land-use change",
+    "u": "https://www.nature.com/articles/s41586-026-11097-z",
+    "s": "Nature",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/flood-cropland-food",
+   "https://example.local/seed/drought-wheat-shortage"
+  ]
+ },
+ {
+  "title": "美联储利率预期变动：美元与外资流向扰动权重股",
+  "topic": "国际新闻热点",
+  "overview": "美联储降息 / 加息预期变化，美元指数与美债收益率波动。",
+  "variables": "美元指数 ↓,美债收益率 ↓,北向资金净流入 ↑,黄金价格 ↑",
+  "sectors_up": "券商,黄金,非银金融,地产",
+  "sectors_down": "出口链(汇兑),银行(息差收窄)",
+  "sectors_up_detail": "[{\"sector\": \"券商\", \"symbols\": [{\"code\": \"600030\", \"name\": \"中信证券\"}, {\"code\": \"300059\", \"name\": \"东方财富\"}, {\"code\": \"601688\", \"name\": \"华泰证券\"}, {\"code\": \"600999\", \"name\": \"招商证券\"}, {\"code\": \"000776\", \"name\": \"广发证券\"}]}, {\"sector\": \"黄金\", \"symbols\": [{\"code\": \"600547\", \"name\": \"山东黄金\"}, {\"code\": \"600489\", \"name\": \"中金黄金\"}, {\"code\": \"601899\", \"name\": \"紫金矿业\"}, {\"code\": \"600988\", \"name\": \"赤峰黄金\"}, {\"code\": \"002237\", \"name\": \"恒邦股份\"}]}, {\"sector\": \"非银金融\", \"symbols\": [{\"code\": \"601318\", \"name\": \"中国平安\"}, {\"code\": \"601601\", \"name\": \"中国太保\"}, {\"code\": \"601628\", \"name\": \"中国人寿\"}, {\"code\": \"600030\", \"name\": \"中信证券\"}, {\"code\": \"300059\", \"name\": \"东方财富\"}]}, {\"sector\": \"地产\", \"symbols\": [{\"code\": \"000002\", \"name\": \"万科A\"}, {\"code\": \"001979\", \"name\": \"招商蛇口\"}, {\"code\": \"600048\", \"name\": \"保利发展\"}, {\"code\": \"000069\", \"name\": \"华侨城A\"}, {\"code\": \"600383\", \"name\": \"金地集团\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"出口链(汇兑)\", \"symbols\": [{\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"002594\", \"name\": \"比亚迪\"}, {\"code\": \"600690\", \"name\": \"海尔智家\"}]}, {\"sector\": \"银行(息差收窄)\", \"symbols\": [{\"code\": \"600036\", \"name\": \"招商银行\"}, {\"code\": \"601398\", \"name\": \"工商银行\"}, {\"code\": \"601939\", \"name\": \"建设银行\"}, {\"code\": \"601288\", \"name\": \"农业银行\"}, {\"code\": \"601166\", \"name\": \"兴业银行\"}]}]",
+  "transmission": "美联储降息预期 → 美元走弱、人民币汇率压力缓解 → 北向资金回流预期升温，利好券商与黄金；若紧缩超预期则反向压制成长与地产。",
+  "amplification": "宏观利率议题连续多日出现在国外媒体头条，属持续性主题 → 放大系数中等（1.25），但耐久度高。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "方向偏多：主攻 券商、黄金、非银金融；阶段回避 出口链(汇兑)、银行(息差收窄)。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.85，情绪放大 1.25 倍（温和放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Inflation on many everyday items was entirely due to tariffs, NY Fed says",
+    "u": "https://www.cnbc.com/2026/10/08/inflation-tariffs-trump-fed-consumer-goods.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Treasury yields are lower after reaching multiyear highs, traders weigh latest bond auction",
+    "u": "https://www.cnbc.com/2026/10/08/us-treasury-yields-30-year-bond-auction.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Your Next Great Read Might Be Certified ‘Organic’",
+    "u": "https://www.wired.com/story/organic-literature-books-by-people-stamp-ai/",
+    "s": "Wired",
+    "p": ""
+   },
+   {
+    "t": "Fed minutes, Pepsi earnings, midterm megadonors and more in Morning Squawk",
+    "u": "https://www.cnbc.com/2026/10/08/5-things-to-know-before-the-stock-market-opens.html",
+    "s": "CNBC 科技",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/fed-rate-cut"
+  ]
+ },
+ {
+  "title": "能源与大宗 · 国外舆情聚合（8 条）",
+  "topic": "能源与大宗",
+  "overview": "国际大宗商品（原油 / 煤炭 / 有色）价格波动，改变上下游盈利分配。",
+  "variables": "大宗价格 ↑,上游盈利 ↑,下游制造成本 ↑",
+  "sectors_up": "石油石化,煤炭,有色金属",
+  "sectors_down": "下游制造,交运物流",
+  "sectors_up_detail": "[{\"sector\": \"石油石化\", \"symbols\": [{\"code\": \"601857\", \"name\": \"中国石油\"}, {\"code\": \"600028\", \"name\": \"中国石化\"}, {\"code\": \"600938\", \"name\": \"中国海油\"}, {\"code\": \"002493\", \"name\": \"荣盛石化\"}, {\"code\": \"601233\", \"name\": \"桐昆股份\"}]}, {\"sector\": \"煤炭\", \"symbols\": [{\"code\": \"601088\", \"name\": \"中国神华\"}, {\"code\": \"601225\", \"name\": \"陕西煤业\"}, {\"code\": \"600188\", \"name\": \"兖矿能源\"}, {\"code\": \"601898\", \"name\": \"中煤能源\"}, {\"code\": \"000983\", \"name\": \"山西焦煤\"}]}, {\"sector\": \"有色金属\", \"symbols\": [{\"code\": \"601899\", \"name\": \"紫金矿业\"}, {\"code\": \"601600\", \"name\": \"中国铝业\"}, {\"code\": \"600362\", \"name\": \"江西铜业\"}, {\"code\": \"000630\", \"name\": \"铜陵有色\"}, {\"code\": \"600111\", \"name\": \"北方稀土\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"下游制造\", \"symbols\": [{\"code\": \"600690\", \"name\": \"海尔智家\"}, {\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"600031\", \"name\": \"三一重工\"}, {\"code\": \"000651\", \"name\": \"格力电器\"}]}, {\"sector\": \"交运物流\", \"symbols\": [{\"code\": \"601919\", \"name\": \"中远海控\"}, {\"code\": \"601111\", \"name\": \"中国国航\"}, {\"code\": \"002352\", \"name\": \"顺丰控股\"}, {\"code\": \"601006\", \"name\": \"大秦铁路\"}]}]",
+  "transmission": "国际大宗价格波动 → 上游资源股盈利弹性，下游制造成本压力。",
+  "amplification": "国外源 7 家、8 条条目构成议题密度；放大系数 1.5（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 石油石化、煤炭、有色金属；规避 下游制造、交运物流。确定性 0.75，情绪放大 1.5 倍（强共振/情绪放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Hear from Ambrosia Energy and Bloom Energy execs on where the AI infrastructure boom is creating opportunity at TechCrunch Disrupt 2026",
+    "u": "https://techcrunch.com/2026/10/08/hear-from-ambrosia-energy-and-bloom-energy-execs-on-where-the-ai-infrastructure-boom-is-creating-opportunity-at-disrupt-2026/",
+    "s": "TechCrunch",
+    "p": ""
+   },
+   {
+    "t": "Little relief expected for gas prices ahead of Election Day, according to prediction markets",
+    "u": "https://www.cnbc.com/2026/10/08/little-relief-expected-for-gas-prices-ahead-of-election-day.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "Stratospheric winds can warn of extreme energy demand in Europe",
+    "u": "https://phys.org/news/2026-10-stratospheric-extreme-energy-demand-europe.html",
+    "s": "Phys.org",
+    "p": ""
+   },
+   {
+    "t": "Oil finishes sharply higher even as Trump says no attacks on Iran before midterms",
+    "u": "https://seekingalpha.com/news/4651622-oil-finishes-sharply-higher-even-as-trump-says-no-attacks-on-iran-before-midterms?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news",
+    "s": "Seeking Alpha",
+    "p": ""
+   },
+   {
+    "t": "Google Enters Massive 3.6-GW Power Deal With Constellation Energy",
+    "u": "https://hardware.slashdot.org/story/26/10/06/219233/google-enters-massive-36-gw-power-deal-with-constellation-energy?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+    "s": "Slashdot",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/gold-record"
+  ]
+ },
+ {
+  "title": "国际形势 · 国外舆情聚合（5 条）",
+  "topic": "国际形势",
+  "overview": "国际形势趋于紧张（制裁 / 出口管制 / 地缘博弈），外部不确定性上升。",
+  "variables": "外部不确定性 ↑,自主可控政策力度 ↑,外需订单 ↓",
+  "sectors_up": "国产替代,军工,能源安全,农业",
+  "sectors_down": "外需出口链,跨境物流",
+  "sectors_up_detail": "[{\"sector\": \"国产替代\", \"symbols\": [{\"code\": \"688981\", \"name\": \"中芯国际\"}, {\"code\": \"002371\", \"name\": \"北方华创\"}, {\"code\": \"688041\", \"name\": \"海光信息\"}, {\"code\": \"688111\", \"name\": \"金山办公\"}, {\"code\": \"603986\", \"name\": \"兆易创新\"}]}, {\"sector\": \"军工\", \"symbols\": [{\"code\": \"600760\", \"name\": \"中航沈飞\"}, {\"code\": \"600893\", \"name\": \"航发动力\"}, {\"code\": \"000768\", \"name\": \"中航西飞\"}, {\"code\": \"002179\", \"name\": \"中航光电\"}, {\"code\": \"600038\", \"name\": \"中直股份\"}]}, {\"sector\": \"能源安全\", \"symbols\": [{\"code\": \"601857\", \"name\": \"中国石油\"}, {\"code\": \"601088\", \"name\": \"中国神华\"}, {\"code\": \"600900\", \"name\": \"长江电力\"}, {\"code\": \"601899\", \"name\": \"紫金矿业\"}]}, {\"sector\": \"农业\", \"symbols\": [{\"code\": \"600598\", \"name\": \"北大荒\"}, {\"code\": \"000998\", \"name\": \"隆平高科\"}, {\"code\": \"002714\", \"name\": \"牧原股份\"}, {\"code\": \"002385\", \"name\": \"大北农\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"外需出口链\", \"symbols\": [{\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"600690\", \"name\": \"海尔智家\"}, {\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"002032\", \"name\": \"苏泊尔\"}]}, {\"sector\": \"跨境物流\", \"symbols\": [{\"code\": \"002352\", \"name\": \"顺丰控股\"}, {\"code\": \"603128\", \"name\": \"华贸物流\"}, {\"code\": \"601598\", \"name\": \"中国外运\"}, {\"code\": \"002889\", \"name\": \"东方嘉盛\"}]}]",
+  "transmission": "国际形势紧张 → 外部不确定性上升 → 自主可控与安全主题受资金关注，外需链承压。",
+  "amplification": "国外源 4 家、5 条条目构成议题密度；放大系数 1.2（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 国产替代、军工、能源安全；规避 外需出口链、跨境物流。确定性 0.75，情绪放大 1.2 倍（温和放大）。",
+  "related_markets": "US",
+  "_live_urls": [
+   {
+    "t": "United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (ISIL and Al-Qaida) Regulation (Cap. 537CB)",
+    "u": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20261002_LSD_063_2026?sc_lang=en",
+    "s": "HKEX 联交所（通告/规则）",
+    "p": ""
+   },
+   {
+    "t": "Huawei doubles down on smartphones as EV sales slow",
+    "u": "https://www.cnbc.com/2026/10/08/huawei-china-smartphone-ev-slow.html",
+    "s": "CNBC 科技",
+    "p": ""
+   },
+   {
+    "t": "Trump awarding medals to Musk, Dell, Nadella and other tech execs at science summit",
+    "u": "https://www.cnbc.com/2026/10/07/trump-awarding-medals-to-musk-dell-nadella-at-science-summit.html",
+    "s": "CNBC 科技",
+    "p": ""
+   },
+   {
+    "t": "AstraZeneca CEO says Summit drug could drive next generation of cancer combinations after $2 billion investment",
+    "u": "https://www.cnbc.com/2026/10/05/astrazeneca-ceo-says-summit-drug-could-drive-future-cancer-combos.html",
+    "s": "CNBC 经济",
+    "p": ""
+   },
+   {
+    "t": "Elon Musk Delivered Massive News for Taiwan Semiconductor Stock Investors",
+    "u": "https://www.nasdaq.com/articles/elon-musk-delivered-massive-news-taiwan-semiconductor-stock-investors",
+    "s": "Nasdaq 市场新闻",
+    "p": ""
+   }
+  ],
+  "_seed_urls": []
+ },
+ {
+  "title": "国际油价上行：上游石油石化盈利上修、下游成本抬升",
+  "topic": "能源与大宗",
+  "overview": "OPEC+ 减产或地缘扰动推升原油价格。",
+  "variables": "布伦特原油价格 ↑,上游盈利 ↑,下游原料成本 ↑",
+  "sectors_up": "石油石化,油气服务,煤炭",
+  "sectors_down": "下游化工,航空机场,物流快递",
+  "sectors_up_detail": "[{\"sector\": \"石油石化\", \"symbols\": [{\"code\": \"601857\", \"name\": \"中国石油\"}, {\"code\": \"600028\", \"name\": \"中国石化\"}, {\"code\": \"600938\", \"name\": \"中国海油\"}, {\"code\": \"002493\", \"name\": \"荣盛石化\"}, {\"code\": \"601233\", \"name\": \"桐昆股份\"}]}, {\"sector\": \"油气服务\", \"symbols\": [{\"code\": \"601808\", \"name\": \"中海油服\"}, {\"code\": \"600583\", \"name\": \"海油工程\"}, {\"code\": \"002353\", \"name\": \"杰瑞股份\"}, {\"code\": \"300191\", \"name\": \"潜能恒信\"}]}, {\"sector\": \"煤炭\", \"symbols\": [{\"code\": \"601088\", \"name\": \"中国神华\"}, {\"code\": \"601225\", \"name\": \"陕西煤业\"}, {\"code\": \"600188\", \"name\": \"兖矿能源\"}, {\"code\": \"601898\", \"name\": \"中煤能源\"}, {\"code\": \"000983\", \"name\": \"山西焦煤\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"下游化工\", \"symbols\": [{\"code\": \"600309\", \"name\": \"万华化学\"}, {\"code\": \"000830\", \"name\": \"鲁西化工\"}, {\"code\": \"600426\", \"name\": \"华鲁恒升\"}, {\"code\": \"600409\", \"name\": \"三友化工\"}]}, {\"sector\": \"航空机场\", \"symbols\": [{\"code\": \"601111\", \"name\": \"中国国航\"}, {\"code\": \"600029\", \"name\": \"南方航空\"}, {\"code\": \"600115\", \"name\": \"中国东航\"}, {\"code\": \"600009\", \"name\": \"上海机场\"}, {\"code\": \"000089\", \"name\": \"深圳机场\"}]}, {\"sector\": \"物流快递\", \"symbols\": [{\"code\": \"002352\", \"name\": \"顺丰控股\"}, {\"code\": \"002120\", \"name\": \"韵达股份\"}, {\"code\": \"600233\", \"name\": \"圆通速递\"}, {\"code\": \"002468\", \"name\": \"申通快递\"}]}]",
+  "transmission": "OPEC+ 减产或地缘扰动推升油价 → 上游石油石化盈利上修，下游化工与交运成本上升。",
+  "amplification": "油价属高频国际议题、国外源密度高，但对 A 股传导偏温和 → 放大系数偏低（1.15）。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "结构性分化：做多 石油石化、油气服务、煤炭；规避 下游化工、航空机场、物流快递。确定性 0.75，情绪放大 1.25 倍（温和放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Kinder Morgan restores natural gas flows to Mexico after pipeline outage",
+    "u": "https://seekingalpha.com/news/4651620-kinder-morgan-restores-natural-gas-flows-to-mexico-after-pipeline-outage?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news",
+    "s": "Seeking Alpha",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/brent-geo-risk",
+   "https://example.local/seed/oilfield-earnings",
+   "https://example.local/seed/opec-cuts"
+  ]
+ },
+ {
+  "title": "全球粮食减产 / 出口限制：种植与农资受益、养殖与食品加工承压",
+  "topic": "自然灾害与洪涝",
+  "overview": "主产区气候异常（干旱 / 洪涝）或出口国实施出口限制，导致粮食减产、全球粮价与农产品价格上行。",
+  "variables": "CBOT 小麦/玉米价格 ↑,全球粮价指数 ↑,化肥农药需求 ↑,饲料成本 ↑,CPI 食品分项 ↑",
+  "sectors_up": "种业,种植业,农垦,化肥农药,农机",
+  "sectors_down": "养殖(饲料成本),饲料,食品加工,调味品,白酒(用粮成本)",
+  "sectors_up_detail": "[{\"sector\": \"种业\", \"symbols\": [{\"code\": \"000998\", \"name\": \"隆平高科\"}, {\"code\": \"002041\", \"name\": \"登海种业\"}, {\"code\": \"600313\", \"name\": \"农发种业\"}, {\"code\": \"002385\", \"name\": \"大北农\"}]}, {\"sector\": \"种植业\", \"symbols\": [{\"code\": \"600598\", \"name\": \"北大荒\"}, {\"code\": \"601118\", \"name\": \"海南橡胶\"}, {\"code\": \"600108\", \"name\": \"亚盛集团\"}, {\"code\": \"000713\", \"name\": \"国投丰乐\"}]}, {\"sector\": \"农垦\", \"symbols\": [{\"code\": \"600598\", \"name\": \"北大荒\"}, {\"code\": \"601118\", \"name\": \"海南橡胶\"}, {\"code\": \"600108\", \"name\": \"亚盛集团\"}, {\"code\": \"000019\", \"name\": \"深粮控股\"}]}, {\"sector\": \"化肥农药\", \"symbols\": [{\"code\": \"000792\", \"name\": \"盐湖股份\"}, {\"code\": \"600096\", \"name\": \"云天化\"}, {\"code\": \"600486\", \"name\": \"扬农化工\"}, {\"code\": \"600141\", \"name\": \"兴发集团\"}]}, {\"sector\": \"农机\", \"symbols\": [{\"code\": \"601038\", \"name\": \"一拖股份\"}, {\"code\": \"300022\", \"name\": \"吉峰科技\"}, {\"code\": \"603766\", \"name\": \"隆鑫通用\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"养殖(饲料成本)\", \"symbols\": [{\"code\": \"002714\", \"name\": \"牧原股份\"}, {\"code\": \"000876\", \"name\": \"新希望\"}, {\"code\": \"300498\", \"name\": \"温氏股份\"}, {\"code\": \"002124\", \"name\": \"天邦食品\"}]}, {\"sector\": \"饲料\", \"symbols\": [{\"code\": \"002385\", \"name\": \"大北农\"}, {\"code\": \"000876\", \"name\": \"新希望\"}, {\"code\": \"002311\", \"name\": \"海大集团\"}, {\"code\": \"002548\", \"name\": \"金新农\"}]}, {\"sector\": \"食品加工\", \"symbols\": [{\"code\": \"000895\", \"name\": \"双汇发展\"}, {\"code\": \"002557\", \"name\": \"洽洽食品\"}, {\"code\": \"002216\", \"name\": \"三全食品\"}, {\"code\": \"600872\", \"name\": \"中炬高新\"}]}, {\"sector\": \"调味品\", \"symbols\": [{\"code\": \"603288\", \"name\": \"海天味业\"}, {\"code\": \"600872\", \"name\": \"中炬高新\"}, {\"code\": \"002507\", \"name\": \"涪陵榨菜\"}, {\"code\": \"603317\", \"name\": \"天味食品\"}]}, {\"sector\": \"白酒(用粮成本)\", \"symbols\": [{\"code\": \"600519\", \"name\": \"贵州茅台\"}, {\"code\": \"000858\", \"name\": \"五粮液\"}, {\"code\": \"000568\", \"name\": \"泸州老窖\"}, {\"code\": \"600809\", \"name\": \"山西汾酒\"}, {\"code\": \"002304\", \"name\": \"洋河股份\"}]}]",
+  "transmission": "减产 → 全球粮价上行 → 种植收益改善带动种业 / 种植 / 农垦，种植意愿提升拉动化肥农药与农机需求；同时饲料与食品加工原料成本上升，养殖、食品加工、调味品及用粮的白酒毛利承压。",
+  "amplification": "粮食议题多由 FAO / USDA 等国际机构发布，国外源权威度高、国内同步报道快 → 放大系数中等偏强（1.4），且伴随通胀预期具备持续性。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "结构性分化：做多 种业、种植业、农垦；规避 养殖(饲料成本)、饲料、食品加工。确定性 0.82，情绪放大 1.15 倍（温和放大）。",
+  "related_markets": "",
+  "_live_urls": [],
+  "_seed_urls": [
+   "https://example.local/seed/rice-export-curbs",
+   "https://example.local/seed/flood-cropland-food",
+   "https://example.local/seed/drought-wheat-shortage",
+   "https://example.local/seed/grain-crop-failure"
+  ]
+ },
+ {
+  "title": "港股流动性与南向资金改善：恒生科技与 A+H 估值修复",
+  "topic": "金融与汇率",
+  "overview": "港股流动性与南向资金改善，恒指与科技板块走强。",
+  "variables": "南向资金净流入 ↑,恒生科技估值 ↑,港股成交额 ↑",
+  "sectors_up": "港股互联网,A+H金融,券商",
+  "sectors_down": "",
+  "sectors_up_detail": "[{\"sector\": \"港股互联网\", \"symbols\": [{\"code\": \"300059\", \"name\": \"东方财富\"}, {\"code\": \"002027\", \"name\": \"分众传媒\"}, {\"code\": \"601360\", \"name\": \"三六零\"}, {\"code\": \"002230\", \"name\": \"科大讯飞\"}]}, {\"sector\": \"A+H金融\", \"symbols\": [{\"code\": \"601318\", \"name\": \"中国平安\"}, {\"code\": \"601628\", \"name\": \"中国人寿\"}, {\"code\": \"601398\", \"name\": \"工商银行\"}, {\"code\": \"600036\", \"name\": \"招商银行\"}, {\"code\": \"601288\", \"name\": \"农业银行\"}]}, {\"sector\": \"券商\", \"symbols\": [{\"code\": \"600030\", \"name\": \"中信证券\"}, {\"code\": \"300059\", \"name\": \"东方财富\"}, {\"code\": \"601688\", \"name\": \"华泰证券\"}, {\"code\": \"600999\", \"name\": \"招商证券\"}, {\"code\": \"000776\", \"name\": \"广发证券\"}]}]",
+  "sectors_down_detail": "[]",
+  "transmission": "港股流动性与南向资金改善 → 恒生科技与 A+H 标的估值修复，并向外溢至 A 股券商与互联网板块。",
+  "amplification": "港股议题的国外源以官方披露与港媒为主，情绪平稳 → 放大系数偏低（1.1），但方向确定性较高。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "方向偏多：主攻 港股互联网、A+H金融、券商。属短期催化。确定性 0.75，情绪放大 1.1 倍（温和放大）。",
+  "related_markets": "US",
+  "_live_urls": [
+   {
+    "t": "Trading Arrangements of Hang Seng AI Advancement ETF",
+    "u": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_149_2026Sep25193240?sc_lang=en",
+    "s": "HKEX 联交所（通告/规则）",
+    "p": ""
+   },
+   {
+    "t": "Trading Arrangements of CSOP Hang Seng Pioneer Technology Index ETF",
+    "u": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_145_2026Sep24184723?sc_lang=en",
+    "s": "HKEX 联交所（通告/规则）",
+    "p": ""
+   },
+   {
+    "t": "Trading Arrangements of Fullgoal Hang Seng HK-US Robotics ETF",
+    "u": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_146_2026Sep25184737?sc_lang=en",
+    "s": "HKEX 联交所（通告/规则）",
+    "p": ""
+   },
+   {
+    "t": "Display of Previous Closing Price of Invesco QQQ TrustSM, Series 1 (stock codes 3455 - HKD counter, 9455 - USD counter and 83455 - RMB counter) on OTP-C for its Third Quarter Distribution on Ex-Distribution Date, 18 September 2026",
+    "u": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260916_NIS_SMD_144_2026?sc_lang=en",
+    "s": "HKEX 联交所（通告/规则）",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/hsi-rebound",
+   "https://example.local/seed/hkex-turnover"
+  ]
+ },
+ {
+  "title": "国际新闻热点 · 国外舆情聚合（5 条）",
+  "topic": "国际新闻热点",
+  "overview": "国际宏观新闻（利率 / 通胀 / GDP / 大选）改变全球风险偏好。",
+  "variables": "全球风险偏好 ±,美元指数 ±,北向资金流向 ±",
+  "sectors_up": "券商,黄金",
+  "sectors_down": "高估值成长,出口链",
+  "sectors_up_detail": "[{\"sector\": \"券商\", \"symbols\": [{\"code\": \"600030\", \"name\": \"中信证券\"}, {\"code\": \"300059\", \"name\": \"东方财富\"}, {\"code\": \"601688\", \"name\": \"华泰证券\"}, {\"code\": \"600999\", \"name\": \"招商证券\"}, {\"code\": \"000776\", \"name\": \"广发证券\"}]}, {\"sector\": \"黄金\", \"symbols\": [{\"code\": \"600547\", \"name\": \"山东黄金\"}, {\"code\": \"600489\", \"name\": \"中金黄金\"}, {\"code\": \"601899\", \"name\": \"紫金矿业\"}, {\"code\": \"600988\", \"name\": \"赤峰黄金\"}, {\"code\": \"002237\", \"name\": \"恒邦股份\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"高估值成长\", \"symbols\": [{\"code\": \"688256\", \"name\": \"寒武纪\"}, {\"code\": \"300750\", \"name\": \"宁德时代\"}, {\"code\": \"300015\", \"name\": \"爱尔眼科\"}, {\"code\": \"688111\", \"name\": \"金山办公\"}]}, {\"sector\": \"出口链\", \"symbols\": [{\"code\": \"000333\", \"name\": \"美的集团\"}, {\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"600690\", \"name\": \"海尔智家\"}, {\"code\": \"000651\", \"name\": \"格力电器\"}]}]",
+  "transmission": "国际宏观新闻（利率/通胀/GDP）改变全球风险偏好 → 通过汇率与外资流向影响 A 股核心资产。",
+  "amplification": "国外源 5 家、5 条条目构成议题密度；放大系数 1.3（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 券商、黄金；规避 高估值成长、出口链。确定性 0.75，情绪放大 1.3 倍（温和放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Anthropic changes usage policy to ban model abuse and election interference",
+    "u": "https://techcrunch.com/2026/10/08/anthropic-changes-usage-policy-to-ban-model-abuse-and-election-interference/",
+    "s": "TechCrunch",
+    "p": ""
+   },
+   {
+    "t": "Why AI is both the hope and the hazard for world leaders, according to IMF chief Georgieva",
+    "u": "https://www.cnbc.com/2026/10/07/economy-inflation-ai-trade-imf-iran-hormuz-trump-.html",
+    "s": "CNBC 科技",
+    "p": ""
+   },
+   {
+    "t": "Massive News for Stock Market Investors",
+    "u": "https://www.nasdaq.com/articles/massive-news-stock-market-investors",
+    "s": "Nasdaq 市场新闻",
+    "p": ""
+   },
+   {
+    "t": "Treasury yields are 'really, really high' but can come down soon, Bessent's new advisor says",
+    "u": "https://www.cnbc.com/2026/10/08/treasury-yields-david-zervos.html",
+    "s": "CNBC",
+    "p": ""
+   },
+   {
+    "t": "rauchg/gdp-ts（⭐761）",
+    "u": "https://github.com/rauchg/gdp-ts",
+    "s": "GitHub 趋势仓库",
+    "p": ""
+   }
+  ],
+  "_seed_urls": []
+ },
+ {
+  "title": "对华电动车加征关税：出口链承压、内需替代加速",
+  "topic": "国际形势",
+  "overview": "欧美对华电动车 / 光伏加征关税，出口敞口承压。",
+  "variables": "出口关税成本 ↑,海外建厂资本开支 ↑,出口订单 ↓",
+  "sectors_up": "内需替代链,海外产能布局企业",
+  "sectors_down": "新能源车出口,光伏出口,锂电出口链",
+  "sectors_up_detail": "[{\"sector\": \"内需替代链\", \"symbols\": [{\"code\": \"002594\", \"name\": \"比亚迪\"}, {\"code\": \"300750\", \"name\": \"宁德时代\"}, {\"code\": \"601012\", \"name\": \"隆基绿能\"}, {\"code\": \"000333\", \"name\": \"美的集团\"}]}, {\"sector\": \"海外产能布局企业\", \"symbols\": [{\"code\": \"002594\", \"name\": \"比亚迪\"}, {\"code\": \"300750\", \"name\": \"宁德时代\"}, {\"code\": \"601012\", \"name\": \"隆基绿能\"}, {\"code\": \"600438\", \"name\": \"通威股份\"}, {\"code\": \"000333\", \"name\": \"美的集团\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"新能源车出口\", \"symbols\": [{\"code\": \"002594\", \"name\": \"比亚迪\"}, {\"code\": \"601127\", \"name\": \"赛力斯\"}, {\"code\": \"600104\", \"name\": \"上汽集团\"}, {\"code\": \"601633\", \"name\": \"长城汽车\"}, {\"code\": \"000625\", \"name\": \"长安汽车\"}]}, {\"sector\": \"光伏出口\", \"symbols\": [{\"code\": \"601012\", \"name\": \"隆基绿能\"}, {\"code\": \"600438\", \"name\": \"通威股份\"}, {\"code\": \"002129\", \"name\": \"TCL中环\"}, {\"code\": \"300274\", \"name\": \"阳光电源\"}, {\"code\": \"688599\", \"name\": \"天合光能\"}]}, {\"sector\": \"锂电出口链\", \"symbols\": [{\"code\": \"300750\", \"name\": \"宁德时代\"}, {\"code\": \"002460\", \"name\": \"赣锋锂业\"}, {\"code\": \"002466\", \"name\": \"天齐锂业\"}, {\"code\": \"300014\", \"name\": \"亿纬锂能\"}, {\"code\": \"002074\", \"name\": \"国轩高科\"}]}]",
+  "transmission": "美国/欧盟对华电动车加征关税 → 直接出口敞口承压、海外建厂节奏前移；中长期倒逼国内产能出海与内需替代。",
+  "amplification": "关税议题往往伴随政治表态反复，国外源高频但情绪摆动大 → 放大系数中等（1.3），波动放大明显。",
+  "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+  "decision": "结构性分化：做多 内需替代链、海外产能布局企业；规避 新能源车出口、光伏出口、锂电出口链。确定性 0.72，情绪放大 1.05 倍（温和放大）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "Levi Strauss hikes profit guidance after tariff refunds, but its sales outlook is less optimistic",
+    "u": "https://www.cnbc.com/2026/10/07/levi-strauss-levi-q3-2026-earnings.html",
+    "s": "CNBC 经济",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/ev-overseas-plants"
+  ]
+ },
+ {
+  "title": "供应链与制造 · 国外舆情聚合（3 条）",
+  "topic": "供应链与制造",
+  "overview": "海外供应链扰动（罢工 / 港口拥堵 / 关税），影响航运价格与出口交付节奏。",
+  "variables": "航运运价 ↑,交付周期 ↑,出口订单节奏 ±",
+  "sectors_up": "航运港口,物流",
+  "sectors_down": "依赖准时交付的出口制造",
+  "sectors_up_detail": "[{\"sector\": \"航运港口\", \"symbols\": [{\"code\": \"601919\", \"name\": \"中远海控\"}, {\"code\": \"600018\", \"name\": \"上港集团\"}, {\"code\": \"601872\", \"name\": \"招商轮船\"}, {\"code\": \"601018\", \"name\": \"宁波港\"}, {\"code\": \"600026\", \"name\": \"中远海能\"}]}, {\"sector\": \"物流\", \"symbols\": [{\"code\": \"002352\", \"name\": \"顺丰控股\"}, {\"code\": \"603128\", \"name\": \"华贸物流\"}, {\"code\": \"002120\", \"name\": \"韵达股份\"}, {\"code\": \"600233\", \"name\": \"圆通速递\"}]}]",
+  "sectors_down_detail": "[{\"sector\": \"依赖准时交付的出口制造\", \"symbols\": [{\"code\": \"002475\", \"name\": \"立讯精密\"}, {\"code\": \"601138\", \"name\": \"工业富联\"}, {\"code\": \"002938\", \"name\": \"鹏鼎控股\"}, {\"code\": \"000333\", \"name\": \"美的集团\"}]}]",
+  "transmission": "海外供应链扰动（罢工/拥堵/关税） → 航运价格与出口交付节奏波动。",
+  "amplification": "国外源 2 家、3 条条目构成议题密度；放大系数 1.0（>1 为放大，<1 为衰减）。",
+  "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+  "decision": "结构性分化：做多 航运港口、物流；规避 依赖准时交付的出口制造。确定性 0.69，情绪放大 1.0 倍（传导偏弱）。",
+  "related_markets": "",
+  "_live_urls": [
+   {
+    "t": "LoreanXavier/pt-pc（⭐988）：Native PC port of P.T. (runs from your own PS4 game files)",
+    "u": "https://github.com/LoreanXavier/pt-pc",
+    "s": "GitHub 趋势仓库",
+    "p": ""
+   },
+   {
+    "t": "pingdotgg/ts-rust（⭐697）：An experimental Rust port of the TypeScript 7 compiler (tsc)",
+    "u": "https://github.com/pingdotgg/ts-rust",
+    "s": "GitHub 趋势仓库",
+    "p": ""
+   }
+  ],
+  "_seed_urls": [
+   "https://example.local/seed/red-sea"
+  ]
+ }
+]

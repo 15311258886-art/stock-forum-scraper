@@ -1,0 +1,73 @@
+{
+  "target": "F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\viewer",
+  "mode": "generic",
+  "generated_at": "2026-10-09T17:05:42.311717+00:00",
+  "counts": {
+    "ok": 0,
+    "warn": 4,
+    "error": 0,
+    "skip": 2,
+    "info": 1
+  },
+  "results": [
+    {
+      "name": "layer0.tests",
+      "level": "warn",
+      "detail": "未发现 test_*.py / *_test.py / selftest*.py / endpoint_test*.py，无法验证「结果是否正确」",
+      "evidence": []
+    },
+    {
+      "name": "probe.fake_data_marker",
+      "level": "warn",
+      "detail": "出现 fake/mock/dummy 等字样，核实是否为真值数据",
+      "evidence": [
+        "industry_leaders.py:28",
+        "industry_leaders.py:205",
+        "reasonableness_gate.py:13",
+        "screener_extra.py:4",
+        "screener_extra.py:22",
+        "screener_extra.py:54",
+        "screener_extra.py:141",
+        "screener_extra.py:197",
+        "screener_extra.py:689",
+        "screener_extra.py:739"
+      ]
+    },
+    {
+      "name": "probe.todo_marker",
+      "level": "warn",
+      "detail": "存在 TODO/占位标记，功能可能未真正完成",
+      "evidence": [
+        "db.py:50",
+        "predictor.py:1835",
+        "server.py:1414",
+        "server.py:3148",
+        "server.py:3153"
+      ]
+    },
+    {
+      "name": "probe.testfunc_count",
+      "level": "info",
+      "detail": "源码中共有 0 个 test_ 函数",
+      "evidence": []
+    },
+    {
+      "name": "probe.no_tests",
+      "level": "warn",
+      "detail": "源码含 0 个 test_ 函数，缺少正确性断言",
+      "evidence": []
+    },
+    {
+      "name": "gate.metrics",
+      "level": "skip",
+      "detail": "未找到 metrics.json，跳过合理性闸门（绝不假 PASS）",
+      "evidence": []
+    },
+    {
+      "name": "oracle.fixtures",
+      "level": "skip",
+      "detail": "无 fixtures/ 目录，跳过 Oracle 真值对照（诚实跳过，绝不假 PASS）",
+      "evidence": []
+    }
+  ]
+}

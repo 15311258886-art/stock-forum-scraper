@@ -1,0 +1,67 @@
+name: overseas-relay
+
+# 境外数据中继：GitHub 的 runner 在境外，可直连 YouTube / Reuters / BBC /
+# arXiv / GDELT / Reddit 等在本机（中国大陆）被阻断的信源。
+# 本工作流定时抓取这些源，把结果写成 JSON 提交回仓库；
+# 本地采集端通过 jsDelivr / raw.githubusercontent 读取，从而打通被墙源。
+#
+# 启用步骤（3 步）：
+#   1. 把这个仓库推到 GitHub（公开仓库即可，Actions 免费额度足够）
+#   2. 仓库 Settings → Actions → General → Workflow permissions 选
+#      "Read and write permissions"（本文件已声明 contents: write）
+#   3. 手动跑一次（Actions 页面 → overseas-relay → Run workflow），
+#      之后每 3 小时自动更新
+
+on:
+  schedule:
+    - cron: "15 */3 * * *"      # 每 3 小时的第 15 分钟
+  workflow_dispatch:            # 支持手动触发
+
+permissions:
+  contents: write               # 需要写权限才能把 JSON 提交回仓库
+
+concurrency:
+  group: overseas-relay
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch overseas sources
+        run: python tools/relay_fetch.py --out data/relay/latest.json --timeout 20
+
+      - name: Commit relay output
+        run: |
+          git config user.name  "relay-bot"
+          git config user.email "relay-bot@users.noreply.github.com"
+          git add data/relay/latest.json
+          if git diff --staged --quiet; then
+            echo "no change"
+          else
+            git commit -m "chore(relay): update overseas feed $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("data/relay/latest.json")
+          if not p.exists():
+              print("::warning::relay output missing"); raise SystemExit(0)
+          d = json.loads(p.read_text(encoding="utf-8"))
+          print(f"generated_at = {d.get('generated_at')}")
+          print(f"items        = {len(d.get('items', []))}")
+          for k, v in (d.get("counts") or {}).items():
+              print(f"  {k:<22} {v}")
+          PY

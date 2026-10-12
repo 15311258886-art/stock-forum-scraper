@@ -1,0 +1,24 @@
+﻿venv-python exists: True
+python on PATH: C:\Users\野比&大熊\AppData\Local\Microsoft\WindowsApps\python.exe
+python3 on PATH: C:\Users\野比&大熊\AppData\Local\Microsoft\WindowsApps\python3.exe
+--- venv Scripts ---
+__pycache__
+activate
+activate.bat
+activate.fish
+Activate.ps1
+bottle.exe
+bottle.py
+cffi-gen-src.exe
+deactivate.bat
+idna.exe
+normalizer.exe
+pip.exe
+pip3.13.exe
+pip3.exe
+python.exe
+pythonw.exe
+pywin32_postinstall.exe
+pywin32_postinstall.py
+pywin32_testall.exe
+pywin32_testall.py

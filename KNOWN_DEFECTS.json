@@ -106,6 +106,21 @@
       "guard": "defect_probe P4（检测 0.7 切分在位）",
       "regression_guard": "screener_extra.backtest in_sample/out_of_sample 字段",
       "notes": "阶段3 防护：P4 静态探测 walk-forward 70/30 在位。"
+    },
+    {
+      "id": "DEF-2026-008",
+      "title": "集合竞价采集闸误用日K：盘中不含今日 → 整日退回上一交易日",
+      "category": "calendar",
+      "module": "auction.py",
+      "function": "maybe_snapshot（旧 _is_trading_day 已移除 → 现 _today_collectable）",
+      "introduced_at": "2026-09-22T00:00:00Z",
+      "discovered_by": "diag-auction-freshness|2026-10-09",
+      "root_cause": "maybe_snapshot 用「上证综指日K里有没有今天」当开市判据，而日K**盘中不含今日**（当日K线收盘后才印出），真实交易日的整个交易时段闸恒返回 False，把竞价采集/回填全部路径静默挡死；summary 的展示日 d 回落到 MAX(date)=上一交易日，面板带「非今日数据」。",
+      "fix_commit": "本地提交（2026-10-09 修 auction.py：闸改走 is_trading_day + live_quote_date 二次确认；路径②『今天』改走 collect(Market_Center) 而非 backfill(日K)）",
+      "status": "fixed",
+      "guard": "采集闸统一走唯一权威入口 is_trading_day（含 2026 确定性日历兜底）+ live_quote_date 二次确认；盘中『今天』只用 Market_Center 生产",
+      "regression_guard": "test_stage0_correctness.py::test_auction_gate_allows_intraday_real_trading_day",
+      "notes": "缺陷不二过：再用日K做「今天开市吗」判据（盘中无今日）→ 放行断言变 False 即被捕获；对『今天』用 backfill（逐只取日K）同样写不进当天，必须走 collect。"
     }
   ]
 }

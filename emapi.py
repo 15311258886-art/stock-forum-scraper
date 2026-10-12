@@ -11,8 +11,10 @@ v2 修正（2026-09-27，真机接口实测后重写）：
 统一口径：直连优先 → 回退系统代理；失败一律返回空/None，绝不写 0、绝不抛给上层。
 """
 from __future__ import annotations
+import concurrent.futures
 import json
 import logging
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -28,6 +30,196 @@ _DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 _PROXY = urllib.request.build_opener()
 
 _TRADE_DATE_CACHE = {"date": None, "ts": 0.0}
+
+
+# --------------------------------------------------------------------------- #
+# 三源竞速基座（2026-10-09）：新浪 / 腾讯 / 东财 **并发**取价，「谁先回用谁」。
+#   背景：此前东财优先串行降级——东财 push2 被本机风控掐连接时，按 5s×多端点阻塞，
+#         慢源把整个请求拖到十几秒（王总：点哪刷哪、8-10s 内要拿到当下数据）。
+#   现在：三个源同时发，先回的先采纳，慢的/hang 的直接忽略。
+#   · 整体硬超时（默认 ≤3s）—— 绝不让某个源把请求拖过 5s；
+#   · 线程来自**模块级复用**的有界线程池（8 worker），绝不为单次请求新建一批线程；
+#   · 只采纳「成功结果」，失败/超时静默忽略（上层原有兜底 / 负缓存保持不变）。
+#   · ⚠️ 传入的 callable 内部务必自带超时（推荐 timeout≤3、retries=0），
+#     否则会长期占用池内线程（future.cancel 拦不住已在跑的请求）。
+# --------------------------------------------------------------------------- #
+_RACE_POOL = None
+_RACE_POOL_LOCK = threading.Lock()
+_RACE_MAX_WORKERS = 8
+
+
+def race_pool() -> "concurrent.futures.ThreadPoolExecutor":
+    """模块级复用的有界线程池（懒初始化，双重检查锁）。"""
+    global _RACE_POOL
+    if _RACE_POOL is None:
+        with _RACE_POOL_LOCK:
+            if _RACE_POOL is None:
+                _RACE_POOL = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=_RACE_MAX_WORKERS, thread_name_prefix="mkt-race")
+    return _RACE_POOL
+
+
+def _not_none(x) -> bool:
+    return x is not None
+
+
+def race_first(calls, timeout: float = 3.0, accept=None):
+    """并发执行若干无参 callable，返回**第一个通过 accept 的结果**（不等最慢的那个）。
+
+    - calls：无参可调用列表，各自独立取数（内部已做自身超时兜底）；
+    - timeout：整体硬上限（秒）。到点即返回 None，绝不让某源 hang 住把请求拖长；
+    - accept(x)->bool：判定「可用」的谓词，默认「非 None 即可用」。
+    返回第一个通过 accept 的结果；全部失败 / 超时返回 None。线程来自 race_pool()。
+    """
+    if not calls:
+        return None
+    if accept is None:
+        accept = _not_none
+    deadline = time.time() + max(0.1, float(timeout))
+    pool = race_pool()
+    futs = [pool.submit(c) for c in calls]
+    pending = set(futs)
+    try:
+        while pending:
+            remain = deadline - time.time()
+            if remain <= 0:
+                break
+            done, pending = concurrent.futures.wait(
+                pending, timeout=remain,
+                return_when=concurrent.futures.FIRST_COMPLETED)
+            if not done:
+                break
+            for f in done:
+                try:
+                    r = f.result()
+                except Exception:  # noqa: BLE001
+                    r = None
+                if accept(r):
+                    return r
+    finally:
+        for f in pending:
+            f.cancel()
+    return None
+
+
+def race_merge(calls, merge, complete, timeout: float = 3.0) -> dict:
+    """并发**批量**取数：边完成边用 merge(acc, result) 合并；complete(acc) 为真即提前收工。
+
+    返回 acc（即使超时也返回已合并到的部分）。
+    - merge 只在**主线程**等待循环里调用 → acc 不存在并发写；工作线程只负责取数。
+    - 建议 merge 内做「有值不回退」保护：不要用缺失值覆盖已取到的有效值。
+    """
+    acc: dict = {}
+    if not calls:
+        return acc
+    deadline = time.time() + max(0.1, float(timeout))
+    pool = race_pool()
+    futs = [pool.submit(c) for c in calls]
+    pending = set(futs)
+    try:
+        while pending:
+            remain = deadline - time.time()
+            if remain <= 0:
+                break
+            done, pending = concurrent.futures.wait(
+                pending, timeout=remain,
+                return_when=concurrent.futures.FIRST_COMPLETED)
+            if not done:
+                break
+            for f in done:
+                try:
+                    r = f.result()
+                except Exception:  # noqa: BLE001
+                    r = None
+                if r:
+                    merge(acc, r)
+            if complete(acc):
+                break
+    finally:
+        for f in pending:
+            f.cancel()
+    return acc
+
+
+def _safe_result(f):
+    """取 future 结果；异常一律折算为 None（竞速里失败源不该把整个请求带崩）。"""
+    try:
+        return f.result()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def race_priority(primary, others, grace: float = 1.4, timeout: float = 3.0, accept=None):
+    """**主源优先 + 限时**的并发竞速（2026-10-09，王总「单股愿等、但要字段全」）。
+
+    语义（三个源同时发，绝不串行干等）：
+      · primary 在 grace 秒内成功返回 → 用 primary（字段最全的源，如东财含 valuation.bps）；
+      · grace 内 primary 未成功（失败或还没回）→ **立即**改用「最先成功」的任一 other，不干等；
+      · 到 timeout 仍无成功结果 → None。
+    关键点：primary **快速失败**（如被风控 RST）时会立刻走「谁快用谁」，不会白等满 grace；
+    只有 primary「挂住不回」才耗到 grace 上限，从而在「字段完整」与「不拖慢」之间两全。
+    线程来自 race_pool()。
+    """
+    if accept is None:
+        accept = _not_none
+    deadline = time.time() + max(0.1, float(timeout))
+    grace_dl = min(time.time() + max(0.0, float(grace)), deadline)
+    pool = race_pool()
+    f_primary = pool.submit(primary)
+    f_others = [pool.submit(c) for c in others]
+    allf = [f_primary] + f_others
+    finished: dict = {}
+    order: list = []           # 按（近似）完成先后记录，供「谁先回用谁」按序取
+    pending = set(allf)
+
+    def _harvest(done):
+        for f in done:
+            pending.discard(f)
+            finished[f] = _safe_result(f)
+            order.append(f)
+
+    try:
+        # 阶段1：给主源 grace 窗口；期间任何源完成都收割，但暂不采纳非主源
+        while f_primary not in finished and pending and time.time() < grace_dl:
+            done, _ = concurrent.futures.wait(
+                pending, timeout=max(0.0, grace_dl - time.time()),
+                return_when=concurrent.futures.FIRST_COMPLETED)
+            if not done:
+                break
+            _harvest(done)
+        if f_primary in finished and accept(finished[f_primary]):
+            return finished[f_primary]
+
+        def _pick_any():
+            for f in order:
+                if f is not f_primary and accept(finished.get(f)):
+                    return finished[f]
+            return None
+
+        # 阶段2：谁先成功用谁（先看已完成的其它源，再等剩余到 timeout）
+        r = _pick_any()
+        if r is not None:
+            return r
+        while pending and time.time() < deadline:
+            done, _ = concurrent.futures.wait(
+                pending, timeout=max(0.0, deadline - time.time()),
+                return_when=concurrent.futures.FIRST_COMPLETED)
+            if not done:
+                break
+            _harvest(done)
+            if f_primary in finished and accept(finished[f_primary]):
+                return finished[f_primary]
+            r = _pick_any()
+            if r is not None:
+                return r
+        # 主源可能在 grace 之后才成功 —— 最后再兜一次
+        if f_primary in finished and accept(finished[f_primary]):
+            return finished[f_primary]
+        return _pick_any()
+    finally:
+        for f in allf:
+            if not f.done():
+                f.cancel()
 
 
 def _ts() -> str:
@@ -160,6 +352,70 @@ def tencent_quote_batch(symbols, timeout: int = 10):
     return out
 
 
+# secid 市场前缀 → 腾讯符号前缀（与 tencent_quote 内部映射保持一致）
+_TX_SECID_PREFIX = {"1": "sh", "0": "sz", "105": "us", "116": "hk"}
+
+
+def tencent_quote_multi(secids, timeout: int = 3) -> dict:
+    """腾讯批量快照（**单请求** qt.gtimg.cn/q=sym1,sym2,...），供多资产面板竞速用。
+
+    入参 secid 列表（如 ["1.000001","1.510300","105.AAPL"]）；不支持的市场
+    （如美股指数 100.* —— 腾讯无对应符号）自动跳过（返回里就没有，交给其它源）。
+    返回 {secid: {'code','name','price','pct','prev_close','time'}}；失败返回 {}。
+    """
+    sym2sid: dict = {}
+    for sid in secids or []:
+        s = (sid or "").strip()
+        if not s:
+            continue
+        if "." not in s:
+            s = secid(s)
+        try:
+            m, c = s.split(".", 1)
+        except ValueError:
+            continue
+        pfx = _TX_SECID_PREFIX.get(m)
+        if not pfx:
+            continue
+        sym2sid[pfx + c] = sid
+    if not sym2sid:
+        return {}
+    url = "http://qt.gtimg.cn/q=" + ",".join(sym2sid.keys())
+    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/"}
+    raw = None
+    for opener in (_DIRECT, _PROXY):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with opener.open(req, timeout=timeout) as resp:
+                raw = resp.read().decode("gbk", "ignore")
+            break
+        except Exception:  # noqa: BLE001
+            raw = None
+    if not raw:
+        return {}
+    out: dict = {}
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line.startswith("v_") or "=" not in line:
+            continue
+        head, body = line.split("=", 1)
+        sid = sym2sid.get(head[2:].strip())
+        if not sid:
+            continue
+        parts = body.strip().strip(";").strip('"').split("~")
+        if len(parts) < 33:
+            continue
+        out[sid] = {
+            "code": parts[2] if len(parts) > 2 else "",
+            "name": parts[1] if len(parts) > 1 else "",
+            "price": _num(parts[3]),
+            "pct": _num(parts[32]),
+            "prev_close": _num(parts[4]),
+            "time": parts[30] if len(parts) > 30 else "",
+        }
+    return out
+
+
 def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
               encoding: str = "utf-8-sig"):
     headers = {"User-Agent": _EM_UA, "Referer": referer, "Accept": "*/*"}
@@ -274,10 +530,12 @@ def _best_ut(idx: int = 0) -> str:
 
 
 def clist(fs: str, fields: str, pz: int = 30, pn: int = 1, fid: str = "f3", po: int = 1,
-          referer: str = _REF_Q):
+          referer: str = _REF_Q, timeout: int = 12, retries: int = 1):
     """东财 clist 排行/列表（资金流、选股等）。fs 为板块/筛选表达式。
     统一把 diff（对象或数组）归一为 list。失败返回 []。
-    v3（2026-09-27 晚）：多 ut 重试，按 fid 自动推荐 referer。"""
+    v3（2026-09-27 晚）：多 ut 重试，按 fid 自动推荐 referer。
+    2026-10-09：新增 timeout / retries 参数——盘中口径竞速时用 timeout=2、retries=0
+    快速失败，避免 push2 被风控时把请求拖长。"""
     # 资金流类请求的 referer 应为数据中心
     if fid in ("f62", "f184", "f164", "f174", "f267"):
         referer = "https://data.eastmoney.com/zjlx/list.html"
@@ -286,7 +544,7 @@ def clist(fs: str, fields: str, pz: int = 30, pn: int = 1, fid: str = "f3", po: 
         url = ("https://push2.eastmoney.com/api/qt/clist/get"
                f"?fid={fid}&fs={urllib.parse.quote(fs)}&fields={fields}"
                f"&po={po}&pz={pz}&pn={pn}&ut={ut}&invt=2&fltt=2&np=1&_={_ts()}")
-        j = get_json(url, referer, timeout=12, retries=1)
+        j = get_json(url, referer, timeout=timeout, retries=retries)
         if not j:
             last_err = "no-json"; continue
         if j.get("rc") not in (0, None):

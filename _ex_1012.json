@@ -1,0 +1,789 @@
+[
+  {
+    "id": 1640,
+    "key": "topic::科技与AI",
+    "title": "科技与AI · 国外舆情聚合（151 条）",
+    "topic": "科技与AI",
+    "overview": "海外科技巨头资本开支与新产品周期变化，映射到国内算力与半导体供应链。",
+    "variables": "AI 资本开支 ↑,算力订单 ↑,消费电子备货 ↑",
+    "transmission": "海外科技巨头资本开支与新产品周期 → 国内算力/半导体/消费电子供应链订单弹性。",
+    "amplification": "国外源 26 家、151 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "AI算力,半导体,消费电子",
+    "sectors_down": "传统消费电子代工（低阶）",
+    "decision": "方向偏多：主攻 AI算力、半导体、消费电子；阶段回避 传统消费电子代工（低阶）。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.75,
+    "heat": 5623.15,
+    "first_seen": "2026-04-13 16:30:00",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,MarketWatch,Seeking Alpha,HKEX 香港交易所（新闻稿）,HKEX 联交所（通告/规则）,Hacker News（科技社区）,TechCrunch,The Verge,Ars Technica,Wired,ZDNet,Slashdot,Nature,Phys.org,Live Science,New Scientist,MIT Technology Review,CNBC 经济,CNBC 科技,Fortune,Nasdaq 市场新闻,GitHub 趋势仓库",
+    "driver_regions": "US,HK,GLOBAL",
+    "cats": [
+      "sci"
+    ],
+    "live_n": 5,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "Enlight's 2026 Outlook: Global Energy Platform Expansion Targets 3x Growth in 3 Years",
+        "url": "https://www.nasdaq.com/articles/enlights-2026-outlook-global-energy-platform-expansion-targets-3x-growth-3-years",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "FBI Arrests Cybersecurity Executive Over Data Breach After Contractor Fails to Update Oracle HR Platform",
+        "url": "https://it.slashdot.org/story/26/10/11/0157259/fbi-arrests-cybersecurity-executive-over-data-breach-after-contractor-fails-to-update-oracle-hr-platform?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+        "source": "Slashdot",
+        "date": ""
+      },
+      {
+        "title": "Amazon overhauls aging devices lineup with higher-priced Alexa tablet, dumping the budget Fire",
+        "url": "https://www.cnbc.com/2026/10/08/amazon-alexa-tablet-release.html",
+        "source": "CNBC 科技",
+        "date": ""
+      },
+      {
+        "title": "Governments are mishandling the affordability crisis",
+        "url": "https://www.economist.com/finance-and-economics/2026/10/08/governments-are-mishandling-the-affordability-crisis",
+        "source": "Hacker News（科技社区）",
+        "date": ""
+      },
+      {
+        "title": "These execs think voice AI hasn’t reached its ChatGPT moment yet",
+        "url": "https://techcrunch.com/2026/10/11/these-execs-think-voice-ai-hasnt-reached-its-chatgpt-moment-yet/",
+        "source": "TechCrunch",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1641,
+    "key": "research_paper",
+    "title": "顶刊科研突破：技术路线与商业化预期重塑",
+    "topic": "科研论文与突破",
+    "overview": "顶刊（《Nature》《Science》）或顶级会议发布重大科研论文 / 技术突破，改变相关产业的技术路线与商业化预期。",
+    "variables": "技术商业化预期 ↑,产业链订单预期 ↑,主题资金关注度 ↑,估值溢价 ↑",
+    "transmission": "顶刊论文证实技术可行性 → 产业界加速投入、一级市场估值抬升 → A 股对应技术链（算力 / 创新药 / 新材料 / 量子）获主题资金追捧；同时被替代的旧技术路线面临估值下修。",
+    "amplification": "科研突破在境外科技媒体传播快，但国内解读存在 1~3 日滞后，且需「可商业化」验证 → 初始放大中等（1.35），若后续无产业跟进则快速衰减。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "AI算力,创新药,新材料,量子科技",
+    "sectors_down": "传统燃油车链,传统能源",
+    "decision": "方向偏多：主攻 AI算力、创新药、新材料；阶段回避 传统燃油车链、传统能源。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.73，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.73,
+    "heat": 4220.75,
+    "first_seen": "2026-09-25 19:27:11",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,HKEX 联交所（通告/规则）,TechCrunch,Ars Technica,Wired,Slashdot,Nature,Phys.org,Live Science,New Scientist,MIT Technology Review,CNBC 经济,CNBC 科技,Nasdaq 市场新闻",
+    "driver_regions": "US,HK,GLOBAL",
+    "cats": [
+      "sci"
+    ],
+    "live_n": 5,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "Americans' debt problems are flashing a warning not seen since the Great Recession",
+        "url": "https://www.cnbc.com/2026/10/09/american-debt-delinquency.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "'News reports tweaked the science to speak to contemporary anxieties': How Neanderthal extinction is a projection of our own, modern fears",
+        "url": "https://www.livescience.com/archaeology/neanderthals/news-reports-tweaked-the-science-to-speak-to-contemporary-anxieties-how-neanderthal-extinction-is-a-projection-of-our-own-modern-fears",
+        "source": "Live Science",
+        "date": ""
+      },
+      {
+        "title": "AI coding agents generate more code, but not more software",
+        "url": "https://arstechnica.com/ai/2026/10/ai-coding-agents-generate-more-code-but-not-more-software/",
+        "source": "Ars Technica",
+        "date": ""
+      },
+      {
+        "title": "OpenAI defends decision to fire researchers: 'These decisions were not about raising safety concerns or speaking out'",
+        "url": "https://www.cnbc.com/2026/10/09/openai-fired-researchers-ai-concerns.html",
+        "source": "CNBC 科技",
+        "date": ""
+      },
+      {
+        "title": "UK Vegetables 20-50% Less Nutritious Than In the 1960s",
+        "url": "https://science.slashdot.org/story/26/10/11/0124231/uk-vegetables-20-50-less-nutritious-than-in-the-1960s?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+        "source": "Slashdot",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1642,
+    "key": "topic::金融与汇率",
+    "title": "金融与汇率 · 国外舆情聚合（115 条）",
+    "topic": "金融与汇率",
+    "overview": "美元与美债收益率、人民币汇率变动，影响外资流向与权重股估值。",
+    "variables": "美元指数 ±,美债收益率 ±,北向资金流向 ±",
+    "transmission": "美元与美债收益率变动 → 人民币汇率与外资流向 → 影响权重股与券商弹性。",
+    "amplification": "国外源 14 家、115 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "券商,黄金",
+    "sectors_down": "出口链（人民币升值）,银行（息差）",
+    "decision": "结构性分化：做多 券商、黄金；规避 出口链（人民币升值）、银行（息差）。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.75,
+    "heat": 3308.75,
+    "first_seen": "2026-01-02 11:36:26",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,MarketWatch,HKEX 香港交易所（新闻稿）,HKEX 联交所（通告/规则）,Wired,Slashdot,Nature,Phys.org,CNBC 经济,CNBC 科技,Fortune,Nasdaq 市场新闻,PeerTube·stock market",
+    "driver_regions": "US,HK,GLOBAL",
+    "cats": [
+      "sci"
+    ],
+    "live_n": 6,
+    "seed_n": 0,
+    "live_urls": [
+      {
+        "title": "Wildlife populations have declined 73% since 1970—but many of the world's animals still aren't being counted",
+        "url": "https://phys.org/news/2026-10-wildlife-populations-declined-world-animals.html",
+        "source": "Phys.org",
+        "date": ""
+      },
+      {
+        "title": "Which Corporate Bond ETF Is the Better Buy: iShares’ LQD or State Street’s SPLB?",
+        "url": "https://www.nasdaq.com/articles/which-corporate-bond-etf-better-buy-ishares-lqd-or-state-streets-splb",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "Which iShares Healthcare ETF Is the Better Buy: Biotech-Focused IBB or Broad IYH?",
+        "url": "https://www.nasdaq.com/articles/which-ishares-healthcare-etf-better-buy-biotech-focused-ibb-or-broad-iyh",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "Which Precious Metals ETF Is the Better Buy: abrdn’s Silver SIVR or VanEck’s Gold Miners GDX?",
+        "url": "https://www.nasdaq.com/articles/which-precious-metals-etf-better-buy-abrdns-silver-sivr-or-vanecks-gold-miners-gdx",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "Which Healthcare ETF Is the Better Buy: Simplify’s Active PINK or VanEck’s Pharma-Focused PPH?",
+        "url": "https://www.nasdaq.com/articles/which-healthcare-etf-better-buy-simplifys-active-pink-or-vanecks-pharma-focused-pph",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "Living with Mom and trading on margin. The regular investor gets in on Wall Street's record stock borrowing binge",
+        "url": "https://www.cnbc.com/2026/10/09/margin-debt-stock-market-risk.html",
+        "source": "CNBC",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1643,
+    "key": "pandemic_overseas",
+    "title": "海外疫情舆论升温：防疫链短催化、出行与消费承压",
+    "topic": "国外疫情舆论",
+    "overview": "境外疫情 / 流感舆论升温，WHO 或 CDC 提示扩散风险。",
+    "variables": "疫苗与检测需求 ↑,防疫物资需求 ↑,出行意愿 ↓",
+    "transmission": "国外疫情舆论升温 → 全球防疫物资与疫苗需求预期抬升 → 国内疫苗/检测/中药短催化；同时压制出行、航空、线下消费的风险偏好。",
+    "amplification": "疫情类议题在境外媒体与社交平台传播极快，一旦 WHO/CDC 表态，国内媒体会同步转载 → 情绪传导存在 1~3 日滞后，放大系数先高后衰减。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "疫苗,体外诊断,中药,口罩防护",
+    "sectors_down": "航空机场,旅游酒店,线下消费,影院",
+    "decision": "方向偏多：主攻 疫苗、体外诊断、中药；阶段回避 航空机场、旅游酒店。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.76，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.76,
+    "heat": 1295.25,
+    "first_seen": "2026-10-01 09:00:14",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,TechCrunch,The Verge,Ars Technica,Wired,ZDNet,Nature,Live Science,New Scientist,MIT Technology Review,CNBC 经济,Fortune",
+    "driver_regions": "US,GLOBAL",
+    "cats": [
+      "sci"
+    ],
+    "live_n": 5,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "The DOJ Is Weighing Perjury Charges Against Cassidy Hutchinson",
+        "url": "https://www.wired.com/story/the-doj-is-weighing-perjury-charges-against-cassidy-hutchinson/",
+        "source": "Wired",
+        "date": ""
+      },
+      {
+        "title": "We’re still figuring out the side effects of GLP-1 weight-loss drugs",
+        "url": "https://www.technologyreview.com/2026/10/09/1146094/were-still-figuring-out-the-side-effects-of-glp-1-weight-loss-drugs/",
+        "source": "MIT Technology Review",
+        "date": ""
+      },
+      {
+        "title": "I’m a psychologist who studies couples: The No. 1 way to end a fight before it escalates—it works ‘almost immediately’",
+        "url": "https://www.cnbc.com/make-it/2026/10/11/psychologist-couples-end-fight-before-escalates-partial-yield.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "How AI is redefining Wall Street jobs — and boosting demand for this new 'hottest skill' by 1,721%",
+        "url": "https://www.cnbc.com/2026/10/02/ai-redefining-wall-street-jobs.html",
+        "source": "CNBC 经济",
+        "date": ""
+      },
+      {
+        "title": "Who owns AI risk at work? Business and tech leaders can’t agree, PwC survey finds",
+        "url": "https://www.zdnet.com/innovation/pwc-digital-trust-insights-2027-ai-risk-responsibility/",
+        "source": "ZDNet",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1644,
+    "key": "geo_conflict",
+    "title": "地缘冲突升级：油价与避险资产同步上行、出行链承压",
+    "topic": "地缘冲突与战争",
+    "overview": "地缘冲突或局部战争升级：涉及能源主产区、关键航运要道或大国博弈，全球避险情绪与能源供给预期同步抬升。",
+    "variables": "布伦特原油价格 ↑,黄金价格 ↑,避险指数(VIX) ↑,油轮/集装箱运费 ↑,风险偏好 ↓",
+    "transmission": "冲突升级或航道受阻 → 原油供给预期收紧、油价上行 → 上游油气盈利上修，油运与军工直接受益，避险资金推升黄金；同时航油与物流成本上升压制航空、快递、旅游，下游化工毛利承压。",
+    "amplification": "地缘议题在国外媒体与社交平台传播极快，且常伴随油价即时反应 → 属高放大主题（上限 1.6）；但情绪衰减同样快，停火/缓和消息会迅速反向。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "石油石化,油气服务,油运,军工,黄金,煤炭",
+    "sectors_down": "航空机场,物流快递,旅游酒店,下游化工,可选消费",
+    "decision": "结构性分化：做多 石油石化、油气服务、油运；规避 航空机场、物流快递、旅游酒店。确定性 0.87，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.87,
+    "heat": 1080.5,
+    "first_seen": "2026-10-05 23:37:20",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,Wired,Nature,Phys.org,Live Science,Fortune",
+    "driver_regions": "US,GLOBAL",
+    "cats": [
+      "geo",
+      "sci"
+    ],
+    "live_n": 4,
+    "seed_n": 2,
+    "live_urls": [
+      {
+        "title": "Trump says he is 'going to look at' joining Saudi Arabia in the fight against Iran-backed Houthis after deadly airport strike",
+        "url": "https://www.cnbc.com/2026/10/11/trump-saudi-arabia-iran-houthis.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "Putin relayed Iran war proposal to Trump, Kremlin says",
+        "url": "https://www.cnbc.com/2026/10/10/putin-trump-iran-war-russia-diesel.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "'News reports tweaked the science to speak to contemporary anxieties': How Neanderthal extinction is a projection of our own, modern fears",
+        "url": "https://www.livescience.com/archaeology/neanderthals/news-reports-tweaked-the-science-to-speak-to-contemporary-anxieties-how-neanderthal-extinction-is-a-projection-of-our-own-modern-fears",
+        "source": "Live Science",
+        "date": ""
+      },
+      {
+        "title": "A New Mexico Community Was a Place to Build a Life. Then a Hypersonic Missile Factory Showed Up",
+        "url": "https://www.wired.com/story/a-new-mexico-community-was-a-place-to-build-a-life-then-a-hypersonic-missile-factory-showed-up/",
+        "source": "Wired",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1645,
+    "key": "nvidia_ai_capex",
+    "title": "AI 资本开支上修（英伟达业绩驱动）：光模块·服务器·液冷受益",
+    "topic": "科技与AI",
+    "overview": "英伟达业绩 / 指引超预期，海外 AI 资本开支上修。",
+    "variables": "AI 资本开支 ↑,800G/1.6T 光模块需求 ↑,服务器与液冷订单 ↑",
+    "transmission": "英伟达业绩/指引超预期 → 海外 AI 资本开支上修 → 国内光模块（800G/1.6T）、服务器代工、液冷与 PCB 环节订单能见度提升。",
+    "amplification": "国外源（媒体 + 财经博主）密度高、情绪一致看多，与国内 AI 板块热度叠加 → 中等偏强放大（1.4）。",
+    "cross_check": "国内源有 2 条同主题报道，情绪与国外一致 → 内外共振，冲击被放大。",
+    "sectors_up": "AI算力,光模块,服务器,液冷",
+    "sectors_down": "传统通用服务器,非AI消费电子",
+    "decision": "方向偏多：主攻 AI算力、光模块、服务器；阶段回避 传统通用服务器、非AI消费电子。属短期催化。确定性 0.89，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.89,
+    "heat": 798.0,
+    "first_seen": "2026-10-07 08:13:12",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,TechCrunch,Ars Technica,Wired,ZDNet,CNBC 科技,Nasdaq 市场新闻,GitHub 趋势仓库",
+    "driver_regions": "US,GLOBAL",
+    "cats": [],
+    "live_n": 4,
+    "seed_n": 2,
+    "live_urls": [
+      {
+        "title": "Wall Street is pitching data centers as a major real estate bet. The risks are piling up",
+        "url": "https://www.cnbc.com/2026/10/09/ai-data-centers-investing.html",
+        "source": "CNBC 科技",
+        "date": ""
+      },
+      {
+        "title": "Russia's internet giant Yandex halts operations at major data center after drone attack",
+        "url": "https://www.cnbc.com/2026/10/08/russia-yandex-ukraine-drone-strike-data-center.html",
+        "source": "CNBC 科技",
+        "date": ""
+      },
+      {
+        "title": "Not Nvidia. Not Broadcom. This Little-Known Chip Supplier Could Be the AI Boom's Best-Kept Secret.",
+        "url": "https://www.nasdaq.com/articles/not-nvidia-not-broadcom-little-known-chip-supplier-could-be-ai-booms-best-kept-secret",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "Can the AI industry persuade data center opponents by getting rid of NDAs?",
+        "url": "https://techcrunch.com/2026/10/11/can-the-ai-industry-persuade-data-center-opponents-by-getting-rid-of-ndas/",
+        "source": "TechCrunch",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1646,
+    "key": "topic::消费与医药",
+    "title": "消费与医药 · 国外舆情聚合（14 条）",
+    "topic": "消费与医药",
+    "overview": "海外医药政策与消费趋势变化，映射到国内创新药出海与消费品需求。",
+    "variables": "创新药出海预期 ↑,海外消费需求 ±,CXO 订单 ±",
+    "transmission": "海外医药政策与消费趋势 → 国内创新药出海预期与消费品需求映射。",
+    "amplification": "国外源 9 家、14 条条目构成议题密度；放大系数 1.6（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "创新药,CXO",
+    "sectors_down": "低迷消费品,旅游零售",
+    "decision": "结构性分化：做多 创新药、CXO；规避 低迷消费品、旅游零售。确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。",
+    "confidence": 0.75,
+    "heat": 685.0,
+    "first_seen": "2026-10-03 01:55:26",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,Wired,Phys.org,Live Science,MIT Technology Review,CNBC 经济,Nasdaq 市场新闻",
+    "driver_regions": "US,GLOBAL",
+    "cats": [
+      "sci"
+    ],
+    "live_n": 5,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "The Download: weight-loss drugs slowing aging and carbon dioxide batteries",
+        "url": "https://www.technologyreview.com/2026/10/07/1145895/the-download-weight-loss-drugs-slow-aging-carbon-dioxide-batteries/",
+        "source": "MIT Technology Review",
+        "date": ""
+      },
+      {
+        "title": "Why airfares could rise even more, but airline profits won't",
+        "url": "https://www.cnbc.com/2026/10/05/airfare-prices-airline-profits.html",
+        "source": "CNBC 经济",
+        "date": ""
+      },
+      {
+        "title": "From BJ’s to Lululemon, retailers are trimming assortments to boost business",
+        "url": "https://www.cnbc.com/2026/10/10/from-bjs-to-lululemon-retailers-are-trimming-assortments.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "From BJ’s to Lululemon, retailers are trimming assortments to boost business",
+        "url": "https://www.cnbc.com/2026/10/10/from-bjs-to-lululemon-retailers-are-trimming-assortments.html",
+        "source": "CNBC 经济",
+        "date": ""
+      },
+      {
+        "title": "Modelo owner Constellation is getting creative to bring back beer drinkers as overall demand weakens",
+        "url": "https://www.cnbc.com/2026/10/07/constellation-brands-earnings-beer-demand.html",
+        "source": "CNBC 经济",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1647,
+    "key": "natural_disaster",
+    "title": "境外重大自然灾害：重建链需求抬升、保险与区域消费承压",
+    "topic": "自然灾害与洪涝",
+    "overview": "境外重大自然灾害（洪涝 / 台风 / 地震）：造成人员转移、基建损毁与区域供应链中断，并带来后续重建需求。",
+    "variables": "农产品/粮食价格 ↑,建材(水泥/防水)需求 ↑,保险赔付 ↑,区域物流时效 ↓,重建投资 ↑",
+    "transmission": "灾害损毁基建与农田 → 短期农产品供给受影响、粮价预期上行，灾后重建带动水利/建材/工程机械订单；同时保险赔付上升压制险企利润，受灾区域旅游、航线与地产需求走弱。",
+    "amplification": "灾害在境外媒体密集报道，但影响地域性强、对 A 股以主题映射为主 → 放大系数中等（1.3），持续性取决于重建资金落地节奏。",
+    "cross_check": "国内源有 2 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "水利建设,建材(水泥/防水/管材),工程机械,农业种植,应急装备",
+    "sectors_down": "保险,区域旅游,受灾航线航空,当地地产",
+    "decision": "结构性分化：做多 水利建设、建材(水泥/防水/管材)、工程机械；规避 保险、区域旅游、受灾航线航空。确定性 0.79，情绪放大 1.25 倍（温和放大）。",
+    "confidence": 0.79,
+    "heat": 615.3,
+    "first_seen": "2026-10-08 00:23:53",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "Nature,Phys.org,Live Science",
+    "driver_regions": "GLOBAL",
+    "cats": [
+      "nat",
+      "sci",
+      "food"
+    ],
+    "live_n": 4,
+    "seed_n": 2,
+    "live_urls": [
+      {
+        "title": "Isaias downgraded to post-tropical cyclone after landfall in Florida",
+        "url": "https://phys.org/news/2026-10-isaias-downgraded-tropical-cyclone-landfall.html",
+        "source": "Phys.org",
+        "date": ""
+      },
+      {
+        "title": "At least 4 dead as cyclone Isaias drenches southern U.S.",
+        "url": "https://phys.org/news/2026-10-dead-cyclone-isaias-drenches-southern.html",
+        "source": "Phys.org",
+        "date": ""
+      },
+      {
+        "title": "Nearly 300,000 at risk from Himalayan floods, as flood zone building accelerates",
+        "url": "https://phys.org/news/2026-10-himalayan-zone.html",
+        "source": "Phys.org",
+        "date": ""
+      },
+      {
+        "title": "Australia’s current wildfire crisis linked to colonial land-use change",
+        "url": "https://www.nature.com/articles/s41586-026-11097-z",
+        "source": "Nature",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1648,
+    "key": "oil_energy",
+    "title": "国际油价上行：上游石油石化盈利上修、下游成本抬升",
+    "topic": "能源与大宗",
+    "overview": "OPEC+ 减产或地缘扰动推升原油价格。",
+    "variables": "布伦特原油价格 ↑,上游盈利 ↑,下游原料成本 ↑",
+    "transmission": "OPEC+ 减产或地缘扰动推升油价 → 上游石油石化盈利上修，下游化工与交运成本上升。",
+    "amplification": "油价属高频国际议题、国外源密度高，但对 A 股传导偏温和 → 放大系数偏低（1.15）。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "石油石化,油气服务,煤炭",
+    "sectors_down": "下游化工,航空机场,物流快递",
+    "decision": "结构性分化：做多 石油石化、油气服务、煤炭；规避 下游化工、航空机场、物流快递。确定性 0.78，情绪放大 1.35 倍（强共振/情绪放大）。",
+    "confidence": 0.78,
+    "heat": 414.5,
+    "first_seen": "2026-10-10 12:00:00",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "Phys.org,Fortune",
+    "driver_regions": "GLOBAL,US",
+    "cats": [
+      "geo",
+      "sci",
+      "food"
+    ],
+    "live_n": 2,
+    "seed_n": 3,
+    "live_urls": [
+      {
+        "title": "For the first time ever, 10-year bond yields track diesel prices more closely than crude, and Trump’s fuel deal with Putin may be too little too late",
+        "url": "https://fortune.com/2026/10/11/diesel-prices-10-year-bond-yields-crude-oil-inflation-trump-fuel-deal-putin-midterms/",
+        "source": "Fortune",
+        "date": ""
+      },
+      {
+        "title": "New catalyst enables lower-temperature methane conversion with sustained performance",
+        "url": "https://phys.org/news/2026-10-catalyst-enables-temperature-methane-conversion.html",
+        "source": "Phys.org",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1649,
+    "key": "fed_rates",
+    "title": "美联储利率预期变动：美元与外资流向扰动权重股",
+    "topic": "国际新闻热点",
+    "overview": "美联储降息 / 加息预期变化，美元指数与美债收益率波动。",
+    "variables": "美元指数 ↓,美债收益率 ↓,北向资金净流入 ↑,黄金价格 ↑",
+    "transmission": "美联储降息预期 → 美元走弱、人民币汇率压力缓解 → 北向资金回流预期升温，利好券商与黄金；若紧缩超预期则反向压制成长与地产。",
+    "amplification": "宏观利率议题连续多日出现在国外媒体头条，属持续性主题 → 放大系数中等（1.25），但耐久度高。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "券商,黄金,非银金融,地产",
+    "sectors_down": "出口链(汇兑),银行(息差收窄)",
+    "decision": "方向偏多：主攻 券商、黄金、非银金融；阶段回避 出口链(汇兑)、银行(息差收窄)。因国外舆情转弱，建议降低仓位、按短线观察。确定性 0.85，情绪放大 1.35 倍（强共振/情绪放大）。",
+    "confidence": 0.85,
+    "heat": 345.75,
+    "first_seen": "2026-10-08 20:53:20",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,Seeking Alpha,CNBC 科技,Fortune",
+    "driver_regions": "US",
+    "cats": [],
+    "live_n": 4,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "Trump created a committee to dig into the Fed's Lisa Cook. What is it and what comes next?",
+        "url": "https://www.cnbc.com/2026/10/09/trump-lisa-cook-fed-firing-committee-explained.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "Oil theft is on the rise in the heart of U.S. shale country—and it’s mostly carried out in targeted, organized heists",
+        "url": "https://fortune.com/2026/10/11/oil-theft-wti-crude-prices-permian-basin-targeted-organized-heists/",
+        "source": "Fortune",
+        "date": ""
+      },
+      {
+        "title": "Treasury yields near 24-yr high as investors await inflation data, Fed signals",
+        "url": "https://seekingalpha.com/news/4651948-treasury-yields-near-24-yr-high-as-investors-await-inflation-data-fed-signals?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news",
+        "source": "Seeking Alpha",
+        "date": ""
+      },
+      {
+        "title": "Fed minutes, Pepsi earnings, midterm megadonors and more in Morning Squawk",
+        "url": "https://www.cnbc.com/2026/10/08/5-things-to-know-before-the-stock-market-opens.html",
+        "source": "CNBC 科技",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1650,
+    "key": "topic::国际形势",
+    "title": "国际形势 · 国外舆情聚合（4 条）",
+    "topic": "国际形势",
+    "overview": "国际形势趋于紧张（制裁 / 出口管制 / 地缘博弈），外部不确定性上升。",
+    "variables": "外部不确定性 ↑,自主可控政策力度 ↑,外需订单 ↓",
+    "transmission": "国际形势紧张 → 外部不确定性上升 → 自主可控与安全主题受资金关注，外需链承压。",
+    "amplification": "国外源 4 家、4 条条目构成议题密度；放大系数 1.2（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "国产替代,军工,能源安全,农业",
+    "sectors_down": "外需出口链,跨境物流",
+    "decision": "结构性分化：做多 国产替代、军工、能源安全；规避 外需出口链、跨境物流。确定性 0.72，情绪放大 1.2 倍（温和放大）。",
+    "confidence": 0.72,
+    "heat": 326.25,
+    "first_seen": "2026-10-02 18:17:22",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "HKEX 联交所（通告/规则）,CNBC 经济,CNBC 科技,Nasdaq 市场新闻",
+    "driver_regions": "HK,US",
+    "cats": [
+      "geo"
+    ],
+    "live_n": 4,
+    "seed_n": 0,
+    "live_urls": [
+      {
+        "title": "United Nations (Anti-Terrorism Measures) Ordinance (Cap. 575) / United Nations Sanctions (ISIL and Al-Qaida) Regulation (Cap. 537CB)",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20261002_LSD_063_2026?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      },
+      {
+        "title": "Huawei doubles down on smartphones as EV sales slow",
+        "url": "https://www.cnbc.com/2026/10/08/huawei-china-smartphone-ev-slow.html",
+        "source": "CNBC 科技",
+        "date": ""
+      },
+      {
+        "title": "Taiwan Stock Market May Stop The Bleeding On Monday",
+        "url": "https://www.nasdaq.com/articles/taiwan-stock-market-may-stop-bleeding-monday",
+        "source": "Nasdaq 市场新闻",
+        "date": ""
+      },
+      {
+        "title": "AstraZeneca CEO says Summit drug could drive next generation of cancer combinations after $2 billion investment",
+        "url": "https://www.cnbc.com/2026/10/05/astrazeneca-ceo-says-summit-drug-could-drive-future-cancer-combos.html",
+        "source": "CNBC 经济",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1651,
+    "key": "topic::能源与大宗",
+    "title": "能源与大宗 · 国外舆情聚合（5 条）",
+    "topic": "能源与大宗",
+    "overview": "国际大宗商品（原油 / 煤炭 / 有色）价格波动，改变上下游盈利分配。",
+    "variables": "大宗价格 ↑,上游盈利 ↑,下游制造成本 ↑",
+    "transmission": "国际大宗价格波动 → 上游资源股盈利弹性，下游制造成本压力。",
+    "amplification": "国外源 5 家、5 条条目构成议题密度；放大系数 1.3（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "石油石化,煤炭,有色金属",
+    "sectors_down": "下游制造,交运物流",
+    "decision": "结构性分化：做多 石油石化、煤炭、有色金属；规避 下游制造、交运物流。确定性 0.75，情绪放大 1.3 倍（温和放大）。",
+    "confidence": 0.75,
+    "heat": 318.25,
+    "first_seen": "2026-09-25 11:24:48",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,MarketWatch,HKEX 联交所（通告/规则）,Slashdot",
+    "driver_regions": "US,HK",
+    "cats": [],
+    "live_n": 4,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "We’re about to get a huge read on whether earnings can keep propping up the stock market",
+        "url": "https://www.marketwatch.com/story/were-about-to-get-a-huge-read-on-whether-earnings-can-keep-propping-up-the-stock-market-459b565b?mod=mw_rss_topstories",
+        "source": "MarketWatch",
+        "date": ""
+      },
+      {
+        "title": "Why China is importing a record amount of gold — and what it means for prices",
+        "url": "https://www.cnbc.com/2026/10/12/china-gold-buying-interest-rate-.html",
+        "source": "CNBC",
+        "date": ""
+      },
+      {
+        "title": "Gas Cars Fall Below 50% of Global New Car Sales for the First Time",
+        "url": "https://tech.slashdot.org/story/26/10/11/2033201/gas-cars-fall-below-50-of-global-new-car-sales-for-the-first-time?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+        "source": "Slashdot",
+        "date": ""
+      },
+      {
+        "title": "Display of Adjusted Previous Closing Price of Sino Energy Conservation International Limited (stock code 8128) on OTP-C for its 10-into-1 Share Consolidation on 28 September 2026",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260925_NIS_SMD_151_2026?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1652,
+    "key": "food_shortage",
+    "title": "全球粮食减产 / 出口限制：种植与农资受益、养殖与食品加工承压",
+    "topic": "自然灾害与洪涝",
+    "overview": "主产区气候异常（干旱 / 洪涝）或出口国实施出口限制，导致粮食减产、全球粮价与农产品价格上行。",
+    "variables": "CBOT 小麦/玉米价格 ↑,全球粮价指数 ↑,化肥农药需求 ↑,饲料成本 ↑,CPI 食品分项 ↑",
+    "transmission": "减产 → 全球粮价上行 → 种植收益改善带动种业 / 种植 / 农垦，种植意愿提升拉动化肥农药与农机需求；同时饲料与食品加工原料成本上升，养殖、食品加工、调味品及用粮的白酒毛利承压。",
+    "amplification": "粮食议题多由 FAO / USDA 等国际机构发布，国外源权威度高、国内同步报道快 → 放大系数中等偏强（1.4），且伴随通胀预期具备持续性。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "种业,种植业,农垦,化肥农药,农机",
+    "sectors_down": "养殖(饲料成本),饲料,食品加工,调味品,白酒(用粮成本)",
+    "decision": "结构性分化：做多 种业、种植业、农垦；规避 养殖(饲料成本)、饲料、食品加工。确定性 0.82，情绪放大 1.15 倍（温和放大）。",
+    "confidence": 0.82,
+    "heat": 295.25,
+    "first_seen": "2026-10-11 06:40:00",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "",
+    "driver_regions": "GLOBAL,US",
+    "cats": [
+      "nat",
+      "food"
+    ],
+    "live_n": 0,
+    "seed_n": 4,
+    "live_urls": []
+  },
+  {
+    "id": 1653,
+    "key": "hk_liquidity",
+    "title": "港股流动性与南向资金改善：恒生科技与 A+H 估值修复",
+    "topic": "金融与汇率",
+    "overview": "港股流动性与南向资金改善，恒指与科技板块走强。",
+    "variables": "南向资金净流入 ↑,恒生科技估值 ↑,港股成交额 ↑",
+    "transmission": "港股流动性与南向资金改善 → 恒生科技与 A+H 标的估值修复，并向外溢至 A 股券商与互联网板块。",
+    "amplification": "港股议题的国外源以官方披露与港媒为主，情绪平稳 → 放大系数偏低（1.1），但方向确定性较高。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "港股互联网,A+H金融,券商",
+    "sectors_down": "",
+    "decision": "方向偏多：主攻 港股互联网、A+H金融、券商。属短期催化。确定性 0.75，情绪放大 1.1 倍（温和放大）。",
+    "confidence": 0.75,
+    "heat": 229.5,
+    "first_seen": "2026-09-16 11:23:34",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "HKEX 联交所（通告/规则）",
+    "driver_regions": "HK",
+    "cats": [],
+    "live_n": 4,
+    "seed_n": 2,
+    "live_urls": [
+      {
+        "title": "Trading Arrangements of Hang Seng AI Advancement ETF",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_149_2026Sep25193240?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      },
+      {
+        "title": "Trading Arrangements of CSOP Hang Seng Pioneer Technology Index ETF",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_145_2026Sep24184723?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      },
+      {
+        "title": "Trading Arrangements of Fullgoal Hang Seng HK-US Robotics ETF",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/SEHK_CT_146_2026Sep25184737?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      },
+      {
+        "title": "Display of Previous Closing Price of Invesco QQQ TrustSM, Series 1 (stock codes 3455 - HKD counter, 9455 - USD counter and 83455 - RMB counter) on OTP-C for its Third Quarter Distribution on Ex-Distribution Date, 18 September 2026",
+        "url": "https://www.hkex.com.hk/Services/Circulars-and-Notices/Participant-and-Members-Circulars/SEHK/2026/20260916_NIS_SMD_144_2026?sc_lang=en",
+        "source": "HKEX 联交所（通告/规则）",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1654,
+    "key": "us_tariff_ev",
+    "title": "对华电动车加征关税：出口链承压、内需替代加速",
+    "topic": "国际形势",
+    "overview": "欧美对华电动车 / 光伏加征关税，出口敞口承压。",
+    "variables": "出口关税成本 ↑,海外建厂资本开支 ↑,出口订单 ↓",
+    "transmission": "美国/欧盟对华电动车加征关税 → 直接出口敞口承压、海外建厂节奏前移；中长期倒逼国内产能出海与内需替代。",
+    "amplification": "关税议题往往伴随政治表态反复，国外源高频但情绪摆动大 → 放大系数中等（1.3），波动放大明显。",
+    "cross_check": "国内源有 1 条同主题报道，情绪与国外相左 → 存在分歧，需警惕反复。",
+    "sectors_up": "内需替代链,海外产能布局企业",
+    "sectors_down": "新能源车出口,光伏出口,锂电出口链",
+    "decision": "结构性分化：做多 内需替代链、海外产能布局企业；规避 新能源车出口、光伏出口、锂电出口链。确定性 0.72，情绪放大 1.05 倍（温和放大）。",
+    "confidence": 0.72,
+    "heat": 167.8,
+    "first_seen": "2026-10-08 22:43:38",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC 经济",
+    "driver_regions": "US,GLOBAL",
+    "cats": [],
+    "live_n": 1,
+    "seed_n": 1,
+    "live_urls": [
+      {
+        "title": "Levi Strauss hikes profit guidance after tariff refunds, but its sales outlook is less optimistic",
+        "url": "https://www.cnbc.com/2026/10/07/levi-strauss-levi-q3-2026-earnings.html",
+        "source": "CNBC 经济",
+        "date": ""
+      }
+    ]
+  },
+  {
+    "id": 1655,
+    "key": "topic::国际新闻热点",
+    "title": "国际新闻热点 · 国外舆情聚合（3 条）",
+    "topic": "国际新闻热点",
+    "overview": "国际宏观新闻（利率 / 通胀 / GDP / 大选）改变全球风险偏好。",
+    "variables": "全球风险偏好 ±,美元指数 ±,北向资金流向 ±",
+    "transmission": "国际宏观新闻（利率/通胀/GDP）改变全球风险偏好 → 通过汇率与外资流向影响 A 股核心资产。",
+    "amplification": "国外源 3 家、3 条条目构成议题密度；放大系数 1.1（>1 为放大，<1 为衰减）。",
+    "cross_check": "国内源暂未同步报道 → 属国外单边议题，对国内板块的冲击尚待验证（衰减风险）。",
+    "sectors_up": "券商,黄金",
+    "sectors_down": "高估值成长,出口链",
+    "decision": "结构性分化：做多 券商、黄金；规避 高估值成长、出口链。确定性 0.69，情绪放大 1.1 倍（温和放大）。",
+    "confidence": 0.69,
+    "heat": 154.0,
+    "first_seen": "2026-10-11 03:44:00",
+    "updated_at": "2026-10-12 09:05:39",
+    "driver_sources": "CNBC,MarketWatch,Seeking Alpha",
+    "driver_regions": "US",
+    "cats": [
+      "geo"
+    ],
+    "live_n": 3,
+    "seed_n": 0,
+    "live_urls": [
+      {
+        "title": "Oil tops $105 as Houthi attacks on Saudi Arabia raise inflation fears",
+        "url": "https://seekingalpha.com/news/4651953-oil-tops-105-as-houthi-attacks-on-saudi-arabia-raise-inflation-fears?utm_source=feed_news_all&utm_medium=referral&feed_item_type=news",
+        "source": "Seeking Alpha",
+        "date": ""
+      },
+      {
+        "title": "Should I put my nest egg in a 30-year Treasury bond?",
+        "url": "https://www.marketwatch.com/story/should-i-put-my-nest-egg-in-a-30-year-treasury-bond-89db6e09?mod=mw_rss_topstories",
+        "source": "MarketWatch",
+        "date": ""
+      },
+      {
+        "title": "Judge orders Trump admin to stop airing challenged government-funded ads immediately",
+        "url": "https://www.cnbc.com/2026/10/11/trump-ads-dhs-judge-order.html",
+        "source": "CNBC",
+        "date": ""
+      }
+    ]
+  }
+]

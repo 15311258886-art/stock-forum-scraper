@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录状态诊断与配合清单</title>
+<style>
+  :root{
+    --bg:#f6f8f9; --card:#ffffff; --line:#e3e8eb; --ink:#1c2b2f; --ink2:#5b6b70; --ink3:#8a999e;
+    --teal:#0E7490; --teal-50:#e6f4f7; --red:#b42318; --red-50:#fdecea; --amber:#8a5a00; --amber-50:#fdf5e3;
+    --green:#1a7f4b; --green-50:#e8f6ee; --gray-50:#f1f4f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 24px 64px}
+  header{border-bottom:2px solid var(--teal);padding-bottom:16px;margin-bottom:28px}
+  h1{font-size:24px;font-weight:600;margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--ink2);font-size:13px}
+  h2{font-size:16px;font-weight:600;margin:34px 0 12px;padding-left:10px;border-left:3px solid var(--teal)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:14px}
+  .verdict{border-left:4px solid var(--teal);background:var(--teal-50);border-radius:8px;padding:16px 20px;margin-bottom:24px}
+  .verdict b{color:var(--teal)}
+  .warn{border-left:4px solid var(--amber);background:var(--amber-50);border-radius:8px;padding:16px 20px;margin:14px 0}
+  .warn b{color:var(--amber)}
+  .bad{border-left:4px solid var(--red);background:var(--red-50);border-radius:8px;padding:16px 20px;margin:14px 0}
+  .bad b{color:var(--red)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:10px;overflow:hidden;font-size:13px;margin-bottom:8px}
+  th{background:var(--gray-50);text-align:left;padding:10px 12px;font-weight:600;color:var(--ink2);border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+  .d-red{background:#e5484d}.d-amber{background:#e0a300}.d-green{background:#2f9e5e}.d-gray{background:#b6c2c6}
+  .tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:12px;line-height:1.6;white-space:nowrap}
+  .t-yes{background:var(--red-50);color:var(--red)}
+  .t-no{background:var(--green-50);color:var(--green)}
+  .t-mid{background:var(--amber-50);color:var(--amber)}
+  ol{padding-left:22px;margin:10px 0}
+  ol li{margin-bottom:9px}
+  code{background:var(--gray-50);border:1px solid var(--line);border-radius:4px;padding:1px 5px;
+       font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;color:#0b4a5c}
+  a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(14,116,144,.35)}
+  a:hover{border-bottom-color:var(--teal)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .opt{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .opt.rec{border-color:var(--teal);box-shadow:inset 0 0 0 1px rgba(14,116,144,.18)}
+  .opt h3{margin:0 0 8px;font-size:14px;font-weight:600}
+  .opt.rec h3{color:var(--teal)}
+  .foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink3);font-size:12.5px}
+  @media(max-width:720px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>登录状态诊断与配合清单</h1>
+  <div class="sub">核对时间：2026-09-22 21:34　·　核对方式：源码读取 + 本机文件核对 + 站点实测访问</div>
+</header>
+
+<div class="verdict">
+  <b>先纠正一处误解：</b>界面上的 <code>taoguba · login_failed</code>，<strong>不代表你没注册成功</strong>。<br>
+  这条提示来自程序检查<strong>本机加密凭据库</strong>的结果——库里是空的（实测
+  <code>~/.workbuddy/stock-scraper-creds/</code> 目录下 <strong>0 个文件</strong>），所以它认为"无凭据可用"。
+  它<strong>从未访问淘股吧服务器</strong>去验证你的账号，与你的注册状态无关。
+</div>
+
+<h2>一、全部平台汇总（按"是否需要你动手"排序）</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>平台 / 数据源</th><th>要登录吗</th><th>当前状态</th><th>属于"登录"问题吗</th><th>你要做什么</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><b>淘股吧</b>（tgb.cn）</td>
+      <td><span class="tag t-yes">需要</span></td>
+      <td><span class="dot d-red"></span>login_failed</td>
+      <td><span class="tag t-yes">是</span> 但根因是<strong>登录方式变了</strong></td>
+      <td>见第三节</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>东方财富股吧</td>
+      <td><span class="tag t-no">不需要</span></td>
+      <td><span class="dot d-gray"></span>未实现采集器</td>
+      <td><span class="tag t-no">否</span></td>
+      <td>无需操作</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>雪球</td>
+      <td><span class="tag t-no">不需要</span></td>
+      <td><span class="dot d-gray"></span>未实现采集器</td>
+      <td><span class="tag t-no">否</span></td>
+      <td>无需操作</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>同花顺</td>
+      <td><span class="tag t-no">不需要</span></td>
+      <td><span class="dot d-gray"></span>未实现采集器</td>
+      <td><span class="tag t-no">否</span></td>
+      <td>无需操作</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>YouTube / Reddit / Reuters / BBC / arXiv / Google News / GDELT</td>
+      <td><span class="tag t-no">不需要</span></td>
+      <td><span class="dot d-red"></span>网络层不可达</td>
+      <td><span class="tag t-no">否</span>（需要代理）</td>
+      <td>有可用代理节点时告知地址端口</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>YouTube Data API</td>
+      <td><span class="tag t-no">不需要</span></td>
+      <td><span class="dot d-gray"></span>未配置 Key</td>
+      <td><span class="tag t-no">否</span>（需要 API Key）</td>
+      <td>若要启用，提供一个 Google API Key</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  <b>所以"统一打开登录页"这件事，实际只有 1 个入口值得打开。</b>
+  第 2–4 项连采集器都还没写（<code>PARSER_REGISTRY</code> 里只注册了 <code>taoguba</code> 一个），
+  打开登录页没有任何意义；第 5–6 项是网络层封锁与密钥配置，开登录页同样无用。
+</div>
+
+<h2>二、各平台的登录方式</h2>
+
+<table>
+  <thead><tr><th>平台</th><th>登录方式</th><th>登录入口</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>淘股吧</td>
+      <td>
+        <b>微信扫一扫</b>（免密登录／注册）、<b>手机验证码</b>、<b>MFA 安全码</b>（若账号已开登录保护）<br>
+        <span style="color:var(--red)">⚠ 已无"用户名 + 密码"表单登录入口</span>
+      </td>
+      <td><a href="https://www.tgb.cn/" target="_blank" rel="noreferrer">www.tgb.cn</a> → 右上角「登录」<br>
+          <span style="color:var(--ink3)">（登录为全站弹窗，无独立登录网址）</span></td>
+    </tr>
+    <tr><td>东方财富股吧 / 雪球 / 同花顺</td><td>无登录要求（仅公开列表页）</td><td>—</td></tr>
+    <tr><td>境外被墙源</td><td>登录页无意义，需境外网络出口</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h2>三、淘股吧为什么"存了账号密码"也登不上</h2>
+
+<div class="bad">
+  <b>两个硬事实（均实测，非推测）：</b>
+  <ol style="margin-bottom:0">
+    <li>程序只实现了「用户名 + 密码 POST 表单登录」（<code>scraper/auth.py</code> 的 <code>generic_login</code>），
+        而淘股吧现行登录是<strong>扫码／验证码／MFA</strong>——<strong>没有密码登录入口</strong>，表单登录无处可提交。</li>
+    <li>配置里的登录网址 <code>https://www.taoguba.com.cn/login/</code> <strong>实测返回 404</strong>；
+        站点已迁至 <code>www.tgb.cn</code>。<strong>即便要提交表单，地址也是失效的。</strong></li>
+  </ol>
+</div>
+
+<p style="color:var(--ink2)">结论：<strong>这条路在当前代码下走不通</strong>，不是"少存了一份凭据"的问题。
+正确解法是改造成 <strong>Cookie 注入</strong>——扫码登录一次，把浏览器里的 Cookie 交给程序复用。</p>
+
+<h2>四、建议的下一步（二选一）</h2>
+
+<div class="two">
+  <div class="opt rec">
+    <h3>方案 A　改造为 Cookie 注入模式（推荐）</h3>
+    <ol>
+      <li>浏览器打开 <a href="https://www.tgb.cn/" target="_blank" rel="noreferrer">www.tgb.cn</a>，右上角点「登录」，微信扫码或手机验证码完成登录</li>
+      <li>确认登录成功后告诉我，我读取该站点的 Cookie（或给你一个一键导出的小工具）</li>
+      <li>我把 Cookie 加密存进本机凭据库，程序带 Cookie 抓取（本项目已有 Fernet 加密存储，<strong>不落明文、不上传</strong>）</li>
+      <li>我跑一次验证：用该 Cookie 访问一个受限页面，确认真的拿到登录态再交付</li>
+    </ol>
+    <div style="color:var(--ink2);font-size:12.5px">代价：需要我改一次代码；一次登录可用较长时间，失效后再扫一次即可。</div>
+  </div>
+
+  <div class="opt">
+    <h3>方案 B　零改造，只抓公开内容</h3>
+    <ol>
+      <li>不登录也能抓淘股吧的帖子列表与正文（公开页已实测可访问）</li>
+      <li>代价：付费／积分／权限受限的实盘明细抓不到，界面上会如实标注「受限」</li>
+    </ol>
+    <div style="color:var(--ink2);font-size:12.5px">代价：数据完整度下降，但今天就能跑通，无任何风险。</div>
+  </div>
+</div>
+
+<h2>五、不是"登录"能解决的（避免白费功夫）</h2>
+<div class="card">
+  <p style="margin:0 0 8px"><b>境外源不可达</b>（YouTube / Reddit / Reuters / BBC / arXiv / Google News）：属网络层封锁，登录页毫无作用。
+  两条可行路径：① 你提供一个可用的境外代理地址与端口，我接进抓取通道；② 沿用我已备好的<strong>云端中继方案</strong>
+  （GitHub Actions 在境外抓取后提交结果，本地再拉取——通道本人已实测可达），需要你提供一个 GitHub Token 或一个自建仓库地址。</p>
+  <p style="margin:0"><b>东方财富股吧 / 雪球</b>：此前实测分别为假页反爬与 WAF 拦截，且采集器尚未实现。若你要真正接入，属于"新增采集器"的开发任务，不是登录问题。</p>
+</div>
+
+<div class="foot">
+  本清单所有"状态"结论均来自代码与实测：凭据库文件核对（Glob 扫描）、字段与逻辑（<code>scraper/auth.py</code>、<code>scraper/credentials.py</code>、
+  <code>config/sites.yaml</code>、<code>scraper/pipeline.py</code>）、登录页实测（HTTP 访问返回 404）。<br>
+  凡属我的判断（如推荐方案 A）已在上文明确标注。
+</div>
+
+</div>
+</body>
+</html>

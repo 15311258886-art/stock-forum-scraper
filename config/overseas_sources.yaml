@@ -1,0 +1,547 @@
+# 海外数据源注册表（美股 / 港股舆情监控 + 国外新闻驱动热点）
+# ----------------------------------------------------------------------------
+# 设计原则（重要）：
+#   1) 以「国外渠道为主」：优先国外财经媒体 / 意见领袖 / 官方披露，国内源仅作交叉比对。
+#   2) 每个源带 status 标注，界面会如实显示「已接入 / 待激活（需 VPN）/ 待激活（需 Key）」，
+#      不会把抓不到的数据伪装成已抓到。
+#   3) requires_vpn / requires_key = true 的源，本机实测被阻断或需凭据；
+#      适配器已写好，一旦提供 Key 或连通 VPN，改 enabled: true 即可生效。
+# ----------------------------------------------------------------------------
+
+defaults:
+  timeout: 15
+  retry_max: 2
+  rate_limit_per_min: 20
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+
+# 舆情监控模块的权重口径：国外源权重高于国内源（突出国外舆论视角）
+region_weights:
+  US: 1.00        # 美股 / 美国媒体 / 美国意见领袖
+  HK: 0.85        # 港股 / 香港媒体
+  GLOBAL: 0.80    # 国际通讯社 / 跨国议题（疫情、地缘）
+  SG: 0.72        # 新加坡 / 东南亚视角（海外华人媒体）
+  CN: 0.45        # 国内源：仅作交叉比对，权重压低
+
+sources:
+  # ============ 美股：国外财经媒体 / 博客评论（本机实测可达） ============
+  - key: cnbc
+    name: CNBC
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    enabled: true
+    verified: true            # 本机实测 200，30 条
+  - key: marketwatch
+    name: MarketWatch
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+    enabled: true
+    verified: true            # 本机实测 200，10 条
+  - key: seekingalpha
+    name: Seeking Alpha
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: blog               # 博客评论 / 观点文章
+    url: https://seekingalpha.com/market_currents.xml
+    enabled: true
+    verified: true            # 本机实测 200，7 条
+  - key: yahoo_finance_rss
+    name: Yahoo Finance
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://finance.yahoo.com/news/rssindex
+    enabled: false
+    requires_vpn: true
+    note: 本机实测 HTTP 403（需境外出口或授权），已留适配器
+  - key: youtube_finance
+    name: YouTube 财经大咖
+    region: US
+    market: [US, HK]
+    lang: en
+    type: youtube_api
+    kind: influencer          # 意见领袖（测评 / 策略视频）
+    enabled: false
+    requires_key: true
+    api_key_env: YOUTUBE_API_KEY
+    api_key: ""               # 填自己的 YouTube Data API v3 Key 即生效
+    queries: ["stock market analysis", "US stocks strategy", "HK stocks outlook",
+              "fed rate decision", "semiconductor stocks"]
+    max_results: 8
+    note: "本机实测超时（被阻断）；且需 YouTube Data API v3 Key。适配器已实现，填 Key + 连通后 enabled: true 即生效"
+  - key: reddit_stocks
+    name: Reddit r/stocks
+    region: US
+    market: [US]
+    lang: en
+    type: reddit_json
+    kind: forum                # 外媒/散户舆论场
+    enabled: false
+    requires_vpn: true
+    subs: ["stocks", "wallstreetbets", "investing", "StockMarket"]
+    note: 本机实测连接被重置（需 VPN），已留适配器
+
+  # ============ 港股：官方披露 + 港媒 ============
+  - key: hkex_news
+    name: HKEX 香港交易所（新闻稿）
+    region: HK
+    market: [HK]
+    lang: en
+    type: rss
+    kind: official
+    url: https://www.hkex.com.hk/Services/RSS-Feeds/News-Releases?sc_lang=en
+    enabled: true
+    verified: true            # 本机实测 200，50 条
+  - key: hkex_sehk
+    name: HKEX 联交所（通告/规则）
+    region: HK
+    market: [HK]
+    lang: en
+    type: rss
+    kind: official
+    url: https://www.hkex.com.hk/Services/RSS-Feeds/The-Stock-Exchange-of-Hong-Kong-Limited?sc_lang=en
+    enabled: true
+    verified: true            # 本机实测 200，50 条
+  - key: aastocks
+    name: AAStocks 阿斯达克（港股资讯）
+    region: HK
+    market: [HK]
+    lang: zh
+    type: html
+    kind: media
+    url: http://www.aastocks.com/en/stocks/news/aafn-news
+    item_regex: '<a[^>]+href="(/en/stocks/news/aafn[^"]*)"[^>]*>(?P<title>[^<]{8,120})</a>'
+    enabled: false
+    note: 该站列表为 JS 渲染，标准请求取不到条目；已留 HTML 适配器与正则钩子，接浏览器渲染后启用
+  - key: hkej
+    name: 信报 HKEJ
+    region: HK
+    market: [HK]
+    lang: zh
+    type: rss
+    kind: media
+    url: https://www.hkej.com/rss/onlinenews
+    enabled: false
+    requires_vpn: true
+    note: 本机实测超时，已留适配器
+
+  # ============ 国际通讯社 / 国际形势（本机实测被阻断） ============
+  - key: reuters_world
+    name: Reuters World
+    region: GLOBAL
+    market: [US, HK]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.reuters.com/arc/outboundfeeds/rss/category/world/?outputType=xml
+    enabled: false
+    requires_vpn: true
+    note: 本机实测超时（需 VPN），适配器已就绪
+  - key: google_news_us
+    name: Google News（美/港/国际）
+    region: GLOBAL
+    market: [US, HK]
+    lang: en
+    type: google_news_rss
+    kind: aggregator
+    enabled: false
+    requires_vpn: true
+    queries: ["US stock market", "Hong Kong stocks", "China economy", "global pandemic",
+              "semiconductor export control", "Federal Reserve rate"]
+    note: 本机实测超时（需 VPN），适配器已就绪
+  - key: scmp
+    name: SCMP 南华早报
+    region: HK
+    market: [HK]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.scmp.com/rss/91/feed
+    enabled: false
+    requires_vpn: true
+    note: 本机实测超时（需 VPN）
+  - key: investing_com
+    name: Investing.com
+    region: GLOBAL
+    market: [US, HK]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.investing.com/rss/news_25.rss
+    enabled: false
+    requires_vpn: true
+    note: 本机实测 SSL 握手超时（需 VPN）
+
+  # ============ 科技媒体 / 技术社区（本机实测可达，无需 VPN）============
+  # 用途：引入国外科技视角，并为「科研论文与突破」「科技与AI」主题供给素材
+  - key: hackernews
+    name: Hacker News（科技社区）
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: tech_community
+    url: https://hnrss.org/frontpage
+    enabled: true
+    verified: true            # 本机实测 200，20 条
+  - key: techcrunch
+    name: TechCrunch
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://techcrunch.com/feed/
+    enabled: true
+    verified: true
+  - key: theverge
+    name: The Verge
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.theverge.com/rss/index.xml
+    enabled: true
+    verified: true
+  - key: arstechnica
+    name: Ars Technica
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://feeds.arstechnica.com/arstechnica/index
+    enabled: true
+    verified: true
+  - key: wired
+    name: Wired
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.wired.com/feed/rss
+    enabled: true
+    verified: true
+  - key: engadget
+    name: Engadget
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.engadget.com/rss.xml
+    enabled: true
+    verified: true
+  - key: zdnet
+    name: ZDNet
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.zdnet.com/news/rss.xml
+    enabled: true
+    verified: true
+  - key: slashdot
+    name: Slashdot
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: forum
+    url: https://rss.slashdot.org/Slashdot/slashdotMain
+    enabled: true
+    verified: true
+
+  # ============ 科研学术（覆盖「重大科研论文发布」追踪）============
+  # 国外权威科研媒体，本机实测可达；与 arXiv 被墙形成互补
+  - key: nature
+    name: Nature
+    region: GLOBAL
+    market: [US]
+    lang: en
+    type: rss
+    kind: research
+    url: https://www.nature.com/nature.rss
+    enabled: true
+    verified: true
+  - key: science_news
+    name: Science（新闻）
+    region: GLOBAL
+    market: [US]
+    lang: en
+    type: rss
+    kind: research
+    url: https://www.science.org/rss/news_current.xml
+    enabled: false
+    verified: false
+    note: 本机实测读取超时（Science.org 有反爬策略），适配器保留，可经 GitHub Actions 云中继启用
+  - key: phys_org
+    name: Phys.org
+    region: GLOBAL
+    market: [US]
+    lang: en
+    type: rss
+    kind: research
+    url: https://phys.org/rss-feed/
+    enabled: true
+    verified: true
+  - key: live_science
+    name: Live Science
+    region: GLOBAL
+    lang: en
+    type: rss
+    kind: research
+    url: https://www.livescience.com/feeds/all
+    enabled: true
+    verified: true
+  - key: new_scientist
+    name: New Scientist
+    region: GLOBAL
+    lang: en
+    type: rss
+    kind: research
+    url: https://www.newscientist.com/feed/home/
+    enabled: true
+    verified: true
+  - key: mit_tech_review
+    name: MIT Technology Review
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: research
+    url: https://www.technologyreview.com/feed/
+    enabled: true
+    verified: true
+
+  # ============ 财经媒体扩展（美股视角）============
+  - key: cnbc_economy
+    name: CNBC 经济
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.cnbc.com/id/10001147/device/rss/rss.html
+    enabled: true
+    verified: true
+  - key: cnbc_tech
+    name: CNBC 科技
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.cnbc.com/id/19854910/device/rss/rss.html
+    enabled: true
+    verified: true
+  - key: fortune
+    name: Fortune
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://fortune.com/feed/
+    enabled: true
+    verified: true
+  - key: nasdaq_news
+    name: Nasdaq 市场新闻
+    region: US
+    market: [US]
+    lang: en
+    type: rss
+    kind: media
+    url: https://www.nasdaq.com/feed/rssoutbound?category=Markets
+    enabled: true
+    verified: true
+
+  # ============ 境外视频平台 / 技术热点（「类 B 站」热度通道）============
+  - key: peertube
+    name: PeerTube
+    region: GLOBAL
+    market: [US, HK]
+    lang: en
+    type: peertube
+    kind: video_platform
+    instance: https://peertube.tv
+    search_instance: https://sepiasearch.org
+    include_trending: true
+    trending_count: 24
+    queries: ["oil price", "stock market", "semiconductor", "global economy"]
+    filter_keywords: ["stock market", "oil price", "crude oil", "federal reserve",
+                      "interest rate", "global economy", "financial crisis", "semiconductor",
+                      "geopolitical", "inflation", "trade war", "recession", "s&p 500"]
+    enabled: true
+    verified: true            # 本机实测 200，趋势榜 + 全网索引搜索均可用
+    note: 去中心化视频平台（境外「类 B 站」），通道已验证可达；但平台内容以娱乐/个人创作为主，按短语过滤后当前无相关财经条目（属客观现状，非抓取失败）
+  - key: github_trending
+    name: GitHub 趋势仓库
+    region: GLOBAL
+    market: [US]
+    lang: en
+    type: github_trending
+    kind: tech_community
+    days: 7
+    max_results: 15
+    token_env: GITHUB_TOKEN
+    enabled: true
+    verified: true            # 本机实测 api.github.com 可达
+    note: GitHub 官方 API 自算「近 7 天高星暴涨仓库」，作为技术热点信号；配置 GITHUB_TOKEN 可提升额度
+
+  # ============ 亚太视角（新加坡 / 东南亚，海外华人媒体）============
+  # 只取国际与东南亚版面，避开本地政治版面，聚焦用户关注的四类事件
+  - key: zaobao_world
+    name: 联合早报（国际）
+    region: SG
+    market: [US, HK]
+    lang: zh
+    type: html
+    kind: media
+    base_url: https://www.zaobao.com
+    url: https://www.zaobao.com/news/world
+    item_regex: '<a\b[^>]*href="(?P<url>/news/world/story\d{8}-\d+)[^"]*"[^>]*>'
+    enabled: true
+    verified: true            # 本机实测 200
+    note: 新加坡主流华文媒体，提供东南亚/海外华人视角
+  - key: zaobao_sea
+    name: 联合早报（东南亚）
+    region: SG
+    market: [US, HK]
+    lang: zh
+    type: html
+    kind: media
+    base_url: https://www.zaobao.com
+    url: https://www.zaobao.com/news/sea
+    item_regex: '<a\b[^>]*href="(?P<url>/news/sea/story\d{8}-\d+)[^"]*"[^>]*>'
+    enabled: true
+    verified: true
+  - key: zaobao_singapore
+    name: 联合早报（新加坡）
+    region: SG
+    market: [US, HK]
+    lang: zh
+    type: html
+    kind: media
+    base_url: https://www.zaobao.com
+    url: https://www.zaobao.com/news/singapore
+    item_regex: '<a\b[^>]*href="(?P<url>/news/singapore/story\d{8}-\d+)[^"]*"[^>]*>'
+    enabled: true
+    verified: true
+
+  # ============ 国际通讯社（待激活占位，见 GitHub Actions 云中继方案）============
+  - key: relay_overseas
+    name: 境外中继（GitHub Actions 云代理）
+    region: GLOBAL
+    market: [US, HK]
+    lang: en
+    type: relay_json
+    kind: aggregator
+    url: "https://cdn.jsdelivr.net/gh/<OWNER>/<REPO>@main/data/relay/latest.json"
+    enabled: false
+    note: 由 GitHub Actions 在境外抓取 YouTube/Reuters/arXiv/GDELT/Reddit 等被墙源并回传 JSON；填入仓库地址并启用即可打通全部被墙源
+
+  # ============ 国内源：仅作交叉比对（权重 0.45） ============
+  - key: eastmoney_guba
+    name: 东方财富股吧
+    region: CN
+    market: [CN]
+    lang: zh
+    type: html
+    kind: domestic_crosscheck
+    url: https://guba.eastmoney.com/default,0_1.html
+    item_regex: '<a[^>]+href="(https://guba\.eastmoney\.com/news,[^"]+)"[^>]*title="(?P<title>[^"]{6,120})"'
+    enabled: false
+    verified: false
+    requires_vpn: false
+    note: 本机实测返回反爬验证页（16KB 假页面，非真实列表），需浏览器渲染或登录 Cookie 后方可启用
+  - key: xueqiu_hot
+    name: 雪球（热帖）
+    region: CN
+    market: [CN, US, HK]
+    lang: zh
+    type: xueqiu_json
+    kind: domestic_crosscheck
+    url: https://xueqiu.com/statuses/hot/listV2.json?since_id=-1&max_id=-1&size=20
+    enabled: false
+    verified: false
+    note: 本机实测被阿里云 WAF 拦截（返回 JS 挑战页），需浏览器渲染或有效 Cookie 后方可启用
+  - key: ths
+    name: 同花顺
+    region: CN
+    market: [CN]
+    lang: zh
+    type: html
+    kind: domestic_crosscheck
+    url: https://www.10jqka.com.cn/
+    item_regex: '<a\b[^>]*href="(?P<url>https?://news\.10jqka\.com\.cn/\d+/c\d+\.shtml)"[^>]*>'
+    enabled: true
+    verified: true            # 本机实测 200，标题经三级回退抽取
+
+# 驱动主题词表：用于把新闻归类为「疫情 / 国际形势 / 政策 / 科技 / 能源 / 消费 / 金融 / 供应链」
+topics:
+  国外疫情舆论: ["pandemic", "covid", "virus", "outbreak", "influenza", "avian flu", "epidemic",
+                 "quarantine", "vaccine", "who", "variant", "疫情", "病毒", "甲流", "疫苗", "流感"]
+  国际形势: ["geopolitical", "sanction", "sanctions", "tariff", "export control", "tension",
+             "conflict", "war", "nato", "taiwan", "south china sea", "decoupling", "blacklist",
+             "summit", "diplomacy", "diplomatic", "bilateral", "treaty", "alliance",
+             "foreign minister", "state visit", "制裁", "关税", "地缘", "出口管制",
+             "外交", "峰会", "双边", "会谈", "访问"]
+  国际新闻热点: ["fed", "federal reserve", "rate cut", "rate hike", "inflation", "cpi", "treasury",
+                 "opec", "oil price", "gdp", "recession", "election", "summit", "g20", "imf",
+                 "降息", "加息", "通胀", "原油", "衰退"]
+  科技与AI: ["ai", "artificial intelligence", "nvidia", "semiconductor", "chip", "chips",
+             "data center", "llm", "openai", "tesla", "robot", "robots",
+             "gadget", "gadgets", "laptop", "laptops", "smartphone", "software", "hardware",
+             "device", "devices", "app", "apps", "startup", "startups", "streaming",
+             "cloud", "cybersecurity", "hacker", "hacking", "platform", "apple", "google",
+             "microsoft", "meta", "amazon", "intel", "amd", "qualcomm", "tech", "technology",
+             "algorithm", "algorithmic", "算力", "芯片", "半导体", "人工智能", "大模型", "科技"]
+  能源与大宗: ["crude", "brent", "wti", "natural gas", "copper", "gold", "lithium", "coal",
+               "barrel", "barrels", "opec", "refinery", "pipeline", "oil", "gas", "energy",
+               "黄金", "铜", "锂", "煤炭", "天然气", "能源", "油价"]
+  消费与医药: ["consumer", "consumers", "retail", "retailer", "brand", "brands", "restaurant",
+               "grocery", "apparel", "clothing", "luxury", "pharma", "pharmaceutical", "biotech",
+               "drug", "drugs", "vaccine", "tourism", "travel", "hotel", "airline", "airlines",
+               "医药", "创新药", "消费", "旅游", "零售", "品牌"]
+  金融与汇率: ["yield", "dollar", "yuan", "renminbi", "bond", "bonds", "bank", "banks", "ipo",
+               "hkd", "hang seng", "benchmark", "listing", "listings", "prospectus", "securities",
+               "exchange", "dividend", "dividends", "equity", "equities", "etf", "etfs",
+               "index", "indexes", "indices", "trading", "investors", "shareholders",
+               "buyback", "market cap", "nasdaq", "wall street", "brokerage",
+               "汇率", "人民币", "港股", "恒生", "上市公司", "股东",
+               "新股", "涨停", "跌停", "A股", "沪指", "深证", "创业板", "科创板", "券商", "沪深", "股市", "股价"]
+  供应链与制造: ["supply chain", "shipping", "port", "logistics", "factory", "manufacturing",
+                 "shanghai", "shenzhen", "供应链", "港口", "航运", "制造"]
+  # ---- 用户指定重点追踪的四类事件 ----
+  地缘冲突与战争: ["war", "conflict", "missile", "airstrike", "air strike", "invasion", "ceasefire",
+                   "geopolitical", "military", "troops", "blockade", "strait",
+                   "战争", "冲突", "导弹", "空袭", "地缘", "军事", "封锁"]
+  自然灾害与洪涝: ["flood", "flooding", "typhoon", "hurricane", "earthquake", "wildfire", "disaster",
+                   "evacuation", "monsoon", "haze", "drought", "volcano", "tsunami", "landslide",
+                   "洪涝", "洪水", "台风", "地震", "山火", "暴雨", "灾害", "撤离",
+                   "烟霾", "人工降雨", "水坝", "干旱", "海啸", "泥石流", "火山"]
+  科研论文与突破: ["published in nature", "published in science", "peer-reviewed", "landmark study",
+                   "breakthrough research", "research paper", "study finds", "researchers",
+                   "scientists", "astronomers", "physicists", "biologists", "fossil", "species",
+                   "genome", "genomic", "protein", "quantum", "galaxy", "telescope", "bacteria",
+                   "particle", "physics", "astronomy", "neuroscience", "molecule", "enzyme",
+                   "dna", "evolution", "archaeolog", "excavation", "immune", "brain",
+                   "discovery", "discoveries", "experiment", "laboratory", "researchers found",
+                   "论文", "科研", "顶刊", "突破", "科学家", "研究者"]
+  粮食歉收与减产: ["crop failure", "poor harvest", "food security", "grain supply", "wheat shortage",
+                   "famine", "粮食歉收", "粮食减产", "歉收", "减产", "粮价", "粮食安全", "干旱"]

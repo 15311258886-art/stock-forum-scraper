@@ -1,0 +1,74 @@
+classDiagram
+    %% 现有表（只读复用，零 JOIN 新增表）
+    class predictor_adjust_log {
+        +int id PK
+        +text log_date
+        +text signal_key
+        +text kind
+        +real weight_before
+        +real weight_after
+        +text reason
+        +text created_at
+    }
+    class predictor_score {
+        +text signal_key PK
+        +text kind
+        +text name
+        +real weight
+        +real weight_prev
+        +text updated_at
+    }
+    class prediction_run {
+        +text run_date PK
+        +int core_n
+        +int watch_n
+        +int pool_n
+        +text market_view
+    }
+    class prediction_item {
+        +text run_date PK
+        +text symbol PK
+        +real hit_t1
+        +real hit_t3
+        +real hit_t5
+        +real hit_t10
+    }
+
+    %% 新增预留表（隔离机制核心）
+    class knowledge_source {
+        +int id PK
+        +text source_key
+        +text category
+        +text track
+        +text name
+        +int enabled
+        +real trust_score
+        +text signal_key
+        +int promoted
+        +text content_json
+        +text updated_at
+        +text created_at
+    }
+    class growth_notes {
+        +int id PK
+        +text section
+        +text content
+        +text created_at
+        +text updated_at
+    }
+
+    %% 接口载荷（Python dict，非持久表）
+    class GrowthAdjustLogPayload {
+        +bool ok
+        +bool has_data
+        +list signals
+        +map weights_series
+        +map current_weights
+        +list recent_adjusts
+        +map caliber
+    }
+
+    %% 关系：仅知识源表自含索引，与现有表零 JOIN
+    knowledge_source ..> knowledge_source : idx_ks_src(source_key,category,track)
+    note for knowledge_source "trust_score 只写本表；promoted=1 才允许回写 predictor_score.weight（P2）"
+    note for GrowthAdjustLogPayload "由 /api/growth/adjust_log 返回，纯读 predictor_adjust_log + predictor_score"

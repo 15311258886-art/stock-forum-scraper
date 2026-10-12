@@ -1,0 +1,18 @@
+﻿============================================================
+### BEFORE  live :8765 (bot filter NOT yet deployed)  (base=http://127.0.0.1:8765)
+  consensus        rows=55  authors=194  BOT=['涓俊璇佸埜璧勮', '涓浗骞冲畨璧勮', '瀹佸痉鏃朵唬璧勮', '宸ヤ笟瀵岃仈璧勮', '骞冲畨閾惰璧勮', '璐靛窞鑼呭彴璧勮']
+  consensus TierA  rows=7  authors=16  BOT=['骞冲畨閾惰璧勮']
+  cohold           authors=53  BOT=['涓俊璇佸埜璧勮', '涓浗骞冲畨璧勮', '瀹佸痉鏃朵唬璧勮']
+  cohold   TierA   authors=0  BOT=[]
+============================================================
+### AFTER   isolated :8795 (current code with bot filter)  (base=http://127.0.0.1:8795)
+  consensus        rows=55  authors=188  BOT=[]
+  consensus TierA  rows=7  authors=15  BOT=[]
+  cohold           authors=50  BOT=[]
+  cohold   TierA   authors=0  BOT=[]
+
+### VERDICT
+  AFTER has zero bot authors in consensus(鍏ㄩ噺/TierA) & cohold(buy/sell/hold, 鍏ㄩ噺/TierA): True
+  BEFORE(A) bot authors in consensus:      ['涓俊璇佸埜璧勮', '涓浗骞冲畨璧勮', '瀹佸痉鏃朵唬璧勮', '宸ヤ笟瀵岃仈璧勮', '骞冲畨閾惰璧勮', '璐靛窞鑼呭彴璧勮']
+  BEFORE(A) bot authors in consensus TierA: ['骞冲畨閾惰璧勮']
+  BEFORE(A) bot authors in cohold:          ['涓俊璇佸埜璧勮', '涓浗骞冲畨璧勮', '瀹佸痉鏃朵唬璧勮']

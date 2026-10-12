@@ -1,0 +1,3 @@
+/api/lhb_sectors HTTP 200 | dates ['2026-09-23', '2026-09-22', '2026-09-21', '2026-09-18', '2026-09-17', '2026-09-16'] | date 2026-09-23 | rows 4 | empty None
+/api/lhb HTTP 200 | stocks 81 | date 2026-09-24
+/api/quote?symbol=600519 HTTP 200 | PE 18.99 | src 腾讯行情（东财 push2 不可用，已自动兜底） + 东方财富 F10 财务指标

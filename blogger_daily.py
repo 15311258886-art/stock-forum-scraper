@@ -38,8 +38,24 @@ DB = os.path.join(BASE, "viewer", "app.db")
 LOG_FILE = os.path.join(BASE, "viewer", "logs", "blogger_daily.log")
 IMPORT_SCRIPT = os.path.join("tools", "import_bloggers_direct.py")
 
-# 源头 Excel（与 import_bloggers_direct.py 保持一致，可被环境变量覆盖）。
-XLSX = os.environ.get("BLOGGER_XLSX", r"F:\AI Agent部署知识库\独股九剑推荐股票追踪.xlsx")
+def _xlsx_path() -> str:
+    """动态解析源头 Excel —— 统一委托给 tools/import_bloggers_direct.py 的候选解析（单一真源）。
+
+    2026-10-11 事故：源目录整体搬进 `豆包每日抓取\\`，而这里写死旧路径 → 每日任务 rc=2、
+    博主荐股+参赛股一起断更。故**不再写死、也不在启动时只算一次**，每次调用都重新解析。
+    """
+    try:
+        tdir = os.path.join(BASE, "tools")
+        if tdir not in sys.path:
+            sys.path.insert(0, tdir)
+        import import_bloggers_direct as _ibd
+        return _ibd.pick_newest(_ibd._XLSX_CANDIDATES, "BLOGGER_XLSX")
+    except Exception:  # noqa: BLE001
+        return os.environ.get(
+            "BLOGGER_XLSX", r"F:\AI Agent部署知识库\豆包每日抓取\独股九剑推荐股票追踪.xlsx")
+
+
+XLSX = _xlsx_path()      # 仅作展示/兜底；判断一律走 _xlsx_path()
 
 # 解释器：优先用工程虚拟环境的 python（与 lhb_daily.py / start_viewer.bat 一致）。
 _PREFERRED_PY = os.path.join(BASE, ".venv", "Scripts", "python.exe")
@@ -122,7 +138,7 @@ def source_mtime() -> str:
     """源头 Excel 的 mtime 指纹（'YYYY-MM-DD HH:MM:SS'）；取不到回 ''。"""
     try:
         return datetime.datetime.fromtimestamp(
-            os.path.getmtime(XLSX)).strftime("%Y-%m-%d %H:%M:%S")
+            os.path.getmtime(_xlsx_path())).strftime("%Y-%m-%d %H:%M:%S")
     except OSError:
         return ""
 

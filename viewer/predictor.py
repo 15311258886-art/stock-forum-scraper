@@ -69,6 +69,25 @@ ADJUST_LOG_EPS = 0.02       # 权重变动超过此值才记日志（防刷屏�
 # 一律给等量权重等于把噪声当信号。故权重再乘一个「覆盖置信度」因子。
 COVER_K = 30.0              # 覆盖置信度标度：命中约 30 只 → conf≈0.63；100 只 → conf≈0.96
 COVER_FLOOR = 0.45          # 覆盖置信度下限保留比例（极低覆盖不至于被归零）
+
+# ---- 动量冷却（王总 2026-10-11：选出的票系统性跑输池子，根因是「追热反转」）----
+# 预测日前 5 个交易日累计涨幅越高 → 短线均值回归风险越大。实证：前 5 日已涨的票
+# T+3 命中仅 16%、收益 -4.35%；前 5 日未涨的票 T+3 命中 33%、收益 -0.36%。
+# 故对「热票」按超额涨幅施加冷却系数（乘到综合分上），不硬性剔除，保留少量多样性。
+COOL_THR = 0.00    # 前 5 日涨幅超过此阈值开始降温（0 = 涨过的就降权）
+COOL_SLOPE = 0.15  # 每超 15 个百分点涨幅，冷却系数额外 -1.0
+COOL_MAX = 0.85    # 最多把综合分砍到原来的 15%（不归零，极端热票仍留一线）
+
+# ---- 三层选股框架（2026-10-11 王总定：板块方向 → 股东结构 → 技术买点）----
+# 第①层：先定「钱往哪去」——聚合 政策/海外/板块资金/情绪/跟随 五源板块热度（各源内部
+#         percentile 归一后再加权），取前 TOP_BOARDS 个板块为资金方向。命中热板块 = 方向对。
+# 第②层：在热板块内用「股东结构」选股——股东户数百分位分档（非常集中→发散性）+ 一级行业内
+#         股东户数最小的前 30%（筹码集中易控盘）。这层不重新打分，只做加成与硬 gate。
+# 第③层：技术面买点沿用现有 tech 信号 + 动量冷却。三层是「自顶向下」过滤，而非平铺加分。
+TOP_BOARDS = 6              # 热度榜取前几板块作为方向（核心硬 gate 候选）
+BOARD_BONUS = 0.15          # 命中热板块的软加权加成（方向对）
+CONC_BONUS = {"非常集中": 0.22, "集中": 0.15, "相对集中": 0.08, "分散": 0.0, "发散性": -0.05}
+HOLDER30_BONUS = 0.12       # 一级行业内股东户数最小的前 30% → 筹码集中易控盘，加成
 COVER_BLENDED = 0.45        # conf 对权重的混合起点（conf=0 时仍保留 45% 先验）
 # ---- 主参考窗口（王总 2026-10-06 定）---------------------------------------
 # 原话：「回测以近两年（一年半~两年）的涨跌为主要参考，太早的那些参考性不大。」
@@ -111,27 +130,30 @@ _STATUS: dict = {"running": False, "stage": "", "started_at": None, "last_error"
 #   取值来自三件事：① 数据在库里的实际覆盖率 ② 信号本身的"可信度"（是否可被证伪）
 #   ③ 是否容易被刷分（游资上榜、外部信源都属易刷，故给低 prior）
 SIGNALS = [
-    {"key": "tech", "name": "技术面", "icon": "◈", "kind": "signal", "prior": 1.35,
+    {"key": "tech", "name": "技术面", "icon": "◈", "kind": "signal", "prior": 1.45,
      "desc": "86 条公开策略当日触发（按流派归并），池内命中策略数最多的优先。"},
-    {"key": "holders", "name": "机构结构", "icon": "◎", "kind": "signal", "prior": 1.05,
-     "desc": "前十大股东里机构（is_org）家数与持股变动、股东户数环比下降（机构结构趋优）。"},
+    {"key": "holders", "name": "机构结构", "icon": "◎", "kind": "signal", "prior": 0.45,
+     "desc": "前十大股东里机构（is_org）家数与持股变动、股东户数环比下降（机构结构趋优）。"
+             "⚠ 2026-10-11 实测：带此信号的票 T+1 平均跑输池子 168bp，先验由 1.05 降至 0.45。"},
     {"key": "ann", "name": "公告催化", "icon": "❐", "kind": "signal", "prior": 1.00,
      "desc": "近 10 日公告按类目分好坏：股权激励/回购增持/并购重组/产品突破 加分，"
              "减持/质押/退市风险/监管处罚 减分。"},
     {"key": "desk", "name": "盯盘结论", "icon": "⬢", "kind": "signal", "prior": 0.95,
      "desc": "盯盘模块当日结论：机会窗口加分、风险主导减分（含改判触发点）。"},
-    {"key": "inst", "name": "机构席位", "icon": "◆", "kind": "signal", "prior": 0.85,
+    {"key": "inst", "name": "机构席位", "icon": "◆", "kind": "signal", "prior": 0.50,
      "desc": "龙虎榜「机构专用」席位净买入（lhb_inst），按上榜原因分档加权；"
-             "落点为 T+3~T+5（T+1 反向、涨占比 43.1%），故只作中期加分。"},
-    {"key": "policy", "name": "政策指向", "icon": "⚑", "kind": "signal", "prior": 0.80,
-     "desc": "中央级政策按 sectors 映射到个股，按重要度加权（内部资料）。"},
+             "落点为 T+3~T+5（T+1 反向、涨占比 43.1%），故只作中期加分。"
+             "⚠ 2026-10-11 实测：带此信号整体负贡献，先验由 0.85 降至 0.50。"},
+    {"key": "policy", "name": "政策指向", "icon": "⚑", "kind": "signal", "prior": 1.00,
+     "desc": "中央级政策按 sectors 映射到个股，按重要度加权（内部资料）。"
+             "⚠ 2026-10-11 实测：带此信号 T+1 平均跑赢池子 191bp，先验由 0.80 升至 1.00。"},
     {"key": "board", "name": "板块资金", "icon": "⁑", "kind": "signal", "prior": 0.70,
      "desc": "所属行业板块当日主力净额与涨跌幅（板块级映射，稀疏）。"},
     {"key": "sentiment", "name": "论坛情绪", "icon": "◉", "kind": "signal", "prior": 0.65,
      "desc": "近 10 日论坛提及热度 × 关联帖多空倾向（唯一领先型信号）。"},
-    {"key": "overseas", "name": "海外联动", "icon": "⊕", "kind": "signal", "prior": 0.55,
+    {"key": "overseas", "name": "海外联动", "icon": "⊕", "kind": "signal", "prior": 0.60,
      "desc": "地缘事件直接点名的个股 + 海外舆情传导板块（稀疏但指向明确）。"},
-    {"key": "follow", "name": "选手跟随", "icon": "▣", "kind": "signal", "prior": 0.52,
+    {"key": "follow", "name": "选手跟随", "icon": "▣", "kind": "signal", "prior": 0.40,
      "desc": "选手**实时成交**（trades，非 2021 年快照 positions）按本人历史胜率加权。"},
     {"key": "extref", "name": "外部参考", "icon": "◇", "kind": "signal", "prior": 0.42,
      "desc": "外部信源（投顾/榜单/共识）看多信号，按信源层级加权；覆盖率极低故权重低。"},
@@ -221,6 +243,11 @@ CREATE TABLE IF NOT EXISTS prediction_item (
   hit_t1 INTEGER, hit_t3 INTEGER, hit_t5 INTEGER,
   caveat       TEXT,               -- 已到期的窗口全部为空 → '未到期'；有异常 → 说明
   reviewed_at  TEXT,
+  mom5         REAL,               -- 预测日前 5 日累计涨幅（动量冷却用）
+  cool         REAL,               -- 动量冷却系数
+  board        TEXT,               -- 第①层：命中最高热度板块词（资金方向）
+  conc         TEXT,               -- 第②层：股东户数百分位档位（非常集中..发散性）
+  holder30     INTEGER,            -- 第②层：是否一级行业内股东户数前 30%
   PRIMARY KEY (run_date, symbol)
 );
 CREATE INDEX IF NOT EXISTS idx_pi_date ON prediction_item(run_date);
@@ -259,9 +286,40 @@ CREATE TABLE IF NOT EXISTS predictor_replay (
   pool         INTEGER,         -- 候选池只数
   start_date   TEXT,
   end_date     TEXT,
-  scores_json  TEXT,            -- {key:{t3:{n,hit_rate,avg_ret}, t5:…, t10:…}}
-  computed_at  TEXT
+    scores_json  TEXT,            -- {key:{t3:{n,hit_rate,avg_ret}, t5:…, t10:…}}
+    computed_at  TEXT
+  );
+
+-- 隔离机制核心表：不同外部知识源/轨道理论独立存储、独立验证、独立开关。
+-- 与 predictor_score / prediction_* 零 JOIN（无任何外键/关联查询）。
+CREATE TABLE IF NOT EXISTS knowledge_source (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_key    TEXT    NOT NULL,   -- 来源主键：某博主ID / 媒体名 / 内部轨道 doc_key（全局唯一语义）
+  category      TEXT    NOT NULL,   -- technical_emotion | macro_strategy | internal_track（两类外部 + 内部轨道）
+  track         TEXT,               -- 所属轨道，对齐 kb_sources.yaml 的 group/track
+  name          TEXT,               -- 展示名（如「博主A·放量突破战法」）
+  enabled       INTEGER DEFAULT 1,  -- 独立开关：1=启用 0=停用；停用仅置 0，绝不级联影响其它来源
+  trust_score   REAL    DEFAULT 0.0,-- 该来源可信度评分（0~1）。验证结果【只写本列】，默认不回写 predictor_score.weight
+  signal_key    TEXT,               -- 被信号化的目标信号（可空，如映射到已有 'extref'）
+  promoted      INTEGER DEFAULT 0,  -- 是否已「提升权到信号权重」：仅当 =1（用户显式确认）才允许后续提权流程（P2）
+  content_json  TEXT,               -- 论点/结论/方法 JSON 占位（P2 抓取后填充）
+  updated_at    TEXT,
+  created_at    TEXT
 );
+-- 隔离语义索引：同一来源在同一 category+track 下唯一；category / enabled 高频筛选
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ks_src ON knowledge_source(source_key, category, track);
+CREATE INDEX IF NOT EXISTS idx_ks_cat     ON knowledge_source(category);
+CREATE INDEX IF NOT EXISTS idx_ks_enabled ON knowledge_source(enabled);
+
+-- 人工笔记表（P1）：与 learn_tracks / KB 轨道零耦合（独立表）；本期仅建表 + 占位 UI。
+CREATE TABLE IF NOT EXISTS growth_notes (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  section     TEXT,               -- 归属区标记（'A' | 'D' | 'B' | 自由），仅用于轻量归类
+  content     TEXT,               -- 笔记正文
+  created_at  TEXT,
+  updated_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_gn_sec ON growth_notes(section);
 """
 
 _SCORE_COLS = ("kind", "name", "school",
@@ -298,7 +356,8 @@ def _migrate(con: sqlite3.Connection) -> None:
     """幂等加列迁移（SQLite 不支持 IF NOT EXISTS 的 ADD COLUMN）。"""
     cols_item = {
         "ret_t10": "REAL", "bench_t10": "REAL", "hit_t10": "INTEGER",
-        "series_json": "TEXT",
+        "series_json": "TEXT", "mom5": "REAL", "cool": "REAL",
+        "board": "TEXT", "conc": "TEXT", "holder30": "INTEGER",
     }
     for col in (1, 3, 5, 10):
         pass  # 窗口列已随 DDL（t3/t5 旧，t10 在下面补）
@@ -843,6 +902,151 @@ def _expand_sector_words(idx: dict, words: list) -> set:
             if base in part or part in base:
                 hit |= codes
     return hit
+
+
+def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
+    """第①层 板块方向：聚合多源板块热度 → 板块热度榜（2026-10-11 王总定）。
+
+    来源（均按「板块词→个股」反查，映射到候选池口径）：
+      - policy_news.sectors（政策指向，importance×level 加权）
+      - overseas_hotspots.domestic_sectors（海外传导板块，heat 加权）
+      - board_flow_samples(kind='industry', main_net>0)（板块资金主力净额）
+      - 论坛情绪 sentiment / 选手跟随 follow（per-symbol 强度按板块反聚合）
+    各源原始值量级差异巨大（main_net 可达千亿、importance 仅 1~5），故每个源内部先
+    percentile 归一到 0~1，再按源权重求和，得到跨源可比的板块热度。
+    返回 (hot_boards, sym_board)：
+      - hot_boards: 热度降序的 [(word, score), ...]（全量，调用方取前 N）
+      - sym_board:  {sym: (word, score)} 个股命中的最高热度板块
+    """
+    idx = _industry_index(con)
+    sym_words: dict = {}
+    for w, cs in idx.items():
+        for c in cs:
+            sym_words.setdefault(c, set()).add(w)
+    pol, ovs, bf, sen, fol = {}, {}, {}, {}, {}
+    for r in con.execute("SELECT sectors, importance, level FROM policy_news"):
+        try:
+            ws = json.loads(r["sectors"] or "[]")
+        except Exception:  # noqa: BLE001
+            ws = []
+        if not isinstance(ws, list):
+            continue
+        imp = float(r["importance"] or 1.0)
+        lvl = 1.5 if str(r["level"] or "") == "中央" else 1.0
+        for w in ws:
+            pol[str(w)] = pol.get(str(w), 0.0) + imp * lvl
+    for r in con.execute("SELECT domestic_sectors, heat FROM overseas_hotspots"):
+        try:
+            ws = json.loads(r["domestic_sectors"] or "[]") if r["domestic_sectors"] else []
+        except Exception:  # noqa: BLE001
+            ws = []
+        if isinstance(ws, list):
+            for w in ws:
+                ovs[str(w)] = ovs.get(str(w), 0.0) + float(r["heat"] or 1.0)
+    for r in con.execute(
+            "SELECT board_name, main_net FROM board_flow_samples "
+            "WHERE kind='industry' AND main_net>0"):
+        bf[str(r["board_name"])] = bf.get(str(r["board_name"]), 0.0) + float(r["main_net"] or 0)
+    sent = sig_sentiment(con)
+    for sym, v in sent.items():
+        for w in sym_words.get(sym, set()):
+            sen[w] = sen.get(w, 0.0) + v["strength"] * 0.1
+    try:
+        follow = sig_follow(con)
+        for sym, v in follow.items():
+            for w in sym_words.get(sym, set()):
+                fol[w] = fol.get(w, 0.0) + v["strength"] * 0.1
+    except Exception:  # noqa: BLE001
+        pass
+
+    def _norm(contrib):
+        if not contrib:
+            return {}
+        vals = sorted(contrib.values())
+        return {w: _pct_le(vals, v) for w, v in contrib.items()}
+
+    npol, novs, nbf, nsen, nfol = _norm(pol), _norm(ovs), _norm(bf), _norm(sen), _norm(fol)
+    # 政策/板块资金权重高（直接资金/政策信号），情绪/跟随次之
+    src_w = {"pol": 1.0, "ovs": 0.8, "bf": 1.0, "sen": 0.5, "fol": 0.5}
+    heat: dict = {}
+    for src_name, nmap in (("pol", npol), ("ovs", novs), ("bf", nbf), ("sen", nsen), ("fol", nfol)):
+        for w, v in nmap.items():
+            heat[w] = heat.get(w, 0.0) + v * src_w[src_name]
+    hot_boards = sorted(heat.items(), key=lambda x: -x[1])
+    sym_board: dict = {}
+    for sym, ws in sym_words.items():
+        best = None
+        for w in ws:
+            if w in heat and (best is None or heat[w] > best[1]):
+                best = (w, heat[w])
+        if best:
+            sym_board[sym] = best
+    return hot_boards, sym_board
+
+
+def _share_conc(con: sqlite3.Connection, codes: list) -> tuple:
+    """第②层 股东结构量化（2026-10-11 王总定）：股东分布分级 + 板块内前 30% 户数最小。
+
+    返回 (conc_map, holder30_set)：
+      - conc_map: {sym: (tier, pct_rank)} 池内按股东户数百分位分 5 档
+          （非常集中=最小20% … 发散性=最大20%）。户数少=筹码集中=易控盘，
+          贴合王总「股东数相对较小」原话——非前十大持股占比（A股普遍>60%无区分度）。
+      - holder30_set: 一级行业内股东户数最小的前 30%（板块内筹码最集中）。
+    """
+    pool = set(str(c).strip().zfill(6) for c in codes if str(c).strip().isdigit())
+    hn: dict = {}
+    for r in con.execute(
+            "SELECT symbol, end_date, holder_total_num FROM stock_holder_num "
+            "WHERE symbol IS NOT NULL AND holder_total_num IS NOT NULL"):
+        sym = str(r["symbol"] or "").strip().zfill(6)
+        if sym not in pool:
+            continue
+        hn.setdefault(sym, []).append((str(r["end_date"] or ""), float(r["holder_total_num"])))
+    hn_latest: dict = {}
+    for sym, lst in hn.items():
+        lst.sort()
+        hn_latest[sym] = lst[-1][1]
+    have = [c for c in pool if c in hn_latest]
+    vals = sorted(hn_latest[c] for c in have)
+    # 池内百分位分档切点
+    def _qt(p):
+        if not vals:
+            return 0
+        i = int(p * (len(vals) - 1))
+        return vals[i]
+    cut = [_qt(0.2), _qt(0.4), _qt(0.6), _qt(0.8)]
+    TIERS = ("非常集中", "集中", "相对集中", "分散", "发散性")
+
+    def _tier(n):
+        if n <= cut[0]:
+            return 0
+        if n <= cut[1]:
+            return 1
+        if n <= cut[2]:
+            return 2
+        if n <= cut[3]:
+            return 3
+        return 4
+    conc_map = {c: (TIERS[_tier(hn_latest[c])], round(_pct_le(vals, hn_latest[c]), 3))
+                for c in have}
+    # 板块内（一级行业）前 30%
+    sec1: dict = {}
+    for r in con.execute("SELECT code, industry FROM stock_org WHERE industry IS NOT NULL AND industry != ''"):
+        c = str(r["code"] or "").strip().zfill(6)
+        if c in pool:
+            sec1[c] = str(r["industry"]).split("-")[0].strip()
+    by_sec: dict = {}
+    for c in pool:
+        by_sec.setdefault(sec1.get(c, "未知"), []).append(c)
+    holder30: set = set()
+    for _s, lst in by_sec.items():
+        lst2 = [c for c in lst if c in hn_latest]
+        if not lst2:
+            continue
+        lst2.sort(key=lambda x: hn_latest[x])
+        k = max(1, int(len(lst2) * 0.30))
+        holder30 |= set(lst2[:k])
+    return conc_map, holder30
 
 
 def sig_ann(con: sqlite3.Connection, asof: str | None = None) -> dict:
@@ -1495,6 +1699,9 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
         if k not in SIGNAL_KEYS:
             continue
         src = "实盘复盘"
+        # n1 始终来自实盘复盘（T+1 已到期样本最多，是主轴之一）；t3/t5/t10 在「技术面实盘不足」时
+        # 用近两年逐日回放兜底，其它信号一律实盘。
+        n1, h1 = int(r["n_t1"] or 0), int(r["n_hit_t1"] or 0)
         if k == REPLAY_TECH_SIGNAL and rp and \
                 (int(r["n_t3"] or 0) + int(r["n_t5"] or 0) + int(r["n_t10"] or 0)) < REPLAY_MIN_SAMPLE:
             n3, h3 = rp.get("t3", (0, 0))
@@ -1505,20 +1712,23 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
             n3, h3 = int(r["n_t3"] or 0), int(r["n_hit_t3"] or 0)
             n5, h5 = int(r["n_t5"] or 0), int(r["n_hit_t5"] or 0)
             n10, h10 = int(r["n_t10"] or 0), int(r["n_hit_t10"] or 0)
+        s1 = _shrunk_hit(n1, h1)
         s3 = _shrunk_hit(n3, h3)
         s5 = _shrunk_hit(n5, h5)
         s10 = _shrunk_hit(n10, h10)
-        # 权重主轴 T+5（0.6）+ T+3（0.25）+ T+10（0.15）
-        score = 0.6 * s5 + 0.25 * s3 + 0.15 * s10
-        eff = max(0.0, 1.0 - math.exp(-(n3 + n5 + n10) / 40.0))   # 样本量置信度 0→1
+        # 权重主轴：T+1（0.28）+ T+3（0.34）+ T+5（0.28）+ T+10（0.10）。
+        # 旧版只吃 T+5（0.6），而 T+5 样本长期为 0（窗口未到期）→ 主轴恒为中性 0.5，
+        # 自学习等于空转（2026-10-11 王总定：把已到期的 T+1/T+3 纳入主轴）。
+        score = 0.28 * s1 + 0.34 * s3 + 0.28 * s5 + 0.10 * s10
+        eff = max(0.0, 1.0 - math.exp(-(n1 + n3 + n5 + n10) / 40.0))   # 样本量置信度 0→1（含 T+1）
         hit_score = 1.0 + eff * (score - 0.5) * 2.0              # 中性=1.0
         cov_n = cover.get(k, 0)
         cov_conf = _cover_conf(cov_n)                            # 覆盖置信度 0→1
         cov_blend = COVER_FLOOR + (1.0 - COVER_FLOOR) * cov_conf
         prior = SIGNAL_PRIOR.get(k, 1.0)
         raw[k] = prior * hit_score * cov_blend
-        detail[k] = {"prior": prior, "hit_t3": s3, "hit_t5": s5, "hit_t10": s10,
-                     "n3": n3, "n5": n5, "n10": n10, "conf": eff,
+        detail[k] = {"prior": prior, "hit_t1": s1, "hit_t3": s3, "hit_t5": s5, "hit_t10": s10,
+                     "n1": n1, "n3": n3, "n5": n5, "n10": n10, "conf": eff,
                      "cov_n": cov_n, "cov_conf": cov_conf, "cov_blend": cov_blend,
                      "src": src}
     if not raw:
@@ -1539,10 +1749,13 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
 def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
     """按「实盘命中率 × 覆盖置信度 × 先验系数」重算十二路信号权重，变动写日志。
 
-    口径：
-      - 实盘表现：以 T+5 命中率为主轴（0.6）+ T+3（0.25）+ T+10（0.15），贝叶斯收缩防过拟合；
+    口径（2026-10-11 修正）：
+      - 实盘表现主轴：T+1（0.28）+ T+3（0.34）+ T+5（0.28）+ T+10（0.10），贝叶斯收缩防过拟合；
+        旧版只吃 T+5（0.6），而 T+5 样本长期为 0 → 主轴恒为中性，自学习空转。现已把已到期的
+        T+1/T+3 纳入主轴，让实盘真正驱动权重（带 holders/inst/follow 的信号因跑输被自动降权）。
       - 覆盖置信度：命中票数越少越不信任（外部参考 2 只 → 大幅降权；技术面 154 只 → 不降）；
-      - 先验系数：新维度首版没有历史样本，靠先验（我对可信度的判断）定初始位置；
+      - 先验系数：按 2026-10-11 实证方向重校准（holders 1.05→0.45、inst 0.85→0.50、follow 0.52→0.40、
+        tech 1.35→1.45、policy 0.80→1.00），作为冷启动与稳态的基线；
       - 三者相乘后限幅（W_MIN/W_MAX）+ 归一化。
     """
     new_w, detail = _compute_weights(con)
@@ -1558,9 +1771,10 @@ def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
                 # 无实盘样本：不打"命中率 50%"这种假数字，直接说明权重由先验 + 覆盖度决定
                 reason = "无实盘复盘样本，权重由先验 × 覆盖度决定"
             else:
-                base = ("T+5 命中率 %.1f%%（样本 %d）、T+3 %.1f%%、T+10 %.1f%%"
-                        % (d.get("hit_t5", 0.5) * 100, d.get("n5", 0),
-                           d.get("hit_t3", 0.5) * 100, d.get("hit_t10", 0.5) * 100))
+                base = ("T+1 命中率 %.1f%%（样本 %d）、T+3 %.1f%%（样本 %d）、T+5 %.1f%%、T+10 %.1f%%"
+                        % (d.get("hit_t1", 0.5) * 100, d.get("n1", 0),
+                           d.get("hit_t3", 0.5) * 100, d.get("n3", 0),
+                           d.get("hit_t5", 0.5) * 100, d.get("hit_t10", 0.5) * 100))
                 # 命中率来源自述：实盘复盘 vs 近两年逐日回放（王总 2026-10-06 定：以近两年为主参考）
                 reason = ("近两年回放 " + base) if "回放" in str(d.get("src") or "") else base
             if d.get("cov_n"):
@@ -1790,10 +2004,63 @@ def _generate_inner(con, run_date, force, progress) -> dict:
         nsig = len(hits_by_sym.get(sym, []))
         if nsig >= 2:
             scores[sym] += 0.10 * (nsig - 1)
+
+    # ---- 动量冷却（2026-10-11 王总需求：抑制「追热反转」）----
+    # 预测日前 5 个交易日累计涨幅越高，短线均值回归风险越大。实证显示前 5 日已涨的票
+    # T+3 命中仅 16%、收益 -4.35%，而前 5 日未涨的票 T+3 命中 33%、收益 -0.36%。
+    # 对「热票」按超额涨幅施加冷却系数（乘到综合分上），不硬性剔除，保留少量多样性。
+    _bi = {c: _bars_index(v) for c, v in bars_map.items()}
+    mom5_map, cool_map = {}, {}
+    for csym, k in bars_map.items():
+        bi = _bi.get(csym, {})
+        idx = bi.get(td)
+        m = None
+        if idx is not None and idx >= 5:
+            c0 = _f(k[idx - 5].get("c"))
+            c1 = _f(k[idx].get("c"))
+            if c0:
+                m = c1 / c0 - 1.0
+        mom5_map[csym] = m
+        cool_map[csym] = (1.0 if (m is None or m <= COOL_THR)
+                          else max(1.0 - COOL_MAX, 1.0 - (m - COOL_THR) / COOL_SLOPE))
+    for csym in list(scores):
+        cf = cool_map.get(csym, 1.0)
+        if cf < 1.0:
+            scores[csym] *= cf
+
+    # ---- 第①/②层：板块方向 + 股东结构（2026-10-11 王总三层框架）----
+    # 预测日 td 的板块热度聚合 → 取前 TOP_BOARDS 为资金方向；热板块内再用股东结构加成。
+    # 局限：policy_news / overseas / sentiment / follow 时间戳不可靠（快照语义），无法精确回溯，
+    # 历史日补跑时板块热度是"当前快照"而非"当日真实"——此局限在 run note 已标注。
+    hot_boards, sym_board = _hot_sectors(con, td)
+    hot_words = {w for w, _ in hot_boards[:TOP_BOARDS]}
+    conc_map, holder30_set = _share_conc(con, codes)
+    for csym in list(scores):
+        sb = sym_board.get(csym)
+        extra = 0.0
+        if sb and sb[0] in hot_words:
+            extra += BOARD_BONUS
+        conc = conc_map.get(csym)
+        if conc:
+            extra += CONC_BONUS.get(conc[0], 0.0)
+        if csym in holder30_set:
+            extra += HOLDER30_BONUS
+        if extra:
+            scores[csym] += extra
+
+    # 核心池硬 gate：优先从热板块票里选（方向对）；不足用冷板块补满，避免饿死。
+    # 观察池开放全市场，保证覆盖面（前 6 板块仅覆盖约 15/160 只，全靠核心 gate 会饿死）。
     ranked = sorted(scores.items(),
                     key=lambda kv: (-kv[1], -len(hits_by_sym[kv[0]]),
                                     -int(norm.get("tech", {}).get(kv[0], 0) * 100)))
-    picked = ranked[:CORE_N + WATCH_N]
+    hot_ranked = [s for s, _ in ranked if sym_board.get(s) and sym_board[s][0] in hot_words]
+    cold_ranked = [s for s, _ in ranked if not (sym_board.get(s) and sym_board[s][0] in hot_words)]
+    core_syms = hot_ranked[:CORE_N]
+    if len(core_syms) < CORE_N:
+        core_syms += cold_ranked[:CORE_N - len(core_syms)]
+    remain = [s for s in (hot_ranked[CORE_N:] + cold_ranked) if s not in set(core_syms)]
+    watch_syms = remain[:WATCH_N]
+    picked = [(s, scores[s]) for s in core_syms + watch_syms]
     if not picked:
         return {"ok": False, "error": "没有股票被任何信号命中，未生成预测"}
 
@@ -1828,6 +2095,22 @@ def _generate_inner(con, run_date, force, progress) -> dict:
         if ev:
             reason += "｜" + "；".join(ev[:3])
         nm = names.get(sym) or sym
+        m5 = mom5_map.get(sym)
+        coolf = cool_map.get(sym, 1.0)
+        if coolf < 1.0:
+            reason += "｜动量冷却×%.2f（前5日%s%.1f%%）" % (
+                coolf, "涨" if (m5 or 0) >= 0 else "跌", (m5 or 0) * 100)
+        # 第①/②层标注：板块方向 + 股东结构（三层框架可见化）
+        sb0 = sym_board.get(sym)
+        bd0 = sb0[0] if sb0 else ""
+        if bd0:
+            bk = next((i + 1 for i, (w, _) in enumerate(hot_boards) if w == bd0), None)
+            reason += "｜板块:%s" % bd0 + ("(热度第%d)" % bk if bk else "")
+        conc0 = conc_map.get(sym)
+        conc0_tier = conc0[0] if conc0 else "未知"
+        if conc0:
+            reason += "｜股东:%s" % conc0_tier + ("·板块前30%" if sym in holder30_set else "")
+        h30i = 1 if sym in holder30_set else 0
         caveat = "未到期"
         if "ST" in str(nm).upper() or "退" in str(nm):
             caveat = "⚠ ST/退市风险警示，短线波动限制 5%"
@@ -1836,22 +2119,27 @@ def _generate_inner(con, run_date, force, progress) -> dict:
         items.append((td, sym, nm, tier, i + 1, round(sc, 4),
                       json.dumps(hs, ensure_ascii=False), reason, entry, nxt,
                       None, None, None, None, None, None, None, None, None,
-                      caveat, None))
+                      caveat, None,
+                      round(m5, 4) if m5 is not None else None,
+                      round(coolf, 4), bd0, conc0_tier, h30i))
     con.executemany(
         "INSERT OR REPLACE INTO prediction_item (run_date,symbol,name,tier,rank,score,"
         "hit_signals,reason,entry_close,next_open,ret_t1,ret_t3,ret_t5,"
-        "bench_t1,bench_t3,bench_t5,hit_t1,hit_t3,hit_t5,caveat,reviewed_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", items)
+        "bench_t1,bench_t3,bench_t5,hit_t1,hit_t3,hit_t5,caveat,reviewed_at,mom5,cool,"
+        "board,conc,holder30) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", items)
+    _wstr = "、".join("%s %.0f%%" % (SIGNAL_META[k]["name"], weights.get(k, 0) * 100)
+                      for k in SIGNAL_KEYS)
+    _bstr = "、".join("%s" % w for w, _ in hot_boards[:TOP_BOARDS])
+    _note = "候选池 %d 只；K线截至 %s（asof隔离）；权重：%s；方向(前%d热板块)：%s" % (
+        pool_n, td, _wstr, TOP_BOARDS, _bstr)
     con.execute(
         "INSERT OR REPLACE INTO prediction_run (run_date,created_at,engine_ver,pool_n,signal_n,"
         "core_n,watch_n,market_view,style_view,breadth_json,bench_json,status,note) "
         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (td, _now(), ENGINE_VER, pool_n, len(SIGNAL_KEYS),
          min(CORE_N, len(items)), max(0, len(items) - CORE_N),
-         view, style, json.dumps(sig_stats, ensure_ascii=False), None, "ok",
-         "候选池 %d 只；K线截至 %s（asof隔离：信号仅用 %s 及以前数据）；权重：%s" % (
-             pool_n, td, td, "、".join("%s %.0f%%" % (SIGNAL_META[k]["name"], weights.get(k, 0) * 100)
-                                      for k in SIGNAL_KEYS))))
+         view, style, json.dumps(sig_stats, ensure_ascii=False), None, "ok", _note))
     con.commit()
     try:
         res = rescore(con, log=True)     # 每次生成后刷新权重（把最新复盘结果纳入下一次判断）
@@ -2137,6 +2425,7 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
                 "rank": it["rank"], "score": it["score"], "signals": hs,
                 "reason": it["reason"], "entry_close": it["entry_close"],
                 "next_open": it["next_open"],
+                "board": it["board"], "conc": it["conc"], "holder30": it["holder30"],
                 "ret": {"t1": it["ret_t1"], "t3": it["ret_t3"], "t5": it["ret_t5"], "t10": it["ret_t10"]},
                 "bench": {"t1": it["bench_t1"], "t3": it["bench_t3"], "t5": it["bench_t5"], "t10": it["bench_t10"]},
                 "hit": {"t1": it["hit_t1"], "t3": it["hit_t3"], "t5": it["hit_t5"], "t10": it["hit_t10"]},
@@ -2303,6 +2592,88 @@ def track_payload(con: sqlite3.Connection | None = None) -> dict:
                                   "hit_rate": round(h / n, 4) if n else None}
         return {"ok": True, "days": out, "summary": summary,
                 "runs": len(out), "windows": list(WINDOWS)}
+    finally:
+        if own:
+            con.close()
+
+
+def growth_adjust_log_payload(con: sqlite3.Connection | None = None) -> dict:
+    """成长面板（growth）A/D 区共用的只读载荷：权重演化时序 + 最近调整。
+
+    纯读 predictor_adjust_log + predictor_score，幂等、不写库。
+    隔离纪律：本函数绝不触碰 knowledge_source / growth_notes（那是本期预留的隔离表，零 JOIN）。
+    """
+    own = con is None
+    con = con or connect()
+    try:
+        ensure_tables(con)
+
+        def _f(x, d=None):
+            try:
+                return float(x) if x is not None else d
+            except (TypeError, ValueError):
+                return d
+
+        # 当前各 signal 权重（来自 predictor_score，kind='signal'）
+        score_rows = con.execute(
+            "SELECT signal_key, weight FROM predictor_score WHERE kind='signal'").fetchall()
+        current_weights: dict = {}
+        has_real_weight = False
+        for r in score_rows:
+            w = r["weight"]
+            val = 0.0
+            if w is not None:
+                try:
+                    val = float(w)
+                    has_real_weight = True
+                except (TypeError, ValueError):
+                    val = 0.0
+            current_weights[r["signal_key"]] = val
+
+        # 权重演化时序：按 signal_key 分组，log_date 升序，取每次调整后的 weight_after
+        adj_rows = con.execute(
+            "SELECT id, log_date, signal_key, kind, weight_before, weight_after, reason "
+            "FROM predictor_adjust_log ORDER BY log_date ASC, id ASC").fetchall()
+        weights_series: dict = {}
+        for r in adj_rows:
+            key = r["signal_key"]
+            w = r["weight_after"]
+            if w is None:
+                continue
+            try:
+                wv = float(w)
+            except (TypeError, ValueError):
+                continue
+            weights_series.setdefault(key, []).append(
+                {"log_date": r["log_date"] or "", "weight": wv})
+
+        # 最近 N=8 条调整（按 id 倒序），供 D 区「最近调整」
+        recent = con.execute(
+            "SELECT id, log_date, signal_key, kind, weight_before, weight_after, reason "
+            "FROM predictor_adjust_log ORDER BY id DESC LIMIT 8").fetchall()
+        recent_adjusts = []
+        for r in recent:
+            recent_adjusts.append({
+                "id": r["id"],
+                "log_date": r["log_date"] or "",
+                "signal_key": r["signal_key"] or "",
+                "kind": r["kind"] or "",
+                "weight_before": _f(r["weight_before"]),
+                "weight_after": _f(r["weight_after"]),
+                "reason": r["reason"] or "",
+            })
+
+        # has_data：有调整记录、或任一信号已学到真实权重（NULL 权重不算）→ 视为「有成长证据」
+        has_data = bool(adj_rows) or has_real_weight
+        return {
+            "ok": True,
+            "has_data": has_data,
+            "signals": SIGNALS,  # 12 维，前端据此【动态】决定画几条权重线，绝不硬编码 6
+            "weights_series": weights_series,
+            "current_weights": current_weights,
+            "recent_adjusts": recent_adjusts,
+            "caliber": window_caliber(),
+        }
     finally:
         if own:
             con.close()

@@ -1,0 +1,77 @@
+app.js lines 4017
+
+=== 关键词定位 ===
+ 1979:     const hls = toArr(p.holdings);
+ 1984:     const hlShown = hls.slice(0, 3).map((h) => {
+ 2003:         ? ` <span class="chip-time" title="${escAttr(_pt.length >= 16 ? "操作时间 " + _pt : "操作日期 " + _pt)}">${esc(_tShort)}</span>`
+ 2004:         : ` <span class="chip-time chip-time-none" title="源站未提供该笔持仓的操作时间，故不显示（不以抓取时间代替）">时间未披露</span>`;
+ 2012:       : (hls.length ? `${hlShown} ${hlMore}` : `<span class="dim">—</span>`);
+
+=== 附近区间 1960-2025 ===
+ 1960:   const chCount = {};
+ 1961:   all.forEach((p) => {
+ 1962:     const t = p.tier || p.channel || "D";
+ 1963:     tierCount[t] = (tierCount[t] || 0) + 1;
+ 1964:     if (p.channel) chCount[p.channel] = (chCount[p.channel] || 0) + 1;
+ 1965:   });
+ 1966:   // 竖向筛选项：层级 A~F + 渠道 A~D 一行一项
+ 1967:   const tierBtns = ["A", "B", "C", "D", "E", "F"].map((t) =>
+ 1968:     `<button class="fbtn" data-tier="${t}" onclick="filterPlayers('tier','${t}')">` +
+ 1969:     `${esc(TIER_LABEL[t])}<span class="cnt">${tierCount[t] || 0}</span></button>`).join("");
+ 1970:   const chBtns = ["A", "B", "C", "D"].map((c) =>
+ 1971:     `<button class="fbtn" data-ch="${c}" onclick="filterPlayers('ch','${c}')">` +
+ 1972:     `${esc(CHANNEL_LABEL[c])}<span class="cnt">${chCount[c] || 0}</span></button>`).join("");
+ 1973:   const rows = all.map((p) => {
+ 1974:     const t = p.tier || p.channel || "D";
+ 1975:     const demo = isDemoRow(p);
+ 1976:     // 当前持仓 chips：最多展示 3 只，其余折进 "+N"；悬停 title 显示全量（含动作/时间/来源）
+ 1977:     // 2026-09-25 补：徽章内直接展示「操作时间」，不再只藏在 tooltip 里（与「共同持仓」口径一致）。
+ 1978:     // 源站未给时间的一律不显示时间标，绝不用抓取时刻冒充。
+ 1979:     const hls = toArr(p.holdings);
+ 1980:     // 2026-09-25：东财/同花顺为讨论区，平台无结构化真实持仓，标记为 discussion。
+ 1981:     // 不再显示空「—」(易被误认为漏抓)，改为诚实灰标「讨论活跃·无实盘源」。
+ 1982:     const isDiscussion = p.real_holding === "discussion";
+ 1983:     const isCommunity = p.real_holding === "community";
+ 1984:     const hlShown = hls.slice(0, 3).map((h) => {
+ 1985:       // 2026-09-25：标签按 source_type 渲染，与顶部图例保持一致。
+ 1986:       // 此前只渲染「实盘」一种，而图例却列出 实盘/组合/晒盘/提及 四类，属说明与实现不一致。
+ 1987:       const _st = h.source_type || "bar_post";
+ 1988:       const _isLive = _st === "player_page" || _st === "player_live";
+ 1989:       const _isComm = _st === "community";
+ 1990:       const srcTag = _isLive ? ` <span class="src-tag">实盘</span>`
+ 1991:                    : _isComm ? ` <span class="src-tag src-comm">晒盘</span>`
+ 1992:                    : ` <span class="src-tag src-mention">提及</span>`;
+ 1993:       const cls = "chip-s" + (h.name_only ? " chip-nm" : "");
+ 1994:       const title = `${h.display} ${h.action || ""} ${h.post_time || ""}` +
+ 1995:         ` | 来源:${SRC_TYPE_LABEL[h.source_type] || h.source_type || "个股讨论页提及"}` +
+ 1996:         (h.name_only ? " | 仅有股票名(待匹配代码)" : "");
+ 1997:       const clk = h.symbol ? ` data-sym="${escAttr(h.symbol)}"` : "";
+ 1998:       // 操作/发帖时间：有则显示（MM-DD HH:MM，只有日期时显示 MM-DD），无则留空
+ 1999:       const _pt = (h.post_time || "").trim();
+ 2000:       const _tShort = _pt.length >= 16 ? _pt.slice(5, 16).replace("-", "-")
+ 2001:                     : _pt.length >= 10 ? _pt.slice(5, 10) : "";
+ 2002:       const timeTag = _tShort
+ 2003:         ? ` <span class="chip-time" title="${escAttr(_pt.length >= 16 ? "操作时间 " + _pt : "操作日期 " + _pt)}">${esc(_tShort)}</span>`
+ 2004:         : ` <span class="chip-time chip-time-none" title="源站未提供该笔持仓的操作时间，故不显示（不以抓取时间代替）">时间未披露</span>`;
+ 2005:       return `<span class="${cls}${h.symbol ? " kline-chip" : ""}"${clk} title="${escAttr(title)}">${esc(h.display)} ${actionBadge(h.action)}${srcTag}${timeTag}</span>`;
+ 2006:     }).join(" ");
+ 2007:     const hlMore = hls.length > 3
+ 2008:       ? `<span class="chip-s" title="${escAttr(hls.map((h) => `${h.display} ${h.action || ""} ${h.post_time || ""}`).join("\n"))}">+${hls.length - 3}</span>`
+ 2009:       : "";
+ 2010:     const holdingsCell = isDiscussion
+ 2011:       ? `<span class="dim" title="东财/同花顺为讨论区，平台无结构化真实持仓，仅作人气/讨论活跃标记">讨论活跃·无实盘源</span>`
+ 2012:       : (hls.length ? `${hlShown} ${hlMore}` : `<span class="dim">—</span>`);
+ 2013:     // data-real/data-demo：CSS 用来给整行加灰底/警示底色
+ 2014:     return `<tr data-name="${escAttr(p.name)}" data-ch="${escAttr(p.channel || '')}" data-tier="${escAttr(t)}" ${demo ? 'data-demo="1"' : 'data-real="1"'}${isDiscussion ? ' data-noreal="1"' 
+ 2015:       <td class="num">${esc(p.rank_position ?? "-")}</td>
+ 2016:       <td><b>${esc(p.name)}</b>${demo ? ` <span class="chip-s chip-demo" title="该选手来自合成示例数据，尚未连接真实抓取">示例</span>` : ""}${isDiscussion ? ` <span class="chip-s chip-disc" title="讨论活跃牛人：东财/同花顺平台
+ 2017:       <td>${tierBadge(t)}</td>
+ 2018:       <td>${channelBadge(p.channel)}</td>
+ 2019:       <td>${holdingsCell}</td>
+ 2020:       <td class="num">${p.ranking_score ?? "-"}</td>
+ 2021:       <td><span class="chip-s">影响 ${p.influence != null ? p.influence : "-"}</span></td>
+ 2022:       <td>${p.is_top_player ? "✅入选" : "—"}</td>
+ 2023:       <td>${srcLink(p.source_url, "主页")}</td>
+ 2024:       ${refCell([p.platform || p.site])}
+ 2025:     </tr>`;
+ 2026:   }).join("");

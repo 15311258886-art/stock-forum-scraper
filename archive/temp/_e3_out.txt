@@ -1,0 +1,125 @@
+======================================================================
+【1】data/ 目录文件
+======================================================================
+  taoguba_all.json                               4943
+  taoguba_bloggers.json                          3946
+  taoguba_live_2026-09-22.json                   15609
+  taoguba_live_report.html                       18205
+  taoguba_news.json                              855
+
+======================================================================
+【2】config/sites.yaml 中的玩家来源配置
+======================================================================
+    taoguba:
+          url: https://www.tgb.cn/user/getMoreListAction
+        player_item: tr.rank-item, div.rank-item, li.rank-item, div.user-item
+        player_name: .name, .nickname, .user-name, a.author
+        player_rank: .rank, .index, .no
+        player_score: .score, .profit, .win-rate, .yield
+      top_players:
+      player_pool:
+        - key: taoguba
+        - key: xueqiu
+        - key: sina
+      player_page_tpl: ''
+        players:
+      list_url_tpl: https://guba.eastmoney.com/list,{symbol}.html
+        - https://guba.eastmoney.com/list,600519.html
+        - https://guba.eastmoney.com/list,000001.html
+        - https://guba.eastmoney.com/list,300750.html
+        - https://guba.eastmoney.com/list,601318.html
+        - https://guba.eastmoney.com/list,600519.html
+        - https://guba.eastmoney.com/list,000001.html
+        - https://guba.eastmoney.com/list,300750.html
+        - https://guba.eastmoney.com/list,601318.html
+        players:
+        - https://guba.eastmoney.com/list,600519.html
+    xueqiu:
+      base_url: https://xueqiu.com
+        Referer: https://xueqiu.com/
+        - https://xueqiu.com/k?q=600519
+        - https://xueqiu.com/k?q=000001
+        - https://xueqiu.com/k?q=300750
+        - https://xueqiu.com/k?q=601318
+        - https://xueqiu.com/k?q=600519
+        - https://xueqiu.com/k?q=600519
+        - https://xueqiu.com/k?q=000001
+        - https://xueqiu.com/k?q=300750
+        - https://xueqiu.com/k?q=601318
+    sina:
+      base_url: https://guba.sina.com.cn
+        Referer: https://guba.sina.com.cn/
+      bar_url_tpl: https://guba.sina.com.cn/?s=bar&name={symbol}
+        players:
+        - https://guba.sina.com.cn/
+        - https://guba.sina.com.cn/?s=bar&name=sh600519
+        - https://guba.sina.com.cn/?s=bar&name=sz000001
+        - https://guba.sina.com.cn/?s=bar&name=sz300750
+        - https://guba.sina.com.cn/?s=bar&name=sh601318
+        - https://guba.sina.com.cn/?s=bar&name=sh600036
+        - https://guba.sina.com.cn/?s=bar&name=sz000858
+        - https://guba.sina.com.cn/?s=bar&name=sh600519
+        - https://guba.sina.com.cn/?s=bar&name=sz000001
+        - https://guba.sina.com.cn/?s=bar&name=sz300750
+        - https://guba.sina.com.cn/?s=bar&name=sh601318
+        - https://guba.sina.com.cn/?s=bar&name=sh600519
+        - https://guba.sina.com.cn/?s=bar&name=sz000001
+
+======================================================================
+【3】淘股吧候选池（json）
+======================================================================
+  taoguba_all.json                         list len=10
+       keys: ['source_site', 'author', 'post_id', 'post_url', 'post_time', 'action', 'symbol', 'symbol_name', 'price', 'quantity', 'raw_text', 'buy_time', 'buy_price', 'current_price']
+  taoguba_bloggers.json                    dict keys=['generated_at', 'bloggers']
+  taoguba_live_2026-09-22.json             dict keys=['site', 'generated_at', 'logged_in', 'note', 'source_report', 'post_count', 'blogger_count', 'posts']
+  taoguba_news.json                        list len=4
+       keys: ['source_site', 'title', 'url', 'publish_time', 'summary', 'author']
+
+======================================================================
+【4】fetch_taoguba_live.py 如何选人
+======================================================================
+  lines 213
+     9:   data/taoguba_bloggers.json      昵称 ↔ uid 映射（供你圈定要重点关注的博主）
+    26: BASE = "https://www.tgb.cn"
+    34: # 来源页（键=URL，值=板块兜底名）
+    36:     ("https://www.tgb.cn/talk/talkSeq/14088", "实盘"),
+    37:     ("https://www.tgb.cn/bbs/", "淘股论坛"),
+    38:     ("https://www.tgb.cn/talk/talkSeq/190344", "实盘比赛"),
+    39:     ("https://www.tgb.cn/talk/talkSeq/188464", "实盘比赛"),
+    40:     ("https://www.tgb.cn/talk/talkSeq/187669", "实盘比赛"),
+    44: def fetch(url):
+    46:         r = requests.get(url, headers=HEADERS, timeout=25, allow_redirects=True)
+    47:         return r.text or "", r.url, r.status_code
+    49:         return "", url, "ERR:%s" % str(e)[:80]
+    52: def parse_posts(html, src_url, board_hint):
+    68:         blog_a = item.select_one("a[href^='/blog/']")
+    69:         uid = blog_a["href"].rstrip("/").split("/")[-1] if blog_a else ""
+    87:             "url": href if href.startswith("http") else BASE + href,
+    90:             "author_uid": uid,
+    91:             "author_url": (BASE + blog_a["href"]) if blog_a else "",
+    94:             "source_page": src_url,
+   100: def main():
+   103:     bloggers = {}
+   105:     for url, hint in SOURCES:
+   106:         html, final_url, status = fetch(url)
+   107:         posts = parse_posts(html, url, hint) if html else []
+   108:         src_report.append({"url": url, "final_url": final_url, "status": status,
+   111:             key = p["url"]
+   116:             if p["author_uid"]:
+   117:                 b = bloggers.setdefault(p["author_uid"], {
+   118:                     "uid": p["author_uid"], "name": p["author"] or "",
+   119:                     "url": p["author_url"], "post_count": 0, "boards": [],
+   133:         "blogger_count": len(bloggers),
+   139:     with open(os.path.join(DATA, "taoguba_bloggers.json"), "w", encoding="utf-8") as f:
+   141:                    "bloggers": sorted(bloggers.values(), key=lambda x: -x["post_count"])},
+   149:             "<div class='sum'>%s</div></td><td>%s<div class='uid'>uid %s</div></td>"
+   151:             % (p["board"], p["url"], p["title"], (p["summary"] or "")[:180],
+   152:                p["author"] or "-", p["author_uid"] or "-",
+   155:         "<div class='bl'><span class='nm'>%s</span><span class='uid'>uid %s</span>"
+   157:         % (b["name"] or "(未署名)", b["uid"], b["post_count"], b["url"])
+   158:         for b in sorted(bloggers.values(), key=lambda x: -x["post_count"]))
+   159:     sr = "".join("<li><code>%s</code> → HTTP %s, %d 条</li>" % (s["url"], s["status"], s["parsed"])
+   180: .uid{color:#6e7681;font-size:11px}
+   196: <h2>博主清单（昵称 ↔ uid，可用于指定重点关注）</h2>%s
+   200: </body></html>""" % (TODAY, payload["generated_at"], len(all_posts), len(bloggers),
+   208:                       "bloggers": len(bloggers), "sources": src_report},

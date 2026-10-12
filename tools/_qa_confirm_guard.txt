@@ -1,0 +1,58 @@
+P0-2 / P0-3 生产库安全验证（只走'被拒绝'路径）
+==============================================================================
+[基线] 9 张表行数
+    posts                        185
+    trades                       46
+    positions                    135
+    players                      160
+    overseas_news                707
+    overseas_hotspots            17
+    overseas_sources_status      41
+    stock_mentions               185
+    news                         3
+    meta.last_demo_at            None
+    meta.overseas_last_collect   ('2026-09-22 21:53:47',)
+
+[1] POST /api/demo（无 confirm，application/json）
+    HTTP 409
+    body = {"error": "destructive_operation", "hint": "该操作会清空全部业务数据（含海外新闻、热点、持仓、帖子），需要二次确认", "require_confirm": true}
+
+[2] POST /api/overseas（reset=true，无 confirm）
+    HTTP 409
+    body = {"error": "destructive_operation", "hint": "该操作会清空全部业务数据（含海外新闻、热点、持仓、帖子），需要二次确认", "require_confirm": true}
+
+[3] POST /api/demo（Content-Type: text/plain —— 简单请求，不触发预检的 CSRF 向量）
+    HTTP 415
+    body = {"error": "unsupported media type, expect application/json"}
+
+[4] POST /api/demo（恶意 Origin: https://evil.example）
+    HTTP 403
+    body = {"error": "forbidden origin"}
+
+[5] 前后对比（必须完全一致）
+    OK  posts                        185  ->  185
+    OK  trades                       46  ->  46
+    OK  positions                    135  ->  135
+    OK  players                      160  ->  160
+    OK  overseas_news                707  ->  707
+    OK  overseas_hotspots            17  ->  17
+    OK  overseas_sources_status      41  ->  41
+    OK  stock_mentions               185  ->  185
+    OK  news                         3  ->  3
+    OK  meta.last_demo_at            None  ->  None
+    OK  meta.overseas_last_collect   ('2026-09-22 21:53:47',)  ->  ('2026-09-22 21:53:47',)
+    结论：完全一致，未被触碰
+
+[6] 单实例保护：再起一个实例绑 8765
+    退出码 = 1（期望 1）
+    输出：
+      [查看器] 启动失败：端口 8765 已被占用（已有查看器实例或其它程序在监听）。
+      [查看器] 请先关闭已运行的实例，或结束占用 8765 的进程；也可换端口启动：  set VIEWER_PORT=8766 && python -m viewer.server
+      [查看器] 系统错误：[WinError 10048] 通常每个套接字地址(协议/网络地址/端口)只允许使用一次。
+
+[7] 判定
+    /api/demo 无 confirm 被拒 (409)      : PASS
+    /api/overseas reset 无 confirm 被拒  : PASS
+    text/plain 非简单请求未被放行        : PASS
+    跨站 Origin 被拒                     : PASS
+    数据未被触碰                         : PASS

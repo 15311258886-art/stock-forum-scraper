@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant Nav as selectNav('learn','growth')
+    participant App as GROWTH state + renderGrowth()
+    participant API1 as /api/growth/adjust_log
+    participant API2 as /api/prediction/track
+    participant API3 as /api/prediction/scores
+    participant API4 as /api/prediction/today
+    participant DB as SQLite (predictor.py)
+
+    User->>Nav: 点击「复盘成长 ▸ 成长总览」
+    Nav->>App: ensurePanel('growth') + loadGrowth()
+    par 并行拉取（Promise.all）
+        App->>API1: GET /api/growth/adjust_log
+        API1->>DB: growth_adjust_log_payload (读 adjust_log + score)
+        DB-->>API1: weights_series + recent_adjusts + signals(12维)
+        API1-->>App: {ok,has_data,signals,...}
+        App->>API2: GET /api/prediction/track
+        API2-->>App: track.days (hit_t1/3/5/10)
+        App->>API3: GET /api/prediction/scores
+        API3-->>App: kind 分组当前权重
+        App->>API4: GET /api/prediction/today
+        API4-->>App: 当前研判 + 权重快照
+    end
+    App->>App: renderGrowth() 画五区 Tab
+    Note over App: 默认激活 A 区
+    App->>App: A：SVG①权重演化(动态12线) + SVG②命中率轨迹(T+1/3/5/10)
+    User->>App: 切到 D 区
+    App->>App: D：权重条(scores)+最近调整(recent)+今日重跑预览(today,标注只读)
+    User->>App: 切到 C 区(隔离开关)
+    App->>App: 按 source_key 并排展示 trust_score，不合并/不加权平均
+    Note over App,DB: 任一 API has_data=false → 该区显示 .empty 占位，不报错不崩

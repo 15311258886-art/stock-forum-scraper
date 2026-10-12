@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>查看器 · 体验审计与决策化改造方案</title>
+<style>
+  :root{
+    --bg:#FAF8F5; --panel:#FFFFFF; --ink:#1A1A1A; --ink2:#4A4A4A; --muted:#8A8578;
+    --line:#E7E2D8; --accent:#0E7490; --accent-soft:#E6F2F5; --gold:#B08D57; --gold-soft:#F6F0E6;
+    --up:#C0392B; --down:#1E8449; --up-soft:#FBECEA; --down-soft:#EAF6EE;
+    --p0:#C0392B; --p1:#D68910; --p2:#5B7C99; --shadow:0 2px 14px rgba(30,40,50,.06);
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.5px}
+  h2{font-size:19px;margin:44px 0 14px;padding-left:12px;border-left:4px solid var(--accent)}
+  h3{font-size:15.5px;margin:22px 0 10px;color:var(--accent)}
+  p{margin:8px 0;color:var(--ink2)}
+  .sub{color:var(--muted);font-size:13.5px;margin:0}
+  .lead{background:linear-gradient(135deg,#0E7490,#0B5C73);color:#fff;border-radius:14px;padding:22px 26px;margin:22px 0;box-shadow:var(--shadow)}
+  .lead .tag{display:inline-block;font-size:12px;letter-spacing:2px;opacity:.85;border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:2px 12px;margin-bottom:10px}
+  .lead b{font-size:18px;font-weight:600;display:block;line-height:1.75}
+  .lead small{display:block;margin-top:10px;opacity:.85;font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:14px 0;box-shadow:var(--shadow)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#F1EDE5;font-weight:600;color:var(--ink)}
+  td.p{white-space:nowrap;font-weight:600}
+  .chip{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 8px;color:#fff;letter-spacing:.5px}
+  .c0{background:var(--p0)} .c1{background:var(--p1)} .c2{background:var(--p2)}
+  .ok{color:var(--down);font-weight:600} .bad{color:var(--up);font-weight:600}
+  .up-ink{color:var(--up)} .down-ink{color:var(--down)}
+  ul{margin:8px 0;padding-left:22px;color:var(--ink2)} li{margin:5px 0}
+  .cat{border-left:4px solid var(--gold);background:var(--gold-soft);border-radius:8px;padding:4px 16px;margin:20px 0 8px}
+  .cat b{font-size:16px}
+  .cat span{color:var(--muted);font-size:13px;margin-left:8px}
+  .note{background:#FFF9E9;border:1px dashed var(--gold);border-radius:10px;padding:12px 16px;font-size:13.5px;color:#6B5A32;margin:16px 0}
+  .mock{border:2px dashed var(--accent);border-radius:14px;padding:20px;background:var(--panel);margin:16px 0}
+  .mock-h{font-size:12px;color:var(--accent);letter-spacing:2px;font-weight:700;margin-bottom:12px}
+  .mock-verdict{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;font-size:14.5px;color:#0B3B47;margin-bottom:14px}
+  .mock-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .mcard{border:1px solid var(--line);border-radius:10px;padding:13px 15px;background:#FFF}
+  .mcard .t{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;display:flex;justify-content:space-between}
+  .mcard .t i{font-style:normal;font-weight:400;color:var(--muted);font-size:11.5px}
+  .mcard .line{font-size:13.5px;color:var(--ink2);margin:5px 0;display:flex;gap:8px}
+  .mcard .line em{font-style:normal;font-weight:600;color:var(--ink);min-width:64px;display:inline-block}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-top:7px;flex:0 0 8px}
+  .d-up{background:var(--up)} .d-down{background:var(--down)} .d-warn{background:#D68910} .d-neu{background:var(--muted)}
+  .mock-foot{font-size:12px;color:var(--muted);margin-top:12px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:10px 0}
+  .step{display:flex;gap:14px;margin:14px 0;align-items:flex-start}
+  .step .no{flex:0 0 40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px}
+  .step .bd{flex:1}
+  .step .bd b{font-size:15px}
+  .footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  .kbd{font-family:var(--mono);font-size:12.5px;background:#F1EDE5;border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  @media(max-width:760px){.grid2,.mock-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="sub">股票论坛可视化查看器 · 内部体验审计</p>
+  <h1>体验审计与「决策化」改造方案</h1>
+  <p class="sub">审计对象：8 大类 / 40 个面板 · 审计视角：一个只想拿结论做决定的使用者 · 日期：2026-10-12</p>
+
+  <div class="lead">
+    <span class="tag">一句话诊断</span>
+    <b>这个软件是按「数据从哪来」盖的，不是按「我今天要做什么决定」盖的。</b>
+    <small>所以数据其实都抓回来了，你却还要在脑子里自己再算一遍——这正是「每次觉得做得差不多了、一看又挑出一堆毛病」的根因。</small>
+  </div>
+
+  <h2>一、病根：三条硬证据</h2>
+
+  <div class="card">
+    <h3>证据 1｜首页第一眼是「爬虫的仪表盘」</h3>
+    <p>打开软件首屏那排数字卡，分别是：<span class="kbd">原始文档(页)</span> <span class="kbd">帖子</span> <span class="kbd">实盘交易</span> <span class="kbd">资讯</span> <span class="kbd">入选选手</span> <span class="kbd">持仓记录</span> <span class="kbd">人物</span> <span class="kbd">讨论股票</span> <span class="kbd">热点词</span>——<b>全是「我抓了多少条」</b>。这是运维视角，不是决策视角。你要的不是"抓了 9 类数据"，而是"<b>今天哪是机会、哪是坑</b>"。</p>
+  </div>
+
+  <div class="card">
+    <h3>证据 2｜大类命名是「数据来源视角」，不是「决策动线视角」</h3>
+    <p>8 个大类：钱往哪走 / 消息与外围 / 别人怎么做 / 别人怎么看 / 我的票 / 行业龙头 / 复盘成长 / 今日总览。这像<b>分析师的归档柜</b>——按信息来源分抽屉。但你在盘中的真实动线是：<b>① 今日该盯什么方向 → ② 哪些票能上车（机会）→ ③ 哪里在退潮/要躲（坑）→ ④ 我自己关注池里今天有什么动静</b>。抽屉目录和动线对不上，就得来回翻。</p>
+  </div>
+
+  <div class="card">
+    <h3>证据 3｜全站 40 个面板，只有 1 个真正在「给结论」</h3>
+    <p>唯一合格的是<b>「今日看板」</b>——它有「今日重点方向 · 建议优先跟踪」、主线评级、龙头、梯队、「可推进（同题材尚未大涨）」、分支。<span class="ok">这就是你要的样子。</span>问题是它<b>只活了 1 个面板</b>，其余 39 个基本还是"把表甩给你"。另外零星几个（市场情绪、政策风向、研报、国际局势）已做了半截结论化——说明路子是对的，只是<b>没统一、没铺开</b>。</p>
+  </div>
+
+  <div class="note">⚠️ 本文所有判断基于对现有导航结构（<span class="kbd">app.js · NAV</span>）、首页渲染（<span class="kbd">renderCards / renderSummary / renderDashboard</span>）与各面板渲染逻辑的真实核对；数字与结构为<b>事实</b>，"该往哪改"为我的<b>判断</b>，两者已分开标注。</div>
+
+  <h2>二、目标长什么样：「今日决策」首页示意</h2>
+  <p>把「今日看板」的写法推广成<b>全站首页</b>——一屏把"方向 / 机会 / 坑 / 我的票"四件事说清，每个数字都能点开看证据。改造后，你打开软件<b>不需要再进二级菜单</b>，今天的账就已经在眼前了。</p>
+
+  <div class="mock">
+    <div class="mock-h">▎目标形态示意 · 今日决策</div>
+    <div class="mock-verdict">📌 <b>今日一句话：</b>资金主攻<b class="up-ink">黄金·有色</b>（净买 18.6 亿·加速），<b class="down-ink">算力·半导体</b>高位分歧、追高需谨慎；你的关注池里 <b>2 只</b>触发提示。</div>
+    <div class="mock-grid">
+      <div class="mcard">
+        <div class="t">① 今日方向 <i>钱在买什么</i></div>
+        <div class="line"><span class="dot d-up"></span><span><em>黄金·有色</em>13 条点名 · <b>启动→加速</b></span></div>
+        <div class="line"><span class="dot d-neu"></span><span><em>算力·半导体</em>5 条点名 · 中性</span></div>
+        <div class="line"><span class="dot d-neu"></span><span><em>社服·消费</em>2 条点名 · 观察</span></div>
+      </div>
+      <div class="mcard">
+        <div class="t">② 今日机会 <i>能上车的</i></div>
+        <div class="line"><span class="dot d-up"></span><span>东阳光 <b>600673</b> · 偏多 · 同题材未大涨</span></div>
+        <div class="line"><span class="dot d-neu"></span><span>片仔癀 <b>600436</b> · 中性 · 缩量回踩</span></div>
+        <div class="line"><span class="dot d-neu"></span><span>紫金矿业 <b>601899</b> · 龙头封板 · 带动有色</span></div>
+      </div>
+      <div class="mcard">
+        <div class="t">③ 今日风险 <i>要躲的坑</i></div>
+        <div class="line"><span class="dot d-warn"></span><span>算力·半导体 高位<b>分歧</b>（多空各半）</span></div>
+        <div class="line"><span class="dot d-down"></span><span>某标的 资金连续 3 日净流出</span></div>
+        <div class="line"><span class="dot d-down"></span><span>情绪过热：某题材提及量 2 周新高但股价滞涨</span></div>
+      </div>
+      <div class="mcard">
+        <div class="t">④ 我的票提示 <i>你自己的池子</i></div>
+        <div class="line"><span class="dot d-up"></span><span>关注池 1 只到价（目标价 +3%）</span></div>
+        <div class="line"><span class="dot d-warn"></span><span>关注池 1 只技术买点触发</span></div>
+        <div class="line"><span class="dot d-neu"></span><span>到价提醒：今日无新增</span></div>
+      </div>
+    </div>
+    <div class="mock-foot">※ 上图数字为示意（部分取自市场情绪面板真实口径），展示的是<b>版式与信息层级</b>；每个条目都可点开下钻到对应个股/板块证据。</div>
+  </div>
+
+  <h2>三、全局性问题（跨面板，7 条）</h2>
+  <table>
+    <tr><th style="width:52px">级别</th><th style="width:200px">问题</th><th>说明与改法</th></tr>
+    <tr><td class="p"><span class="chip c0">P0</span></td><td>没有「今日一页纸」</td><td>全站最高优先级视图缺失：方向/机会/坑/我的票无法一屏合看 → 新建「今日决策」首页（见上）。</td></tr>
+    <tr><td class="p"><span class="chip c0">P0</span></td><td>结论化零散、不统一</td><td>40 个面板仅 1 个合格、4 个半成品 → 逐面板加「结论条 So-What」。</td></tr>
+    <tr><td class="p"><span class="chip c1">P1</span></td><td>导航按「来源」分，不按「动线」分</td><td>8 大类是归档柜 → 重排为「方向 / 机会 / 风险 / 我的 / 参考」。</td></tr>
+    <tr><td class="p"><span class="chip c1">P1</span></td><td>人气榜 ≠ 推荐榜，混淆</td><td>"被讨论最多"不等于"看好" → 每个名单都标注：人气 / 看多 / 风险，三态分开。</td></tr>
+    <tr><td class="p"><span class="chip c2">P2</span></td><td>命名偏行话</td><td>"可推进""信源胜率榜""共同持仓共识"→ 首次出现给一句大白话释义。</td></tr>
+    <tr><td class="p"><span class="chip c2">P2</span></td><td>热度色与涨跌色混用</td><td>涨红/跌绿（中国习惯）已对，但"情绪热度"也用红绿易误读 → 热度另用中性色阶。</td></tr>
+    <tr><td class="p"><span class="chip c2">P2</span></td><td>学习中心与看盘混在主导航</td><td>复盘/学习是"盘后"动作，盘中用不到却占一级导航 → 移到角落或独立入口。</td></tr>
+  </table>
+
+  <h2>四、逐板块问题清单</h2>
+  <p>按现有 8 大类逐个过，每条标级别。<span class="chip c0">P0</span> 必须做、<span class="chip c1">P1</span> 该做、<span class="chip c2">P2</span> 锦上添花。</p>
+
+  <div class="cat"><b>① 今日总览</b><span>3 个子项</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>首页数字卡</td><td><span class="chip c0">P0</span></td><td>9 张卡全是数据量 → 换成「今日决策」四卡（方向/机会/坑/我的票）。</td></tr>
+    <tr><td>今日看板</td><td><span class="chip c1">P1</span></td><td>全站最好的面板，却没有一句"置顶结论"；建议顶部加一句话结论条，并把它升为首页默认。</td></tr>
+    <tr><td>汇总</td><td><span class="chip c1">P1</span></td><td>内容是登录状态 + 数据量（纯运维）→ 降级并入"系统状态"折叠区，不再占一级子项。</td></tr>
+    <tr><td>每日预测</td><td><span class="chip c0">P0</span></td><td>命中率约 36%（旧引擎样本），但结论<b>没有信心/样本量标注</b>；预测个股<b>缺"为什么选它"</b>；三层框架未在页面上标明。→ 加"命中率 + 样本数 + 生成依据"三件套。</td></tr>
+  </table>
+
+  <div class="cat"><b>② 钱往哪走</b><span>5 个子项 · 资金与人气</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>游资龙虎榜</td><td><span class="chip c1">P1</span></td><td>纯席位流水，缺"这些席位在合力买哪条链"的汇总结论。</td></tr>
+    <tr><td>板块动向</td><td><span class="chip c1">P1</span></td><td>有板块排名，缺"启动 / 加速 / 退潮"的阶段判词——看不出是刚起还是尾声。</td></tr>
+    <tr><td>当前讨论股票</td><td><span class="chip c0">P0</span></td><td>只有排序，没区分"人气高"和"被看好"——<b>最该在这里标风险/机会</b>。</td></tr>
+    <tr><td>舆论情绪</td><td><span class="chip c1">P1</span></td><td>有情绪数值，但缺"情绪 → 指向哪个方向"的桥接结论。</td></tr>
+    <tr><td>资金流向</td><td><span class="chip c1">P1</span></td><td>缺"钱从哪撤、往哪去"的<b>对冲结论</b>（只给净流入数值）。</td></tr>
+  </table>
+
+  <div class="cat"><b>③ 消息与外围</b><span>9 个子项 · 信息过载重灾区</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>（整类）</td><td><span class="chip c0">P0</span></td><td>9 个子项并列，单点看不完 → 顶部需要一个「今日消息面 Top5 · 影响板块」汇总结论。</td></tr>
+    <tr><td>国际局势</td><td><span class="chip c1">P1</span></td><td>各条独立，缺"对 A 股哪个板块利好/利空"的传导落点。</td></tr>
+    <tr><td>全球政策雷达 / 科技前沿突破</td><td><span class="chip c1">P1</span></td><td>与"国际局势"本是一家人（外部消息），三块割裂 → 合成"外部驱动 → 受益板块"一图。</td></tr>
+    <tr><td>市场情绪</td><td><span class="chip c2">P2</span></td><td>✅ 已结论化（刚改造）——作为其余面板的样板。</td></tr>
+    <tr><td>政策风向 / 个股快讯</td><td><span class="chip c2">P2</span></td><td>政策已有"结论行"（好），个股快讯仍是流水 → 加"是否涉及我的关注池"标记。</td></tr>
+  </table>
+
+  <div class="cat"><b>④ 别人怎么做</b><span>6 个子项 · 全是名单，缺汇总</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>（整类）</td><td><span class="chip c0">P0</span></td><td>选手/正在操作/牛散/共同持仓/近5日共同买入/相关人物——<b>6 个名单并列，你得自己交叉比对</b>。→ 置顶一个「聪明钱共识榜」：多人同时买的方向 + 个股。</td></tr>
+    <tr><td>共同持仓共识 / 近5日共同买入</td><td><span class="chip c1">P1</span></td><td>两个口径不同（"还持有"vs"最近同时动手"），但页面上没讲清差别，易混。</td></tr>
+  </table>
+
+  <div class="cat"><b>⑤ 别人怎么看</b><span>6 个子项 · 观点与胜率</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>信源胜率榜</td><td><span class="chip c1">P1</span></td><td>有历史胜率（好东西），但没把"<b>高胜率信源当前正看好谁</b>"聚合成结论。</td></tr>
+    <tr><td>博主荐股</td><td><span class="chip c1">P1</span></td><td>有"重复推荐"明细，但没置顶成"今日多人推的票"。</td></tr>
+    <tr><td>研报评级 / 社区共识 / 当红参赛股</td><td><span class="chip c2">P2</span></td><td>研报已有"结论区"（好）；另两个加一行"今日最集中观点"即可。</td></tr>
+  </table>
+
+  <div class="cat"><b>⑥ 我的票</b><span>6 个子项 · 最该给结论，却全是工具</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>（整类）</td><td><span class="chip c0">P0</span></td><td>关注池/到价提醒/入手概率/智能选股/诊股/多资产——<b>都是"工具"，缺"我的票·今日提示"</b>（关注池里今天有没有触发买点/到价/异动）。</td></tr>
+    <tr><td>入手概率</td><td><span class="chip c1">P1</span></td><td>榜 + 时间轴（好），但没和"关注池"联动 → 应能一键"加进关注池/看是否已在池"。 </td></tr>
+  </table>
+
+  <div class="cat"><b>⑦ 行业龙头</b><span>1 个子项</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>龙头全景</td><td><span class="chip c1">P1</span></td><td>信息好用，但和决策链断开：<b>龙头 ≠ 买点</b> → 标"该龙头是否在主线 / 是否已回调到买点"。</td></tr>
+  </table>
+
+  <div class="cat"><b>⑧ 复盘成长</b><span>知识轨道 + 工具</span></div>
+  <table>
+    <tr><th style="width:130px">子项</th><th style="width:52px">级别</th><th>问题</th></tr>
+    <tr><td>策略回测 / 学习轨道 / 成长总览</td><td><span class="chip c1">P1</span></td><td>属于<b>盘后</b>动作，却占一级导航 → 移出主看盘导航，收进独立入口，让导航只服务盘中决策。</td></tr>
+  </table>
+
+  <h2>五、改造方案：三步走（建议分期）</h2>
+
+  <div class="step">
+    <div class="no">0</div>
+    <div class="bd">
+      <b>第 0 步 · 立「今日决策」首页（最高杠杆，做一个面板）</b>
+      <p>替换首页 9 张数据量卡，改为一屏四卡：<b>① 今日方向 ② 今日机会 ③ 今日风险（坑） ④ 我的票提示</b> + 顶部一句话结论。数据全部复用已有口径（板块热度、可推进票、情绪分堆、关注池），不新造引擎。做完这一步，你打开软件就能"一眼见结论"。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="no">1</div>
+    <div class="bd">
+      <b>第 1 步 · 全站「结论前置」铺开</b>
+      <p>给 40 个面板逐个加<b>三段式</b>：结论条（So-What，一句话）→ 支撑（3–5 条可点证据）→ 原始数据（默认折叠）。优先做 P0 的 6 处：首页、每日预测、当前讨论股票、消息面汇总、聪明钱共识榜、我的票提示。</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="no">2</div>
+    <div class="bd">
+      <b>第 2 步 · 导航按「决策动线」重排 + 一致性收尾</b>
+      <p>8 大类 → 5 组：<b>方向 / 机会 / 风险 / 我的 / 参考</b>（学习中心移出主看盘）。统一命名、颜色语义、空态/加载态，收掉 P2。</p>
+    </div>
+  </div>
+
+  <h3>建议的执行顺序（可直接圈选）</h3>
+  <table>
+    <tr><th style="width:52px">批次</th><th>内容</th><th style="width:110px">工作量</th><th style="width:120px">交付后你的变化</th></tr>
+    <tr><td><b>P0-A</b></td><td>「今日决策」首页（四卡 + 一句话）</td><td>中</td><td>打开即见结论</td></tr>
+    <tr><td><b>P0-B</b></td><td>每日预测加"信心/样本/依据"三件套</td><td>小</td><td>知道该信几分</td></tr>
+    <tr><td><b>P0-C</b></td><td>「当前讨论股票」加机会/风险三态标注</td><td>小</td><td>人气榜不再误导</td></tr>
+    <tr><td><b>P0-D</b></td><td>「消息与外围」顶部汇总结论</td><td>中</td><td>9 项不用逐个看</td></tr>
+    <tr><td><b>P0-E</b></td><td>「别人怎么做」聪明钱共识榜</td><td>中</td><td>6 名单合成 1 结论</td></tr>
+    <tr><td><b>P0-F</b></td><td>「我的票·今日提示」</td><td>中</td><td>关注池主动报信</td></tr>
+    <tr><td>P1</td><td>其余面板逐个结论化 + 导航重排</td><td>大</td><td>全站口径统一</td></tr>
+    <tr><td>P2</td><td>命名/颜色/空态一致性收尾</td><td>小</td><td>更好读</td></tr>
+  </table>
+
+  <div class="note">✅ <b>建议起点：</b>先做 <b>P0-A「今日决策」首页</b>——它既是最高杠杆，也是<b>全站风格的样板</b>；你看到实物后，再决定后面 39 个面板是否按同一模子铺开，避免方向没对齐就大规模动刀。</div>
+
+  <div class="footer">
+    <p><b>事实</b>：导航结构（8 类 / 40 面板）、首页数字卡内容、各面板渲染方式——均经源码核对。<b>判断</b>：病根归因、"该往哪改"、分期优先级——为审计意见。示意页中的板块/个股名取自「市场情绪」面板真实口径，仅用于展示版式层级，非投资建议。</p>
+    <p>查看器体验审计 · 2026-10-12 · 生成于本地查看器工程目录</p>
+  </div>
+
+</div>
+</body>
+</html>

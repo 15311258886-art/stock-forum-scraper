@@ -1,0 +1,226 @@
+WROTE 13252
+B.consensus_stocks ===========
+def consensus_stocks(self, min_holders: int = 2) -> list[dict]:
+        """各股被多少人（跨渠道/跨平台/跨层级）共同持仓，按共同持仓人数降序。
+
+        扩展（本轮）：共识基数扩大到 100+ 选手池，并按**层级权重**加权 ——
+        A/B/C/D 沿用原权重，新增 E/F 低层级权重递减但仍计数、仍露出。
+        返回：symbol, name, holders(人数), weighted_holders(层级加权共识度), tiers(层级集合),
+              platforms(平台集合), channels(渠道集合), sources, discuss_heat, players(明细)。"""
+        rows = self.conn.execute(
+            """SELECT p.symbol, p.symbol_name, p.player, p.channel, p.post_url, p.action, p.ratio, p.site,
+                      p.post_time,
+                      COALESCE(pl.tier, p.channel, 'D') AS tier,
+                      COALESCE(pl.tier_weight, 0.45) AS tier_weight,
+                      COALESCE(pl.platform, p.site) AS platform,
+                      COALESCE(pl.ranking_score, 0) AS ranking_score
+               FROM positions p LEFT JOIN players pl ON pl.name = p.player
+               WHERE p.symbol IS NOT NULL AND p.symbol <> '' """
+        ).fetchall()
+        # 2026-09-25 新增：**真实 trades 兜底源**。
+        # 背景：positions 表依赖「详情页」（多数站点需登录）才有数据，真实采集下常为空，
+        #       导致「共识/共同持仓」板块整体为空（实测 positions=0 时 consensus=[]）。
+        #       trades 表有**真实**买卖记录（作者 + 标的 + 方向 + 时间），足以推导「现在谁还持有」：
+        #       同一 (作者, 标的) 的**最新一笔**动作为 BUY/HOLD → 视为持有；
+        #       最新一笔为 SELL → 视为已清仓，不计入。
+        # 声明：这是从真实成交记录做的**推导**（不是伪造数据），与 positions 表按 (player, symbol) 去重合并。
+        # 兜底源异常不得影响原有 positions 逻辑，故整段 try/except。
+        try:
+            tr_rows = self.conn.execute(
+                """SELECT t.symbol, t.symbol_name, t.author AS player, NULL AS channel,
+                          t.post_url, t.action, NULL AS ratio, t.site,
+                          t.post_time,
+                          COALESCE(pl.tier, 'D') AS tier,
+                          COALESCE(pl.tier_weight, 0.45) AS tier_weight,
+                          COALESCE(pl.platform, t.site) AS platform,
+                          COALESCE(pl.ranking_score, 0) AS ranking_score
+                   FROM trades t LEFT JOIN players pl ON pl.name = t.author
+                   WHERE t.symbol IS NOT NULL AND t.symbol <> ''
+                     AND t.author IS NOT NULL AND t.author <> ''
+                     AND UPPER(COALESCE(t.action, '')) IN ('BUY', 'HOLD')
+                     AND NOT EXISTS (
+                         SELECT 1 FROM trades t2
+                          WHERE t2.author = t.author AND t2.symbol = t.symbol
+                            AND (COALESCE(t2.post_time, '') > COALESCE(t.post_time, '')
+                                 OR (COALESCE(t2.post_time, '') = COALESCE(t.post_time, '')
+                                     AND t2.id > t.id))
+                     )"""
+            ).fetchall()
+            _seen_ps = {(r["player"], r["symbol"]) for r in rows if r["player"]}
+            rows = list(rows) + [r for r in tr_rows if (r["player"], r["symbol"]) not in _seen_ps]
+        except Exception:  # noqa: BLE001
+            pass
+        # 已清仓判定：SELL 记录的 ratio 表示「本次卖出比例」，同一选手对同一标的累计 ≥100% 视为清仓。
+        # 修正：此前 SELL 记录被直接当作持仓计入共识，导致「已卖出的人仍显示为共同持仓者」。
+        sold_ratio: dict[tuple[str, str], float] = {}
+        for r in rows:
+            if (r["action"] or "").upper() == "SELL" and r["player"]:
+                k = (r["player"], r["symbol"])
+                sold_ratio[k] = sold_ratio.get(k, 0.0) + float(r["ratio"] or 0)
+
+        agg: dict[str, dict] = {}
+        for r in rows:
+            s = r["symbol"]
+            d = agg.setdefault(s, {
+                "symbol": s, "name": r["symbol_name"] or "",
+                "holders": set(), "channels": set(), "sources": set(),
+                "players": [], "sites": set(), "tiers": set(), "platforms": set(),
+                "weighted": 0.0, "seen": set(),
+            })
+            cleared = sold_ratio.get((r["player"], r["symbol"]), 0.0) >= 100
+            if r["player"] and not cleared:
+                d["holders"].add(r["player"])
+                if r["player"] not in d["seen"]:          # 同一选手多笔持仓只计一次权重
+                    d["seen"].add(r["player"])
+                    d["weighted"] = round(d["weighted"] + float(r["tier_weight"] or 0), 3)
+            if r["channel"]:
+                d["channels"].add(r["channel"])
+            if r["post_url"]:
+                d["sources"].add(r["post_url"])
+            if r["site"]:
+                d["sites"].add(r["site"])
+            if r["tier"]:
+                d["tiers"].add(r["tier"])
+            if r["platform"]:
+                d["platforms"].add(r["platform"])
+            d["players"].append({"player": r["player"], "channel": r["channel"],
+                                 "action": r["action"], "ratio": r["ratio"],
+                                 "source_url": r["post_url"], "site": r["site"],
+                                 "post_time": r["post_time"],
+                                 "tier": r["tier"], "tier_weight": r["tier_weight"],
+                                 "platform": r["platform"], "ranking_score": r["ranking_score"],
+                                 # 该选手对该标的已卖出累计比例（供界面标注「已清仓 / 部分减仓」）
+                                 "sold_ratio": round(sold_ratio.get((r["player"], r["symbol"]), 0.0), 1),
+                                 "cleared": cleared})
+            if not d["name"] and r["symbol_name"]:
+                d["name"] = r["symbol_name"]
+
+        # 讨论热度：posts 股票提及数 + trades 操作数
+        heat = {}
+        for r in self.conn.execute(
+            "SELECT symbol, COUNT(*) n FROM stock_mentions GROUP BY symbol"
+        ).fetchall():
+            heat[r["symbol"]] = heat.get(r["symbol"], 0) + r["n"]
+        for r in self.conn.execute(
+            "SELECT symbol, COUNT(*) n FROM trades WHERE symbol IS NOT NULL GROUP BY symbol"
+        ).fetchall():
+            heat[r["symbol"]] = heat.get(r["symbol"], 0) + r["n"]
+
+        out = []
+        for s, d in agg.items():
+            if len(d["holders"]) < min_holders:
+                continue
+            # 名称缺失时回退查名称缓存表，避免表格里只剩裸代码
+            name = d["name"] or (self.stock_name_map().get(s, {}).get("name") or "")
+            out.append({
+                "symbol": s,
+                "symbol_name": name,
+                "label": f"{name}（{s}）" if name else f"{s}（名称待补全）",
+                "holders": len(d["holders"]),
+                "weighted_holders": round(d["weighted"], 2),
+                "tiers": sorted(d["tiers"]),
+                "platforms": sorted(d["platforms"]),
+                "channels": sorted(d["channels"]),
+                "sources": sorted(d["sources"]),
+                "sites": sorted(d["sites"]),
+                "discuss_heat": heat.get(s, 0),
+                "players": d["players"],
+            })
+        out.sort(key=lambda x: (x["holders"], x["discuss_heat"]), reverse=True)
+        return out
+
+    # ---------------- 近 N 日同向操作（Request F：共同买入 / 共同卖出） ----------------
+
+
+=========== DB.cohold_recent ===========
+def cohold_recent(self, days: int = 5, min_holders: int = 2,
+                      anchor: str | None = None) -> dict:
+        """最近 N 日内的「多人同向操作」：≥min_holders 位选手在窗口内买入（或卖出）同一标的。
+
+        与 consensus_stocks 的分工（这正是本板块存在的理由）：
+        - consensus_stocks 回答「现在还有多少人**持有**」——看的是持仓快照；
+        - 本方法回答「最近 N 天里谁**同时动手**了」——看的是**动作发生时点**，
+          所以必须用带时间的 buy_time / sell_time 做窗口过滤，持仓快照答不了这个问题。
+
+        数据源必须合并两张表，只取其一都会漏掉大半：
+        - positions：有仓位占比、买价、现价（可推浮盈）；
+        - trades   ：有 **买入数量 quantity**（positions 表压根没有这一列）、更精确的成交时刻。
+        同一 (选手, 标的) 的多条记录合并为一条，字段取「最近一笔 + 该组内最丰富者」互补。
+
+        anchor：窗口锚定日。默认 auto=「数据最新日」；传 "today" 按日历日，或传具体日期。
+        返回值带 anchor_source / today / latest_data_date，前端据此**如实标注**窗口是按哪天算的，
+        不做任何静默替换。"""
+        from datetime import date as _date, timedelta as _td
+
+        span = max(1, int(days))
+        today = _date.today().isoformat()
+        latest = self._latest_action_date()
+        key = (anchor or "auto").strip().lower()
+        if key == "today":
+            anchor_day, anchor_source = today, "today"
+        elif key in ("", "auto", "latest", "data"):
+            anchor_day, anchor_source = (latest or today), "latest_data"
+        else:
+            try:
+                anchor_day = _date.fromisoformat(key[:10]).isoformat()
+                anchor_source = "explicit"
+            except ValueError:
+                anchor_day, anchor_source = (latest or today), "latest_data"
+        try:
+            end_d = _date.fromisoformat(anchor_day)
+        except ValueError:
+            end_d = _date.today()
+        start_d = end_d - _td(days=span - 1)
+        lo, hi = start_d.isoformat(), end_d.isoformat()
+
+        return {
+            "days": span,
+            "min_holders": int(min_holders),
+            "anchor": anchor_day,
+            "anchor_source": anchor_source,
+            "today": today,
+            "latest_data_date": latest,
+            "window_start": lo,
+            "window_end": hi,
+            "buy": self._cohold_group("BUY", lo, hi, min_holders),
+            "sell": self._cohold_group("SELL", lo, hi, min_holders),
+        }
+
+
+=========== 全部 SELL 类 trades ===========
+  4185 | eastmoney | 摸鱼后喂养纳指 | 600519 | 贵州茅台 | SELL | 
+  4190 | eastmoney | 比对分析回报率 | 000001 | 平安银行 | SELL | 
+  4191 | eastmoney | 撕幕操盘手 | 000001 | 平安银行 | SELL | 
+  4193 | eastmoney | 股友QQNY0P | 000001 | 平安银行 | SELL | 
+  4467 | taoguba | TAndyT | 600186 | 莲花控股 | SELL | 
+  4776 | eastmoney | 夜的欢歌 | 600519 | 贵州茅台 | SELL | 
+  4787 | eastmoney | 湘零道人001禁言 | 300750 | 宁德时代 | SELL | 
+  4792 | eastmoney | 湘零道人001禁言 | 601318 | 中国平安 | SELL | 
+  4471 | taoguba | 靳兔 | 605058 | 华瓷股份 | SELL | 2026-09-24 15:20:00
+  4819 | eastmoney | 先让脑子看见 | 300750 | 宁德时代 | SELL | 2026-09-25 05:41:02
+
+=========== trades.action 取值分布 ===========
+  'BUY'  34
+  'HOLD'  20
+  'SELL'  10
+
+=========== trades 有时间的 (buy/sell) ===========
+  eastmoney  先让脑子看见       300750   宁德时代     SELL   2026-09-25 05:41:02
+  eastmoney  交行1318       000001   平安银行     BUY    2026-09-25 05:28:50
+  eastmoney  股友6K77v62673 000001   平安银行     HOLD   2026-09-25 05:28:50
+  taoguba    靳兔           605058   澳弘电子     BUY    2026-09-24 15:20:00
+  taoguba    靳兔           605058   华瓷股份     SELL   2026-09-24 15:20:00
+  eastmoney  蔡小美          300750   宁德时代     BUY    2026-09-24 05:22:46
+  sina       新浪财经客户端      300750   宁德时代     HOLD   2026-09-24
+  xueqiu     价值best       000001   平安银行     HOLD   2026-09-23 18:14:00
+  xueqiu     不暴跌不买入       000001   平安银行     BUY    2026-09-23 12:21:00
+  sina       ru行          601318   中国平安     BUY    2026-09-19
+  sina       星空你亏钱了吗      601318   中国平安     HOLD   2026-09-18
+  sina       紫菜不加蛋花汤      601318   中国平安     BUY    2026-09-17
+  sina       我命由我不由天999   601318   中国平安     BUY    2026-09-16
+  sina       蔚然成风的哈里森     601318   中国平安     BUY    2026-09-16
+  sina       用户6901149448 000001   平安银行     BUY    2026-08-31
+  sina       用户6901149448 000001   平安银行     BUY    2026-08-31
+  sina       耐心的瀑布        000001   平安银行     BUY    2026-08-31
+  sina       耐心的瀑布        000001   平安银行     BUY    2026-08-31
+  sina       爱学yzwls2179  000001   平安银行     HOLD   2026-08-22

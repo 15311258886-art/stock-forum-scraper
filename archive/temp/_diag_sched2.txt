@@ -1,0 +1,54 @@
+ ~10s 唤醒一次做条件检查（粒度比 60s 更灵敏，验收要求 5-10s 内触发）：
+#   · 调度开关开启（可由 /api/scheduler/toggle 关闭，持久化到 meta 表）
+#   · 当前为工作日且处于 9:00-16:00 交易窗口
+#   · 距上次成功调度 fetch ≥ 10 分钟（防抖，避免扎堆）
+# 满足则调用 INGEST.ingest 抓取两个来源；全程 catch 异常，绝不拖垮 server 进程。
+# 状态（enabled / last_run_at / run_count / errors_today）持久化到 meta 表 key=scheduler_state。
+
+_SCHEDULER_STATE_KEY = "scheduler_state"
+_SCHEDULER_STARTED = False
+_SCHEDULER_LOCK = threading.Lock()       # 保护 _SCHEDULER_STARTED 防重入
+_SCHED_START_MIN = 9 * 60                # 交易窗口起点 09:00
+_SCHED_END_MIN = 16 * 60                 # 交易窗口终点 16:00
+_SCHED_MIN_GAP = 600                     # 两次调度最小间隔 10 分钟（防抖）
+_SCHED_WAKE = 10                         # 唤醒粒度（秒）；比 60s 更灵敏，验收 5-10s 内触发可达
+_SCHED_SOURCES = ["taoguba", "eastmoney", "sina"]  # 仅抓国内舆情，不碰海外
+
+
+def _sched_default_state() -> dict:
+    return {"enabled": True, "last_run_at": None,
+            "run_count": 0, "errors_today": 0, "errors_date": ""}
+
+
+def _sched_load_state() -> dict:
+    try:
+        raw = DB.get_meta(_SCHEDULER_STATE_KEY)
+        if raw:
+            d = json.loads(raw)
+            if isinstance(d, dict):
+     
+---- SITE_DISPLAY_NAMES ----
+取不到就回 0。
+    """
+    if not isinstance(res, dict):
+        return 0
+    return sum(v for k, v in res.items()
+               if k != "site" and isinstance(v, int) and not isinstance(v, bool))
+
+
+# ---------------- 刷新状态（Request G：最后更新列 / 实时刷新记录） ----------------
+# 数据来源中文显示名（「最后更新」列的 tooltip 与刷新状态标识用）。
+SITE_DISPLAY_NAMES = {
+    "taoguba": "淘股吧", "eastmoney": "东方财富", "xueqiu": "雪球", "ths": "同花顺",
+    "sina": "新浪股吧", "__all__": "全部来源",
+}
+# 自动刷新周期（秒）。前端默认每 5 分钟触发一次抓取；后端把该值回传，
+# 使「倒计时」与「超时判定」共用同一口径，避免前后端各写一份而漂移。
+REFRESH_INTERVAL_SECONDS = int(os.environ.get("VIEWER_REFRESH_INTERVAL", "300"))
+# 「未按时更新」阈值（秒）：默认 2 倍周期（10 分钟）——一次漏刷不算超时，
+# 连续两次未成功更新即视为该来源的数据已不新鲜。
+REFRESH_STALE_SECONDS = int(os.environ.get("VIEWER_STALE_SECONDS", "600"))
+
+
+def _kb_sources() -> list[dict]:
+    """已启用的知识库来源配置（config/kb_s

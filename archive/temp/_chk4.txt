@@ -1,0 +1,7 @@
+api_niusan def: 1
+route /api/niusan: 1
+_num2: 3
+
+    994: def api_niusan(min_hold: int = 2, scope: str = "free") -> dict:
+   2538: if route == "/api/niusan":
+   2542: return self._send_json(api_niusan(min_hold=mh, scope=sc))

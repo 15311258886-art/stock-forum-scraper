@@ -1,0 +1,2 @@
+﻿8765 after kill: CLEAR
+8766: keep pid 38288

@@ -1,0 +1,29 @@
+7690|function rateTimelineBlock(st) {
+7691|  if (st.tlLoading) return `<div class="hint wt-empty">时间轴计算中…需补各票日线（约几秒到半分钟）。</div>`;
+7692|  const tl = st.tl;
+7693|  if (!tl) return `<div class="hint wt-empty">时间轴：跑一次「全市场榜」会自动归档当天快照，之后这里按 T+1/3/5/10 回看「入市价 → 后来收盘价」的比值。</div>`;
+7694|  if (tl.ok === false) return `<div class="muted wt-empty">时间轴不可用：${esc(tl.reason || "未知原因")}</div>`;
+7695|  if (!tl.has_snap) {
+7696|    // 刚发起过跑榜/归档（tlPoll>0）＝归档正在生成，说「正在生成，可稍后刷新」并自动重试；
+7697|    // 冷启动压根没跑过榜 ＝ 真的还没起点，才劝「跑一次全市场榜，往后每天攒」。两种不能一种文案。
+7698|    if (st.tlPoll > 0) {
+7699|      return `<div class="hint wt-empty wt-empty-busy">正在生成全市场归档（约 1 分钟）…` +
+7700|        `已自动刷新 <b>${st.tlPoll}/${st.tlPollMax}</b> 次，<b>可稍后手动点「刷新时间轴」</b>。</div>`;
+7701|    }
+7702|    return `<div class="hint wt-empty">${esc(tl.reason || "还没有归档")} —— 归档是时间轴的起点，往后每天跑一次就攒起来。</div>`;
+7703|  }
+7704|  const sum = tl.summary || {};
+7705|  const sumRow = RATE_TTL.map((n) => {
+7706|    const s = sum[String(n)];
+7707|    if (!s) return `<span class="tl-sum off">T+${n}<i class="muted">样本待攒</i></span>`;
+7708|    return `<span class="tl-sum" title="样本 ${s.n} 只（已到期）">T+${n} <b class="${s.avg >= 0 ? "bull" : "bear"}">${s.avg > 0 ? "+" : ""}${s.avg.toFixed(2)}%</b><i>胜率 ${s.win_rate.toFixed(0)}% · ${s.win}/${s.n}</i></span>`;
+7709|  }).join("");
+7710|  const days = tl.days || [];
+7711|  const cards = days.map((d) => rateDayCard(d, !!st.open[d.snap_date])).join("");
+7712|  return `<div class="rate-sec">
+7713|    <div class="rate-sec-h"><h3>时间轴</h3><span class="muted">按归档日回看「入市价 → 后来收盘价」，每一行是你做判断那天</span></div>
+7714|    <div class="tl-summary">${sumRow}</div>
+7715|    <div class="tl-cards">${cards}</div>
+7716|    <div class="hint wt-foot">样本口径：每个归档日取前 ${esc(tl.per_day || st.tlPer)} 名、${esc(tl.days_window || st.tlWindow)} 个归档日。「胜率」＝ T+N 收盘价 ≥ 入市价的比例；「待到期」＝还没走到 N 个交易日，留空不填 0。</div>
+7717|  </div>`;
+7718|}

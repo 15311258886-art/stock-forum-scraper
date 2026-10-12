@@ -1,0 +1,15 @@
+[备份] viewer/static/app.js / viewer/static/index.html -> *.bak.dashboard-20260925-224131
+[1] NAV 已加「今日看板」并置于总览首项
+[2] index.html 已补 <div id="p-dashboard">
+[3] loadAll 已接入 /api/dashboard
+[4] selectNav 已加 dashboard 按需渲染分支
+[5] 已插入 DASH 状态 / loadDashboard / renderDashboard
+
+=== 校验 ===
+  app.js const DASH = { data: null }        1
+  app.js function loadDashboard             1
+  app.js function renderDashboard           1
+  app.js tab: "dashboard"                   1
+  app.js renderLhbSectors                   3
+  index p-dashboard: True
+  app.js lines: 3953

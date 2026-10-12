@@ -1,0 +1,39 @@
+app.js lines: 3835
+
+=== 今日看板接线状态 ===
+  app.js dashboard          1
+  app.js renderDashboard    0
+  app.js loadDashboard      0
+  app.js p-dashboard        0
+  app.js 看板                 0
+  app.js DASH               0
+  index panels: 19 | 含 p-dashboard: False
+
+=== NAV 一级分组 ===
+  key=overview       label=总览
+  key=acquire        label=知识获取
+  key=research       label=行情研判
+  key=trade          label=实盘操作
+  key=learn          label=跟我学习
+
+=== 二级子标签（tab/label）===
+  tab=summary        label=汇总
+  tab=sources        label=数据源
+  tab=archive        label=原始存档
+  tab=fetchlog       label=抓取与登录记录
+  tab=stocks         label=当前讨论股票
+  tab=sentiment      label=舆论情绪
+  tab=topics         label=近期热点
+  tab=overseas_sentiment label=美股港股舆情
+  tab=overseas_hotspots label=国外驱动热点
+  tab=operating      label=正在操作股票
+  tab=players        label=实盘选手(渠道)
+  tab=lhb            label=游资龙虎榜
+  tab=lhb_sectors    label=板块动向
+  tab=niusan         label=牛散追踪
+  tab=consensus      label=共同持仓共识
+  tab=cohold         label=近5日共同买入
+  tab=persons        label=相关人物
+  tab=learn_zdx_stock label=中短线炒股
+  tab=learn_tracks   label=学习轨道管理
+  tab=learn_tracks   label=学习轨道管理

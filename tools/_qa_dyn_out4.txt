@@ -1,0 +1,30 @@
+### A. /api/players 排序与空值
+  条数=160 rank_position 为 None 的=0
+  前 5 个 rank_position=[1, 2, 3, 4, 5]（SQLite 中 NULL 排最前）
+  tier 分布={"A": 37, "B": 42, "C": 35, "D": 40, "F": 1, "E": 5}
+  channel 分布={"A": 37, "B": 42, "C": 35, "D": 46}
+  is_visible=0 的=0 influence 为 None/0 的=0
+  is_top_player=1 的=154
+
+### B. /api/positions 是否有重复 (site,player,symbol)
+  条数=135 重复组合数=2 示例=[("('taoguba', '尾盘狙击', '000333')", 2), ("('taoguba', '大阪柯小李', '600519')", 2)]
+  action 分布={"BUY": 54, "HOLD": 60, "SELL": 21}
+
+### C. 「HTTP 200 + {error:...}」错误语义清单
+  /api/stock -> HTTP 200 body={'error': 'symbol required'}
+  /api/stock?symbol= -> HTTP 200 body={'error': 'symbol required'}
+  /api/person?name= -> HTTP 200 body={'error': 'name required'}
+  /api/player?name= -> HTTP 200 body={'error': 'name required'}
+  /api/player?name=__x__ -> HTTP 200 body={'error': 'player not found'}
+  /api/detail -> HTTP 200 body={'error': 'not found'}
+  /api/detail?kind=bogus&id=1 -> HTTP 200 body={'error': 'unknown kind'}
+  /api/detail?kind=post&id=-1 -> HTTP 200 body={'error': 'not found'}
+  /api/detail?kind=post&id=999999999 -> HTTP 200 body={'error': 'not found'}
+
+### D. /api/summary.sites 与站点配置
+  sites=['taoguba'] last_ingest='示例数据' login_status=[{"site": "taoguba", "status": "no_credential", "checked_at": "2026-09-22 22:44:59", "detail": "未保存凭据，请先 credentials add"}]
+
+### E. 海外热点 heat 是否严格降序 + 字段类型
+  n=17 降序=True 首尾=[5764.25, 4378.35, 3014.65]..[86.0]
+  字段类型={'decision': ['str'], 'overview': ['str'], 'transmission': ['str'], 'amplification': ['str'], 'cross_check': ['str'], 'sectors_up_detail': ['list'], 'sectors_down_detail': ['list'], 'variables': ['list']}
+  decision/明细 类型不符合预期的 id：无
