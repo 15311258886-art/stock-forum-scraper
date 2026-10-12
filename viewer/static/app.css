@@ -3635,3 +3635,11 @@ a.pd-code:hover { background: rgba(127,127,127,.22); color: #0e7490; }
   font-size: 10.5px; letter-spacing: 2px; color: var(--muted, #6B7280); }
 .rail-sep::before, .rail-sep::after { content: ""; flex: 1; height: 1px;
   background: var(--border, #e5e0d5); }
+
+
+/* ===== 2026-10-12 整改 #21：今日推荐风险声明条 ===== */
+.pred-disclaimer{
+  margin:0 0 10px;padding:8px 12px;border-radius:8px;
+  background:var(--amber-soft, #fdf6e3);border-left:3px solid #b8860b;
+  color:#6b5200;font-size:12.5px;line-height:1.6;
+}

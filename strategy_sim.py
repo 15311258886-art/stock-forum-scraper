@@ -40,9 +40,8 @@ KCACHE = os.path.join(BASE, "kline_cache.json")
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-_CTX = ssl.create_default_context()
-_CTX.check_hostname = False
-_CTX.verify_mode = ssl.CERT_NONE
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_CTX = netctx.https_context("money.finance.sina.com.cn")  # 整改 #27：默认不校验，按环境变量可开启
 # 空代理 opener：绕过本机可能存在的代理劫持（务必保留）。
 _OP = urllib.request.build_opener(urllib.request.ProxyHandler({}),
                                  urllib.request.HTTPSHandler(context=_CTX))

@@ -70,10 +70,8 @@ SRC_NAV = '东方财富基金详情 fund.eastmoney.com/pingzhongdata/<code>.js�
 SRC_INNER = '新浪财经场内涵数清单 vip.stock.finance.sina.com.cn（ETF/LOF，按成交额降序）'
 SRC_KLINE = '新浪财经场内涵数日线 money.finance.sina.com.cn（OHLC + 成交量）'
 
-_CTX = ssl.create_default_context()
-_CTX.check_hostname = False
-_CTX.verify_mode = ssl.CERT_NONE
-
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_CTX = netctx.https_context("fund.eastmoney.com")  # 整改 #27：默认不校验，按环境变量可开启
 # ---------------------------------------------------------------------------
 # HTTP
 # ---------------------------------------------------------------------------

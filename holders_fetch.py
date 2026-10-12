@@ -41,9 +41,8 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 UT = "fa5fd1943c7b386f172d6893dbfba10b"
 GAP = 0.35  # 请求间隔（避免被限流）
 
-_CTX = ssl.create_default_context()
-_CTX.check_hostname = False
-_CTX.verify_mode = ssl.CERT_NONE
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_CTX = netctx.https_context("datacenter.eastmoney.com")  # 整改 #27：默认不校验，按环境变量可开启
 _OPENER = urllib.request.build_opener(
     urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=_CTX))
 

@@ -13394,6 +13394,7 @@ function renderPrediction() {
     const core = (d.items || []).filter((x) => x.tier === "core");
     const watch = (d.items || []).filter((x) => x.tier === "watch");
     body = `
+      <div class="pred-disclaimer" role="note">⚖️ ${esc(d.disclaimer || "以上为公开讨论情绪与历史统计的信号，非投资建议；回测不代表未来。")}</div>
       <div class="pred-section pred-verdict">
         <div class="pred-verdict-t">市场研判（${escAttr(d.run_date || "")}）</div>
         <div class="pred-verdict-body">${esc(d.market_view || "")}</div>

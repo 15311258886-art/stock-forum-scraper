@@ -49,9 +49,8 @@ _UT = "7eea3edcaed734bea9cbfc24409ed989"
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
-_ctx = ssl.create_default_context()
-_ctx.check_hostname = False
-_ctx.verify_mode = ssl.CERT_NONE
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_ctx = netctx.https_context("datacenter-web.eastmoney.com")  # 整改 #27：默认不校验，按环境变量可开启
 _opener = urllib.request.build_opener(
     urllib.request.ProxyHandler({}),          # 直连，不吃系统代理
     urllib.request.HTTPSHandler(context=_ctx),

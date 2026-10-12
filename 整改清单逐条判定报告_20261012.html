@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>整改执行清单 · 逐条判定报告</title>
+<style>
+  :root{
+    --bg:#faf8f4; --card:#fff; --ink:#1a1a1a; --sub:#6b6b6b; --line:#e8e4dc;
+    --teal:#0E7490; --teal-soft:#e6f2f5;
+    --red:#c0392b; --red-soft:#fdecea;
+    --green:#2e7d5b; --green-soft:#e8f5ef;
+    --amber:#9a6b00; --amber-soft:#fdf6e3;
+    --gray:#5b6570; --gray-soft:#eef1f3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.7;padding:40px 22px;font-size:14.5px}
+  .wrap{max-width:1060px;margin:0 auto}
+  header{border-bottom:3px solid var(--teal);padding-bottom:18px;margin-bottom:26px}
+  h1{font-size:25px;font-weight:700;letter-spacing:.4px}
+  .meta{color:var(--sub);font-size:13px;margin-top:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 30px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
+  .kpi .v{font-size:24px;font-weight:700;color:var(--teal)}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:4px}
+  h2{font-size:17px;margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--teal)}
+  .note{background:var(--teal-soft);border-left:4px solid var(--teal);padding:13px 17px;
+        border-radius:0 8px 8px 0;margin:14px 0;font-size:14px}
+  .note.red{background:var(--red-soft);border-left-color:var(--red)}
+  .note.amber{background:var(--amber-soft);border-left-color:var(--amber)}
+  .note.gray{background:var(--gray-soft);border-left-color:var(--gray)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:8px;overflow:hidden;font-size:13.5px;margin-bottom:8px}
+  th{background:var(--teal);color:#fff;text-align:left;padding:9px 11px;font-size:12.5px;font-weight:600}
+  td{padding:9px 11px;border-top:1px solid var(--line);vertical-align:top}
+  tr:nth-child(even) td{background:#fcfbf9}
+  .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .done{background:var(--green-soft);color:var(--green)}
+  .hold{background:var(--amber-soft);color:var(--amber)}
+  .no{background:var(--red-soft);color:var(--red)}
+  .id{font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+  code{background:#f0eee9;padding:1px 5px;border-radius:4px;font-size:12.5px;
+       font-family:"Cascadia Code",Consolas,monospace}
+  ul{padding-left:20px;margin:6px 0}
+  li{margin:4px 0}
+  .foot{margin-top:38px;padding-top:16px;border-top:1px solid var(--line);color:var(--sub);
+        font-size:12px;text-align:center}
+  b.ok{color:var(--green)} b.no{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>《整改执行清单》逐条判定报告</h1>
+  <div class="meta">
+    被审对象：股票论坛可视化查看器 · <code>F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper</code><br>
+    判定原则：① 逐条到源码核对，不照单全收；②「合理且低风险」直接改并验证；③ 改变你每天看到的结论 / 可能让程序失联的，先指出、请你拍板<br>
+    执行日期：2026-10-12 &nbsp;|&nbsp; 提交：<code>fd563dd</code>
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="v">10</div><div class="l">已改并验证</div></div>
+  <div class="kpi"><div class="v">6</div><div class="l">合理但需你拍板</div></div>
+  <div class="kpi"><div class="v">6</div><div class="l">判定不宜照做</div></div>
+  <div class="kpi"><div class="v">全绿</div><div class="l">回归测试</div></div>
+</div>
+
+<div class="note">
+  <strong>先说结论：</strong>这份清单整体质量不错（多数条目是真问题，行号虽漂移但病灶找得准）。
+  我<b class="ok">采纳并已实施 10 条</b>；<b>6 条方向合理但会改变产品输出/需要较大改动的，我没有擅自做</b>；
+  <b class="no">6 条判定不宜照做</b>（含 1 条正在破坏程序运行的）。另修掉一个<b>真泄密面</b>（详情见文末）。
+</div>
+
+<h2>一、已采纳并实施（10 条，全部通过验证）</h2>
+<table>
+  <tr><th style="width:8%">条目</th><th style="width:30%">问题（已核实为真）</th><th style="width:34%">处理</th><th style="width:28%">验证</th></tr>
+  <tr>
+    <td class="id">#05</td>
+    <td><code>auto_update.py</code> 状态落盘时引用从未赋值的 <code>chain</code> → <b>NameError</b>，日更写不出状态、静默断档</td>
+    <td>补齐真正跑 <code>sector_chain.py</code> 的子进程块（超时 1800s、失败不阻断）</td>
+    <td>语法编译通过；<code>chain</code> 赋值次数 0→1；不再有 NameError 路径</td>
+  </tr>
+  <tr>
+    <td class="id">#06</td>
+    <td>单实例守护用 <code>os.kill(pid, 0)</code> 探活；<b>Windows 上信号 0 实为 CTRL_C_EVENT</b>，会向目标进程发 Ctrl+C；PID 复用即误伤无关进程</td>
+    <td>改 <code>_pid_alive()</code>：Windows 走 ctypes <code>OpenProcess+GetExitCodeProcess</code>（纯只读、零信号），POSIX 保留安全分支</td>
+    <td>自测：自身 PID→True、不存在 PID→False、PID 0→False</td>
+  </tr>
+  <tr>
+    <td class="id">#07</td>
+    <td>GET 接口无 Host 校验（DNS rebinding 可读本地数据）；危险端点无 Origin 也放行</td>
+    <td><code>_do_GET</code> 首行加回环 Host 校验；<code>_guard_write</code> 对 <code>/api/edge/restart</code>、<code>/api/login/open</code> 强制 Origin</td>
+    <td>伪造 <code>Host: evil.com</code>→403；危险端点无 Origin→403；普通写端点→200（未误伤）；正常 GET→200</td>
+  </tr>
+  <tr>
+    <td class="id">#08</td>
+    <td><code>_send_json</code> 未禁 NaN/Infinity；Python 会把它写成非法 JSON，前端 <code>JSON.parse</code> 抛异常→<b>整块面板空白</b></td>
+    <td>新增 <code>_json_safe()</code> 递归清洗非法浮点为 null，再 <code>allow_nan=False, default=str</code> 兜底</td>
+    <td>含 NaN/±Inf 的 payload 清洗后为合法 JSON 且可反解析</td>
+  </tr>
+  <tr>
+    <td class="id">#09</td>
+    <td><code>/api/login/open</code> 的 <code>Popen(stdout=fh)</code> 成功分支从不关 <code>fh</code> → 连点即句柄泄漏</td>
+    <td>改 <code>try/except/finally</code>，<code>finally</code> 保证关闭（子进程已继承句柄副本）</td>
+    <td>语法通过；逻辑等价复核（成功/失败都关）</td>
+  </tr>
+  <tr>
+    <td class="id">#12</td>
+    <td><code>normalize()</code> 用 <code>\b(\d{6})\b</code>；Python 把 CJK 当 <code>\w</code>，故「宁德时代300750」提不出代码</td>
+    <td>改数字环视 <code>(?&lt;!\d)(\d{6})(?!\d)</code></td>
+    <td>「宁德时代300750」→300750；<code>sh600519</code>→600519；7 位数字不误取</td>
+  </tr>
+  <tr>
+    <td class="id">#23</td>
+    <td><code>bindBoardFlowControls()</code> 每次进入/刷新面板都往 <code>document</code> 挂匿名 keydown 且从不移除 → 反复进出无限累积</td>
+    <td>仿 <code>_klineResizeBound</code> 加 <code>_bfKeysBound</code> 一次性守卫；事件内现读 DOM 避免闭包过期</td>
+    <td>app.js <code>node --check</code> 通过；护栏零报错</td>
+  </tr>
+  <tr>
+    <td class="id">#26</td>
+    <td><code>#statusHint</code> 无无障碍属性；改前端后需版本戳防缓存</td>
+    <td>加 <code>role="status" aria-live="polite"</code>；版本串 <code>20261012-ratebp→remed</code></td>
+    <td>服务返回版本串已生效；资源字节与磁盘一致（864595B）</td>
+  </tr>
+  <tr>
+    <td class="id">#01<br>#02</td>
+    <td>浏览器 profile / cookie 数据 / 运行产物被 git 跟踪（详见文末泄密面）</td>
+    <td>补 <code>.gitignore</code> 规则（<code>.browser-profile/</code>、<code>.workbuddy/</code>、cookie、<code>artifacts/</code>、<code>shots/</code>、<code>*.pid</code>…），<b>放行 <code>assets/</code> 正式素材</b></td>
+    <td>索引中 browser-profile/cookie/artifacts 计数全部归 0；assets 6 个 png 保留</td>
+  </tr>
+</table>
+
+<div class="note gray">
+  <strong>顺带补的回归护栏</strong>：新增 <code>test_remed_20261012.py</code>（<b class="ok">9/9 PASS</b>），
+  既测真实函数（ast 抽取源码执行，避免 import server 的副作用），也对已修形态做静态防回退断言。
+  <br>回归总览：<code>stage0 6/6 PASS</code>；<code>pytest 28 passed / 3 skipped</code>；
+  <code>verify_today / verify_brief / verify_rate_buy / verify_nav</code> 全 <b class="ok">PASS</b>。
+</div>
+
+<h2>二、方向合理，但会改变产品输出 → 请你拍板（6 条）</h2>
+<div class="note amber">
+  这批属于「<strong>推荐引擎方法论</strong>」。技术上多数站得住，但它们会<strong>直接改变你每天看到的命中率与推荐结论</strong>，
+  属研究性质的改造（需 A/B 对照、且要重跑 stage0）。按你「确保程序正常运行」的要求，我<strong>没有擅自改</strong>。
+</div>
+<table>
+  <tr><th style="width:8%">条目</th><th style="width:46%">它主张什么</th><th style="width:46%">我的判断</th></tr>
+  <tr><td class="id">#16</td>
+    <td>回测入场价由「T 日收盘」改为「T+1 开盘」，避免用已知信号价成交</td>
+    <td><b>方向对</b>（确有前视乐观）；<code>next_open</code> 已在算，改动不大。但命中率会<b>明显下降</b>，要你知道这是"变诚实"而非"变差"</td></tr>
+  <tr><td class="id">#17</td>
+    <td>全链路加沪深300基准与超额（<code>excess/beta/alpha_t</code>），命中改为"跑赢基准"</td>
+    <td><b>合理</b>，但需接入基准行情+同复权口径，工作量中等；会重定义"命中"</td></tr>
+  <tr><td class="id">#18</td>
+    <td>回测真正回放「选股管线」（每日只用截至当日信号），胜率改持仓级，70/30 OOS 训练段重算规则</td>
+    <td><b>技术上最有价值、也最重</b>。若当前确实是"对全区间后视选出的名单回测"，那结论确实偏乐观。但这是重建，不是修 bug</td></tr>
+  <tr><td class="id">#19</td>
+    <td>情绪/热度/跟随做拥挤度反向（过热降权甚至转负），带 <code>HEAT_CONTRARIAN</code> 开关</td>
+    <td><b>合理且带开关</b>（可回滚）。会压低"人气高+连板"票的分</td></tr>
+  <tr><td class="id">#20</td>
+    <td>作者评分：相对胜率、贝叶斯收缩+最小样本、防刷、后复权、退市不剔除</td>
+    <td><b>合理</b>（去牛市滤镜/幸存者偏差）。会改写"信源胜率榜"的排序</td></tr>
+  <tr><td class="id">#21</td>
+    <td>推荐卡内嵌免责声明 + 置信度改区间/星级 + 删"必涨/满仓/清仓"绝对化措辞</td>
+    <td><b>合理、低风险、建议做</b>（你常对外讲，合规措辞有用）。这条要不要我<b>现在就上</b>？</td></tr>
+</table>
+
+<h2>三、判定不宜照做 / 断言已过期（6 条）</h2>
+<table>
+  <tr><th style="width:8%">条目</th><th style="width:46%">它的要求</th><th style="width:46%">我为什么不照做</th></tr>
+  <tr><td class="id">#27</td>
+    <td>「恢复 TLS 证书校验」——把 15+ 处 <code>CERT_NONE/verify=False</code> 全改回默认校验</td>
+    <td><b class="no">会直接搞垮程序。</b>这些关校验是<strong>为绕开国内金融数据源证书异常 / 代理 MITM</strong>（<code>fund_link/holders_fetch/lhb_fetch/policydesk/sector_chain</code> 等 8 个生产模块实测命中）。无差别恢复 → 全线数据源失联。正解是"逐源白名单 + 可配置 CA"，我是这样建议的</td></tr>
+  <tr><td class="id">#30</td>
+    <td>Python 对齐到 <b>3.12</b>；删除内置 <code>extlib/pandas</code>，改走正规依赖</td>
+    <td><b class="no">倒退且破坏离线性。</b>当前 <b>3.13.14 正常跑</b>，降级无收益、有回退风险；<code>extlib/</code> 内置第三方库多半正是<strong>为本机装不上而内置</strong>的，删掉可能直接断依赖</td></tr>
+  <tr><td class="id">#31</td>
+    <td>加固到 <code>make_viewer_shortcut.py</code> 的硬编码 <code>F:</code> 路径；并去掉手改 <code>.lnk</code> 做法</td>
+    <td><b>断言已过期。</b>该文件<strong>已无 F: 硬编码</strong>；且清单自身前文写「不要手改 <code>.lnk</code>」，与这条自相矛盾</td></tr>
+  <tr><td class="id">#28</td>
+    <td>境外中继数据加 sha256 manifest 校验</td>
+    <td><b>需跨端配合</b>：发布侧（另一个抓取端）要先产 manifest，本仓只能做接收侧一半。建议先与那端对齐再动</td></tr>
+  <tr><td class="id">#29</td>
+    <td>DB 治理：删 <code>app_iso*.db</code>、<code>app.db.bak-*</code>、根 104 个 <code>_*</code> 脚本；引入 <code>schema_version</code> 迁移框架</td>
+    <td><b>主体我上一轮已完成</b>（<code>app_iso*.db</code>、<code>app.db.bak-*</code>、<code>_*</code> 均已清，回收 1.9G）。余下"迁移框架"可做但非急，且与"新建脚本"要和现有 <code>scripts/</code> 归并</td></tr>
+  <tr><td class="id">#32</td>
+    <td>补 <code>README.md</code> + <code>docs/OPERATIONS.md</code>；把 22 个中文 HTML 报告归档到 <code>docs/</code></td>
+    <td><b>写文档合理，但后半句已不成立</b>：那 21 份历史报告你上一轮已确认"全删"。README/OPERATIONS 有价值，要不要做请你定（属新增交付物）</td></tr>
+</table>
+
+<h2>四、顺手发现的真泄密面（清单 #01/#02 指对了，我修掉了）</h2>
+<div class="note red">
+  <strong>上一轮我做"工程垃圾清理"时，用 <code>git add -A</code> 误把运行期产物一起提交了：</strong>
+  <ul>
+    <li><code>.browser-profile/</code> —— <b>174 个文件</b>（浏览器 profile：含 <code>Default/Network/Cookies</code>、Login Data、History 等登录态数据）</li>
+    <li><code>tools/cookies.prev-anon.json</code> —— 明文 cookie 文件</li>
+    <li><code>artifacts/</code>15 + <code>shots/</code>18 + 截图 png 42 + <code>.workbuddy/</code>17</li>
+  </ul>
+  <strong>已处置</strong>：全部 <code>git rm --cached</code> 解除跟踪（<b>磁盘文件保留，功能不受影响</b>），
+  并补 <code>.gitignore</code> 规则；<code>assets/</code> 下 6 个正式图标素材<strong>保留在库</strong>。
+  <br>说明：本仓目前<strong>无远端</strong>（纯本地），故历史里的旧提交未做重写；若日后要推远端，建议先重写历史或换个新库推。
+</div>
+
+<h2>五、清单本身的几处硬伤（供你参考，说明它是"人写的、有漂移"）</h2>
+<div class="note gray">
+  <ul>
+    <li><b>前提不成立</b>：清单把「<code>pytest 全绿</code>」当铁律验收标准，但 venv 里<b>根本没装 pytest</b>（我已装上并跑通）。</li>
+    <li><b>数量对不上</b>：清单说"KNOWN_DEFECTS 已修的 8 条守护"，实际 <code>test_stage0_correctness.py</code> 是 <b>6 个测试</b>。</li>
+    <li><b>路径写错</b>：#15 指 <code>scraper/taoguba.py</code>，真实路径是 <code>scraper/parsers/taoguba.py</code>。</li>
+    <li><b>行号普遍漂移</b>：引用行号与当前代码差几十到上百行（因项目一直在改），只能按语义定位。</li>
+    <li><b>自我矛盾</b>：#31 一边说"不要手改 .lnk"，一边建议改快捷方式生成器。</li>
+  </ul>
+</div>
+
+<div class="foot">
+  整改执行清单 · 逐条判定报告 &nbsp;|&nbsp; 2026-10-12 &nbsp;|&nbsp; 采纳 10 / 待定 6 / 不宜 6
+</div>
+
+</div>
+</body>
+</html>

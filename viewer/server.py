@@ -8436,62 +8436,28 @@ def _setup_logging() -> None:
         print(f"[查看器] 日志初始化失败（不影响服务）：{e}", file=sys.stderr)
 
 
-def _pid_alive(pid: int) -> bool:
-    """**不发送任何信号**地判断进程是否存活。
-
-    2026-10-12 修复：原实现用 `os.kill(pid, 0)` 探活，但 Windows 上信号 0 实为
-    CTRL_C_EVENT，会给目标进程发 Ctrl+C；若该 PID 已被无关进程复用，等于误伤他人进程，
-    且对非控制台进程语义不可靠。改为全程只读、零信号的探活：
-      · Windows：OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION) + GetExitCodeProcess；
-      · POSIX：os.kill(pid, 0) 在类 Unix 上本就是无副作用的探活，保留。
-    """
-    if pid <= 0:
-        return False
-    if os.name == "nt":
-        import ctypes
-        from ctypes import wintypes
-
-        _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-        _STILL_ACTIVE = 259
-        k32 = ctypes.windll.kernel32
-        h = k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
-        if not h:
-            return False  # 打不开句柄（进程不存在 / 权限不足）→ 视为不存活
-        try:
-            code = wintypes.DWORD()
-            if k32.GetExitCodeProcess(h, ctypes.byref(code)):
-                return code.value == _STILL_ACTIVE
-            return False
-        finally:
-            k32.CloseHandle(h)
-    try:
-        os.kill(pid, 0)
-        return True
-    except OSError:
-        return False
+def _port_in_use(port: int) -> bool:
+    """本机 127.0.0.1:port 是否已有进程在监听（只读探测，无副作用）。"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
 
 
 def _acquire_server_instance() -> bool:
-    """单实例守护：防止重复启动 `python -m viewer.server` 抢 8765（体检报告 P0 双进程）。
+    """单实例守护：防止**同一端口**上出现两个查看器（体检报告 P0 双进程）。
 
-    端口探测存在 TOCTOU 竞态（两个进程几乎同时启动、彼此都以为端口空闲），
-    故用 pid 文件 + PID 存活探测在绑定前闭合窗口：已有存活实例则直接退出。
-    返回 True=本进程可继续；False=已有存活实例，应退出。
+    2026-10-12 修正：#06 整改后曾用「PID 文件里的进程是否存活」裁决，但 PID 文件是全局的、
+    不分端口 —— 于是任何在**其它端口**拉起的第二实例（如护栏 verify_prediction 的 8813）
+    都会被误挡，护栏报「后端起不来」。改为**按端口裁决**：只有「本进程要用的这个端口」
+    已被监听时才退出。同端口同时启动的竞态由 bind 自身兜住（EADDRINUSE → report_bind_failure）。
+    仍写 PID 文件，但仅作记录，不再据它决定生死（Windows 上 `os.kill(pid, 0)` 实为
+    发送 CTRL_C_EVENT，不可用于探活，故已彻底弃用该写法）。
+    返回 True=本进程可继续；False=本端口已有实例，应退出。
     """
     try:
-        if os.path.exists(_SERVER_PID_FILE):
-            old_pid = 0
-            try:
-                with open(_SERVER_PID_FILE, "r", encoding="utf-8") as f:
-                    txt = f.read().strip()
-                old_pid = int(txt.split()[0]) if txt else 0
-            except Exception:
-                old_pid = 0
-            if old_pid and old_pid != os.getpid() and _pid_alive(old_pid):
-                print(f"[查看器] 已有查看器后端进程在运行（PID {old_pid}），"
-                      f"本次退出以避免重复实例抢端口。")
-                return False
-            # 旧 PID 已死（或文件损坏）→ 落到下方覆盖写新 PID 文件即可
+        if _port_in_use(PORT):
+            print(f"[查看器] 端口 {PORT} 已有后端在监听，本次退出以避免重复实例抢端口。")
+            return False
         with open(_SERVER_PID_FILE, "w", encoding="utf-8") as f:
             f.write(f"{os.getpid()}\n")
     except Exception:  # noqa: BLE001

@@ -34,9 +34,8 @@ FLASH_KEEP = 60            # 快讯筛选后最多保留条数
 
 # ---------------------------------------------------------------- 基础设施
 
-_SSL_CTX = ssl.create_default_context()
-_SSL_CTX.check_hostname = False
-_SSL_CTX.verify_mode = ssl.CERT_NONE
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_SSL_CTX = netctx.https_context("finance.eastmoney.com")  # 整改 #27：默认不校验，按环境变量可开启
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 

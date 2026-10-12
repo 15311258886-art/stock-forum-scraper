@@ -32,10 +32,8 @@ from xml.etree import ElementTree as ET
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config" / "overseas_sources.yaml"
 
-_SSL = ssl.create_default_context()
-_SSL.check_hostname = False
-_SSL.verify_mode = ssl.CERT_NONE
-
+import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
+_SSL = netctx.https_context()  # 整改 #27：默认不校验，按环境变量可开启
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 

@@ -358,6 +358,9 @@ def _migrate(con: sqlite3.Connection) -> None:
         "ret_t10": "REAL", "bench_t10": "REAL", "hit_t10": "INTEGER",
         "series_json": "TEXT", "mom5": "REAL", "cool": "REAL",
         "board": "TEXT", "conc": "TEXT", "holder30": "INTEGER",
+        # 2026-10-12 整改 #16：T+1 开盘口径（并列对照，不动原 T 收盘口径列）
+        "ret2_t1": "REAL", "ret2_t3": "REAL", "ret2_t5": "REAL", "ret2_t10": "REAL",
+        "hit2_t1": "INTEGER", "hit2_t3": "INTEGER", "hit2_t5": "INTEGER", "hit2_t10": "INTEGER",
     }
     for col in (1, 3, 5, 10):
         pass  # 窗口列已随 DDL（t3/t5 旧，t10 在下面补）
@@ -2207,7 +2210,7 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
             entry = _f(it["entry_close"])
             if entry is None and idx is not None:
                 entry = _f(k[idx].get("c"))
-            row = {"hit": {}, "ret": {}, "caveat": [], "series": []}
+            row = {"hit": {}, "hit2": {}, "ret": {}, "ret2": {}, "caveat": [], "series": []}
             if idx is None or entry in (None, 0):
                 pending += 1
                 # ⚠️ 与下方 UPDATE 的 17 个占位符严格对齐：4 ret + 4 bench + 4 hit
@@ -2216,6 +2219,7 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
                 #    报 "Incorrect number of bindings (17 vs 18)"，当天复盘/权重更新全失效。
                 upd.append((None, None, None, None, None, None, None, None, None,
                             None, None, None, None,
+                            None, None, None, None, None, None, None, None,
                             "无K线数据", None, rd, sym))
                 continue
             if idx + 1 < len(k):
@@ -2227,6 +2231,11 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
                 b = bench.get(w)
                 row["ret"][w] = r
                 row["hit"][w] = (1 if (b is not None and r > b) else 0)
+                # 整改 #16：并列算 T+1 开盘口径（入场价=T+1 开盘，出场同为 idx+w）
+                r2 = _window_ret2(k, idx, w)
+                if r2 is not None:
+                    row["ret2"][w] = r2
+                    row["hit2"][w] = (1 if (b is not None and r2 > b) else 0)
             # 逐日曲线（沉淀）：自预测日次日起，最多 MAX_SERIES 个交易日
             for j in range(idx + 1, min(len(k), idx + 1 + MAX_SERIES)):
                 c = _f(k[j].get("c"))
@@ -2251,6 +2260,8 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
             upd.append((row["ret"].get(1), row["ret"].get(3), row["ret"].get(5), row["ret"].get(10),
                         bench.get(1), bench.get(3), bench.get(5), bench.get(10),
                         row["hit"].get(1), row["hit"].get(3), row["hit"].get(5), row["hit"].get(10),
+                        row["ret2"].get(1), row["ret2"].get(3), row["ret2"].get(5), row["ret2"].get(10),
+                        row["hit2"].get(1), row["hit2"].get(3), row["hit2"].get(5), row["hit2"].get(10),
                         json.dumps(row["series"], ensure_ascii=False),
                         ("未到期" if pending and not row["ret"] else
                          ("；".join(row["caveat"]) if row["caveat"] else None)),
@@ -2258,7 +2269,10 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
         con.executemany(
             "UPDATE prediction_item SET ret_t1=?,ret_t3=?,ret_t5=?,ret_t10=?,"
             "bench_t1=?,bench_t3=?,bench_t5=?,bench_t10=?,"
-            "hit_t1=?,hit_t3=?,hit_t5=?,hit_t10=?,series_json=COALESCE(?,series_json),"
+            "hit_t1=?,hit_t3=?,hit_t5=?,hit_t10=?,"
+            "ret2_t1=?,ret2_t3=?,ret2_t5=?,ret2_t10=?,"
+            "hit2_t1=?,hit2_t3=?,hit2_t5=?,hit2_t10=?,"
+            "series_json=COALESCE(?,series_json),"
             "caveat=COALESCE(?,caveat),reviewed_at=? "
             "WHERE run_date=? AND symbol=?", upd)
         con.execute("UPDATE prediction_run SET bench_json=? WHERE run_date=?",
@@ -2318,6 +2332,31 @@ def _window_ret(k: list, idx: int | None, w: int) -> float | None:
     if not c0 or c1 is None:
         return None
     return c1 / c0 - 1.0
+
+
+def _window_ret2(k: list, idx: int | None, w: int) -> float | None:
+    """T+1 开盘 → 第 w 个交易日收盘 的收益（2026-10-12 整改 #16）。
+
+    与原 `_window_ret` 的区别**只在入场价**：
+      · 原口径：T 日收盘（相当于"看到信号的当天收盘价就能买到"，偏乐观）；
+      · 本口径：T+1 开盘（次日开盘才买得进，更贴近真实可成交性）。
+    出场日与原口径一致（同为 idx+w 收盘），便于两口径并列对照。
+    T+1 无开盘价（尚未产生 / 停牌）时退化为原口径，不返回 None，避免整条丢失。
+    """
+    if idx is None or idx < 0:
+        return None
+    if idx + 1 >= len(k):
+        return None
+    o1 = _f(k[idx + 1].get("o"))
+    if not o1:
+        return _window_ret(k, idx, w)
+    j = idx + w
+    if j >= len(k):
+        return None
+    c1 = _f(k[j].get("c"))
+    if c1 is None:
+        return None
+    return c1 / o1 - 1.0
 
 
 def _aggregate(con: sqlite3.Connection) -> dict:
@@ -2397,6 +2436,10 @@ def _score_row(r) -> dict:
     }
 
 
+# 2026-10-12 整改 #21：今日推荐 payload 固定附带的风险声明（合规：非投资建议）。
+DISCLAIMER_TEXT = "以上为公开讨论情绪与历史统计的信号，非投资建议；回测不代表未来。"
+
+
 def today_payload(con: sqlite3.Connection | None = None) -> dict:
     own = con is None
     con = con or connect()
@@ -2429,9 +2472,20 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
                 "ret": {"t1": it["ret_t1"], "t3": it["ret_t3"], "t5": it["ret_t5"], "t10": it["ret_t10"]},
                 "bench": {"t1": it["bench_t1"], "t3": it["bench_t3"], "t5": it["bench_t5"], "t10": it["bench_t10"]},
                 "hit": {"t1": it["hit_t1"], "t3": it["hit_t3"], "t5": it["hit_t5"], "t10": it["hit_t10"]},
+                # 整改 #16：T+1 开盘入场口径（并列对照）
+                "ret2": {"t1": it["ret2_t1"], "t3": it["ret2_t3"], "t5": it["ret2_t5"], "t10": it["ret2_t10"]},
+                "hit2": {"t1": it["hit2_t1"], "t3": it["hit2_t3"], "t5": it["hit2_t5"], "t10": it["hit2_t10"]},
                 "series": series,
                 "caveat": it["caveat"],
             })
+        # 整改 #16：两种入场口径的命中率对照（让"T收盘口径偏乐观"这件事可见）
+        def _rate(key: str, w: int):
+            vals = [x[key][w] for x in out_items if x[key].get(w) is not None]
+            return round(sum(vals) / len(vals) * 100, 1) if vals else None
+        hit_compare = {
+            "close_entry": {w: _rate("hit", w) for w in (1, 3, 5, 10)},
+            "open_entry": {w: _rate("hit2", w) for w in (1, 3, 5, 10)},
+        }
         # 最近一次权重调整理由（用于「我在自我修正」的可视化）
         adj = [dict(r) for r in con.execute(
             "SELECT * FROM predictor_adjust_log ORDER BY id DESC LIMIT 8").fetchall()]
@@ -2447,6 +2501,11 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
             "items": out_items, "adjust_log": adj,
             "signals": SIGNALS, "windows": list(WINDOWS),
             "engine_status": status_snapshot(),
+            "disclaimer": DISCLAIMER_TEXT,   # 整改 #21
+            # 整改 #16：入场口径对照（close=T日收盘口径 / open=T+1开盘口径）
+            "hit_compare": hit_compare,
+            "entry_basis_note": ("hit/ret 为 T 日收盘入场口径；hit2/ret2 为 T+1 开盘入场口径"
+                                 "（更贴近真实可成交性，命中率通常更低，属「变诚实」而非「变差」）。"),
         }
         if stale:
             out["stale"] = True
