@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顶配改造 V3 · 二/三/四批 执行进度</title>
+<style>
+  :root{
+    --bg:#faf8f4; --card:#fff; --ink:#1a1a1a; --sub:#6b6b6b; --line:#e8e4dc;
+    --teal:#0E7490; --teal-soft:#e6f2f5;
+    --red:#c0392b; --red-soft:#fdecea;
+    --green:#2e7d5b; --green-soft:#e8f5ef;
+    --amber:#9a6b00; --amber-soft:#fdf6e3;
+    --gray:#5b6570; --gray-soft:#eef1f3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.7;padding:40px 22px;font-size:14.5px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{border-bottom:3px solid var(--teal);padding-bottom:18px;margin-bottom:24px}
+  h1{font-size:25px;font-weight:700;letter-spacing:.4px}
+  .meta{color:var(--sub);font-size:13px;margin-top:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 28px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
+  .kpi .v{font-size:24px;font-weight:700;color:var(--teal)}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:4px}
+  h2{font-size:17px;margin:30px 0 12px;padding-left:10px;border-left:4px solid var(--teal)}
+  .note{background:var(--teal-soft);border-left:4px solid var(--teal);padding:13px 17px;
+        border-radius:0 8px 8px 0;margin:14px 0;font-size:14px}
+  .note.red{background:var(--red-soft);border-left-color:var(--red)}
+  .note.amber{background:var(--amber-soft);border-left-color:var(--amber)}
+  .note.gray{background:var(--gray-soft);border-left-color:var(--gray)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:8px;overflow:hidden;font-size:13.5px;margin-bottom:8px}
+  th{background:var(--teal);color:#fff;text-align:left;padding:9px 11px;font-size:12.5px;font-weight:600}
+  td{padding:9px 11px;border-top:1px solid var(--line);vertical-align:top}
+  tr:nth-child(even) td{background:#fcfbf9}
+  .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .done{background:var(--green-soft);color:var(--green)}
+  .exist{background:var(--gray-soft);color:var(--gray)}
+  .todo{background:var(--amber-soft);color:var(--amber)}
+  .id{font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+  code{background:#f0eee9;padding:1px 5px;border-radius:4px;font-size:12.5px;
+       font-family:"Cascadia Code",Consolas,monospace}
+  ul{padding-left:20px;margin:6px 0}
+  li{margin:4px 0}
+  .foot{margin-top:38px;padding-top:16px;border-top:1px solid var(--line);color:var(--sub);
+        font-size:12px;text-align:center}
+  b.ok{color:var(--green)} b.no{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>顶配改造需求 V3 · 第二/三/四批 执行进度</h1>
+  <div class="meta">
+    目标项目：股票论坛可视化查看器 · <code>...\stock-forum-scraper</code><br>
+    进哥指令：<b>一/二/三/四批依次做</b>；待定的 5 条（B1/C1/A1/C3/B6）<b>先不动</b>（B1 样板一并搁置）<br>
+    提交：<code>4d6b843</code>（第二批）/ <code>1e5fa10</code>（第三批） &nbsp;|&nbsp; 2026-10-12
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="v">5</div><div class="l">本批新做/新增门禁</div></div>
+  <div class="kpi"><div class="v">44/3</div><div class="l">pytest 通过/跳过</div></div>
+  <div class="kpi"><div class="v">6/6</div><div class="l">stage0 正确性</div></div>
+  <div class="kpi"><div class="v">剩 2 批</div><div class="l">第三批重度项 + 第四批</div></div>
+</div>
+
+<h2>一、第二批 ✅ 已完成</h2>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:52%">做了什么</th><th style="width:36%">验证</th></tr>
+  <tr><td class="id">A6</td>
+    <td>缺失 ≠ 0 ≠ 无：app.js 新增 <code>isMissing / renderMissing / missText / numOr</code> 统一出口
+        （灰阶「—」+ 悬停原因，并明确注释「不要用 <code>?? 0</code> 表达没抓到」）；
+        <code>mdTable</code> 数值列空单元格改走 <code>renderMissing</code>；新增 <code>span.miss</code> 样式</td>
+    <td>新增 <code>tests/test_frontend_contracts.py</code>（5/5，静态守住接线）</td></tr>
+  <tr><td class="id">D1<br>本地</td>
+    <td>（上一批已做）<code>tools/db_backup.py</code> 日备留 7 + 周备留 4 + 备份前完整性校验，已接入日更</td>
+    <td>校验 PASS；生成 85.6MB 备份；幂等跳过</td></tr>
+  <tr><td class="id">D2</td>
+    <td><b>复核结论：主体已存在</b>——<code>tools/viewer_service_guard.py</code> 常驻守护（8765 没人监听即拉起）、
+        前端断连横幅 + pywebview 桥重启、<code>RotatingFileHandler(5MB×5)</code>（比要求 20MB/7 更严）、
+        <code>/api/version</code> 探针。<br>本批只补缺的一环：<code>api()</code> 成功路径调
+        <code>markServiceHealthy()</code>，撤横幅 + toast「本地服务已恢复（后端由常驻守护自动重启）」</td>
+    <td>新增 <code>#toastHost/.toast</code> 样式；接线由前端契约测试守住</td></tr>
+</table>
+
+<h2>二、第三批 ⚠️ 部分完成（实情：大半已存在，真正的重活在后头）</h2>
+
+<h3>✅ 本批已完成</h3>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:52%">做了什么</th><th style="width:36%">验证</th></tr>
+  <tr><td class="id">A3-1</td>
+    <td>防前视守卫：<code>predictor.py</code> 新增 <code>LookaheadError</code> +
+        <code>assert_point_in_time(asof, *dates)</code>，并接进特征构造入口——K 线按 <code>td</code> 截断后
+        <b>立刻断言</b>（原截断逻辑早已存在，但只是"约定"；加断言后防日后被删而静默前视）</td>
+    <td>新增 <code>tests/test_point_in_time.py</code>（5/5），核心用例
+        <code>test_future_data_is_rejected</code>：喂 2026-10-13 给 asof=2026-10-09 → <b class="ok">被拒绝</b>；
+        另有"截断点确实调用守卫"的防绕过断言</td></tr>
+</table>
+
+<h3>复核后判定「已存在」（不动代码，避免造双真源）</h3>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:44%">规格书原文</th><th style="width:44%">实测</th></tr>
+  <tr><td class="id">A4-1</td>
+    <td>「策略名是程序标识符（<code>MA5_cross</code>/<code>hui_guo_rou</code>），新建
+        <code>config/strategy_names.yaml</code> 做中文映射」</td>
+    <td><code>strategy_data.STRATEGIES</code> 的 <b>100 条策略每条都带中文 <code>name</code></b>
+        （如 <code>ma_cross_20_60</code> → 「双均线趋势跟踪（MA20 × MA60）」），且是<b>唯一真源</b>。
+        另建 YAML 等于造第二份真源，<b class="no">故不做</b>；它举的标识符与实际 key 也对不上</td></tr>
+  <tr><td class="id">A4-3</td>
+    <td>回测卡要有 收益/回撤/夏普/年化/样本数/区间/胜率/交易次数 + tabular-nums</td>
+    <td>前端这些指标<b>均已展示</b>；<code>tabular-nums</code> 已用 <b>74 处</b></td></tr>
+  <tr><td class="id">A4-4</td>
+    <td>每条策略附一行"失效条件"</td>
+    <td><code>risk</code> 字段已定义并展示（前端 11 处引用）</td></tr>
+  <tr><td class="id">A3-2</td>
+    <td>样本外验证（训练/样本外切分）</td>
+    <td><code>screener_extra.py</code> 已有 70/30 切分 + 样本外仅验一次 + 「样本外通常比样本内低 30–50%」的诚实提示</td></tr>
+</table>
+
+<div class="note amber">
+  <b>第三批真正的重活（我没做，需要单独一轮）</b>——它们在动"你每天看到的命中率"，做错比不做更糟：
+  <table style="margin-top:8px">
+    <tr><th style="width:14%">条目</th><th style="width:50%">要做什么</th><th style="width:36%">难点</th></tr>
+    <tr><td class="id">#17</td>
+      <td>并列加<b>沪深300基准</b>与超额（<code>excess/beta/alpha_t/info_ratio</code>）</td>
+      <td>现有 <code>bench</code> 实为「候选池同期等权」，<b>不是</b>沪深300 → 要<b>并列</b>而非替换；
+          需先解决指数日线取数（<code>multiquote.py</code> 已认出 <code>1.000300</code>，但日线缓存未接）</td></tr>
+    <tr><td class="id">#18</td>
+      <td>回测真正回放「选股管线」（每日只用截至当日信号）+ 70/30 OOS 训练段<b>重算规则</b></td>
+      <td><b>属重建，不是修 bug</b>。现在若确为"对全区间后视选出的名单回测"，旧结论偏乐观；
+          重建后<b>历史命中率会明显下降</b>（变诚实）→ 需你知情并接受</td></tr>
+    <tr><td class="id">A3-3</td>
+      <td>滚动窗口重跑最近 250 交易日样本外命中率，生成轨迹图，与每次调权原因对齐</td>
+      <td>依赖 #18 的 walk-forward 引擎</td></tr>
+    <tr><td class="id">A3-6</td>
+      <td>复盘面板显式给出「近 30 天命中率」+「近 30 天最大看走眼（某票 T+n 跌 x%）」</td>
+      <td>数据齐（<code>ret_t1..t10</code> 已在库），属展示层增强，可较快做</td></tr>
+  </table>
+</div>
+
+<h2>三、第四批 ⏸ 尚未开工</h2>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:52%">内容</th><th style="width:36%">说明</th></tr>
+  <tr><td class="id">B2</td><td>全局搜索（<code>/</code> 聚焦；股票/人物/板块/面板名模糊直达）</td>
+      <td>第四批里<b>价值最高</b>，需：后端 <code>/api/search_suggest</code>（复用 stock_names 索引 + 面板索引）
+          + 顶栏下拉浮层 + ↑↓/Enter 键盘流 + 防回退测试</td></tr>
+  <tr><td class="id">B5</td><td>空态引导（每个面板空数据时显示"这页干嘛/数据从哪来/下一步按钮"）</td>
+      <td>要逐个面板补齐引导态（约 46 个面板），量大但机械</td></tr>
+  <tr><td class="id">B3</td><td>顶栏极简（默认只留 3 个控件，其余收进 ⚙）</td>
+      <td>会动顶栏结构，需同步更新既有护栏</td></tr>
+</table>
+
+<h2>四、本批总体验证</h2>
+<div class="note gray">
+  <code>stage0 6/6 PASS</code>（量化改动后必跑）&nbsp;|&nbsp;
+  <code>pytest -q</code> → <b class="ok">44 passed / 3 skipped</b>（较上批 +10 项）&nbsp;|&nbsp;
+  <code>verify_prediction</code> / <code>verify_rate_buy</code> / <code>verify_today</code> 全 <b class="ok">PASS</b>&nbsp;|&nbsp;
+  首页与 <code>/api/prediction/today</code> 均 HTTP 200；版本串 <code>20261012-remed3</code>
+</div>
+
+<h2>五、下一步建议</h2>
+<div class="note">
+  <ol style="padding-left:20px">
+    <li><b>第四批 B2 全局搜索</b>——单项价值最高，建议下一轮先做它（含后端索引 + 前端下拉 + 键盘流 + 测试）。</li>
+    <li><b>#18 walk-forward 重建 + #17 沪深300基准</b>——建议合并成"预测/回测科学化专项"，
+        做完给你一份<b>新旧命中率对照</b>（会下降，属"变诚实"）。</li>
+    <li>B5 空态引导 / B3 顶栏极简——可在专项间隙分批做。</li>
+  </ol>
+</div>
+
+<div class="foot">
+  顶配改造需求 V3 · 第二/三/四批 执行进度 &nbsp;|&nbsp; 2026-10-12 &nbsp;|&nbsp; 第二批完成 · 第三批部分 · 第四批待开工
+</div>
+
+</div>
+</body>
+</html>
