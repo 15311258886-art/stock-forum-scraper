@@ -3665,3 +3665,18 @@ span.miss{
   font-size:13px;line-height:1.6;opacity:1;transition:opacity .5s ease, transform .5s ease}
 #toastHost .toast.toast-out{opacity:0;transform:translateY(6px)}
 @media (prefers-reduced-motion: reduce){#toastHost .toast{transition:none}}
+
+
+/* ===== 2026-10-12 交易日横排：只显示近 10 个 + 日期查询入口（进哥要求，防拐行）===== */
+.day-more{font-size:12px;color:var(--text-dim,#9aa3ab);margin:0 4px;white-space:nowrap}
+.day-jump{font:inherit;font-size:12px;padding:1px 6px;border-radius:6px;
+  border:1px solid var(--border,#e8e4dc);background:var(--surface,#fff);color:var(--text,#1a1a1a);
+  cursor:pointer;vertical-align:middle}
+.day-jump:hover,.day-jump:focus-visible{border-color:var(--accent,#0E7490);outline:none}
+
+/* 交易日 chip 单行条：永不换行，过窄时横向滚动（进哥：不能无限排、不能拐行） */
+.day-strip{display:inline-flex;gap:4px;vertical-align:middle;white-space:nowrap;
+  overflow-x:auto;overflow-y:hidden;max-width:calc(100% - 230px);padding-bottom:2px;
+  scrollbar-width:thin}
+.day-strip::-webkit-scrollbar{height:6px}
+.day-strip::-webkit-scrollbar-thumb{background:var(--border,#e8e4dc);border-radius:3px}

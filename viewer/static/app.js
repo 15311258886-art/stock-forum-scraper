@@ -2458,9 +2458,7 @@ function renderLhb() {
   }
   const seatsBy = {};
   (d.seats || []).forEach((s) => { (seatsBy[s.security_code] = seatsBy[s.security_code] || []).push(s); });
-  const chips = (d.dates || []).map((x) =>
-    `<span class="chip-s" role="button" data-lhb-date="${escAttr(x)}" ` +
-    `style="cursor:pointer;${x === d.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`).join(" ");
+  const chips = dayChips(d.dates, d.date, "data-lhb-date");   // 只渲染近 10 个，其余走日期查询
   const instNet = (d.inst_buy_net || 0) - (d.inst_sell_net || 0);
 
   const rows = (d.stocks || []).map((s) => {
@@ -2568,6 +2566,21 @@ function renderLhb() {
   $$("#p-lhb [data-lhb-date]").forEach((el) => {
     el.onclick = () => loadLhb(el.dataset.lhbDate).catch((e) => setHint("龙虎榜日期切换失败：" + apiErrText(e)));
   });
+  // 2026-10-12 进哥要求：交易日只显示近 10 个，其余用日期框查询（见 dayChips）。
+  // 超出库内范围时给明确提示并回退，不静默失败。
+  const _lhbJump = $("#p-lhb .day-jump");
+  if (_lhbJump) {
+    _lhbJump.onchange = () => {
+      const v = _lhbJump.value;
+      const days = (_lhbJump.dataset.days || "").split(",");
+      if (!v || !days.includes(v)) {
+        setHint("该日不是库内交易日。可选范围：" + (days[0] || "—") + " ~ " + (days[days.length - 1] || "—"));
+        _lhbJump.value = d.date || "";
+        return;
+      }
+      loadLhb(v).catch((e) => setHint("龙虎榜日期切换失败：" + apiErrText(e)));
+    };
+  }
   // 2026-09-28 修复「点代码没反应」（王总反馈）：代码芯片 lhbSymChip 此前**从未被绑定** ——
   // 下面行 handler 写着「让 K 线芯片自己处理」，可芯片本身没有任何 handler，
   // 于是点代码时行 handler 直接 return，什么都不会发生；而芯片样式与其他面板的
@@ -3528,9 +3541,7 @@ function renderLhbSectors() {
     return;
   }
   const s = d.summary || {};
-  const chips = (d.dates || []).map((x) =>
-    `<span class="chip-s" role="button" data-lhs-date="${escAttr(x)}" ` +
-    `style="cursor:pointer;${x === d.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`).join(" ");
+  const chips = dayChips(d.dates, d.date, "data-lhs-date");   // 只渲染近 10 个，其余走日期查询
   const rows = (d.rows || []).map((r) => {
     const stocks = (r.onlist || []).map((o) => {
       const code = o && o.code ? o.code : "";
@@ -3583,6 +3594,20 @@ function renderLhbSectors() {
     el.onclick = () => loadLhbSectors(el.dataset.lhsDate)
       .catch((e) => setHint("板块动向日期切换失败：" + apiErrText(e)));
   });
+  // 交易日只显示近 10 个，其余用日期框查询（与龙虎榜同一套 dayChips 逻辑）
+  const _lhsJump = $("#p-lhb_sectors .day-jump");
+  if (_lhsJump) {
+    _lhsJump.onchange = () => {
+      const v = _lhsJump.value;
+      const days = (_lhsJump.dataset.days || "").split(",");
+      if (!v || !days.includes(v)) {
+        setHint("该日不是库内交易日。可选范围：" + (days[0] || "—") + " ~ " + (days[days.length - 1] || "—"));
+        _lhsJump.value = d.date || "";
+        return;
+      }
+      loadLhbSectors(v).catch((e) => setHint("板块动向日期切换失败：" + apiErrText(e)));
+    };
+  }
   $$("#p-lhb_sectors .kline-chip[data-sym]").forEach((el) => {
     el.onclick = () => openStock(el.dataset.sym, el);
   });
@@ -12670,6 +12695,34 @@ function numOr(v, reason, fmt) {
   if (isMissing(v)) return renderMissing(reason);
   const t = fmt ? fmt(v) : String(v);
   return isMissing(t) ? renderMissing(reason) : esc(t);
+}
+
+/* ============ 交易日横排（2026-10-12 进哥：不能无限铺开，会拐行）============
+   龙虎榜 / 板块动向的「交易日」原来是 (d.dates || []).map(...) 全量铺开 ——
+   库内交易日一多就换行，把正文挤下去。
+   改为：**只渲染最近 DAY_CHIP_LIMIT 个 chip**；其余走「查询」入口 ——
+   一个日期选择器，可直接跳到库内任意交易日（超出库内范围的给提示，不静默失败）。
+   attrName 用各面板自己的数据属性（data-lhb-date / data-lhs-date），点击绑定沿用原逻辑。
+   ==================================================================== */
+const DAY_CHIP_LIMIT = 10;
+function dayChips(dates, curDate, attrName) {
+  const all = toArr(dates).filter(Boolean);
+  if (!all.length) return "";
+  const shown = all.slice(0, DAY_CHIP_LIMIT);
+  const chip = (x) => `<span class="chip-s" role="button" ${attrName}="${escAttr(x)}" `
+    + `style="cursor:pointer;${x === curDate ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`;
+  const rest = all.length - shown.length;
+  if (rest <= 0) return `<span class="day-strip">${shown.map(chip).join(" ")}</span>`;
+  const newest = all[0];
+  const oldest = all[all.length - 1];
+  // 查询框**前置**（2026-10-12 进哥建议：设在「交易日」这边做查找），
+  // chips 放进单行可横向滚动的 .day-strip —— 保证**永不换行**（进哥："不能无限排"）。
+  return `<input type="date" class="day-jump" data-days="${escAttr(all.join(","))}"`
+    + ` value="${escAttr(curDate || "")}" min="${escAttr(oldest)}" max="${escAttr(newest)}"`
+    + ` title="查询任意交易日（库内可选 ${newest} ~ ${oldest}，共 ${all.length} 个）">`
+    + ` <span class="day-more" title="只显示最近 ${DAY_CHIP_LIMIT} 个交易日；更早的用左侧日期框查询">`
+    + `(+${rest})</span>`
+    + ` <span class="day-strip">${shown.map(chip).join(" ")}</span>`;
 }
 
 function numericCols(cols, rows) {

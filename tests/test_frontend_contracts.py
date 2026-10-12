@@ -64,12 +64,30 @@ def test_drop_banner_sets_flag():
     return True
 
 
+def test_day_chips_capped_and_queryable():
+    """交易日横排：必须限量 + 提供查询入口（进哥 2026-10-12：无限铺开会拐行）。
+
+    回归点：曾经两个面板都是 `(d.dates || []).map(...)` 全量铺开。
+    """
+    js = _read(APP_JS)
+    assert "function dayChips(" in js, "app.js 缺少 dayChips（交易日限量渲染）"
+    assert "DAY_CHIP_LIMIT = 10" in js, "DAY_CHIP_LIMIT 不是 10"
+    # 两个面板都必须改用 dayChips，不能再全量 map
+    for attr in ("data-lhb-date", "data-lhs-date"):
+        assert 'dayChips(d.dates, d.date, "%s")' % attr in js, "%s 面板未改用 dayChips" % attr
+        assert '`<span class="chip-s" role="button" %s=' % attr not in js, \
+            "%s 仍存在全量铺开的旧写法" % attr
+    # 查询入口必须接线
+    assert js.count(".day-jump") >= 2, "日期查询框未在两个面板接线"
+    return True
+
+
 if __name__ == "__main__":
     import sys
 
     tests = [test_missing_helpers_exist, test_mdtable_uses_render_missing,
              test_missing_css_present, test_service_recovery_notice_wired,
-             test_drop_banner_sets_flag]
+             test_drop_banner_sets_flag, test_day_chips_capped_and_queryable]
     fails = []
     for t in tests:
         try:

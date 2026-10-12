@@ -1,176 +1,16 @@
 {
   "summary": {
     "n": 28,
-    "t1_avg": -0.47,
-    "t3_avg": -1.33,
-    "bench_t1_avg": 0.0,
-    "bench_t3_avg": 1.65,
-    "excess_t1": -0.47,
-    "excess_t3": -2.97,
+    "t1_avg": -0.36,
+    "t3_avg": -0.21,
+    "bench_t1_avg": 0.63,
+    "bench_t3_avg": 2.53,
+    "excess_t1": -1.0,
+    "excess_t3": -2.74,
     "t1_win_rate": 42.0,
     "pending_n": 4
   },
   "detail": [
-    {
-      "date": "2026-09-23",
-      "sector": "电子",
-      "onlist_n": 7,
-      "onlist": [
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "002119",
-          "name": "康强电子"
-        },
-        {
-          "code": "002426",
-          "name": "胜利精密"
-        },
-        {
-          "code": "600641",
-          "name": "先导基电"
-        },
-        {
-          "code": "605058",
-          "name": "澳弘电子"
-        },
-        {
-          "code": "688512",
-          "name": "慧智微"
-        },
-        {
-          "code": "688662",
-          "name": "富信科技"
-        }
-      ],
-      "onlist_names": "超声电子/康强电子/胜利精密/先导基电/澳弘电子/慧智微",
-      "net_yi": 16.01,
-      "net_amt": 1601254942.12,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -1.85,
-      "t3_avg": -4.33,
-      "t1_win": 8.0,
-      "bench_t1": -2.59,
-      "bench_t3": -2.16,
-      "pending": false
-    },
-    {
-      "date": "2026-09-23",
-      "sector": "半导体概念",
-      "onlist_n": 6,
-      "onlist": [
-        {
-          "code": "002119",
-          "name": "康强电子"
-        },
-        {
-          "code": "600641",
-          "name": "先导基电"
-        },
-        {
-          "code": "688026",
-          "name": "洁特生物"
-        },
-        {
-          "code": "688056",
-          "name": "莱伯泰科"
-        },
-        {
-          "code": "688512",
-          "name": "慧智微"
-        },
-        {
-          "code": "688662",
-          "name": "富信科技"
-        }
-      ],
-      "onlist_names": "康强电子/先导基电/洁特生物/莱伯泰科/慧智微/富信科技",
-      "net_yi": 15.44,
-      "net_amt": 1544178437.38,
-      "members_n": 300,
-      "sampled": 23,
-      "t1_avg": -1.26,
-      "t3_avg": -4.45,
-      "t1_win": 17.0,
-      "bench_t1": -2.59,
-      "bench_t3": -2.16,
-      "pending": false
-    },
-    {
-      "date": "2026-09-23",
-      "sector": "长江三角",
-      "onlist_n": 6,
-      "onlist": [
-        {
-          "code": "002119",
-          "name": "康强电子"
-        },
-        {
-          "code": "600088",
-          "name": "中视传媒"
-        },
-        {
-          "code": "600503",
-          "name": "华丽家族"
-        },
-        {
-          "code": "600630",
-          "name": "龙头股份"
-        },
-        {
-          "code": "600641",
-          "name": "先导基电"
-        },
-        {
-          "code": "600825",
-          "name": "新华传媒"
-        }
-      ],
-      "onlist_names": "康强电子/中视传媒/华丽家族/龙头股份/先导基电/新华传媒",
-      "net_yi": 14.09,
-      "net_amt": 1408763711.24,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -0.61,
-      "t3_avg": -2.47,
-      "t1_win": 20.0,
-      "bench_t1": -2.59,
-      "bench_t3": -2.16,
-      "pending": false
-    },
-    {
-      "date": "2026-09-23",
-      "sector": "半导体",
-      "onlist_n": 3,
-      "onlist": [
-        {
-          "code": "002119",
-          "name": "康强电子"
-        },
-        {
-          "code": "600641",
-          "name": "先导基电"
-        },
-        {
-          "code": "688512",
-          "name": "慧智微"
-        }
-      ],
-      "onlist_names": "康强电子/先导基电/慧智微",
-      "net_yi": 13.98,
-      "net_amt": 1397748059.59,
-      "members_n": 188,
-      "sampled": 25,
-      "t1_avg": -2.28,
-      "t3_avg": -6.12,
-      "t1_win": 8.0,
-      "bench_t1": -2.59,
-      "bench_t3": -2.16,
-      "pending": false
-    },
     {
       "date": "2026-09-24",
       "sector": "福建板块",
@@ -616,9 +456,9 @@
       "net_amt": 552423991.71,
       "members_n": 200,
       "sampled": 25,
-      "t1_avg": 0.05,
-      "t3_avg": 0.33,
-      "t1_win": 36.0,
+      "t1_avg": 0.54,
+      "t3_avg": 1.0,
+      "t1_win": 40.0,
       "bench_t1": 1.94,
       "bench_t3": 2.11,
       "pending": false
@@ -667,10 +507,10 @@
       "members_n": 300,
       "sampled": 25,
       "t1_avg": -1.03,
-      "t3_avg": null,
+      "t3_avg": -1.6,
       "t1_win": 28.0,
       "bench_t1": 1.82,
-      "bench_t3": null,
+      "bench_t3": 1.38,
       "pending": false
     },
     {
@@ -701,10 +541,10 @@
       "members_n": 300,
       "sampled": 25,
       "t1_avg": 0.17,
-      "t3_avg": null,
+      "t3_avg": -0.11,
       "t1_win": 52.0,
       "bench_t1": 1.82,
-      "bench_t3": null,
+      "bench_t3": 1.38,
       "pending": false
     },
     {
@@ -727,10 +567,10 @@
       "members_n": 300,
       "sampled": 25,
       "t1_avg": -1.9,
-      "t3_avg": null,
+      "t3_avg": 2.36,
       "t1_win": 20.0,
       "bench_t1": 1.82,
-      "bench_t3": null,
+      "bench_t3": 1.38,
       "pending": false
     },
     {
@@ -777,10 +617,10 @@
       "members_n": 300,
       "sampled": 25,
       "t1_avg": -0.97,
-      "t3_avg": null,
+      "t3_avg": -0.76,
       "t1_win": 24.0,
       "bench_t1": 1.82,
-      "bench_t3": null,
+      "bench_t3": 1.38,
       "pending": false
     },
     {
@@ -1017,13 +857,13 @@
       "net_yi": 6.58,
       "net_amt": 657632503.48,
       "members_n": 300,
-      "sampled": 0,
-      "t1_avg": null,
+      "sampled": 25,
+      "t1_avg": -0.41,
       "t3_avg": null,
-      "t1_win": null,
-      "bench_t1": null,
+      "t1_win": 20.0,
+      "bench_t1": 1.21,
       "bench_t3": null,
-      "pending": true
+      "pending": false
     },
     {
       "date": "2026-10-09",
@@ -1067,13 +907,13 @@
       "net_yi": 5.47,
       "net_amt": 546713149.04,
       "members_n": 300,
-      "sampled": 0,
-      "t1_avg": null,
+      "sampled": 25,
+      "t1_avg": -0.55,
       "t3_avg": null,
-      "t1_win": null,
-      "bench_t1": null,
+      "t1_win": 44.0,
+      "bench_t1": 1.21,
       "bench_t3": null,
-      "pending": true
+      "pending": false
     },
     {
       "date": "2026-10-09",
@@ -1101,13 +941,13 @@
       "net_yi": 4.65,
       "net_amt": 465466195.37,
       "members_n": 300,
-      "sampled": 0,
-      "t1_avg": null,
+      "sampled": 25,
+      "t1_avg": -1.14,
       "t3_avg": null,
-      "t1_win": null,
-      "bench_t1": null,
+      "t1_win": 24.0,
+      "bench_t1": 1.21,
       "bench_t3": null,
-      "pending": true
+      "pending": false
     },
     {
       "date": "2026-10-09",
@@ -1139,6 +979,186 @@
       "net_yi": 4.25,
       "net_amt": 424536428.86,
       "members_n": 300,
+      "sampled": 24,
+      "t1_avg": -1.97,
+      "t3_avg": null,
+      "t1_win": 25.0,
+      "bench_t1": 1.21,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-12",
+      "sector": "创业板综",
+      "onlist_n": 8,
+      "onlist": [
+        {
+          "code": "300006",
+          "name": "莱美药业"
+        },
+        {
+          "code": "300821",
+          "name": "东岳硅材"
+        },
+        {
+          "code": "300829",
+          "name": "金丹科技"
+        },
+        {
+          "code": "301052",
+          "name": "果麦文化"
+        },
+        {
+          "code": "301419",
+          "name": "阿莱德"
+        },
+        {
+          "code": "301513",
+          "name": "尚水智能"
+        },
+        {
+          "code": "301658",
+          "name": "首航新能"
+        },
+        {
+          "code": "301697",
+          "name": "贝特利"
+        }
+      ],
+      "onlist_names": "莱美药业/东岳硅材/金丹科技/果麦文化/阿莱德/尚水智能",
+      "net_yi": 4.79,
+      "net_amt": 479038035.2,
+      "members_n": 300,
+      "sampled": 0,
+      "t1_avg": null,
+      "t3_avg": null,
+      "t1_win": null,
+      "bench_t1": null,
+      "bench_t3": null,
+      "pending": true
+    },
+    {
+      "date": "2026-10-12",
+      "sector": "西部大开发",
+      "onlist_n": 7,
+      "onlist": [
+        {
+          "code": "000710",
+          "name": "贝瑞基因"
+        },
+        {
+          "code": "000892",
+          "name": "欢瑞世纪"
+        },
+        {
+          "code": "001330",
+          "name": "博纳影业"
+        },
+        {
+          "code": "002630",
+          "name": "*ST华西"
+        },
+        {
+          "code": "002696",
+          "name": "百洋股份"
+        },
+        {
+          "code": "300006",
+          "name": "莱美药业"
+        },
+        {
+          "code": "301139",
+          "name": "元道退"
+        }
+      ],
+      "onlist_names": "贝瑞基因/欢瑞世纪/博纳影业/*ST华西/百洋股份/莱美药业",
+      "net_yi": 3.08,
+      "net_amt": 308353611.1,
+      "members_n": 300,
+      "sampled": 0,
+      "t1_avg": null,
+      "t3_avg": null,
+      "t1_win": null,
+      "bench_t1": null,
+      "bench_t3": null,
+      "pending": true
+    },
+    {
+      "date": "2026-10-12",
+      "sector": "储能概念",
+      "onlist_n": 4,
+      "onlist": [
+        {
+          "code": "002531",
+          "name": "天顺风能"
+        },
+        {
+          "code": "002866",
+          "name": "传艺科技"
+        },
+        {
+          "code": "301139",
+          "name": "元道退"
+        },
+        {
+          "code": "301658",
+          "name": "首航新能"
+        }
+      ],
+      "onlist_names": "天顺风能/传艺科技/元道退/首航新能",
+      "net_yi": 2.99,
+      "net_amt": 299276302.42,
+      "members_n": 300,
+      "sampled": 0,
+      "t1_avg": null,
+      "t3_avg": null,
+      "t1_win": null,
+      "bench_t1": null,
+      "bench_t3": null,
+      "pending": true
+    },
+    {
+      "date": "2026-10-12",
+      "sector": "电力设备",
+      "onlist_n": 8,
+      "onlist": [
+        {
+          "code": "002058",
+          "name": "紫竹高科"
+        },
+        {
+          "code": "002531",
+          "name": "天顺风能"
+        },
+        {
+          "code": "002630",
+          "name": "*ST华西"
+        },
+        {
+          "code": "002692",
+          "name": "远程股份"
+        },
+        {
+          "code": "002805",
+          "name": "丰元股份"
+        },
+        {
+          "code": "301513",
+          "name": "尚水智能"
+        },
+        {
+          "code": "301658",
+          "name": "首航新能"
+        },
+        {
+          "code": "301697",
+          "name": "贝特利"
+        }
+      ],
+      "onlist_names": "紫竹高科/天顺风能/*ST华西/远程股份/丰元股份/尚水智能",
+      "net_yi": 2.82,
+      "net_amt": 282101162.7,
+      "members_n": 300,
       "sampled": 0,
       "t1_avg": null,
       "t3_avg": null,
@@ -1148,5 +1168,5 @@
       "pending": true
     }
   ],
-  "generated_at": "2026-10-09 18:05:12"
+  "generated_at": "2026-10-12 16:49:26"
 }
