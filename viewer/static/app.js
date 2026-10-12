@@ -1422,6 +1422,7 @@ const KLINE_MA = [5, 10, 20, 60];
 const KLINE_MA_COLOR = { 5: "#0E7490", 10: "#f59e0b", 20: "#a855f7", 60: "#64748b" };
 let _kv = null;                 // 当前视口状态（一次只开一个抽屉，故用单例即可）
 let _klineResizeBound = false;
+let _bfKeysBound = false;        // 板块资金流区间回车监听的一次性守卫（2026-10-12 修泄漏）
 
 function klineCssH(w) { return w < 460 ? 300 : 380; }
 
@@ -9864,10 +9865,21 @@ function bindBoardFlowControls() {
   const bs = $("#bfRangeApply"); if (bs) bs.onclick = apply;
   const ds = ["#bfRangeStart", "#bfRangeEnd"];
   ds.forEach((sel) => { const el = $(sel); if (el) el.onchange = apply; });
-  if (window.addEventListener) {
-    ["keydown"].forEach((ev) => document.addEventListener(ev, (e) => {
-      if (e.key === "Enter" && (e.target && /bfRange(Start|End)$/.test(e.target.id || ""))) apply();
-    }));
+  // 2026-10-12 修复监听泄漏：bindBoardFlowControls 每次进入/刷新该面板都会调用，
+  // 原实现每次都往 document 挂一个匿名 keydown 且从不移除 → 反复进出即无限累积。
+  // 仿 _klineResizeBound 加一次性守卫；事件里现读 DOM，避免闭包引用过期元素。
+  if (window.addEventListener && !_bfKeysBound) {
+    _bfKeysBound = true;
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target && /bfRange(Start|End)$/.test(e.target.id || "")) {
+        const a = $("#bfRangeStart"), b = $("#bfRangeEnd");
+        const s = a && a.value, en = b && b.value;
+        if (!s || !en) return;
+        FEAT.moneyflow.rangeStart = s <= en ? s : en;
+        FEAT.moneyflow.rangeEnd = s <= en ? en : s;
+        loadBoardRange(true);
+      }
+    });
   }
 
   // 每 2 分钟自动刷新曲线（非实时，与王总「几分钟一发新的」一致）

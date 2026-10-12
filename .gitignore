@@ -61,3 +61,27 @@ verify_backend_result*.txt
 stage0_mutations.json
 auto_update_status.json
 moneyflow_negcache.json
+
+# ── 整改 #01：会话 / Cookie / 浏览器 profile / 运行产物，一律不入库 ──
+# 背景：浏览器 profile 内含登录态、cookie 文件含明文会话，属泄密面；
+#       上一轮清理曾用 `git add -A` 误把它们带进版本库，此处显式排除并已解除跟踪。
+.browser-profile/
+.workbuddy/
+tools/*cookie*.json
+tools/*cookie*.txt
+artifacts/
+shots/
+qa_run/*.png
+tests/*.png
+audit_last.png
+shot_judge.png
+viewer/app_iso*.db
+viewer/app_iso*.db-*
+viewer/*.db.bak-*
+# 全局拦截图产物，但放行正式图标素材（assets/ 下的 png 仍可正常纳入）
+*.png
+!assets/**/*.png
+
+# 运行时状态（PID 文件，每次启动都变）
+*.pid
+viewer/.server.pid

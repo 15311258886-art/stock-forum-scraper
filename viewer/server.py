@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from logging.handlers import RotatingFileHandler
 import os
 import re
@@ -6898,6 +6899,22 @@ class _BadRequest(Exception):
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
+def _json_safe(o):
+    """递归把 NaN / +-Infinity 换成 None，保证产物是合法 JSON。
+
+    2026-10-12 修复：行情/回测里 `0/0`、缺数据等会产生 float('nan')，json.dumps 默认
+    会把它原样写成 `NaN`（非标准 JSON），前端 JSON.parse 直接抛异常 → 整块面板空白。
+    在统一出口先清洗，再用 allow_nan=False 兜底。
+    """
+    if isinstance(o, float):
+        return o if math.isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: _json_safe(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_json_safe(v) for v in o]
+    return o
+
+
 def _host_ok(host_header: str) -> bool:
     """Host 头必须是回环地址（防 DNS rebinding：外部域名解析到 127.0.0.1 时浏览器会带上外部 Host）。"""
     h = (host_header or "").strip().lower()
@@ -7300,7 +7317,9 @@ class Handler(BaseHTTPRequestHandler):
         return self.server_version
 
     def _send_json(self, obj, code=200):
-        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        # 2026-10-12：先清洗 NaN/Infinity（见 _json_safe），再以标准 JSON 输出。
+        body = json.dumps(_json_safe(obj), ensure_ascii=False,
+                          allow_nan=False, default=str).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -7346,6 +7365,12 @@ class Handler(BaseHTTPRequestHandler):
         if origin and not _origin_ok(origin):
             self._send_json({"error": "forbidden origin"}, code=403)
             return False
+        # 2026-10-12：危险端点（会拉起外部进程 / 改系统级状态）必须带合法 Origin——
+        # 无 Origin 的非浏览器客户端一律拒绝，进一步收窄这类动作的触发面。
+        if any(self.path.startswith(p) for p in ("/api/edge/restart", "/api/login/open")):
+            if not origin or not _origin_ok(origin):
+                self._send_json({"error": "origin required"}, code=403)
+                return False
         ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         if ctype != "application/json":
             self._send_json({"error": "unsupported media type, expect application/json"}, code=415)
@@ -7401,6 +7426,12 @@ class Handler(BaseHTTPRequestHandler):
                 pass
 
     def _do_GET(self):
+        # 2026-10-12：读接口也做回环 Host 校验（防 DNS rebinding——外部域名解析到 127.0.0.1 时
+        # 浏览器会带外部 Host）。写接口由 _guard_write 守，此处补齐读接口，口径一致。
+        # 浏览器 fetch 与本项目内部 urllib 自呼叫均自动携带 `Host: 127.0.0.1:8765`，不受影响。
+        if not _host_ok(self.headers.get("Host", "")):
+            self._send_json({"error": "forbidden host"}, code=403)
+            return
         parsed = urllib.parse.urlparse(self.path)
         route = parsed.path
         if route == "/" or route == "/index.html":
@@ -7983,8 +8014,11 @@ class Handler(BaseHTTPRequestHandler):
                     creationflags=0x00000008 if os.name == "nt" else 0,  # DETACHED_PROCESS
                 )
             except Exception as e:  # noqa: BLE001
-                fh.close()
                 return self._send_json({"ok": False, "error": str(e)[:200]}, code=500)
+            finally:
+                # 2026-10-12 修复句柄泄漏：子进程已继承句柄副本，父进程应立刻关自己的那份；
+                # 原实现只在异常分支关闭，成功分支的 fh 一直挂着不释放（连点即泄漏）。
+                fh.close()
             return self._send_json({"ok": True, "site": site,
                                     "message": "已打开受控登录窗口，请在其中完成登录；登录成功后会自动保存，窗口请勿关闭。",
                                     "log_path": log})
@@ -8402,6 +8436,41 @@ def _setup_logging() -> None:
         print(f"[查看器] 日志初始化失败（不影响服务）：{e}", file=sys.stderr)
 
 
+def _pid_alive(pid: int) -> bool:
+    """**不发送任何信号**地判断进程是否存活。
+
+    2026-10-12 修复：原实现用 `os.kill(pid, 0)` 探活，但 Windows 上信号 0 实为
+    CTRL_C_EVENT，会给目标进程发 Ctrl+C；若该 PID 已被无关进程复用，等于误伤他人进程，
+    且对非控制台进程语义不可靠。改为全程只读、零信号的探活：
+      · Windows：OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION) + GetExitCodeProcess；
+      · POSIX：os.kill(pid, 0) 在类 Unix 上本就是无副作用的探活，保留。
+    """
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        _STILL_ACTIVE = 259
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not h:
+            return False  # 打不开句柄（进程不存在 / 权限不足）→ 视为不存活
+        try:
+            code = wintypes.DWORD()
+            if k32.GetExitCodeProcess(h, ctypes.byref(code)):
+                return code.value == _STILL_ACTIVE
+            return False
+        finally:
+            k32.CloseHandle(h)
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
 def _acquire_server_instance() -> bool:
     """单实例守护：防止重复启动 `python -m viewer.server` 抢 8765（体检报告 P0 双进程）。
 
@@ -8418,14 +8487,11 @@ def _acquire_server_instance() -> bool:
                 old_pid = int(txt.split()[0]) if txt else 0
             except Exception:
                 old_pid = 0
-            if old_pid and old_pid != os.getpid():
-                try:
-                    os.kill(old_pid, 0)  # 信号 0 = 仅探测进程存活
-                    print(f"[查看器] 已有查看器后端进程在运行（PID {old_pid}），"
-                          f"本次退出以避免重复实例抢端口。")
-                    return False
-                except OSError:
-                    pass  # 旧 PID 已死 → 覆盖写新文件即可
+            if old_pid and old_pid != os.getpid() and _pid_alive(old_pid):
+                print(f"[查看器] 已有查看器后端进程在运行（PID {old_pid}），"
+                      f"本次退出以避免重复实例抢端口。")
+                return False
+            # 旧 PID 已死（或文件损坏）→ 落到下方覆盖写新 PID 文件即可
         with open(_SERVER_PID_FILE, "w", encoding="utf-8") as f:
             f.write(f"{os.getpid()}\n")
     except Exception:  # noqa: BLE001

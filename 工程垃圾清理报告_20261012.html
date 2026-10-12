@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票论坛查看器 · 工程垃圾清理报告</title>
+<style>
+  :root{
+    --bg:#faf8f4; --card:#ffffff; --ink:#1a1a1a; --sub:#6b6b6b;
+    --teal:#0E7490; --teal-soft:#e6f2f5;
+    --red:#c0392b; --red-soft:#fdecea;
+    --green:#2e7d5b; --green-soft:#e8f5ef;
+    --amber:#b8860b; --amber-soft:#fdf6e3;
+    --line:#e8e4dc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",-apple-system,sans-serif;
+       line-height:1.7;padding:40px 24px;font-size:15px}
+  .wrap{max-width:1000px;margin:0 auto}
+  header{border-bottom:3px solid var(--teal);padding-bottom:20px;margin-bottom:32px}
+  h1{font-size:26px;font-weight:700;letter-spacing:.5px}
+  .meta{color:var(--sub);font-size:13px;margin-top:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0 36px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 16px;text-align:center}
+  .kpi .v{font-size:26px;font-weight:700;color:var(--teal);letter-spacing:.5px}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:4px}
+  .kpi.warn .v{color:var(--red)}
+  h2{font-size:18px;margin:34px 0 14px;padding-left:11px;border-left:4px solid var(--teal)}
+  h3{font-size:15px;margin:20px 0 10px;color:var(--teal)}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+  th{background:var(--teal);color:#fff;text-align:left;padding:10px 12px;font-weight:600;font-size:13px}
+  td{padding:10px 12px;border-top:1px solid var(--line);vertical-align:top}
+  tr:nth-child(even) td{background:#fcfbf9}
+  .tag{display:inline-block;padding:1px 9px;border-radius:11px;font-size:12px;font-weight:600;white-space:nowrap}
+  .del{background:var(--red-soft);color:var(--red)}
+  .keep{background:var(--green-soft);color:var(--green)}
+  .ask{background:var(--amber-soft);color:var(--amber)}
+  .num{font-variant-numeric:tabular-nums;font-weight:600}
+  .note{background:var(--teal-soft);border-left:4px solid var(--teal);padding:14px 18px;
+        border-radius:0 8px 8px 0;margin:16px 0;font-size:14px}
+  .note.red{background:var(--red-soft);border-left-color:var(--red)}
+  .note.amber{background:var(--amber-soft);border-left-color:var(--amber)}
+  ul{padding-left:22px;margin:8px 0}
+  li{margin:5px 0}
+  code{background:#f0eee9;padding:2px 6px;border-radius:4px;font-size:13px;
+       font-family:"Cascadia Code",Consolas,monospace}
+  .foot{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+        color:var(--sub);font-size:12px;text-align:center}
+  .ok{color:var(--green);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>股票论坛可视化查看器 · 工程垃圾清理报告</h1>
+  <div class="meta">
+    项目：<code>F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper</code><br>
+    执行日期：2026-10-12 &nbsp;|&nbsp; 触发：进哥要求「自检应用 + 清理工程垃圾，该删的删」
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="v">3.0G → 1.1G</div><div class="l">工程体积</div></div>
+  <div class="kpi"><div class="v">≈1.9G</div><div class="l">回收空间</div></div>
+  <div class="kpi"><div class="v">39 / 0</div><div class="l">审计子板块 / 问题</div></div>
+  <div class="kpi"><div class="v">全 PASS</div><div class="l">核心护栏</div></div>
+</div>
+
+<h2>一、删了什么（全部已核定，有 git 兜底）</h2>
+<table>
+  <tr><th style="width:12%">类别</th><th style="width:44%">内容</th><th style="width:14%">规模</th><th style="width:30%">依据</th></tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>数据库快照：<code>archive/db_backups</code>（29 个）、<code>viewer/app.db.bak-*</code>（14 个）、<code>app_isobf/isovd/isofei/isomf/isomq/isors.db</code> 系列</td>
+    <td class="num">~2.2G</td>
+    <td>各改造节点的临时快照；活库 <code>viewer/app.db</code> 完好，保留最新一份兜底</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>源码备份：根 <code>*.bak*</code>、<code>viewer/*.py.bak-*</code>、<code>archive/code_baks</code></td>
+    <td class="num">~6M</td>
+    <td>源码全部已被 git 跟踪，历史在版本库中</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>前端快照：<code>app.js.*</code>、<code>app.css.*</code>、<code>index.html.bak*</code></td>
+    <td class="num">17M（45 个）</td>
+    <td>活文件是无后缀的 <code>app.js</code>/<code>app.css</code>（版本串 <code>20261012-ratebp</code>）</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>临时探针：根目录 <code>_*</code> 197 个 + <code>tools/_*</code> 219 个（探针脚本、中间 json/txt、截图）</td>
+    <td class="num">~13M</td>
+    <td>一次性调试产物，经 grep 确认无活代码引用</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>截图目录：<code>_shots/</code>、<code>_shots_rate/</code>、<code>_verify_shots/</code>、<code>tools/_probe_out</code>、<code>tools/_migrate</code>、<code>tools/_qa_abcd</code>、<code>tools/shots*</code>、<code>archive/temp</code>、<code>archive/static_baks</code></td>
+    <td class="num">~110M</td>
+    <td>测试与调试期截图，运行时会重新生成</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">已删</span></td>
+    <td>历史报告 HTML 21 份（《代码审查报告》《测试与优化方案》《数据完整性回测报告》等阶段性产物）</td>
+    <td class="num">~250K</td>
+    <td>进哥确认「全删」，保留最新一份《查看器体验审计与改造方案.html》</td>
+  </tr>
+  <tr>
+    <td><span class="tag del">零散</span></td>
+    <td>空文件与一次性输出：<code>app.db</code>(0B)、<code>viewer_restart.log</code>(0B)、<code>env_probe3.txt</code>、<code>selftest.out</code></td>
+    <td class="num">—</td>
+    <td>误建空文件与过期探测输出</td>
+  </tr>
+</table>
+
+<h2>二、留了什么（运行必需 / 治理资产）</h2>
+<table>
+  <tr><th style="width:12%">类别</th><th style="width:56%">内容</th><th style="width:32%">保留理由</th></tr>
+  <tr><td><span class="tag keep">保留</span></td>
+      <td>活库 <code>viewer/app.db</code>（88M / 68 表：posts 5949 / news 3942 / trades 983）+ 兜底 <code>app.db.bak-zhixing-20261011</code></td>
+      <td>应用数据源，删了要重新抓数</td></tr>
+  <tr><td><span class="tag keep">保留</span></td>
+      <td><code>data/</code>、<code>*_cache.json</code>（kline_cache / predict_kcache / fund_* 等）</td>
+      <td>运行期缓存，重新生成代价高</td></tr>
+  <tr><td><span class="tag keep">保留</span></td>
+      <td><code>docs/</code>、<code>tests/</code>、<code>KNOWN_DEFECTS.json</code>、40+ 个 <code>verify_*.cjs</code>/<code>audit_*.cjs</code> 护栏</td>
+      <td>正是「让别人读得懂、可回归」的治理资产</td></tr>
+  <tr><td><span class="tag keep">保留</span></td>
+      <td><code>tools/</code> 下 88 个正式脚本（<code>import_bloggers_direct.py</code>、<code>rebuild_blogger_stats.py</code>、<code>sync_blogger_tracklist.py</code> 等）</td>
+      <td>被活代码引用，非垃圾</td></tr>
+  <tr><td><span class="tag keep">保留</span></td>
+      <td><code>.venv/</code>（174M）、<code>node_modules/</code>（44M）、<code>extlib/</code>（56M）</td>
+      <td>依赖环境，删了要重新安装</td></tr>
+</table>
+
+<div class="note">
+  <strong>清理原则</strong>：源码类文件删 <code>.bak</code> 前先确认「已被 git 跟踪」；<code>tools/</code> 看似垃圾堆，
+  实含被活代码引用的正式脚本——只删其下 <code>_*</code> 临时件；动数据库目录前先确认服务在跑、不强行中断。
+  清理前已建 git 安全点 <code>10457b0</code>，清理后提交 <code>400b0ba</code>。
+</div>
+
+<h2>三、自检结论（清理后应用健康度）</h2>
+<ul>
+  <li><span class="ok">✓ 后端</span>：8765 端口常驻运行，首页 HTTP 200；数据库 68 表、核心数据完整。</li>
+  <li><span class="ok">✓ 前端资源</span>：<code>app.js</code> 863854 字节、<code>app.css</code> 256374 字节，与磁盘活文件字节级一致；版本串 <code>20261012-ratebp</code> 未变。</li>
+  <li><span class="ok">✓ 全量审计</span>：<code>audit_clickthrough.cjs</code> — 访问 39 个子板块，<strong>有问题 0，非 2xx 响应无</strong>。</li>
+  <li><span class="ok">✓ 核心护栏</span>：<code>verify_today.cjs</code>(20 项) / <code>verify_brief.cjs</code>(17 项) / <code>verify_rate_buy.cjs</code>(14 项) / <code>verify_nav.cjs</code> — 全部 PASS。</li>
+</ul>
+
+<h2>四、待决策（未擅自处理）</h2>
+<div class="note amber">
+  <ul>
+    <li><span class="tag ask">待定</span> <strong>源码注释内「王总」共 563 处</strong>（100+ 文件）。经核实全部位于注释 / docstring /
+      <code>&lt;!-- --&gt;</code> 中，<strong>不在界面渲染路径上</strong>，界面看不到——不构成品牌露出。是否统一改为「进哥」等您定；
+      批量替换有踩到字符串字面量的风险，故未擅自执行。</li>
+    <li><span class="tag ask">已做</span> <code>start_viewer.bat</code> 中用户可见的「王总专用」注释已改为中性表述（该文件是双击启动器，属产品脚本）。</li>
+    <li><span class="tag ask">已做</span> <code>.gitignore</code> 补充规则：约定「一次性脚本 / 截图一律 <code>_</code> 前缀，不入库」，防止后续再次污染。</li>
+  </ul>
+</div>
+
+<div class="foot">
+  股票论坛可视化查看器 · 工程垃圾清理报告 &nbsp;|&nbsp; 2026-10-12 &nbsp;|&nbsp; 体积 3.0G → 1.1G
+</div>
+
+</div>
+</body>
+</html>

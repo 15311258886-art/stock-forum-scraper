@@ -138,8 +138,13 @@ def board_of(code: str) -> str:
 
 
 def normalize(code: str) -> str:
-    """从任意文本中提取 6 位 A 股代码；失败返回原值。"""
-    m = re.search(r"\b(\d{6})\b", code or "")
+    """从任意文本中提取 6 位 A 股代码；失败返回原值。
+
+    2026-10-12 修复：原正则 `\\b(\\d{6})\\b` 在 Python 里把 CJK 也视作 \\w，
+    于是「宁德时代300750」中 代|3 之间没有词边界，代码提不出来（淘股吧正文大量这种写法）。
+    改用数字环视（前后不得再紧跟数字）即可正确取出，同时仍能拒绝 7 位以上的长数字串。
+    """
+    m = re.search(r"(?<!\d)(\d{6})(?!\d)", code or "")
     return m.group(1) if m else (code or "").strip()
 
 

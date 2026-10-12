@@ -158,6 +158,22 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         sector["error"] = f"{type(e).__name__}: {e}"[:300]
 
+    # ---- 主线研判链（方向→龙头→梯队→分支）----
+    # 2026-10-12 修复：下方 status["sector_chain"]=chain 引用了从未赋值的 chain，
+    # 一执行到状态落盘就 NameError、整个日更静默断档（状态文件的 ended 永远停在旧日期）。
+    # 此处补上真正跑 sector_chain.py 的子进程，与其它步骤同口径（超时 1800s、失败不阻断后续）。
+    chain = {"returncode": None, "tail": ""}
+    try:
+        r6 = subprocess.run(
+            [PY, os.path.join(BASE, "sector_chain.py")],
+            cwd=BASE, capture_output=True, text=True,
+            encoding="utf-8", errors="ignore", timeout=1800,
+        )
+        chain["returncode"] = r6.returncode
+        chain["tail"] = "\n".join((r6.stdout or "").splitlines()[-8:])
+    except Exception as e:  # noqa: BLE001
+        chain["error"] = f"{type(e).__name__}: {e}"[:300]
+
     time.sleep(2)  # 等 WAL 落盘
     ck = _wal_checkpoint()
     after = _counts()
