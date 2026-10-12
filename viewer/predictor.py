@@ -1924,6 +1924,11 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     bars_map = {c: v for c, v in bars_map.items() if len(v) >= MIN_BARS}
     if not bars_map:
         return {"ok": False, "error": "截断到 %s 后候选池 K 线为空" % td}
+    # A3-1（2026-10-12）：截断后立刻加一道**可断言**的时点校验 —— 万一日后有人动上面两行，
+    # 这里会直接抛 LookaheadError，而不是静默地"拿后面的答案做前面的预测"。
+    for _c, _bars in bars_map.items():
+        if _bars:
+            assert_point_in_time(td, _bars[-1].get("d"))
 
     # 2) 六路信号
     _STATUS["stage"] = "算技术面"
@@ -2434,6 +2439,32 @@ def _score_row(r) -> dict:
         "avg_ret_t10": round((r["sum_ret_t10"] or 0) / r["n_t10"], 4) if r["n_t10"] else None,
         "weight": r["weight"], "weight_prev": r["weight_prev"],
     }
+
+
+# 2026-10-12 整改 A3-1：时点纪律守卫（防"时间穿越"）。
+# 规格书要求「代码层面在特征构造入口统一加时点校验（特征日期 ≤ 预测日），并写单元测试
+# 证明把未来数据喂进去会被拒绝」。本项目多数信号早已带 asof 边界（如 sig_inst 只统计
+# trade_date <= asof），但那只是"约定"；这里给一个**可断言、可单测**的统一入口。
+class LookaheadError(AssertionError):
+    """使用了晚于预测日的数据（前视偏差）。"""
+
+
+def assert_point_in_time(asof: str | None, *candidate_dates) -> None:
+    """任何入模特征的日期都不得晚于预测日 asof；违反即抛 LookaheadError。
+
+    asof 为 None → 表示"不设边界"（全量重建/历史回放场景），跳过检查。
+    日期一律按 YYYY-MM-DD 字符串比较（ISO 序即时间序）。
+    """
+    if not asof:
+        return
+    a = str(asof)[:10]
+    for d in candidate_dates:
+        if d is None or d == "":
+            continue
+        s = str(d)[:10]
+        if s > a:
+            raise LookaheadError(
+                "前视偏差：特征日期 %s 晚于预测日 %s —— 拒绝使用未来数据" % (s, a))
 
 
 # 2026-10-12 整改 #21：今日推荐 payload 固定附带的风险声明（合规：非投资建议）。
