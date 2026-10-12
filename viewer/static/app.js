@@ -30,7 +30,9 @@ function api(path, opts) {
       try { body = await r.text(); } catch (e) { /* 读响应体失败时忽略 */ }
       throw new Error(`HTTP ${r.status} ${r.statusText || ""} ${path} — ${String(body).slice(0, 200)}`);
     }
-    return r.json();
+    const data = await r.json();
+    markServiceHealthy();   // D2：只要有一个请求成功，就说明后端已恢复 → 撤横幅并提示
+    return data;
   }, (e) => {
     if (isNetErr(e) && n < 2) {
       return new Promise((res) => setTimeout(res, n === 0 ? 400 : 1200)).then(() => attempt(n + 1));
@@ -47,11 +49,41 @@ function api(path, opts) {
      ② 救不了 / 是浏览器打开的 → 明说「双击桌面『股票论坛可视化查看器』重开」。
    横幅用**独立 DOM**（不吃 setHint 的 textContent 覆盖），避免下一行失败提示立刻把它抹掉。 */
 let _netDropAt = 0;
+let _dropBannerShown = false;   // D2：当前是否处于"断连"状态（用于恢复时给一次提示）
+
+/** 轻量 toast（D2 引入）：4 秒自动消失，右下角，不打断操作。 */
+function showToast(msg) {
+  try {
+    let host = document.getElementById("toastHost");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "toastHost";
+      document.body.appendChild(host);
+    }
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    host.appendChild(t);
+    setTimeout(() => t.classList.add("toast-out"), 3400);
+    setTimeout(() => t.remove(), 4000);
+  } catch (e) { /* toast 失败不该影响主流程 */ }
+}
+
+/** D2：后端恢复时的收尾——撤掉断连横幅，并提示一次「已自动重启」。 */
+function markServiceHealthy() {
+  if (!_dropBannerShown) return;
+  _dropBannerShown = false;
+  const bar = document.getElementById("netDropBar");
+  if (bar) bar.remove();
+  showToast("本地服务已恢复（后端由常驻守护自动重启）。数据可正常刷新。");
+}
+
 function hasLocalRestartBridge() {
   return typeof window._js_restart_service === "function";
 }
 function netDropBanner() {
   const now = Date.now();
+  _dropBannerShown = true;
   if (now - _netDropAt < 20000) return;   // 20 秒内不重复刷同一个横幅
   _netDropAt = now;
   const host = document.getElementById("netDropBar") || (() => {
@@ -12613,6 +12645,33 @@ function ratingBadge(r) {
 /* 数值列判定（数据驱动，不按列名硬编码）：某列 ≥60% 的非空单元格是「可比较的数字」才算数值列。
    之所以不用列名匹配：同一份知识库里列名写法不统一（胜率/年化收益/平均亏损/最大回撤…），
    而列名一旦改动（上游改版）就会静默失效；按数据判定对上游改版更耐久。 */
+/* ============ 缺失值统一渲染（2026-10-12 整改 A6：缺失 ≠ 0 ≠ 无）============
+   背景：行情/资金流抓不到时，后端现在会返回 null（见 server.py 的 _json_safe：NaN/Inf → null）。
+   但前端过去各家写法不一——有的 `?? "—"`、有的直接 `|| 0`、有的留空白。留空白最坏：
+   使用者分不清"是 0 还是没抓到"。这里给一个唯一出口。
+
+   约定：
+     · renderMissing(reason)  → HTML 片段：灰阶 "—" + 悬停说明原因
+     · missText(reason)       → 纯文本 "—"（用于 title/aria 等属性）
+     · numOr(v, reason, fmt)   → 数值安全渲染：null/undefined/NaN/空串 一律走 renderMissing
+   注意：**不要**用 `?? 0` 表达"没抓到"——0 是有意义的取值（如净流入 0 亿）。
+   ==================================================================== */
+function missText(reason) { return "—"; }
+function renderMissing(reason) {
+  const why = reason || "该数据本次未抓取到（非 0，也不是空值）";
+  return `<span class="miss" title="${escAttr(why)}">—</span>`;
+}
+function isMissing(v) {
+  return v === null || v === undefined || v === "" ||
+    (typeof v === "number" && !isFinite(v));
+}
+/** 数值安全渲染：缺失 → "—"+原因；否则用 fmt 回调格式化（fmt 可省略，默认原样 esc）。 */
+function numOr(v, reason, fmt) {
+  if (isMissing(v)) return renderMissing(reason);
+  const t = fmt ? fmt(v) : String(v);
+  return isMissing(t) ? renderMissing(reason) : esc(t);
+}
+
 function numericCols(cols, rows) {
   return toArr(cols).map((_, ci) => {
     const vals = toArr(rows).map((r) => mdPlain(toArr(r)[ci])).filter((x) => x !== "");
@@ -12658,7 +12717,14 @@ function mdTable(t) {
   const isNum = numericCols(cols, rows);   // 与回测表同一套判据，避免同页两种数字对齐风格
   return `<div class="kb-scroll"><table class="kb-table"><thead><tr>` +
     cols.map((c, ci) => `<th${isNum[ci] ? ' class="num"' : ""}>${esc(c)}</th>`).join("") + `</tr></thead><tbody>` +
-    rows.map((r) => `<tr>${toArr(r).map((c, ci) => `<td${isNum[ci] ? ' class="num"' : ""}>${esc(mdPlain(c))}</td>`).join("")}</tr>`).join("") +
+    rows.map((r) => `<tr>` + toArr(r).map((c, ci) => {
+      const txt = mdPlain(c);
+      // A6：数值列的空单元格 → 统一"缺失"标记（不再留空白，避免被当成 0）
+      if (isNum[ci] && (txt === "" || txt === "-" || txt === "—" || txt === "N/A")) {
+        return `<td class="num">${renderMissing("该行此列在原表中为空（未提供或未抓取）")}</td>`;
+      }
+      return `<td${isNum[ci] ? ' class="num"' : ""}>${esc(txt)}</td>`;
+    }).join("") + `</tr>`).join("") +
     `</tbody></table></div>`;
 }
 /* 博主完整档案抽屉：精读笔记 / 视频笔记 / 来源三块分别成段，不混在一起 */

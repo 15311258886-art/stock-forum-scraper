@@ -3643,3 +3643,25 @@ a.pd-code:hover { background: rgba(127,127,127,.22); color: #0e7490; }
   background:var(--amber-soft, #fdf6e3);border-left:3px solid #b8860b;
   color:#6b5200;font-size:12.5px;line-height:1.6;
 }
+
+
+/* ===== 2026-10-12 整改 A6：缺失值统一标记（与 renderMissing() 配套）=====
+   灰阶 + 虚线下划线，暗示「这里本该有数、但这次没抓到」；悬停给出原因。
+   切勿把此类位置渲染成 0 —— 0 是有意义的取值（如净流入 0 亿）。
+   注意：本类名是 .miss（独立词），勿与既有的 .missing 混淆。 */
+span.miss{
+  color:var(--text-dim,#9aa3ab);
+  border-bottom:1px dashed currentColor;
+  cursor:help;
+}
+
+
+/* ===== 2026-10-12 整改 D2：轻量 toast（后端恢复提示等）===== */
+#toastHost{position:fixed;right:18px;bottom:18px;z-index:10000;display:flex;flex-direction:column;
+  gap:8px;align-items:flex-end;pointer-events:none}
+#toastHost .toast{pointer-events:auto;max-width:min(420px,60vw);padding:10px 14px;border-radius:10px;
+  background:var(--surface,#fff);color:var(--text,#1a1a1a);border:1px solid var(--border,#e8e4dc);
+  border-left:3px solid var(--accent,#0E7490);box-shadow:0 6px 22px rgba(0,0,0,.14);
+  font-size:13px;line-height:1.6;opacity:1;transition:opacity .5s ease, transform .5s ease}
+#toastHost .toast.toast-out{opacity:0;transform:translateY(6px)}
+@media (prefers-reduced-motion: reduce){#toastHost .toast{transition:none}}
