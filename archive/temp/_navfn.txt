@@ -1,5 +1,0 @@
-  838:       b.classList.add("active");
- 3317: function renderNav() {
- 3364: function selectNav(catKey, tabKey, push) {
- 3376:   if (panel) panel.classList.add("active");
- 3459: function ensurePanel(tab) {

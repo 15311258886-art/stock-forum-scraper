@@ -1,4 +1,0 @@
-ANCHOR  3317: function renderNav() {
-ANCHOR  3320: side.innerHTML = `<div class="rail-head">导航</div>` + NAV.map((c) => {
-ANCHOR  3364: function selectNav(catKey, tabKey, push) {
-ANCHOR  3459: function ensurePanel(tab) {

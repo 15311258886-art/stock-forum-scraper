@@ -44,3 +44,20 @@ build/
 # ── 编辑器 / 系统 ──
 .DS_Store
 *.swp
+
+# ── 临时探针 / 运行产物（约定：一次性脚本与截图一律 `_` 前缀，不入库）──
+# 说明：根目录与 tools/ 下 `_*` 均为调试期一次性产物（探针脚本、中间 json/txt、截图），
+#       活代码不引用它们；如以后确要保留某个脚本，请去掉 `_` 前缀正式命名。
+_*
+_*.png
+_*.json
+_*.txt
+_*.log
+audit_last.png
+audit_clickthrough_result.json
+audit_data_result.json
+e2e_all_tabs_result.json
+verify_backend_result*.txt
+stage0_mutations.json
+auto_update_status.json
+moneyflow_negcache.json

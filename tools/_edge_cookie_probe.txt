@@ -1,6 +1,0 @@
-[Edge] 数据目录存在: C:\Users\野比&大熊\AppData\Local\Microsoft\Edge\User Data
-   profiles: Default
-   immutable 直连失败: unable to open database file -> 退回复制副本
-   读取失败: [WinError 32] 另一个程序正在使用此文件，进程无法访问。
-[Chrome] 未安装/无数据目录: C:\Users\野比&大熊\AppData\Local\Google\Chrome\User Data
-已写出 F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\tools\_edge_cookies.json

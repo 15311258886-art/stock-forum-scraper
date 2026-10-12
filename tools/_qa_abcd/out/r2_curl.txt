@@ -1,8 +1,0 @@
-consensus:
-HTTP 200 size=123688
-consensus oq:
-HTTP 200 size=10134
-cohold:
-HTTP 200 size=32911
-cohold oq:
-HTTP 200 size=278

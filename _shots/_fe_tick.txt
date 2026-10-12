@@ -1,3 +1,0 @@
-7549|function rateTickSub(tick) {
-7569|function rateTick(tick, n) {
-7646|function rateDayCard(day, open) {

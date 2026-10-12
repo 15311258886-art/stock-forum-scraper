@@ -1,2 +1,0 @@
-﻿py_compile exit=0
-detail exit=0

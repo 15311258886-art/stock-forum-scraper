@@ -1,4 +1,0 @@
-trades_v2 total = 956
-key1(site,post_url,author,symbol_name,action): dup_groups=0 dup_rows=None
-key2_v2: dup_groups=0 dup_rows=None
-distinct under key2 = 956

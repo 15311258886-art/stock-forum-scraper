@@ -1,3 +1,0 @@
-prod trades = 348
-prod has trades_v2 = False
-prod integrity = ok

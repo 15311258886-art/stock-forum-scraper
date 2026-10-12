@@ -1,7 +1,0 @@
-def api_dashboard: 1
-route /api/dashboard: 0
-api_board: 0
-niusan def: 1 | route: 1
-lhb_sectors def: 1 | route: 1
-
-  366: def api_dashboard() -> dict:
