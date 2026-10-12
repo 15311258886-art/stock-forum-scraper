@@ -900,7 +900,7 @@ function openStock(symbol, anchorEl, extraHtml) {
         <div id="stkTurnover" class="stk-info stk-turnover" data-sym="${escAttr(symbol)}"><div class="s">换手率实战评分加载中…（首次需抓日K，约2~5秒）</div></div>
         <div class="detail-sub">持股结构 —— 机构 / 产业资本 / 自然人 / 散户（季报口径，详见说明）</div>
         <div id="stkHolders" class="stk-info stk-holders" data-sym="${escAttr(symbol)}"><div class="s">持股结构加载中…</div></div>
-        <div class="detail-sub">② K 线走势 —— <b>按住拖动</b>平移（<b>向右拖 = 往回看更早</b>，可一直拖到上市首日）· <b>滚轮</b>缩放 · <b>悬停</b>看当日明细；也可点下方「◀ 更早 / 更晚 ▶」逐屏翻</div>
+        <div class="detail-sub">② K 线走势 —— <b>按住拖动</b>平移（<b>向右拖 = 往回看更早</b>，可一直拖到上市首日）· <b>滚轮</b>缩放（<b>一直缩小到底 = 看「上市至今」全历史</b>，也可直接点「全历史」）· <b>悬停</b>看当日明细；也可点下方「◀ 更早 / 更晚 ▶」逐屏翻</div>
         <div id="klineWrap" data-sym="${escAttr(symbol)}" data-name="${escAttr(d.symbol_name || "")}">
           <div class="kline-snap" id="klineSnap"><span class="s">行情加载中…</span></div>
           <div class="kline-canvas-wrap"><canvas id="klineCanvas"></canvas><div class="kline-tip" id="klineTip" hidden></div></div>
@@ -914,6 +914,7 @@ function openStock(symbol, anchorEl, extraHtml) {
               <button class="btn sm" id="klineOlder" title="往回看更早的 K 线">◀ 更早</button>
               <button class="btn sm" id="klineNewer" title="往近看更新的 K 线">更晚 ▶</button>
               <span class="kline-range" id="klineRange">—</span>
+              <button class="btn sm" id="klineFull" title="一次显示从上市首日到今天的全部 K 线（等同一直缩小到底）">全历史</button>
               <button class="btn sm" id="klineLatest">回到最新</button>
               <button class="btn sm" id="klineRefresh">刷新</button>
             </div>
@@ -1501,10 +1502,22 @@ function updateKlineRange() {
   const adjust = _kv.adjust === "raw" ? "不复权" : "前复权";
   const atEarliest = _kv.offset <= 0;
   const atLatest = _kv.offset + _kv.count >= _kv.rows.length;
+  const allShown = atEarliest && atLatest;    // 视口正好铺满全部 = 上市至今
+  let edge;
+  if (allShown) {
+    edge = ` · <b class="kline-edge">已显示全部（上市至今 ${esc(_kv.rows[0].date)} 起）</b>`;
+  } else if (atEarliest) {
+    // 注意：hasMore 时「最早」只是**本次已加载**的最早，不是上市首日——不能误导
+    edge = _kv.hasMore
+      ? ` · <b class="kline-edge">已到本次加载的最早（还有更早历史 —— 继续缩小或点「全历史」）</b>`
+      : ` · <b class="kline-edge">已到最早一根（${esc(_kv.firstDate)}）</b>`;
+  } else if (atLatest) {
+    edge = ` · <b class="kline-edge">最新</b>`;
+  } else {
+    edge = "";
+  }
   el.innerHTML = `${esc(vis[0].date)} ~ ${esc(vis[vis.length - 1].date)}`
-    + ` · 可见 ${vis.length} / 共 ${_kv.rows.length} 根 · ${adjust}`
-    + (atEarliest ? ` · <b class="kline-edge">已拖到最早一根（${esc(_kv.firstDate)}）</b>` : "")
-    + (!atEarliest && atLatest ? ` · <b class="kline-edge">最新</b>` : "");
+    + ` · 可见 ${vis.length} / 共 ${_kv.rows.length} 根 · ${adjust}` + edge;
 }
 
 function initStockKline(symbol) {
@@ -1521,6 +1534,9 @@ function initStockKline(symbol) {
   });
   const rf = $("#klineRefresh");
   if (rf) rf.onclick = () => loadKline(symbol, curKlinePeriod(), true);
+  // 「全历史」：一键从上市首日看到今天（等同一直缩小到底；进哥 2026-10-12 要求便捷性）
+  const kf = $("#klineFull");
+  if (kf) kf.onclick = () => klineShowAll();
   const lt = $("#klineLatest");
   if (lt) lt.onclick = () => {
     if (!_kv) return;
@@ -1548,6 +1564,26 @@ function initStockKline(symbol) {
   loadKline(symbol, "day", false);
 }
 
+/**
+ * 「全历史」全览：从上市首日一路看到今天。
+ *   · 已加载全量（或后端表明没有更早的数据）→ 直接把视口铺满全部，不重复请求；
+ *   · 否则先把全量拉回来（limit=0，后端 90s 缓存，二次秒回），加载完自动铺满。
+ * 2026-10-12 进哥要求：日/周/月 K 一直缩小要能看到「上市至今」的整体走势。
+ */
+function klineShowAll() {
+  if (!_kv || _kv.loading) return;
+  if (_kv.all || !_kv.hasMore) {
+    _kv.count = _kv.rows.length;
+    _kv.offset = 0;
+    _kv.crossIdx = null;
+    klinePaint();
+    const tip = $("#klineTip"); if (tip) tip.hidden = true;
+    return;
+  }
+  _kv.loading = true;
+  loadKline(_kv.symbol, _kv.period, false, { all: true });
+}
+
 function curKlinePeriod() {
   const b = $("#klineWrap .kbtn.active");
   return (b && b.dataset.p) || "day";
@@ -1556,10 +1592,14 @@ function curKlinePeriod() {
 // 2026-10-05 建议8：K 线一次拉几千根纯属浪费——前端本来只看最近 120 根，
 // 默认向后端要最近 250 根；点「拉全部历史」才传 limit=0（后端 90s 缓存，二次秒回）。
 const KLINE_DEFAULT_LIMIT = 250;
+const KLINE_ZOOM_MIN = 20;      // 最多放大到看 20 根（再细就没有信息量了）
 function loadKline(symbol, period, force, opts) {
+  const o = opts || {};
   const snap = $("#klineSnap"), recent = $("#klineRecent");
-  const lim = (opts && opts.limit != null) ? opts.limit : KLINE_DEFAULT_LIMIT;
-  if (snap) snap.innerHTML = `<span class="s">行情加载中…</span>`;
+  // 全览意图 = 显式 all，**或沿用上一次的全览状态**（切周期时不该丢掉"看全程"）。
+  const wantAll = !!o.all || !!(_kv && _kv.all);
+  const lim = wantAll ? 0 : (o.limit != null ? o.limit : KLINE_DEFAULT_LIMIT);
+  if (snap) snap.innerHTML = `<span class="s">${wantAll ? "正在拉取全部历史 K 线…" : "行情加载中…"}</span>`;
   api(`/api/kline?symbol=${encodeURIComponent(symbol)}&period=${encodeURIComponent(period)}&limit=${lim}` + (force ? "&_=" + Date.now() : ""))
     .then((d) => {
       if (d.error) {
@@ -1572,22 +1612,32 @@ function loadKline(symbol, period, force, opts) {
       renderKlineRecent(d);
       const rows = d.klines || [];
       if (!rows.length) { _kv = null; return; }
-      // 默认显示最近 120 根；切换周期时沿用当前可见根数，减少"跳一下"的割裂感
-      const keep = (_kv && _kv.count) || 120;
-      const count = Math.max(20, Math.min(keep, rows.length));
+      // 全览：把视口铺满「上市首日 → 今天」；
+      // 否则默认显示最近 120 根，切周期时沿用当前可见根数，减少"跳一下"的割裂感。
+      const showAll = wantAll || !d.has_more;
+      let count, offset;
+      if (showAll) {
+        count = rows.length;
+        offset = 0;
+      } else {
+        const keep = (_kv && _kv.count) || 120;
+        count = Math.max(KLINE_ZOOM_MIN, Math.min(keep, rows.length));
+        offset = Math.max(0, rows.length - count);
+      }
       _kv = {
-        symbol, period, rows, count,
-        offset: Math.max(0, rows.length - count),
+        symbol, period, rows, count, offset,
+        all: showAll,
         adjust: d.adjust || "qfq", source: d.source || "",
         hasMore: !!d.has_more, earliest: d.earliest_date || d.first_date || "",
         firstDate: d.first_date || rows[0].date || "",
         ma: klineMA(rows),
-        dragging: false, dragX0: 0, dragOff0: 0, crossIdx: null,
+        dragging: false, dragX0: 0, dragOff0: 0, crossIdx: null, loading: false,
       };
       bindKlineInteractions();
       klinePaint();
     })
     .catch((e) => {
+      if (_kv) _kv.loading = false;   // 失败必须复位，否则"缩到底自动加载"再也不会触发
       if (snap) snap.innerHTML = `<span class="s" style="color:var(--bear)">行情获取失败：${esc(apiErrText(e))}</span>`;
     });
 }
@@ -1633,12 +1683,9 @@ function renderKlineSnap(d) {
       ld.appendChild(tag);
     }
   }
-  // 「拉全部历史」：只有本次被降采样（has_more=true）时才出现，点了才去要全量
+  // 「拉全部历史」：只有本次被降采样（has_more=true）时才出现；与工具条「全历史」同一入口
   const more = $("#klineLoadAll");
-  if (more) more.onclick = () => {
-    const v = (typeof _kv !== "undefined" && _kv) ? _kv : null;   // 还没渲染过 K 线就别硬点
-    if (v) loadKline(v.symbol, v.period, false, { limit: 0 });
-  };
+  if (more) more.onclick = () => klineShowAll();
 }
 
 function renderKlineRecent(d) {
@@ -1745,12 +1792,19 @@ function bindKlineInteractions() {
     const g = klineGeom();
     if (!g || !_kv) return;
     e.preventDefault();
+    // 「一直缩小到底」= 想看更早的历史：若后端还有全量没拉回来，自动补全并全览。
+    // 进哥 2026-10-12：日/周/月 K 缩到最小，要能看到这只票从上市首日到今天的整体走势。
+    if (e.deltaY > 0 && _kv.count >= _kv.rows.length && _kv.hasMore && !_kv.loading) {
+      _kv.loading = true;
+      loadKline(_kv.symbol, _kv.period, false, { all: true });
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const frac = Math.min(1, Math.max(0, (mx - KLINE_PAD.l) / g.plotW));
     const anchor = _kv.offset + frac * _kv.count;
     const factor = e.deltaY > 0 ? 1.2 : 1 / 1.2;
-    const newCount = Math.round(Math.min(_kv.rows.length, Math.max(20, _kv.count * factor)));
+    const newCount = Math.round(Math.min(_kv.rows.length, Math.max(KLINE_ZOOM_MIN, _kv.count * factor)));
     if (newCount === _kv.count) return;
     _kv.count = newCount;
     _kv.offset = Math.round(anchor - frac * newCount);
@@ -1784,7 +1838,15 @@ function bindKlineInteractions() {
       e.preventDefault();
     } else if (e.touches.length === 2 && pinch && pinch.d > 0) {
       const ratio = pinch.d / tDist(e.touches);
-      _kv.count = Math.round(Math.min(_kv.rows.length, Math.max(20, pinch.count * ratio)));
+      const nc = Math.round(Math.min(_kv.rows.length, Math.max(KLINE_ZOOM_MIN, pinch.count * ratio)));
+      // 捏合到「已加载的全部」且还有更早的历史 → 自动拉全量并全览（与滚轮缩到底一致）
+      if (nc >= _kv.rows.length && _kv.hasMore && !_kv.loading) {
+        _kv.loading = true;
+        loadKline(_kv.symbol, _kv.period, false, { all: true });
+        e.preventDefault();
+        return;
+      }
+      _kv.count = nc;
       clampOffset();
       klinePaint();
       e.preventDefault();

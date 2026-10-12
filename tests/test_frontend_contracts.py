@@ -87,6 +87,42 @@ def test_day_chips_capped_and_queryable():
     return True
 
 
+def test_kline_full_history_reachable():
+    """K 线必须能看到「上市至今」全历史（2026-10-12 进哥要求）。
+
+    回归点：滚轮缩放的上限曾被写成「当前已加载根数」，而首屏默认只拉 250 根，
+    于是日K 缩到底也只有约 1 年、周K 约 5 年 —— 怎么缩都够不到上市首日。
+    修法：① 工具条「全历史」按钮；② 缩到底自动拉全量并全览；③ 切周期保持全览。
+    """
+    js = _read(APP_JS)
+    # ① 一键入口
+    assert 'id="klineFull"' in js, "工具条缺少「全历史」按钮（#klineFull）"
+    assert "function klineShowAll(" in js, "app.js 缺少 klineShowAll（全览函数）"
+    assert "kf.onclick = () => klineShowAll()" in js, "「全历史」按钮未接线"
+    # ② 滚轮缩到底 → 自动拉全量
+    assert "e.deltaY > 0 && _kv.count >= _kv.rows.length && _kv.hasMore" in js, \
+        "滚轮缩到底未接「自动拉全历史」"
+    assert "all: true" in js, "未以 { all: true } 请求全量"
+    # ③ 全览 = 铺满全部且从第 0 根起
+    assert "count = rows.length;" in js and "offset = 0;" in js, "全览视口未铺满全部"
+    # ④ 切周期保持全览意图
+    assert "const wantAll = !!o.all || !!(_kv && _kv.all);" in js, "切周期未继承「全览」意图"
+    # ⑤ 文案诚实：has_more 时不得谎称「已到最早一根」
+    assert "已到本次加载的最早" in js, "缺少 has_more 时的准确提示"
+    assert "已显示全部" in js, "全览后未标注「已显示全部」"
+    return True
+
+
+def test_kline_toolbar_no_squeeze():
+    """K 线工具条：周期按钮不得被 range 长文本压扁换行（2026-10-12 实测踩过）。"""
+    css = _read(APP_CSS)
+    assert re.search(r"\.kline-periods\s*\{[^}]*flex:\s*0\s+0\s+auto", css), \
+        "周期按钮未设为不可压缩（会被 range 长文本压成两行）"
+    assert re.search(r"\.kbtn\s*\{[^}]*white-space:\s*nowrap", css), "周期按钮文字未禁止换行"
+    assert re.search(r"\.kline-bar\s*\{[^}]*flex-wrap:\s*wrap", css), "工具条未允许整体换行"
+    return True
+
+
 def test_no_unbounded_date_chip_row():
     """通用防回退：不得再出现「日期数组直接 map 成 chip 行」的写法。"""
     js = _read(APP_JS)
@@ -101,7 +137,8 @@ if __name__ == "__main__":
     tests = [test_missing_helpers_exist, test_mdtable_uses_render_missing,
              test_missing_css_present, test_service_recovery_notice_wired,
              test_drop_banner_sets_flag, test_day_chips_capped_and_queryable,
-             test_no_unbounded_date_chip_row]
+             test_no_unbounded_date_chip_row,
+             test_kline_full_history_reachable, test_kline_toolbar_no_squeeze]
     fails = []
     for t in tests:
         try:

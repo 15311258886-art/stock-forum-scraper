@@ -116,7 +116,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   console.log('=== 6) 拖到最早一根 ===');
   console.log(`  拖了 ${iter} 轮 | reached=${reached}`);
   console.log('  range:', rangeEarliest);
-  console.log('  含「已拖到最早一根」:', /已拖到最早一根/.test(rangeEarliest));
+  console.log('  含「已到最早」类提示:', /已到最早一根|已到本次加载的最早/.test(rangeEarliest));
+  // 注：has_more（默认 250 根）时文案为「已到本次加载的最早（还有更早历史…）」——
+  //     不再谎称「已拖到最早一根」（那会让用户以为看不到上市首日是数据不足）。
 
   // ---- 回到最新 ----
   await page.evaluate(() => document.querySelector('#klineLatest').click());
