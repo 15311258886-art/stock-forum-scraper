@@ -3392,10 +3392,12 @@ function renderNsMoves(box) {
   const rows = d.rows || [];
   const sel = STARM.sel || rows[0].date;
   const cur = rows.find((r) => r.date === sel) || rows[0];
-  const chips = rows.map((r) =>
-    `<span class="chip-s" role="button" data-sm-date="${escAttr(r.date)}" ` +
-    `style="cursor:pointer;${r.date === cur.date ? "background:var(--accent,#0E7490);color:#fff;" : ""}">` +
-    `${esc(r.date)} <span class="s">${r.counts.new}新/${r.counts.add}增/${r.counts.cut}减/${r.counts.exit}退</span></span>`).join(" ");
+  // 报告期横排：同样限最近 10 个 + 日期查询（进哥要求全站统一）
+  const chips = dayChips(rows, cur.date, "data-sm-date", {
+    keyOf: (r) => r.date,
+    renderOf: (r) => `${esc(r.date)} <span class="s">${r.counts.new}新/${r.counts.add}增/${r.counts.cut}减/${r.counts.exit}退</span>`,
+    title: "查询任意报告期",
+  });
   const badge = (k) => {
     const m = { new: ["新进", "bull"], add: ["增持", "bull"], cut: ["减持", "bear"], exit: ["退出", "bear"] };
     const [t] = m[k];
@@ -3430,6 +3432,21 @@ function renderNsMoves(box) {
   $$("#nsBody [data-sm-date]").forEach((el) => {
     el.onclick = () => { STARM.sel = el.dataset.smDate; renderNsMoves($("#nsBody")); };
   });
+  // 报告期查询框：可直达库内任意报告期（超出范围给提示并回退）
+  const _nsJump = $("#nsBody .day-jump");
+  if (_nsJump) {
+    _nsJump.onchange = () => {
+      const v = _nsJump.value;
+      const days = (_nsJump.dataset.days || "").split(",");
+      if (!v || !days.includes(v)) {
+        setHint("该期不是库内报告期。可选范围：" + (days[0] || "—") + " ~ " + (days[days.length - 1] || "—"));
+        _nsJump.value = cur.date || "";
+        return;
+      }
+      STARM.sel = v;
+      renderNsMoves($("#nsBody"));
+    };
+  }
   $$("#nsBody .kline-chip[data-sym]").forEach((el) => {
     el.onclick = () => openStock(el.dataset.sym, el);
   });
@@ -12705,22 +12722,39 @@ function numOr(v, reason, fmt) {
    attrName 用各面板自己的数据属性（data-lhb-date / data-lhs-date），点击绑定沿用原逻辑。
    ==================================================================== */
 const DAY_CHIP_LIMIT = 10;
-function dayChips(dates, curDate, attrName) {
-  const all = toArr(dates).filter(Boolean);
+/**
+ * 通用「日期/期次横排」：只渲染最近 DAY_CHIP_LIMIT 项 + 一个日期查询入口。
+ * @param items    可迭代的项（默认每项就是日期字符串；对象数组时用 opts.keyOf 取键）
+ * @param curValue 当前选中值
+ * @param attrName 点击绑定用的数据属性名（如 "data-lhb-date"）
+ * @param opts     { keyOf(x)->键, renderOf(x)->chip 内 HTML, title }
+ *
+ * ⚠️ 坑（2026-10-12 踩过）：选项名**不能叫 `valueOf`**——`Object.prototype.valueOf` 永远存在且 truthy，
+ * 于是 `o.valueOf || 默认值` 永远取到原型方法，以 this=undefined 调用会抛
+ * "Cannot convert undefined or null to object"，整个面板渲染失败、变空白。
+ * 此处另用 typeof === "function" 双保险。
+ */
+function dayChips(items, curValue, attrName, opts) {
+  const o = opts || {};
+  const keyOf = typeof o.keyOf === "function" ? o.keyOf : ((x) => x);
+  const renderOf = typeof o.renderOf === "function" ? o.renderOf : ((x) => esc(x));
+  const all = toArr(items).filter((x) => keyOf(x));
   if (!all.length) return "";
   const shown = all.slice(0, DAY_CHIP_LIMIT);
-  const chip = (x) => `<span class="chip-s" role="button" ${attrName}="${escAttr(x)}" `
-    + `style="cursor:pointer;${x === curDate ? "background:var(--accent,#0E7490);color:#fff;" : ""}">${esc(x)}</span>`;
+  const chip = (x) => `<span class="chip-s" role="button" ${attrName}="${escAttr(keyOf(x))}" `
+    + `style="cursor:pointer;${keyOf(x) === curValue ? "background:var(--accent,#0E7490);color:#fff;" : ""}">`
+    + `${renderOf(x)}</span>`;
   const rest = all.length - shown.length;
   if (rest <= 0) return `<span class="day-strip">${shown.map(chip).join(" ")}</span>`;
-  const newest = all[0];
-  const oldest = all[all.length - 1];
+  const vals = all.map(keyOf);
+  const newest = vals[0];
+  const oldest = vals[vals.length - 1];
   // 查询框**前置**（2026-10-12 进哥建议：设在「交易日」这边做查找），
   // chips 放进单行可横向滚动的 .day-strip —— 保证**永不换行**（进哥："不能无限排"）。
-  return `<input type="date" class="day-jump" data-days="${escAttr(all.join(","))}"`
-    + ` value="${escAttr(curDate || "")}" min="${escAttr(oldest)}" max="${escAttr(newest)}"`
-    + ` title="查询任意交易日（库内可选 ${newest} ~ ${oldest}，共 ${all.length} 个）">`
-    + ` <span class="day-more" title="只显示最近 ${DAY_CHIP_LIMIT} 个交易日；更早的用左侧日期框查询">`
+  return `<input type="date" class="day-jump" data-days="${escAttr(vals.join(","))}"`
+    + ` value="${escAttr(curValue || "")}" min="${escAttr(oldest)}" max="${escAttr(newest)}"`
+    + ` title="${escAttr(o.title || ("查询任意日期（可选 " + newest + " ~ " + oldest + "，共 " + all.length + " 个）"))}">`
+    + ` <span class="day-more" title="只显示最近 ${DAY_CHIP_LIMIT} 项；更早的用左侧日期框查询">`
     + `(+${rest})</span>`
     + ` <span class="day-strip">${shown.map(chip).join(" ")}</span>`;
 }

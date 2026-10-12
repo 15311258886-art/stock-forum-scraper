@@ -47,10 +47,21 @@ function ok(cond, msg) {
     page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
     await page.goto(URL, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-    for (const [hash, panel, attr] of [["#money/lhb", "#p-lhb", "data-lhb-date"],
-                                       ["#money/lhb_sectors", "#p-lhb_sectors", "data-lhs-date"]]) {
+    const PANELS = [
+      { hash: "#money/lhb", panel: "#p-lhb", attr: "data-lhb-date" },
+      { hash: "#money/lhb_sectors", panel: "#p-lhb_sectors", attr: "data-lhs-date" },
+      // 牛散追踪默认在「① 牛散榜」，报告期横排在「② 变动流」里，需先切视角
+      { hash: "#players/niusan", panel: "#p-niusan", attr: "data-sm-date",
+        prep: '#p-niusan [data-ns-view="moves"]' },
+    ];
+    for (const { hash, panel, attr, prep } of PANELS) {
       await page.evaluate((h) => { location.hash = h; }, hash);
-      await page.waitForSelector(`${panel} .chip-s`, { timeout: 25000 }).catch(() => {});
+      await new Promise((r) => setTimeout(r, 900));
+      if (prep) {
+        const btn = await page.$(prep);
+        if (btn) { await btn.click(); }
+      }
+      await page.waitForSelector(`${panel} [${attr}]`, { timeout: 25000 }).catch(() => {});
       await new Promise((r) => setTimeout(r, 1200));
 
       const info = await page.evaluate((sel, a) => {
