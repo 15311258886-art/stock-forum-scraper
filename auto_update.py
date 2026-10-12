@@ -174,6 +174,19 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         chain["error"] = f"{type(e).__name__}: {e}"[:300]
 
+    # ---- 本地库备份（规格书 D1：每日 1 份留 7 天 + 每周 1 份留 4 周 + 备份前完整性校验）----
+    # 用 sqlite3 在线备份 API（服务在跑、有 WAL 时文件拷贝会拿到不一致副本）。
+    # 非致命：备份失败只记状态，不阻断日更（数据抓取优先）。
+    backup = {"ok": None, "msg": ""}
+    try:
+        from tools.db_backup import daily_backup  # noqa: E402  —— 延迟导入，避免启动期耦合
+        b_ok, b_msg, _ = daily_backup()
+        backup["ok"] = b_ok
+        backup["msg"] = b_msg[:300]
+    except Exception as e:  # noqa: BLE001
+        backup["ok"] = False
+        backup["msg"] = f"{type(e).__name__}: {e}"[:300]
+
     time.sleep(2)  # 等 WAL 落盘
     ck = _wal_checkpoint()
     after = _counts()
@@ -197,6 +210,7 @@ def main() -> int:
         "delta": delta,
         "lhb": lhb,
         "sector_chain": chain,
+        "backup": backup,
         "log_tail": run.get("tail", ""),
         "note": "雪球无需 cookie（指纹修复后匿名可抓）；龙虎榜已纳入本编排。查看器需关窗重开才能看到新数据。",
     }

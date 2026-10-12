@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顶配改造需求 V3 · 定性报告</title>
+<style>
+  :root{
+    --bg:#faf8f4; --card:#fff; --ink:#1a1a1a; --sub:#6b6b6b; --line:#e8e4dc;
+    --teal:#0E7490; --teal-soft:#e6f2f5;
+    --red:#c0392b; --red-soft:#fdecea;
+    --green:#2e7d5b; --green-soft:#e8f5ef;
+    --amber:#9a6b00; --amber-soft:#fdf6e3;
+    --gray:#5b6570; --gray-soft:#eef1f3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+       line-height:1.7;padding:40px 22px;font-size:14.5px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{border-bottom:3px solid var(--teal);padding-bottom:18px;margin-bottom:24px}
+  h1{font-size:25px;font-weight:700;letter-spacing:.4px}
+  .meta{color:var(--sub);font-size:13px;margin-top:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 28px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center}
+  .kpi .v{font-size:24px;font-weight:700;color:var(--teal)}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:4px}
+  h2{font-size:17px;margin:30px 0 12px;padding-left:10px;border-left:4px solid var(--teal)}
+  h3{font-size:14.5px;margin:18px 0 8px;color:var(--teal)}
+  .note{background:var(--teal-soft);border-left:4px solid var(--teal);padding:13px 17px;
+        border-radius:0 8px 8px 0;margin:14px 0;font-size:14px}
+  .note.red{background:var(--red-soft);border-left-color:var(--red)}
+  .note.amber{background:var(--amber-soft);border-left-color:var(--amber)}
+  .note.gray{background:var(--gray-soft);border-left-color:var(--gray)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:8px;overflow:hidden;font-size:13.5px;margin-bottom:8px}
+  th{background:var(--teal);color:#fff;text-align:left;padding:9px 11px;font-size:12.5px;font-weight:600}
+  td{padding:9px 11px;border-top:1px solid var(--line);vertical-align:top}
+  tr:nth-child(even) td{background:#fcfbf9}
+  .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .done{background:var(--green-soft);color:var(--green)}
+  .exist{background:var(--gray-soft);color:var(--gray)}
+  .todo{background:var(--teal-soft);color:var(--teal)}
+  .ask{background:var(--amber-soft);color:var(--amber)}
+  .id{font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+  code{background:#f0eee9;padding:1px 5px;border-radius:4px;font-size:12.5px;
+       font-family:"Cascadia Code",Consolas,monospace}
+  ul{padding-left:20px;margin:6px 0}
+  li{margin:4px 0}
+  .foot{margin-top:38px;padding-top:16px;border-top:1px solid var(--line);color:var(--sub);
+        font-size:12px;text-align:center}
+  b.ok{color:var(--green)} b.no{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>《顶配改造需求 V3 规格书》定性报告</h1>
+  <div class="meta">
+    目标项目：股票论坛可视化查看器 · <code>...\2026-09-22-11-49-42\stock-forum-scraper</code><br>
+    进哥要求：合理的先执行、有问题的提出来一起商量<br>
+    提交：<code>977532f</code> &nbsp;|&nbsp; 2026-10-12
+  </div>
+</header>
+
+<div class="note amber">
+  <strong>先说最重要的一句：这是「路线图」，不是「任务单」。</strong>
+  规格书 A/B/C/D 四章近 50 条要求，覆盖数据治理、信息架构、设计系统、通知子系统、备份容灾——
+  工程量相当于**几个月**的产品迭代。而且它<strong>系统性地低估了项目当前成熟度</strong>：
+  多处"从 0 到 1"的功能其实**已经存在**（下表逐条给出实测证据）。因此我没有逐条照做，
+  而是按你的要求：<b class="ok">确定安全的先做</b>、<b>已存在的指出来</b>、<b>冲突/大工程的找你商量</b>。
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="v">2</div><div class="l">本批已做</div></div>
+  <div class="kpi"><div class="v">6</div><div class="l">实测「已存在」</div></div>
+  <div class="kpi"><div class="v">5</div><div class="l">需你拍板</div></div>
+  <div class="kpi"><div class="v">34/3</div><div class="l">pytest 通过/跳过</div></div>
+</div>
+
+<h2>一、本批已做（3 条，不动任何产品行为）</h2>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:52%">做了什么</th><th style="width:36%">怎么验的</th></tr>
+  <tr><td class="id">A4-2</td>
+    <td>新增 <code>tools/audit_color_convention.py</code>：扫描 <code>app.css</code> + <code>themes/*.css</code>，
+        校验「涨=红、跌=绿」的语义变量与 up/down 类是否被写反</td>
+    <td>正常 212 个语义变量 → <b class="ok">PASS</b>；把 <code>--bull</code> 临时改成绿色 → <b class="ok">FAIL（退出码 2）</b>，能抓能放</td></tr>
+  <tr><td class="id">A7</td>
+    <td>新增 <code>tests/test_nav_contract.py</code>（导航↔面板契约）+ <code>pytest.ini</code> 一键入口
+        + <code>tests/test_color_convention.py</code>；<code>requirements</code> 加 <code>pytest</code></td>
+    <td>注入一个无面板的假 tab → <b class="ok">FAIL</b>；还原 → 4/4 PASS；
+        <code>pytest -q</code> → <b class="ok">34 passed / 3 skipped</b></td></tr>
+  <tr><td class="id">D1<br>（本地）</td>
+    <td>新增 <code>tools/db_backup.py</code>：每日 1 份留 7 天 + 每周 1 份留 4 周 + 备份前
+        <code>PRAGMA integrity_check</code>；用 <b>sqlite3 在线备份 API</b>（服务在跑时文件拷贝会拿到不一致副本）；
+        已接入 <code>auto_update.py</code> 日更编排（失败不阻断抓取）</td>
+    <td>校验 <b class="ok">PASS（库完好）</b>；生成 <code>app.db.daily-20261012</code> + <code>weekly-20261012</code>（85.6MB）；
+        幂等复跑自动跳过；只清自己产的备份，不动历史 <code>pre-*</code> 手工快照</td></tr>
+</table>
+<div class="note gray">
+  这三条价值在于**防回退 + 保命**：配色门禁保证没人能把涨跌写反；导航契约保证"改导航漏面板"
+  （我们真踩过）会在提交前被抓；本地备份保证库坏了有当日还原点。
+</div>
+
+<h2>二、规格书说"从 0 到 1"，实测「已经存在」（6 条）</h2>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:44%">规格书原文</th><th style="width:44%">实测证据</th></tr>
+  <tr><td class="id">A7</td>
+    <td>「正式测试框架缺失（自检报告：<b>0 个 test_*.py</b>）」「回归只能靠手动脚本」</td>
+    <td>根目录<b>已有 6 个</b> <code>test_*.py</code>（stage0 正确性 / defect_probe / fixtures_oracle /
+        reasonableness_gate / server / remed）；<code>tests/</code> 另有 2 个；
+        <b>另有 65 个 <code>verify_*.cjs</code> 回归护栏</b>。本条断言与事实不符</td></tr>
+  <tr><td class="id">D2</td>
+    <td>「新增"后端健康探针"：前端每 30 秒 ping <code>/api/version</code>」</td>
+    <td><code>/api/version</code> <b>已存在</b>（<code>server.py:7446</code>）</td></tr>
+  <tr><td class="id">A4-2</td>
+    <td>「写一个静态检查脚本扫描所有颜色用途」</td>
+    <td><code>tools/audit_design_system.py</code>、<code>tools/audit_contrast.py</code> <b>已存在</b>（本批又补了红涨绿跌专项）</td></tr>
+  <tr><td class="id">A4-2<br>（配色）</td>
+    <td>「统一红涨绿跌，禁止任何面板反色」</td>
+    <td>4 套主题已统一定义 <code>--bull=红 / --bear=绿</code>，代码注释即写明「A股惯例」；
+        本批门禁扫 212 个语义变量 → <b class="ok">零反色</b></td></tr>
+  <tr><td class="id">C4-3</td>
+    <td>「所有数字列统一 <code>tabular-nums</code>」</td>
+    <td>已在 <code>app.css</code> 中<b>使用 74 处</b></td></tr>
+  <tr><td class="id">A4-1</td>
+    <td>「策略名是程序标识符（MA5_cross / hui_guo_rou）」</td>
+    <td>前端未直出这类标识符（<code>grep</code> 无命中）；策略回测面板已按中文语义分组展示</td></tr>
+</table>
+
+<h2>三、需你拍板（5 条，我不擅自动）</h2>
+<table>
+  <tr><th style="width:12%">条目</th><th style="width:44%">它要什么</th><th style="width:44%">我为什么停下来问你</th></tr>
+  <tr><td class="id">B1</td>
+    <td>导航从 <b>8 大类收敛为 4 个工作台</b>，其余收进"更多 ▸"抽屉</td>
+    <td><b class="no">与刚稳定的成果冲突。</b>8 类导航是我们在上一轮体验审计里刚敲定并加了
+        <code>verify_nav.cjs</code> 护栏（断言 8 类 / 46 tab 全可达）；改成 4 工作台要同步重写护栏，
+        且规格书说「原 12 个 renderX() 面板函数」——实际是 <b>46 个 tab</b>，这个数字对不上。
+        <b>要不要动、动到哪一档，请你定。</b></td></tr>
+  <tr><td class="id">C1</td>
+    <td>设计 Token 化，消除硬编码色 / 字号 / 间距 / 圆角</td>
+    <td>方向对（我实测 <code>app.css</code> 有 <b>222 个独立硬编码色值</b>，比它说的 143 更多）。
+        但这是一次**大范围重写 <code>app.css</code>（256KB）**，风险高、且视觉回归要逐屏核对。
+        建议单独立项、分主题推进，而不是混在功能改造里</td></tr>
+  <tr><td class="id">A1</td>
+    <td>全站所有数据单元加"来源/时点/口径/可信度"四要素标签</td>
+    <td>价值最高、也最重：要逐个面板补元数据 + 统一组件。建议**先在一两个旗舰面板（今日决策/每日预测）
+        做样板**，你认可后再铺开——否则一次性全铺，改错一处就全站返工</td></tr>
+  <tr><td class="id">C3</td>
+    <td>徽章收敛（首屏徽章数下降 ≥60%）</td>
+    <td>「2400 个徽章」是个**首屏渲染量**，静态代码里 <code>badge</code> 类出现 107 处；
+        真要做需先有一份"每个徽章为什么存在"的清单，否则是主观删减。要不要做请你定</td></tr>
+  <tr><td class="id">B6</td>
+    <td>接入 Windows 系统通知（到价/异动主动推送）</td>
+    <td>要新增一个**通知子系统**（托盘/ toast + 免打扰 + 无界面可推送），是独立工程。
+        对你"不开软件也能收到提醒"确实有用，但需确认优先级</td></tr>
+</table>
+
+<h2>四、需要你给一个信息</h2>
+<div class="note">
+  <b>D1 异地备份目标路径</b>：规格书要求"本地 + 异地双副本"。本地可以照做（<code>viewer/backups/</code>
+  + 30 天保留 + 启动 <code>PRAGMA integrity_check</code>），但<b>异地副本要落到哪个盘/网盘目录</b>，
+  请你给个路径（如 <code>D:\stock-backups\</code>），我再接。
+</div>
+
+<h2>五、与上一份清单的关系（重要，避免重复劳动）</h2>
+<table>
+  <tr><th style="width:20%">本规格书</th><th style="width:40%">上一份《整改执行清单》</th><th style="width:40%">处理建议</th></tr>
+  <tr><td>A3 预测引擎科学化<br>（防前视 / 样本外 / walk-forward）</td>
+      <td><b>#16 / #17 / #18</b>——T+1 开盘口径（已做）、沪深300基准、walk-forward 回测</td>
+      <td><b>合并推进</b>：#18 与 A3-3/A3-4 是同一件事（滚动窗口样本外），一次做完比做两遍强</td></tr>
+  <tr><td>A4 回测严肃化</td>
+      <td>#18 真回测选股管线</td>
+      <td>合并</td></tr>
+  <tr><td>A2 数据新鲜度 / A6 缺失≠0</td>
+      <td>上一批已做 #08（后端 NaN 清洗）、上轮 P0「今日决策」首页</td>
+      <td>本规格书要求更彻底（全站色标 + 覆盖率报告），属**增强**，可列为下一批</td></tr>
+</table>
+
+<h2>六、我建议的执行批次</h2>
+<table>
+  <tr><th style="width:14%">批次</th><th style="width:56%">内容</th><th style="width:30%">前置</th></tr>
+  <tr><td><b>第一批</b><br>（已做）</td><td>A4-2 配色门禁 + A7 一键 pytest 与导航契约</td><td>—</td></tr>
+  <tr><td><b>第二批</b></td><td>A6 缺失≠0（前端统一 <code>renderMissing()</code>）+ D2 健康探针接线 +
+      D1 本地备份策略（异地待你给路径）</td><td>无需拍板，可直接做</td></tr>
+  <tr><td><b>第三批</b></td><td>A3/A4 与上一份 #17/#18 合并：沪深300基准 + walk-forward 样本外 + 策略中文名映射表</td>
+      <td>上一份清单的 #17/#18 已获你批准，可直接做</td></tr>
+  <tr><td><b>第四批</b></td><td>B2 全局搜索 + B5 空态引导 + B3 顶栏极简（便捷度，用户可感知）</td><td>可直接做</td></tr>
+  <tr><td><b>待定</b></td><td>B1 导航重构 / C1 Token 化 / A1 全站标签 / C3 徽章收敛 / B6 系统通知 / C2 C5 D3</td>
+      <td><b>等你拍板</b></td></tr>
+</table>
+
+<div class="foot">
+  顶配改造需求 V3 · 定性报告 &nbsp;|&nbsp; 2026-10-12 &nbsp;|&nbsp; 已做 2 / 实测已存在 6 / 待拍板 5
+</div>
+
+</div>
+</body>
+</html>
