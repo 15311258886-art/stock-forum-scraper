@@ -4,3 +4,6 @@ lxml>=5.0
 pyyaml>=6.0
 cryptography>=42.0
 pywebview>=6.0
+
+# 开发/门禁依赖（规格书 A7：pytest -q 一键回归）
+pytest>=8
