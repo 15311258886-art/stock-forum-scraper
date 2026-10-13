@@ -3187,6 +3187,68 @@ def api_watch_list() -> dict:
             it["name"] = p.get("name") or ""
         it["to_target_pct"] = round((tgt / price - 1) * 100, 2) if (price and tgt) else None
         it["since_add_pct"] = round((price / pap - 1) * 100, 2) if (price and pap) else None
+    # —— 关注池列整改（2026-10-12 进哥需求）：注入「入手值得率 / 博主提及 / 战法信号」三组数据 ——
+    # 纪律：三个数据源各自独立 try/except，任一失败只吞异常、缺失即 None/[]，绝不拖垮整个列表。
+    symbols = [it["symbol"] for it in items]
+
+    # 1) 入手值得率：复用 screener 评分机器，返回 {code: 0~100 或 None}。按整批取（函数内部按交易日缓存）。
+    worth_map: dict = {}
+    try:
+        worth_map = screener._worth_scores(symbols) or {}
+    except Exception:  # noqa: BLE001 —— 评分失败不阻塞列表
+        logging.warning("关注池入手值得率评分失败", exc_info=True)
+
+    # 2) 博主提及：一次性取出 blogger_overlap，建 {code:(n_bloggers, [names...])} 映射；bloggers 字段容错解析。
+    blogger_map: dict = {}
+    try:
+        rows = DB.conn.execute(
+            "SELECT stock_code, n_bloggers, bloggers FROM blogger_overlap").fetchall()
+        for r in rows:
+            code = r["stock_code"]
+            if not code:
+                continue
+            n = r["n_bloggers"]
+            raw = r["bloggers"]
+            names: list = []
+            if raw:
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        names = [str(x) for x in parsed if x not in (None, "")]
+                    elif isinstance(parsed, str):
+                        # 「、」为中文列举号（真实落库数据多用它），「,」为 ASCII 逗号，两者皆兼容。
+                        names = [s.strip() for s in re.split(r"[、,]", parsed) if s.strip()]
+                except Exception:  # noqa: BLE001 —— JSON 解析失败则按「、或,」分隔兜底
+                    names = [s.strip() for s in re.split(r"[、,]", str(raw)) if s.strip()]
+            blogger_map[code] = (n, names)
+    except Exception:  # noqa: BLE001 —— 读博主表失败不阻塞列表
+        logging.warning("关注池博主提及读取失败", exc_info=True)
+
+    # 3) 战法信号：读 bili_scan 一键筛股缓存，按 code 匹配 hits，收集 items 里的 sname（带 win_rate 供 hover）。
+    strat_map: dict = {}
+    try:
+        cache = bili_scan._result_cache_load()
+        if cache and isinstance(cache.get("hits"), list):
+            for h in cache["hits"]:
+                code = h.get("code")
+                if not code:
+                    continue
+                for item in (h.get("items") or []):
+                    sname = item.get("sname")
+                    if not sname:
+                        continue
+                    strat_map.setdefault(code, []).append(
+                        {"sname": sname, "win_rate": item.get("win_rate")})
+    except Exception:  # noqa: BLE001 —— 战法缓存缺失/失败不阻塞列表
+        logging.warning("关注池战法信号读取失败", exc_info=True)
+
+    for it in items:
+        sym = it["symbol"]
+        it["worth"] = worth_map.get(sym)
+        b = blogger_map.get(sym)
+        it["blogger_n"] = (b[0] if b else None)
+        it["blogger_list"] = (b[1] if b else [])
+        it["strat_hits"] = strat_map.get(sym, [])
     return {"ok": True, "groups": groups, "items": items, "alerts_unread": unread,
             "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
@@ -5757,20 +5819,27 @@ def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
     }
 
 
-def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: int = 2):
-    """腾讯 K 线 → 与 _eastmoney_kline 同构的 payload（东财 push2his 不可用时兜底）。"""
+def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: int = 2,
+                          full_history: bool = False):
+    """腾讯 K 线 → 与 _eastmoney_kline 同构的 payload（东财 push2his 不可用时兜底）。
+
+    full_history=False（竞速快路径）只拿最近一页 → 必须带 full_history=False 标记，
+    绝不允许前端把「近 120 根」当成上市至今（2026-10-13 进哥反馈的误判根源）。"""
     market, code, _ = _em_secid(symbol)
-    rows = _tencent_kline(code, market, period, timeout=timeout, retries=retries)
+    rows = _tencent_kline(code, market, period, timeout=timeout, retries=retries,
+                          full_history=full_history)
     if not rows:
         return None
     last = rows[-1]
     prev = rows[-2]["close"] if len(rows) >= 2 else last["open"]
+    span = ("全历史 %d 根" if full_history else "近 %d 根") % len(rows)
     return {
         "symbol": symbol, "code": code, "name": "", "period": period,
         "market": market, "count": len(rows), "klines": rows, "adjust": "qfq",
+        "full_history": bool(full_history),
         "amount_est": True,   # 腾讯 K 线不含成交额，按「收盘价 × 成交量」估算，前端以 ≈ 标注
         "first_date": rows[0]["date"], "last_date": last["date"],
-        "source": "腾讯行情（东财不可用，已自动兜底 · 近 %d 根）" % len(rows),
+        "source": "腾讯行情（东财不可用，已自动兜底 · %s）" % span,
         "current": {"price": last["close"], "pct": last["pct"], "open": last["open"],
                     "high": last["high"], "low": last["low"], "prev_close": prev,
                     "volume": last["volume"], "amount": last["amount"], "date": last["date"]},
@@ -5817,11 +5886,16 @@ def _slice_kline(payload: dict, limit: int, offset: int) -> dict:
 
 
 def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 0) -> dict:
-    """单只股票 K 线：东财（前复权·全历史）→ 新浪（不复权·全历史）→ 腾讯（前复权·近 120 根）。
+    """单只股票 K 线：东财（前复权·全历史）→ 新浪（不复权·全历史）→ 腾讯（前复权·兜底）。
     返回 OHLCV + 最新价/涨跌幅 + 首末日期（供前端判断能否拖到上市首日）。
 
     **默认只回最近 250 根**（limit 默认 250）：几千根全历史推过去既慢又没人看；
-    前端要「拖到上市首日」时传 limit=0 拉全量，缓存按 (symbol, period) 复用，切片现算（微秒级）。
+    前端要「拖到上市首日 / 点全历史 / 缩到底」时传 limit=0 拉全量，缓存按 (symbol, period) 复用。
+
+    2026-10-13（进哥）：limit=0 要的是「上市至今」**真·全历史**。若竞速只拿到腾讯单页兜底
+    （~120 根，full_history=False），必须改用「新浪全量 → 腾讯分段」认真拉全历史重试，
+    绝不允许把半年走势当成上市行情（此前误判、直接影响判断的根源）。东财/新浪本就返回全历史，
+    直接打 full_history=True 标记。
     """
     if not symbol:
         return {"error": "symbol required"}
@@ -5830,7 +5904,12 @@ def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 
     now = time.time()
     cached = _KLINE_CACHE.get(key)
     if cached and now - cached[0] < 90:
-        return _slice_kline(cached[1], limit, offset)
+        cp = cached[1]
+        # 要全历史但缓存里只有单页兜底 → 不命中缓存，走下面的「认真拉全历史」重试
+        if limit == 0 and not cp.get("full_history"):
+            pass
+        else:
+            return _slice_kline(cp, limit, offset)
     # 2026-10-09：K 线三源字段**不等价**——东财独有的「真实成交额 amount（新浪/腾讯只有估算值，
     # amount_est=True）」与「name」，且东财/腾讯为前复权、新浪为不复权。故用「东财优先 + 限时」：
     # 东财 2s 内回就用东财（字段最全）；否则立刻用先回的新浪/腾讯，绝不干等（上限 4.5s）。
@@ -5843,6 +5922,22 @@ def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 
         return {"error": "行情获取失败：代码可能无效，或本地网络无法访问行情源"
                          "（东方财富 / 新浪 / 腾讯均不可用）。",
                 "symbol": symbol}
+    # 东财 push2his（beg=0 全量）/ 新浪（全历史）本就是真·全历史 → 打标记，前端据此才准标「上市至今」
+    src = payload.get("source", "")
+    is_full = src.startswith("东方财富") or src.startswith("新浪")
+    if is_full:
+        payload["full_history"] = True
+    # limit=0（要上市至今）但竞速只拿到腾讯单页兜底 → 认真拉全历史重试：新浪全量优先，
+    # 腾讯分段（full_history=True）兜底。二者任一中即可拿到真·全历史。
+    if limit == 0 and not is_full:
+        full = emapi.race_priority(
+            lambda: _sina_kline_result(symbol, period, timeout=10, retries=2),
+            [lambda: _tencent_kline_result(symbol, period, timeout=10, retries=2,
+                                           full_history=True)],
+            grace=3.0, timeout=12.0)
+        if full is not None:
+            payload = full
+            payload["full_history"] = True
     payload.setdefault("adjust", "qfq")
     if payload.get("klines"):
         payload.setdefault("first_date", payload["klines"][0].get("date", ""))
@@ -6253,6 +6348,7 @@ def _sina_kline_result(symbol: str, period: str, timeout: int = 15, retries: int
     return {
         "symbol": symbol, "code": code, "name": "", "period": period,
         "count": len(rows), "klines": rows, "adjust": "raw",
+        "full_history": True,   # 新浪始终返回全历史
         "amount_est": True,   # 新浪不提供成交额，按「收盘价 × 成交量」估算，前端以 ≈ 标注
         "source": f"新浪行情（不复权 · 全历史 {len(rows)} 根）",
         "first_date": rows[0]["date"], "last_date": last["date"],
@@ -6413,18 +6509,50 @@ def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
     }
 
 
-def _tencent_kline(code: str, market: str, period: str, timeout: int = 12, retries: int = 2):
+def _tencent_kline(code: str, market: str, period: str, timeout: int = 12, retries: int = 2,
+                   full_history: bool = False):
     """腾讯 K 线 → 与东财同构的行情行（date/open/close/high/low/volume/pct）。
 
-    2026-10-09：新增 timeout / retries 参数——竞速路径用 timeout=3、retries=0。"""
+    2026-10-09：新增 timeout / retries 参数——竞速路径用 timeout=3、retries=0。
+    2026-10-13（进哥）：兜底单次只给 120 根，却被前端当成「上市至今」全历史，
+    半年走势冒充上市行情、直接影响判断。新增 full_history=True 分段循环模式：
+    fqkline 接口支持起止日期，按 640 根/页用「最早日-1天」往回翻，直到翻不动
+    （封顶 40 页 ≈ 2.5 万根防失控）；竞速快路径保持单页不变。"""
     sym = _tx_prefix(code, market) + code
     key = {"day": "qfqday", "week": "qfqweek", "month": "qfqmonth"}.get(period, "qfqday")
     cnt = 120 if period == "day" else 160
-    j = _em_get_json("https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
-                     f"?param={sym},{period},,,{cnt},qfq", "https://gu.qq.com/",
-                     timeout=timeout, retries=retries)
-    d = ((j or {}).get("data") or {}).get(sym) or {}
-    raw = d.get(key) or d.get(period) or []
+    url_base = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+
+    def _fetch(start: str, end: str, n: int) -> list:
+        j = _em_get_json(f"{url_base}?param={sym},{period},{start},{end},{n},qfq",
+                         "https://gu.qq.com/", timeout=timeout, retries=retries)
+        d = ((j or {}).get("data") or {}).get(sym) or {}
+        return list(d.get(key) or d.get(period) or [])
+
+    raw = _fetch("", "", cnt)
+    if full_history and raw:
+        import datetime as _dt
+        seen: set = set()
+        for r in raw:
+            if isinstance(r, (list, tuple)):
+                seen.add(str(r[0])[:10])
+        for _page in range(40):                      # 防失控上限
+            earliest = min(seen) if seen else ""
+            if not earliest or earliest <= "1991-01-01":   # 已到 A 股最早交易日 → 翻完了
+                break
+            try:
+                end_dt = (_dt.date.fromisoformat(earliest)
+                          - _dt.timedelta(days=1)).isoformat()
+            except ValueError:
+                break
+            more = _fetch("1990-01-01", end_dt, 640)
+            new = [r for r in more
+                   if isinstance(r, (list, tuple)) and str(r[0])[:10] not in seen]
+            if not new:
+                break
+            for r in new:
+                seen.add(str(r[0])[:10])
+            raw = new + raw                          # 新页更早，往前拼（两侧各自升序）
     rows = []
     for r in raw:
         if not isinstance(r, (list, tuple)) or len(r) < 5:

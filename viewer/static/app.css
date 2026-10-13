@@ -2201,6 +2201,11 @@ button[data-code-open] { background: none; border: 0; padding: 0; margin: 0; fon
 .wt-kind { display: inline-block; margin-left: 4px; font-size: 10px; line-height: 1; padding: 2px 5px; border-radius: 5px;
   color: #fff; background: #7c3aed; vertical-align: middle; }
 .wt-dir { font-weight: 700; color: var(--accent); }
+.wt-blog { display: inline-block; margin-left: 4px; font-size: 11px; line-height: 1; padding: 2px 6px; border-radius: 999px;
+  color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; vertical-align: middle; cursor: default; }
+.wt-bell { margin-left: 4px; font-size: 11px; vertical-align: middle; cursor: default; }
+.wt-strat { white-space: normal; }
+.wt-warn { color: var(--warn, #f59e0b); font-weight: 600; }
 .wt-note { color: var(--muted); font-size: 12px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wt-ops { display: flex; gap: 10px; }
 .wt-op { color: var(--accent); cursor: pointer; font-size: 12.5px; }
@@ -3657,6 +3662,36 @@ span.miss{
 }
 
 
+/* ===== 2026-10-13 整改 A1：四要素统一标签（与 dataUnitMeta() 配套）=====
+   全站数据单元统一「来源 / 时点 / 口径 / 可信度」标签；任一要素缺失 → 整组 .du-unit-missing
+   降权置灰（A1 规定「无来源字段一律整块置灰并标来源缺失」），缺哪项就明示哪项，不静默。
+   可信度三档圆点：官方=实心圆 / 社区=半圆 / 模型=空心圆（A1 硬性要求）。
+   注意：这里绿/蓝/黄是「可信度档位」色，与 A 股红涨绿跌的口径无关，勿误用。 */
+.du-meta-group { display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px 8px;
+  font-size:11px; line-height:1.6; vertical-align:middle; max-width:100%; }
+.du-meta-group.du-unit-missing { opacity:.6; filter:saturate(.35); }
+.du-meta { display:inline-flex; align-items:center; gap:3px; padding:1px 6px;
+  border-radius:6px; background:var(--tag,#f1f5f9); color:var(--text,#1a1a1a);
+  white-space:nowrap; cursor:help; }
+.du-meta b { font-weight:600; }
+.du-meta.du-missing { background:transparent; border:1px dashed var(--muted,#9aa3ab);
+  color:var(--muted,#9aa3ab); font-weight:400; white-space:nowrap; }
+.du-meta.du-source b { color:var(--accent,#0e7490); }
+.du-meta .du-trust-note { font-weight:400; color:inherit; opacity:.85; }
+/* 可信度档位配色：沿用既有 ev-* 档位语义（绿=可信、蓝=统计、黄=推断），同 lib 同档同色 */
+.du-trust.du-t-official { background:#dcfce7; color:#15803d; }
+.du-trust.du-t-community { background:#dbeafe; color:#1d4ed8; }
+.du-trust.du-t-model { background:#fef3c7; color:#b45309; }
+.trust-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex:none; }
+.trust-dot.du-t-official { background:currentColor; }
+.trust-dot.du-t-community { background:linear-gradient(90deg,currentColor 0 50%,transparent 50%);
+  border:1px solid currentColor; }
+.trust-dot.du-t-model { border:1px solid currentColor; background:transparent; }
+.du-info { border:0; background:transparent; color:var(--muted,#6b7280); cursor:pointer;
+  font-size:12px; padding:0 1px; line-height:1; }
+.du-info:hover, .du-info.open { color:var(--accent,#0e7490); }
+
+
 /* ===== 2026-10-12 整改 D2：轻量 toast（后端恢复提示等）===== */
 #toastHost{position:fixed;right:18px;bottom:18px;z-index:10000;display:flex;flex-direction:column;
   gap:8px;align-items:flex-end;pointer-events:none}
@@ -3681,3 +3716,62 @@ span.miss{
   scrollbar-width:thin}
 .day-strip::-webkit-scrollbar{height:6px}
 .day-strip::-webkit-scrollbar-thumb{background:var(--border,#e8e4dc);border-radius:3px}
+
+/* ===== 2026-10-13 今日决策卡片头四要素承接位（A1）===== */
+/* 四要素统一标签（今日决策卡片头承接位）：
+   在 .td-hd 内、.td-hd-sub 之后追加；随 .du-meta-group 自动换行。 */
+.td-hd-meta { display: inline-flex; align-items: center; min-width: 0; margin-left: 8px; }
+@media (max-width: 900px) { .td-hd-meta { display: none; } }
+
+/* ===== 2026-10-13 历史背景硬隔离（A2）：旧数据结论整块置灰，绝不混入今日判词 =====
+   app.js tdHistoryBackground() 输出 <section class="hist-bg" data-historical="true">。
+   视觉上整体与「今日」区块严格区分：灰底、虚线边框、斜体注记、不去除可读性。 */
+.hist-bg {
+  margin: 12px 0 6px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--border-dim, #c3bfb4);
+  border-left: 4px solid #8a8578;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,.015) 0 8px, transparent 8px 16px),
+    var(--surface, #faf9f6);
+  color: #6b675e;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.hist-bg[data-historical="true"] { opacity: .98; }
+.hist-hd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.hist-hd b { font-size: 14px; color: #57534a; letter-spacing: .02em; }
+.hist-tag {
+  font-size: 11px; font-style: normal; color: #7d786d;
+  background: rgba(0,0,0,.05); border: 1px solid #d6d1c5;
+  border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
+.hist-txt { font-style: italic; }
+.hist-txt b { color: #4f4a41; font-style: normal; }
+.hist-note { margin-top: 6px; font-size: 12px; color: #8a8578; }
+@media (max-width: 900px) {
+  .hist-bg { padding: 10px 12px; }
+  .hist-tag { white-space: normal; }
+}
+
+/* ===== 2026-10-13 风险：反向证据列表（A3-5）：结论第三行，机会与风险同屏 =====
+   app.js renderPrediction 市场研判断面第三行固定为「风险：反向证据列表」，
+   列出谁在反对该结论（市场宽度 / 散户情绪 / 资金流出 / 引擎自我修正史）。 */
+.pred-against {
+  margin-top: 8px; padding: 10px 12px;
+  border-left: 4px solid #B91C1C;
+  background: linear-gradient(180deg, rgba(185,28,28,.05), rgba(185,28,28,.02));
+  border-radius: 8px;
+  font-size: 13px; line-height: 1.65;
+}
+.pred-against-t { font-weight: 700; color: #B91C1C; margin-bottom: 4px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.pred-against-tag { font-weight: 400; font-size: 12px; color: #8a4b4b; }
+.pred-against-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pred-against-l li {
+  display: list-item; list-style: "▾ " inside;
+  color: #5d4242; padding: 2px 0;
+}
+.pred-against-l b { color: #7f1d1d; font-weight: 600; }
+.pred-against-src { margin-left: 6px; font-size: 11px; color: #a08a8a; white-space: nowrap; }
+.pred-against-empty { color: #7f8c8d; font-style: italic; border-left-color: #9ca3af; background: transparent; }

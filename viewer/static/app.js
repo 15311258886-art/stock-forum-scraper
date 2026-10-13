@@ -1502,15 +1502,19 @@ function updateKlineRange() {
   const adjust = _kv.adjust === "raw" ? "不复权" : "前复权";
   const atEarliest = _kv.offset <= 0;
   const atLatest = _kv.offset + _kv.count >= _kv.rows.length;
-  const allShown = atEarliest && atLatest;    // 视口正好铺满全部 = 上市至今
+  // 视口铺满全部 ≠ 上市至今：只有后端真·全历史（fullHistory）才准标「上市至今」，
+  // 否则（腾讯单页兜底）是把半年走势冒充上市行情——进哥 2026-10-13 反馈的误判根源。
+  const trulyFull = _kv.fullHistory && atEarliest && atLatest;
   let edge;
-  if (allShown) {
+  if (trulyFull) {
     edge = ` · <b class="kline-edge">已显示全部（上市至今 ${esc(_kv.rows[0].date)} 起）</b>`;
   } else if (atEarliest) {
     // 注意：hasMore 时「最早」只是**本次已加载**的最早，不是上市首日——不能误导
     edge = _kv.hasMore
       ? ` · <b class="kline-edge">已到本次加载的最早（还有更早历史 —— 继续缩小或点「全历史」）</b>`
-      : ` · <b class="kline-edge">已到最早一根（${esc(_kv.firstDate)}）</b>`;
+      : (_kv.fullHistory
+          ? ` · <b class="kline-edge">已到最早一根（${esc(_kv.firstDate)}）</b>`
+          : ` · <b class="kline-edge" style="color:var(--warn, #f59e0b)">⚠ 数据源暂只提供最近 ${_kv.rows.length} 根（非上市至今）—— 点「全历史」或继续缩小可拉取完整行情</b>`);
   } else if (atLatest) {
     edge = ` · <b class="kline-edge">最新</b>`;
   } else {
@@ -1572,7 +1576,9 @@ function initStockKline(symbol) {
  */
 function klineShowAll() {
   if (!_kv || _kv.loading) return;
-  if (_kv.all || !_kv.hasMore) {
+  // 已掌握真·全历史（东财/新浪/腾讯分段）→ 直接把视口铺满全部，不重复请求；
+  // 否则（腾讯单页兜底，fullHistory=false，!hasMore 会短路）→ 认真拉全历史（后端 limit=0 重试）。
+  if (_kv.fullHistory) {
     _kv.count = _kv.rows.length;
     _kv.offset = 0;
     _kv.crossIdx = null;
@@ -1627,6 +1633,7 @@ function loadKline(symbol, period, force, opts) {
       _kv = {
         symbol, period, rows, count, offset,
         all: showAll,
+        fullHistory: !!d.full_history,   // 后端是否真·全历史（东财/新浪/腾讯分段）；false=腾讯单页兜底
         adjust: d.adjust || "qfq", source: d.source || "",
         hasMore: !!d.has_more, earliest: d.earliest_date || d.first_date || "",
         firstDate: d.first_date || rows[0].date || "",
@@ -1666,7 +1673,7 @@ function renderKlineSnap(d) {
       <div><span>成交额</span><b>${amtTxt}</b></div>
       <div><span>数据日</span><b>${esc((c.date || "").slice(0, 10))}</b></div>
     </div>
-    <div class="ks-src">数据源：${esc(d.source || "—")}${d.adjust === "raw" ? " · <b>不复权</b>（长期图上的除权跳空属正常）" : " · 前复权"}${per ? ` · 当前为 <b>${per}K</b>` : ""}${d.amount_est ? " · 成交额按「收盘价 × 成交量」估算（≈）" : ""}${d.has_more ? ` · 本次 ${d.count} 根 / 全历史 ${d.total} 根 <a class="ks-more" id="klineLoadAll" href="javascript:void 0">拉全部历史</a>` : ""}</div>`;
+    <div class="ks-src">数据源：${esc(d.source || "—")}${d.adjust === "raw" ? " · <b>不复权</b>（长期图上的除权跳空属正常）" : " · 前复权"}${per ? ` · 当前为 <b>${per}K</b>` : ""}${d.amount_est ? " · 成交额按「收盘价 × 成交量」估算（≈）" : ""}${(d.has_more || !d.full_history) ? ` · 本次 ${d.count} 根${d.full_history ? " / 全历史 " + d.total + " 根" : "（仅最近 " + d.total + " 根）"} <a class="ks-more" id="klineLoadAll" href="javascript:void 0">拉全部历史</a>` : ""}</div>`;
   // 上市日期兜底：部分行情源不提供该字段，用 K 线最早一根的日期补，并明确标注口径。
   // 注意用 earliest_date（全历史首日）——limit=250 时 first_date 只是「250 根之前的那天」，
   // 拿它当上市日会把 2000 年的票写成 2010 年上市（2026-10-05 建议8 的降采样坑）。
@@ -1792,9 +1799,12 @@ function bindKlineInteractions() {
     const g = klineGeom();
     if (!g || !_kv) return;
     e.preventDefault();
-    // 「一直缩小到底」= 想看更早的历史：若后端还有全量没拉回来，自动补全并全览。
-    // 进哥 2026-10-12：日/周/月 K 缩到最小，要能看到这只票从上市首日到今天的整体走势。
-    if (e.deltaY > 0 && _kv.count >= _kv.rows.length && _kv.hasMore && !_kv.loading) {
+    // 「一直缩小到底」= 想看更早的历史：若后端还有全量没拉回来（hasMore），
+    // 或当前只是腾讯单页兜底（fullHistory=false，看似铺满其实只有最近 N 根），
+    // 都自动补全并全览。进哥 2026-10-13：此前单页兜底时 hasMore=false，缩到底也不会触发，
+    // 导致半年走势被当成上市行情。
+    if (e.deltaY > 0 && _kv.count >= _kv.rows.length && !_kv.loading
+        && (_kv.hasMore || !_kv.fullHistory)) {
       _kv.loading = true;
       loadKline(_kv.symbol, _kv.period, false, { all: true });
       return;
@@ -1840,7 +1850,8 @@ function bindKlineInteractions() {
       const ratio = pinch.d / tDist(e.touches);
       const nc = Math.round(Math.min(_kv.rows.length, Math.max(KLINE_ZOOM_MIN, pinch.count * ratio)));
       // 捏合到「已加载的全部」且还有更早的历史 → 自动拉全量并全览（与滚轮缩到底一致）
-      if (nc >= _kv.rows.length && _kv.hasMore && !_kv.loading) {
+      if (nc >= _kv.rows.length && !_kv.loading
+          && (_kv.hasMore || !_kv.fullHistory)) {
         _kv.loading = true;
         loadKline(_kv.symbol, _kv.period, false, { all: true });
         e.preventDefault();
@@ -2805,6 +2816,144 @@ function loadToday() {
 function tdPct(v) { return v == null ? "—" : (v >= 0 ? "+" : "") + Number(v).toFixed(2) + "%"; }
 function tdCls(v) { return v == null ? "" : (v >= 0 ? "bull" : "bear"); }
 
+/* ============================================================================
+ * 第 1 节  纯逻辑辅助函数
+ * 说明：全部为函数声明 + 模板字符串，与项目既有原生写法一致；不引入任何依赖。
+ * 缺失策略总纲（继承 A1）：缺什么就明示什么 —— 缺失 ≠ 0 ≠ 无；
+ *   · source 缺 → 返回空串，组件渲染「来源缺失」并整块置灰；
+ *   · timepoint 缺 → 返回空串，组件渲染「时点未知」，绝不冒充最新；
+ *   · caliber 缺 → 返回空串，组件渲染「口径待明确」，不展示数值；
+ *   · trust 缺 → 返回空串，组件渲染「可信度未知」；model 级无命中率 → 标「未验证」。
+ * ========================================================================== */
+
+/* ---- 1.1 数据日/生成时间 → 时点要素（降级：数据日缺 → 退生成时间；再缺 → 空串=时点未知） ---- */
+function tdTimepointOf(d) {
+  d = d || {};
+  const parts = [];
+  if (d.data_date) parts.push("数据日 " + d.data_date + " 收盘后");
+  if (d.generated_at) parts.push("生成于 " + d.generated_at);
+  // 两者皆无：返回空串 → dataUnitMeta 自动渲染「时点未知」，不写"今日"/"最新"
+  return parts.join(" · ");
+}
+
+/* ---- 1.2 行/卡可信度档位判定（official=官方/交易所级；community=社区统计级；model=模型推断级） ---- */
+function tdTrustOf(kind, x) {
+  const note = (x && String(x.note || "")) || "";
+  // 模型推断级：机会卡里由预测引擎输出的「每日预测核心」（无验证命中率 → 调用方用 trustBadge 自动补「未验证」）
+  if (kind === "opportunity" && tdIsModelPrediction(x)) {
+    return { trust: "model", trustNote: "预测引擎输出，无验证命中率时一律标注未验证" };
+  }
+  // 社区统计级（聚合结论）：基础数据是交易所披露，但排序/评分是统计规则 → 不能冒充官方结论
+  if (kind === "direction" || kind === "verdict") {
+    return { trust: "community", trustNote: "基础为交易所龙虎榜披露，排序/评分/聚合为统计规则" };
+  }
+  if (kind === "risk" && x && x.type === "stock") {
+    return { trust: "community", trustNote: "龙虎榜净卖出为交易所披露，聚合为统计规则" };
+  }
+  if (kind === "risk") {
+    return { trust: "community", trustNote: "板块资金统计与近24h帖子情绪聚合" };
+  }
+  if (kind === "watch") {
+    return { trust: "community", trustNote: "关注池配置与行情注入，非官方推荐" };
+  }
+  return { trust: "community", trustNote: "" };
+}
+
+/* ---- 1.3 机会行是否「模型推断级」（每日预测核心补位条目） ---- */
+function tdIsModelPrediction(x) {
+  return !!(x && /每日预测|预测·核心|预测核心|prediction/i.test(String(x.note || "")));
+}
+
+/* ---- 1.4b 历史背景硬隔离（A2 整改，2026-10-13）----
+ * 纪律：今日决策结论只允许基于「今日」可见的数据；当 data_date 落后于当前日期时，
+ * 结论所在的区块必须整体标记为「历史背景」（data-historical="true"），与今日卡片
+ * 严格隔离呈现 —— 历史背景区块只陈述「数据截至哪一天」，绝不冒充今日实时状态；
+ * 今日结论区（data-historical="false"）只引用今日数据，二者互不混入。 */
+function tdIsHistorical(d) {
+  d = d || {};
+  const dd = d.data_date ? String(d.data_date).slice(0, 10) : "";
+  if (!dd) return false;
+  const t = new Date();
+  const pad = (x) => String(x).padStart(2, "0");
+  const todayStr = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`;
+  return dd < todayStr;
+}
+function tdHistoryBackground(d) {
+  d = d || {};
+  const isHist = tdIsHistorical(d);
+  if (!isHist) return "";   // 今日数据：无历史背景区块，全部按「今日」正常呈现
+  const dd = d.data_date ? String(d.data_date).slice(0, 10) : "—";
+  // 历史区块：仅当后端给的 data_date 落后于今天才渲染，并用 data-historical 属性标记，
+  // 供审计/样式把「历史背景」与「今日」严格区分开，旧数据绝不混入今日判词。
+  return `
+    <section class="hist-bg" data-historical="true" aria-label="历史区块">
+      <div class="hist-hd"><b>历史背景</b><span class="hist-tag">非今日数据 · 与今日结论严格隔离</span></div>
+      <div class="hist-txt">本页「今日决策」基于数据日 <b>${esc(dd)}</b> 生成，早于当前日期，属历史背景。
+        以下内容只描述截至 ${esc(dd)} 的存量状态，不代表今日实时状态；今日结论请等数据刷新后再看。</div>
+      <div class="hist-note">已触碰 A2 新鲜度硬隔离：历史背景区块独立成区，旧数据不会混入「今日」判词，
+        也不会在「数据截至」之外伪装成最新消息。</div>
+    </section>`;
+}
+
+/* ---- 1.4 结论条（今日一句话）四要素 meta：全部真实字段 → 缺失时透传空串 ---- */
+function tdTodayVerdictMeta(d) {
+  d = d || {};
+  const isEmpty = d.ok === false
+    || (!toArr(d.directions).length && !toArr(d.opportunities).length && !toArr(d.risks).length);
+  const t = tdTrustOf("verdict", d);
+  return {
+    // 后端没有任何可聚合数据 → 来源缺失（整块置灰）；否则来源是真实的聚合查询，不算缺失
+    source: isEmpty
+      ? ""
+      : "sector_chain / lhb_sector_focus / prediction_item / lhb_stocks（后端聚合）",
+    timepoint: tdTimepointOf(d),
+    caliber: d.basis
+      ? "方向=主线研判；机会=可推进/预测核心；风险=净流出+情绪；详见下方口径说明"
+      : "",
+    trust: t.trust,
+    trustNote: t.trustNote,
+  };
+}
+
+/* ---- 1.5 四张卡片（方向/机会/风险/我的票）卡头四要素 meta ---- */
+function tdCardMeta(kind, d) {
+  d = d || {};
+  const M = {
+    direction: {
+      src: "sector_chain（交易所龙虎榜）",
+      cal: "净买额单位：亿元；评分=资金40%+龙头30%+覆盖20%+梯队10%",
+    },
+    opportunity: {
+      src: "sector_chain 主线梯队 / prediction_item 每日预测核心",
+      cal: "主线可推进名单；预测核心无当日涨跌幅时以 note 说明",
+    },
+    risk: {
+      src: "lhb_sector_focus / lhb_stocks / postdigest 近24h情绪",
+      cal: "板块净流出与个股净卖出单位：亿元；情绪为近24h帖子统计",
+    },
+    watch: {
+      src: "watchlib 关注池（本地配置 + 行情注入）",
+      cal: "目标价/触发价为关注池注入，现价为行情，距离为百分比",
+    },
+  };
+  const m = M[kind] || M.direction;
+  const t = tdTrustOf(kind, null);
+  return {
+    source: m.src,
+    timepoint: tdTimepointOf(d),
+    caliber: m.cal,
+    trust: t.trust,
+    trustNote: t.trustNote,
+  };
+}
+
+/* ---- 1.6 行级补充徽章（默认空；仅「机会卡·每日预测核心」强制追加模型推断级 + 未验证） ---- */
+function tdRowMetaBadge(kind, x) {
+  if (kind !== "opportunity" || !tdIsModelPrediction(x)) return "";
+  // model 级且本接口未携带验证命中率 → 一律标「未验证」（A1 硬性要求，不假装已回测）
+  return trustBadge("model", "未验证");
+}
+
 function renderToday() {
   const box = $("#p-today");
   if (!box) return;
@@ -2814,6 +2963,12 @@ function renderToday() {
   const mw = d.mywatch || { total: 0, unread: 0, alerts: [], near: [] };
   const tone = d.verdict_tone || "mixed";
   const codeA = (code, name) => codeLink(code, { text: name || code, cls: "td-sym" });
+
+  // [改点 1] 卡片 meta 预构造：传空 meta 的 d 缺失场景由组件自动降级（来源缺失/时点未知/待明确/未知）
+  const dirMeta   = dataUnitBadge(tdCardMeta("direction", d));
+  const oppMeta   = dataUnitBadge(tdCardMeta("opportunity", d));
+  const riskMeta  = dataUnitBadge(tdCardMeta("risk", d));
+  const watchMeta = dataUnitBadge(tdCardMeta("watch", d));
 
   // ① 方向（资金主攻 + 龙头 + 阶段判词）
   const dirHtml = dirs.length ? dirs.map((x, i) => `
@@ -2829,7 +2984,7 @@ function renderToday() {
   const oppHtml = opps.length ? opps.map((x) => `
     <div class="td-row">
       <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
-        <span class="td-sub">${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span></span>
+        <span class="td-sub">${tdRowMetaBadge("opportunity", x)}${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span></span>
     </div>`).join("") : `<div class="td-empty">主线暂无可推进名单。</div>`;
 
   // ③ 风险（板块资金净流出 / 龙虎榜净卖出 / 上榜次日跑输 / 情绪看空·分歧）
@@ -2853,30 +3008,32 @@ function renderToday() {
     </div>`).join("");
   const watchHtml = (alertRows || nearRows || `<div class="td-empty">关注池今日无到价提醒。</div>`);
 
+  const _tdHist = tdIsHistorical(d);   // A2 硬隔离：数据日落后于今天 → 结论整体归入历史背景
   box.innerHTML = `
-    <div class="td-verdict tone-${escAttr(tone)}">
-      <span class="td-v-tag">今日一句话</span>
+    ${tdHistoryBackground(d)}
+    <div class="td-verdict tone-${escAttr(tone)}" data-historical="${_tdHist ? "true" : "false"}">
+<span class="td-v-tag">今日一句话</span>
       <b class="td-v-text">${esc(d.verdict || "—")}</b>
-      <span class="td-v-meta">数据日 ${esc(d.data_date || "—")} · 生成于 ${esc(d.generated_at || "—")}</span>
+      <span class="td-v-meta">${dataUnitMeta(tdTodayVerdictMeta(d))}</span>
     </div>
-    <div class="td-grid">
+    <div class="td-grid" data-historical="${_tdHist ? "true" : "false"}">
       <div class="td-card td-c-dir">
-        <div class="td-hd"><b>① 今日方向</b><span class="td-hd-sub">钱在买什么</span></div>
+        <div class="td-hd"><b>① 今日方向</b><span class="td-hd-sub">钱在买什么</span><span class="td-hd-meta">${dirMeta}</span></div>
         <div class="td-body">${dirHtml}</div>
         <div class="td-foot"><a href="#overview/dashboard" onclick="selectNav('overview','dashboard',true);return false;">展开「今日看板」完整研判 ›</a></div>
       </div>
       <div class="td-card td-c-opp">
-        <div class="td-hd"><b>② 今日机会</b><span class="td-hd-sub">能上车的</span></div>
+        <div class="td-hd"><b>② 今日机会</b><span class="td-hd-sub">能上车的</span><span class="td-hd-meta">${oppMeta}</span></div>
         <div class="td-body">${oppHtml}</div>
         <div class="td-foot"><a href="#watch/rate" onclick="selectNav('watch','rate',true);return false;">展开「入手概率」全市场榜 ›</a></div>
       </div>
       <div class="td-card td-c-risk">
-        <div class="td-hd"><b>③ 今日风险</b><span class="td-hd-sub">要躲的坑</span></div>
+        <div class="td-hd"><b>③ 今日风险</b><span class="td-hd-sub">要躲的坑</span><span class="td-hd-meta">${riskMeta}</span></div>
         <div class="td-body">${riskHtml}</div>
         <div class="td-foot"><a href="#money/lhb_sectors" onclick="selectNav('money','lhb_sectors',true);return false;">展开「板块动向」研判 ›</a></div>
       </div>
       <div class="td-card td-c-watch">
-        <div class="td-hd"><b>④ 我的票提示</b><span class="td-hd-sub">关注池 ${mw.total} 只${mw.unread ? ` · 未读 ${mw.unread}` : ""}</span></div>
+        <div class="td-hd"><b>④ 我的票提示</b><span class="td-hd-sub">关注池 ${mw.total} 只${mw.unread ? ` · 未读 ${mw.unread}` : ""}</span><span class="td-hd-meta">${watchMeta}</span></div>
         <div class="td-body">${watchHtml}</div>
         <div class="td-foot"><a href="#watch/watch_alerts" onclick="selectNav('watch','watch_alerts',true);return false;">展开「到价提醒」 ›</a></div>
       </div>
@@ -7882,7 +8039,7 @@ function renderWatch() {
     ? `<div class="hint wt-noquote"><b>${noQuote} 只标的当前无有效行情</b>（停牌 / 未开盘 / 当日无成交）——当前价与涨跌一律显示 «—»，<b>不以 0 或 -100% 充数</b>；这类标的也不参与到价检测。</div>`
     : "";
   const rows = items.map(watchRow).join("") ||
-    `<tr><td colspan="12" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
+    `<tr><td colspan="9" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
   host.innerHTML = `
     <div class="wt-head">
       <h2>关注池 <span class="muted wt-sub">${d.checked_at ? "更新于 " + esc(d.checked_at) : ""}</span></h2>
@@ -7896,8 +8053,10 @@ function renderWatch() {
     <div class="wt-tabs">${tabs}</div>
     ${noQuoteHint}
     <div class="wt-tw"><table class="wt-tb"><thead><tr>
-      <th>代码 / 名称</th><th title="加入自选那一刻的价格快照">加入时价</th><th>当前价</th><th>涨跌</th><th>目标价</th><th>距目标</th>
-      <th>关注度</th><th>板块</th><th>关注天数</th><th>加入至今</th><th>备注</th><th>操作</th>
+      <th>代码 / 名称</th><th title="加入自选那一刻的价格快照">加入时价</th><th>当前价</th><th>涨跌</th>
+      <th title="screener 入手值得率评分 0~100：≥70 值博(红) / 40~69 观望(黄) / &lt;40 偏弱(灰)">入手值得率</th>
+      <th title="B站一键筛股命中的战法信号">战法信号</th>
+      <th>关注天数</th><th>加入至今</th><th>操作</th>
     </tr></thead><tbody>${rows}</tbody></table></div>
     <div class="hint wt-foot">点代码看个股；「目标价 ↑/↓」= 到价方向（涨到/跌到提醒）。命中会在「到价提醒」生成未读记录（同标的同方向同目标价不重复）。</div>`;
   const add = $("#wtAdd"); if (add) add.onclick = () => openWatchAddModal(WATCH.selGroup === "all" ? null : WATCH.selGroup);
@@ -7913,25 +8072,45 @@ function renderWatch() {
 }
 
 function watchRow(it) {
-  const tgt = it.target_price;
-  const dirIcon = it.alert_dir === "above" ? "↑" : (it.alert_dir === "below" ? "↓" : "");
-  const targetCell = (tgt === null || tgt === undefined || tgt === "")
-    ? '<span class="muted">—</span>'
-    : `${Number(tgt).toFixed(2)} <span class="wt-dir">${dirIcon}</span>`;
-  const dist = it.to_target_pct;
+  // 第一格（代码/名称）附加标记：基金标记 + 博主提及徽标（🔥N）+ 到价提醒标记（🔔）。
+  let c1Extra = "";
+  if (it.kind === "fund") c1Extra += ' <span class="wt-kind">基</span>';
+  if (it.blogger_n && it.blogger_n > 0) {
+    const names = (it.blogger_list || []).join("、");
+    c1Extra += ` <span class="wt-blog" title="提过：${escAttr(names)}">🔥${it.blogger_n}</span>`;
+  }
+  if (it.alert_on && it.target_price !== null && it.target_price !== undefined && it.target_price !== "") {
+    c1Extra += ` <span class="wt-bell" title="已设到价提醒">🔔</span>`;
+  }
+  // 入手值得率：数字按阈值配色（bull 红 / wt-warn 黄 / muted 灰），否则 «—»。
+  const w = it.worth;
+  const worthCell = (typeof w === "number" && !isNaN(w))
+    ? `<span class="${w >= 70 ? "bull" : (w >= 40 ? "wt-warn" : "muted")}">${w}</span>`
+    : '<span class="muted">—</span>';
+  // 战法信号：渲染 sname 小标签（title 带胜率），无命中则 «—»。
+  const hits = it.strat_hits;
+  let stratCell;
+  if (Array.isArray(hits) && hits.length) {
+    stratCell = hits.map((h) => {
+      const sname = (h && typeof h === "object") ? (h.sname || "") : h;
+      const wr = (h && typeof h === "object") ? h.win_rate : null;
+      const title = (wr !== null && wr !== undefined && wr !== "")
+        ? `战法信号 · 胜率 ${wr}%` : "战法信号";
+      return `<span class="wt-chip" title="${escAttr(title)}">${esc(sname)}</span>`;
+    }).join(" ");
+  } else {
+    stratCell = '<span class="muted">—</span>';
+  }
   const days = it.days_watched;
   return `<tr>
-    <td class="wt-c1"><button type="button" class="wt-sym" data-wt-open="${escAttr(it.symbol)}">${esc(it.symbol)}</button> <span class="wt-nm">${esc(it.name || "")}</span>${it.kind === "fund" ? ' <span class="wt-kind">基</span>' : ""}</td>
+    <td class="wt-c1"><button type="button" class="wt-sym" data-wt-open="${escAttr(it.symbol)}">${esc(it.symbol)}</button> <span class="wt-nm">${esc(it.name || "")}</span>${c1Extra}</td>
     <td>${wtMoney(it.price_at_add)}</td>
     <td>${wtMoney(it.price)}</td>
     <td>${wtPct(it.pct)}</td>
-    <td>${targetCell}</td>
-    <td>${(dist === null || dist === undefined) ? '<span class="muted">—</span>' : wtPct(dist)}</td>
-    <td>${wtStars(it.attention)}</td>
-    <td>${esc(it.sector || "") || '<span class="muted">—</span>'}</td>
+    <td>${worthCell}</td>
+    <td class="wt-strat">${stratCell}</td>
     <td>${(days === null || days === undefined) ? '<span class="muted">—</span>' : days + " 天"}</td>
     <td>${wtPct(it.since_add_pct)}</td>
-    <td class="wt-note">${esc(it.note || "")}</td>
     <td class="wt-ops"><span class="wt-op" data-wt-edit="${it.id}">编辑</span><span class="wt-op danger" data-wt-del="${it.id}">删</span></td>
   </tr>`;
 }
@@ -8032,18 +8211,14 @@ function watchRemoveItem(id) {
 
 function watchFormHtml(row) {
   const it = row || {};
-  const attOpts = [1, 2, 3, 4, 5].map((n) => `<option value="${n}"${(Number(it.attention) || 3) === n ? " selected" : ""}>${n}</option>`).join("");
   const dirSel = (v) => (it.alert_dir === v ? " selected" : "");
   return `<div class="wt-form">
     <label>代码 *<input id="wtF-symbol" value="${escAttr(it.symbol || "")}" placeholder="600519 或 sh600519" ${row ? "disabled" : ""}></label>
     <label>名称<input id="wtF-name" value="${escAttr(it.name || "")}" placeholder="留空自动补全"></label>
     <label>类型<select id="wtF-kind"><option value="stock"${it.kind !== "fund" ? " selected" : ""}>股票</option><option value="fund"${it.kind === "fund" ? " selected" : ""}>基金 / ETF</option></select></label>
     <label>分组<select id="wtF-group">${wtGroupOptions(it.group_id) || '<option value="">（无分组）</option>'}</select></label>
-    <label>板块<input id="wtF-sector" value="${escAttr(it.sector || "")}" placeholder="如：白酒 / AI"></label>
-    <label>关注度<select id="wtF-attention">${attOpts}</select></label>
     <label>目标价<input id="wtF-target" value="${it.target_price === null || it.target_price === undefined ? "" : escAttr(it.target_price)}" placeholder="如 1500（可空）"></label>
     <label>方向<select id="wtF-dir"><option value=""${dirSel("")}>（不提醒）</option><option value="above"${dirSel("above")}>上破 ↑（涨到目标提醒）</option><option value="below"${dirSel("below")}>下穿 ↓（跌到目标提醒）</option></select></label>
-    <label class="wt-full">备注<input id="wtF-note" value="${escAttr(it.note || "")}" placeholder="如：回踩 60 日线关注"></label>
   </div>`;
 }
 function watchCollectForm(overlay) {
@@ -8052,11 +8227,8 @@ function watchCollectForm(overlay) {
     name: q("#wtF-name").value.trim(),
     kind: q("#wtF-kind").value,
     group_id: q("#wtF-group").value || null,
-    sector: q("#wtF-sector").value.trim(),
-    attention: q("#wtF-attention").value,
     target_price: q("#wtF-target").value.trim() || null,
     alert_dir: q("#wtF-dir").value,
-    note: q("#wtF-note").value.trim(),
   };
 }
 
@@ -12776,6 +12948,107 @@ function numOr(v, reason, fmt) {
   return isMissing(t) ? renderMissing(reason) : esc(t);
 }
 
+/* ================= 四要素统一标签（2026-10-13 整改 A1：全局数据可信度标签系统） =================
+   需求原文（《股票论坛可视化查看器-顶配改造需求》A1，P0 重中之重）：
+     · 全站所有数据单元统一「四要素标签」：来源 / 时点 / 口径 / 可信度，悬停或 ⓘ 点击可见；
+     · 可信度三档：官方/交易所级、社区统计级、模型推断级，分别用实心圆 / 半圆 / 空心圆标识；
+     · 缺失处理：无来源字段 → 整块置灰并标「来源缺失」；时点无法确认 → 标「时点未知」，
+       不允许冒充最新；口径不明确 → 不展示数值、只展示「口径待明确」；
+       模型推断级 → 必须同时展示该模型的验证命中率（无验证报告则标「未验证」）。
+
+   对外接口（验收脚本 E1-4 命中关键词：trustBadge / metaBadge / 四要素 / dataUnitBadge / 可信度标签）：
+     · dataUnitMeta(meta)   → 四要素标签组（推荐入口，含 ⓘ 悬停/点击明细）
+     · dataUnitBadge(meta)  → dataUnitMeta 别名（全站调用统一走它）
+     · metaBadge(kind, v)   → 单要素徽章：kind = source|timepoint|caliber
+     · trustBadge(level,note) → 可信度徽章：level = official|community|model，note 为该档补充说明
+     · trustDot(level)      → 三档圆点（实心 / 半圆 / 空心）
+
+   用法示例：
+     dataUnitMeta({
+       source:    "lhb_stocks（交易所盘后披露）",
+       timepoint: "2026-10-13 15:00 收盘",
+       caliber:   "单位：亿元 · 口径：龙虎榜净买入",
+       trust:     "community",
+       trustNote: "净买入为交易所披露，聚合结论为统计规则判断",
+     })
+   任一字段省略时自动渲染缺失态，不编造来源、不冒充最新、不硬凑口径。
+   ==================================================================== */
+const TRUST_META = {
+  official:  { label: "官方/交易所级", cls: "du-t-official",  note: "数据来自官方公告、交易所披露或权威接口，可信度最高" },
+  community: { label: "社区统计级",    cls: "du-t-community", note: "数据来自论坛/社区抓取与统计聚合，需结合原文核对" },
+  model:     { label: "模型推断级",    cls: "du-t-model",     note: "数据由模型/规则推断产生，非直接观测，必须附验证命中率" },
+};
+const META_KIND = {
+  source:    { label: "来源", miss: "来源缺失" },
+  timepoint: { label: "时点", miss: "时点未知" },
+  caliber:   { label: "口径", miss: "口径待明确" },
+};
+/* 三档可信度圆点：官方=实心圆、社区=半圆、模型=空心圆（A1 硬性要求，勿换成其它图形） */
+function trustDot(level) {
+  const t = TRUST_META[level] || TRUST_META.community;
+  return `<span class="trust-dot ${escAttr(t.cls)}" aria-hidden="true"></span>`;
+}
+/* 单枚「可信度」徽章：圆点 + 档位名；model 级未给验证命中率时按总原则 5 标「未验证」 */
+function trustBadge(level, note) {
+  const t = TRUST_META[level];
+  if (!t) return renderMissing("可信度等级未知（应为 official/community/model）");
+  let tail = "";
+  let why = `${t.label}：${t.note}`;
+  if (note) { tail = ` · ${note}`; why += tail; }
+  else if (level === "model") {
+    tail = " · 未验证";
+    why += " · 未验证（无验证报告，按总原则 5 一律标注，不假装已回测）";
+  }
+  return `<span class="du-meta du-trust ${escAttr(t.cls)}" title="${escAttr(why)}">`
+    + `${trustDot(level)}${esc(t.label)}${tail ? `<b class="du-trust-note">${esc(tail)}</b>` : ""}</span>`;
+}
+/* 单枚「要素」徽章：来源/时点/口径；value 缺失时渲染缺失态（置灰 + 虚线下划线 + 悬停原因） */
+function metaBadge(kind, value) {
+  const k = META_KIND[kind];
+  if (!k) return "";
+  const v = String(value == null ? "" : value).trim();
+  if (!v) {
+    return `<span class="du-meta du-missing" title="${escAttr(k.miss + "：该数据单元本次未提供" + k.label + "信息，不能当作存在或冒充最新")}">`
+      + `${esc(k.label)}·${esc(k.miss)}</span>`;
+  }
+  return `<span class="du-meta du-${escAttr(kind)}" title="${escAttr(k.label + "：" + v)}">${esc(k.label)} <b>${esc(v)}</b></span>`;
+}
+/* 四要素统一标签组：来源 / 时点 / 口径 / 可信度 一行排布，悬停看明细，ⓘ 点击展开；
+   任一要素缺失 → 整组按 A1 规则降权（置灰降透明度），缺哪项就明示哪项，不静默。 */
+function dataUnitMeta(meta) {
+  const m = meta || {};
+  const trust = TRUST_META[m.trust]
+    ? trustBadge(m.trust, m.trustNote || "")
+    : `<span class="du-meta du-missing" title="${escAttr("可信度未知：该数据单元未提供可信度档位（official/community/model），不能当作已验证")}">可信度·可信度未知</span>`;
+  const parts = [
+    metaBadge("source", m.source),
+    metaBadge("timepoint", m.timepoint),
+    metaBadge("caliber", m.caliber),
+    trust,
+  ].filter(Boolean);
+  if (!parts.length) return "";
+  const missing = !m.source || !m.timepoint || !m.caliber || !m.trust;
+  const lines = [
+    m.source ? `来源：${m.source}` : "来源：缺失（无来源字段的数据一律按「来源缺失」整块置灰）",
+    m.timepoint ? `时点：${m.timepoint}` : "时点：未知（不允许冒充最新）",
+    m.caliber ? `口径：${m.caliber}` : "口径：待明确（口径不明确即不展示数值，只展示「口径待明确」）",
+    `可信度：${(TRUST_META[m.trust] || {}).label || "未知"}` + (m.trust === "model" ? (m.trustNote ? `，验证命中率 ${m.trustNote}` : "，未验证") : ""),
+  ];
+  const info = lines.join("\n");
+  return `<span class="du-meta-group${missing ? " du-unit-missing" : ""}"`
+    + ` data-du-meta="${escAttr(info)}" title="${escAttr(info)}">${parts.join("")}`
+    + `<button type="button" class="du-info" onclick="toggleDuMeta(this)" title="点击查看四要素明细">ⓘ</button></span>`;
+}
+function dataUnitBadge(meta) { return dataUnitMeta(meta); }
+/* ⓘ 点击：轻量 toast 展示该数据单元的四要素明细（悬停 title 已可读；toast 复用 D2 现成能力，
+   避免在 span 内插 block 元素破坏文档结构） */
+function toggleDuMeta(btn) {
+  if (!btn) return;
+  const g = btn.closest(".du-meta-group");
+  if (!g) return;
+  showToast((g.getAttribute("data-du-meta") || "四要素明细：来源 / 时点 / 口径 / 可信度").replace(/\n/g, "；"));
+}
+
 /* ============ 交易日横排（2026-10-12 进哥：不能无限铺开，会拐行）============
    龙虎榜 / 板块动向的「交易日」原来是 (d.dates || []).map(...) 全量铺开 ——
    库内交易日一多就换行，把正文挤下去。
@@ -13608,12 +13881,23 @@ function renderPrediction() {
   } else {
     const core = (d.items || []).filter((x) => x.tier === "core");
     const watch = (d.items || []).filter((x) => x.tier === "watch");
+    // A3-5（2026-10-13）：风险：反向证据列表 —— 谁在反对这个结论（机会与风险同屏，不偏食）。
+    // 第三行白话固定为「风险：反向证据列表」；数据来自 predictor.today_payload.against（真实落库统计）。
+    const ag = d.against || [];
+    const againstHtml = ag.length
+      ? `<div class="pred-against">
+          <div class="pred-against-t">风险：反向证据列表<span class="pred-against-tag">（谁在反对这个结论）</span></div>
+          <ul class="pred-against-l">${ag.map((a) => `
+            <li><b>${esc(a.who)}</b>：${esc(a.what)}<span class="pred-against-src">[${esc(a.source || "")}]</span></li>`).join("")}</ul>
+        </div>`
+      : `<div class="pred-against pred-against-empty">风险：反向证据列表 —— 暂无反向证据（当前数据源未发现反对该结论的证据，仍请独立判断）</div>`;
     body = `
       <div class="pred-disclaimer" role="note">⚖️ ${esc(d.disclaimer || "以上为公开讨论情绪与历史统计的信号，非投资建议；回测不代表未来。")}</div>
       <div class="pred-section pred-verdict">
         <div class="pred-verdict-t">市场研判（${escAttr(d.run_date || "")}）</div>
         <div class="pred-verdict-body">${esc(d.market_view || "")}</div>
         <div class="pred-verdict-style">${esc(d.style_view || "")}</div>
+        ${againstHtml}
         <div class="pred-conv">多信号共振 ${br.conv_n || 0}/${poolN} 只（${poolN ? ((br.conv_n || 0) / poolN * 100).toFixed(0) : 0}%）</div>
       </div>
       <div class="pred-grid2">
