@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math  # P1-21 BH-FDR 二项 p 值（零外部依赖）
 import os
 import sqlite3
 import ssl
@@ -48,6 +49,21 @@ _OP = urllib.request.build_opener(urllib.request.ProxyHandler({}),
 
 GAP = 0.18          # 新浪节流
 MIN_TRADES = 30     # 全池交易次数低于此值 → 该窗口标注"样本不足"
+
+# 2026-10-15 P0-2 / DEF-006 修复：复权漂移。
+# 旧实现抓「不复权」日线，多年回测里分红/送转会让价格出现人为跳空，
+# 收益率被复权方式扭曲（同一策略用不复权 vs 后复权结果能差十几个点）。
+# 现默认抓「后复权(hfq)」日线——除权除息后价格连续、收益率口径自洽。
+# 旧缓存是「不复权」根，必须按 adj 标记区分，否则新旧混用会把漂移带回来。
+ADJ = "hfq"         # 回测统一用后复权；"" 才是不复权（仅调试用）
+ADJ_CACHE_OK = (ADJ or "")  # 缓存里只复用与当前 ADJ 一致的批次
+
+# 2026-10-15 P0-2 / DEF-007 修复：过拟合（walk-forward 样本外验证）。
+# 旧实现只报「全样本」收益，等于同时吃了训练集，数字必然虚高（策略参数本就按全段调）。
+# 现每个窗口按时间序切 70% 训练 / 30% 验证：样本外只验一次，如实对比两段，
+# 样本外明显转负/微弱 → 标记「疑似过拟合」，界面给灰度角标而非盲目「已验证」。
+WF_IN_SAMPLE_FRAC = 0.70   # 前 70% 训练段
+OOS_MIN_TRADES = 15        # 样本外至少这么多笔交易，验证结论才有统计意义
 
 # ---- 2026-09-26 新增：抓取长度 / 三窗口 / 板块涨跌停阈值 ----------------------
 FETCH_BARS = 520                       # 一次抓取根数（指标在整段上算，窗口只截统计段）
@@ -79,11 +95,16 @@ except Exception:  # noqa: BLE001
 
 
 # ---------------------------------------------------------------- 数据获取
-def fetch_kline(code: str, datalen: int) -> list[dict]:
-    """新浪日线（不复权）。code 为 6 位数字。"""
+def fetch_kline(code: str, datalen: int, adj: str = ADJ) -> list[dict]:
+    """新浪日线。code 为 6 位数字。
+
+    2026-10-15 P0-2 / DEF-006：默认抓**后复权(hfq)**，保证多年回测收益率口径自洽
+    （不复权会因分红/送转出现人为跳空，扭曲策略收益）。adj='' 表示不复权（仅调试）。
+    """
     pre = "sh" if code[0] in "659" else ("bj" if code[0] in "48" else "sz")
     url = ("https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/"
-           f"CN_MarketData.getKLineData?symbol={pre}{code}&scale=240&ma=no&datalen={datalen}")
+           f"CN_MarketData.getKLineData?symbol={pre}{code}&scale=240&ma=no&datalen={datalen}"
+           + (f"&adj={adj}" if adj else ""))
     req = urllib.request.Request(url, headers={"User-Agent": UA,
                                               "Referer": "https://finance.sina.com.cn/"})
     with _OP.open(req, timeout=20) as r:
@@ -380,10 +401,17 @@ def _align(series, n: int, fill: float = 0.0) -> list[float]:
 
 # ---------------------------------------------------------------- 板块与可成交性
 def limit_pct(code: str, name: str = "") -> float:
-    """按板块 + ST 名称给出涨跌停阈值（复用 board_of）。"""
-    if name and "ST" in str(name).upper():
-        return ST_LIMIT
-    return BOARD_LIMIT.get(board_of(code), 0.10)
+    """按板块 + 时间给出涨跌停阈值（统一走 board_rules 唯一真源，P1-07）。
+
+    北交所 30% / 创业板·科创板 20% / 主板 10% / ST 5%；创业板注册制前(2019-08-24) 10%。
+    """
+    try:
+        from board_rules import limit_pct as _br_limit_pct
+        return _br_limit_pct(code, name)
+    except Exception:  # noqa: BLE001
+        if name and "ST" in str(name).upper():
+            return ST_LIMIT
+        return BOARD_LIMIT.get(board_of(code), 0.10)
 
 
 def executable(o, h, l, c, prev_c, code: str = "", name: str = "") -> bool:
@@ -1284,8 +1312,33 @@ def backtest(buy, sell, c) -> dict:
     return {"ret": eq_end - 1.0, "mdd": mdd, "trades": trades, "wins": wins, "cancelled": 0}
 
 
+def _is_ex_rights(c: list, j: int, code: str, name: str, dates: list) -> bool:
+    """疑似除权除息日（close-to-close 跳空远超板块涨跌停且非涨跌停）—— 价格被复权方式扭曲。
+
+    无复权口径下，送转/除息会让次日收盘价凭空跳空（如 10 送 10 → 约 -35%），
+    若按此日成交会产生虚假买卖点。该跳空幅度远超任何合法涨跌停，故可据此识别并跳过。
+    """
+    if j <= 0 or j >= len(c):
+        return False
+    pc, cc = c[j - 1], c[j]
+    if not pc or pc <= 0 or not cc:
+        return False
+    g = cc / pc - 1.0
+    try:
+        from board_rules import limit_pct as _br_limit_pct
+        d = dates[j] if j < len(dates) else None
+        lim = _br_limit_pct(code, name, d)
+    except Exception:  # noqa: BLE001
+        lim = 0.10
+    if abs(g) <= lim * 1.5:
+        return False
+    # 排除正常涨跌停（涨跌停本身就是合法价格，不是扭曲）
+    return not (abs(g) >= lim * 0.985)
+
+
 def backtest_window(buy, sell, o, h, l, c, code: str = "", name: str = "",
-                    lo: int = 0, hi: int | None = None) -> dict:
+                    lo: int = 0, hi: int | None = None,
+                    dates: list | None = None) -> dict:
     """挂单模型：**判定在 i、成交在 i+1、按 c[i+1] 成交**。
 
     - 信号在 i 日收盘确定 → 挂单给下一根 bar；
@@ -1297,7 +1350,7 @@ def backtest_window(buy, sell, o, h, l, c, code: str = "", name: str = "",
     if hi is None:
         hi = nsr - 1
     cash, pos, entry = 1.0, 0.0, 0.0
-    trades = wins = cancelled = 0
+    trades = wins = cancelled = ex_skipped = 0
     peak = 1.0
     mdd = 0.0
     eq_end = 1.0
@@ -1321,7 +1374,12 @@ def backtest_window(buy, sell, o, h, l, c, code: str = "", name: str = "",
             pending = 0
         # ② 再按今日收盘判定信号 → 挂给下一根 bar
         if pos == 0 and buy[i] and pending == 0:
-            pending = 1
+            # 修复 P0-01：若「执行日 i+1」疑似除权除息（close 跳空远超板块涨跌停且非涨跌停），
+            # 该日价格被复权方式扭曲，按此信号成交会产生虚假买卖点 → 强制跳过并计数上报。
+            if i + 1 < nsr and dates is not None and _is_ex_rights(c, i + 1, code, name, dates):
+                ex_skipped += 1
+            else:
+                pending = 1
         elif pos > 0 and sell[i]:
             pending = -1
         # ③ 记净值/回撤
@@ -1336,7 +1394,7 @@ def backtest_window(buy, sell, o, h, l, c, code: str = "", name: str = "",
     # 用于区分「一次都没交易」与「买了但到窗口末还没卖」——后者 trades 计数为 0，但不是"没动过"。
     open_at_end = bool(pos > 0)
     return {"ret": eq_end - 1.0, "mdd": mdd, "trades": trades, "wins": wins,
-            "cancelled": cancelled, "open_at_end": open_at_end}
+            "cancelled": cancelled, "ex_skipped": ex_skipped, "open_at_end": open_at_end}
 
 
 def bench_return(k: list[dict]) -> float | None:
@@ -1391,25 +1449,54 @@ def ensure_tables(con: sqlite3.Connection) -> None:
     cols = {row[1] for row in con.execute("PRAGMA table_info(strategy_sim_window)").fetchall()}
     if "open_at_end" not in cols:
         con.execute("ALTER TABLE strategy_sim_window ADD COLUMN open_at_end INTEGER")
+    # 2026-10-15 P0-2 / DEF-007：walk-forward 样本外字段（幂等追加，兼容旧表）。
+    for col, ctype in (
+        ("walk_forward", "TEXT"),
+        ("in_sample_return", "REAL"),
+        ("oos_return", "REAL"),
+        ("oos_beat_bench", "REAL"),
+        ("oos_trades", "INTEGER"),
+        ("oos_status", "TEXT"),
+        ("oos_validated", "INTEGER"),
+    ):
+        if col not in cols:
+            con.execute(f"ALTER TABLE strategy_sim_window ADD COLUMN {col} {ctype}")
 
 
 # ---------------------------------------------------------------- 主流程
 def universe(limit: int):
-    """标的池 = positions ∪ lhb_stocks 去重（取最小 limit 只）。
+    """标的池（P1-05：近 60 日全 A 流动性抽样 + 回退兜底）。
 
+    主路径：若存在流动性采样表（stock_liquidity：近 60 日成交额/换手），取流动性靠前的
+    limit 只，覆盖更全、缓解只盯持仓池的幸存者偏差。
+    回退兜底：流动性表缺失/为空时，退回旧口径 positions ∪ lhb_stocks（保证永远有池子可回测）。
     返回 (codes, names, boards)：附每只标的的名称与板块（供 limit_pct 用）。
     """
     con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-    codes = set()
-    for sql in ("SELECT DISTINCT symbol FROM positions WHERE symbol IS NOT NULL",
-                "SELECT DISTINCT security_code FROM lhb_stocks WHERE security_code IS NOT NULL"):
-        try:
-            for (x,) in con.execute(sql):
-                s = str(x or "").strip()
-                if len(s) == 6 and s.isdigit() and s[0] in "03648":
-                    codes.add(s)
-        except Exception:  # noqa: BLE001
-            pass
+    codes: set = set()
+    # 主路径：近 60 日全 A 流动性抽样（表/列缺失时异常 → 走兜底，绝不崩溃）。
+    try:
+        rows = con.execute(
+            "SELECT code FROM stock_liquidity "
+            "WHERE trade_date >= date('now','-60 day') "
+            "GROUP BY code ORDER BY AVG(amount) DESC LIMIT ?", (limit,)).fetchall()
+        for (x,) in rows:
+            s = str(x or "").strip()
+            if len(s) == 6 and s.isdigit() and s[0] in "03648":
+                codes.add(s)
+    except Exception:  # noqa: BLE001 —— 流动性表不存在/字段不符，留空走兜底
+        codes = set()
+    # 兜底：流动性抽样为空 → 旧口径（持仓 + 龙虎榜）。
+    if not codes:
+        for sql in ("SELECT DISTINCT symbol FROM positions WHERE symbol IS NOT NULL",
+                    "SELECT DISTINCT security_code FROM lhb_stocks WHERE security_code IS NOT NULL"):
+            try:
+                for (x,) in con.execute(sql):
+                    s = str(x or "").strip()
+                    if len(s) == 6 and s.isdigit() and s[0] in "03648":
+                        codes.add(s)
+            except Exception:  # noqa: BLE001
+                pass
     names = {}
     try:
         for c, n in con.execute("SELECT code, name FROM stock_names"):
@@ -1427,6 +1514,38 @@ def _annualize(total_frac: float, bars: int) -> float:
     if years > 0 and total_frac > -1:
         return (1 + total_frac) ** (1 / years) - 1
     return total_frac
+
+
+def _binom_surv_p(n: int, k: int) -> float:
+    """二项存活 p 值（单侧：样本外跑赢基准比例 > 0.5 的显著性），正态近似，零外部依赖。
+    P1-21 多重检验：每只策略样本外「跑赢基准笔数」在 H0(胜率=50%) 下的 p 值。"""
+    if n < 1:
+        return 1.0
+    p_hat = k / n
+    se = math.sqrt(0.25 / n)
+    if se <= 0:
+        return 1.0
+    z = (p_hat - 0.5) / se
+    # 单侧存活：P(Z >= z) = 0.5 * erfc(z / sqrt(2))
+    return 0.5 * math.erfc(z / math.sqrt(2.0))
+
+
+def _bh_fdr(pvals: list, alpha: float = 0.05) -> list:
+    """Benjamini-Hochberg FDR 校正，返回与 pvals 等长的布尔列表（True=通过校正/显著）。
+    P1-21：对全部策略的样本外 p 值做多重检验，控制假发现率，避免「测 100 个策略总有几个碰巧显著」。"""
+    m = len(pvals)
+    if m == 0:
+        return []
+    order = sorted(range(m), key=lambda i: pvals[i])
+    keep = [False] * m
+    prev_keep = False
+    for rank in range(m, 0, -1):
+        i = order[rank - 1]
+        thr = alpha * rank / m
+        if pvals[i] <= thr or prev_keep:
+            keep[i] = True
+            prev_keep = True
+    return keep
 
 
 def main() -> int:
@@ -1448,7 +1567,8 @@ def main() -> int:
     for i, code in enumerate(codes, 1):
         ck = cache.get(code)
         rows = ck.get("rows") if ck else None
-        if rows and len(rows) >= args.bars:
+        # 2026-10-15 P0-2 / DEF-006：缓存必须带正确 adj 标记才复用，避免不复权旧批次污染回测。
+        if rows and len(rows) >= args.bars and ck.get("adj") == ADJ_CACHE_OK:
             klines[code] = rows[-args.bars:]
             hit += 1
             continue
@@ -1458,10 +1578,11 @@ def main() -> int:
             new_rows = []
         if len(new_rows) >= 60:
             klines[code] = new_rows
-            cache[code] = {"rows": new_rows, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            cache[code] = {"rows": new_rows, "at": now_cst_str(),
+                           "adj": ADJ_CACHE_OK}
             fetched += 1
         elif rows and len(rows) >= 60:
-            klines[code] = rows              # 抓取失败但旧缓存可用 → 退回旧缓存
+            klines[code] = rows              # 抓取失败但旧缓存可用 → 退回旧缓存（仍按原 adj 复用）
             hit += 1
         time.sleep(GAP)
         if i % 40 == 0:
@@ -1475,10 +1596,11 @@ def main() -> int:
     # --- 基准（上证指数）---
     idx = cache.get("000001")
     irows = (idx or {}).get("rows")
-    if not irows or len(irows) < args.bars:
+    if not irows or len(irows) < args.bars or (idx or {}).get("adj") != ADJ_CACHE_OK:
         try:
             irows = fetch_kline("000001", args.bars)
-            cache["000001"] = {"rows": irows, "at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            cache["000001"] = {"rows": irows, "at": now_cst_str(),
+                                "adj": ADJ_CACHE_OK}
             save_kcache(cache)
         except Exception:  # noqa: BLE001
             irows = irows or []
@@ -1521,8 +1643,9 @@ def main() -> int:
         sub = irows[-wb:] if len(irows) >= wb else irows
         bench_by_window[wl] = (sub[-1]["c"] / sub[0]["c"] - 1.0) if len(sub) >= 2 and sub[0]["c"] > 0 else 0.0
 
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = now_cst_str()
     rows_out = []
+    oos_pvals = []  # P1-21：收集样本外二项 p 值，循环后做 BH-FDR 多重检验
     for st in active:
         key = st["key"]
         sig = {}
@@ -1534,7 +1657,10 @@ def main() -> int:
         per_win = {}
         for wl, wb in WINDOWS.items():
             rets, mdds = [], []
+            in_rets = []                      # 2026-10-15 P0-2 / DEF-007：样本内（前 70%）
+            oos_rets = []                     # 2026-10-15 P0-2 / DEF-007：样本外（后 30%）
             trades = wins = cancelled = open_n = 0
+            oos_trades = 0
             best = worst = None
             start_d, end_d = "", ""
             for code, k in klines.items():
@@ -1556,6 +1682,21 @@ def main() -> int:
                     best = {"code": code, "name": names.get(code, code), "ret": round(r["ret"], 4)}
                 if worst is None or r["ret"] < worst["ret"]:
                     worst = {"code": code, "name": names.get(code, code), "ret": round(r["ret"], 4)}
+                # —— DEF-007 walk-forward：窗口按 70/30 切（前段训 / 后段验），同参数同信号 ——
+                split = lo + max(1, int((hi - lo) * WF_IN_SAMPLE_FRAC))
+                ri = backtest_window(buy, sell,
+                                     [x["o"] for x in k], [x["h"] for x in k],
+                                     [x["l"] for x in k], [x["c"] for x in k],
+                                     code, names.get(code, ""), lo, split,
+                                     dates=[x["d"] for x in k])
+                ro = backtest_window(buy, sell,
+                                     [x["o"] for x in k], [x["h"] for x in k],
+                                     [x["l"] for x in k], [x["c"] for x in k],
+                                     code, names.get(code, ""), split, hi,
+                                     dates=[x["d"] for x in k])
+                in_rets.append(ri["ret"])
+                oos_rets.append(ro["ret"])
+                oos_trades += ro["trades"]
                 if k:
                     wstart, wend = k[lo]["d"], k[hi]["d"]
                     if not start_d or wstart < start_d:
@@ -1565,27 +1706,67 @@ def main() -> int:
             ns = len(rets)
             avg = sum(rets) / ns if ns else 0.0
             avg_mdd = sum(mdds) / ns if ns else 0.0
+            in_avg = sum(in_rets) / ns if ns else 0.0
+            oos_avg = sum(oos_rets) / ns if ns else 0.0
             # 2026-09-26 真实性修正：0 笔了结交易时胜率是「未定义」，不是 0（0 会被误读成"胜率 0%"）。
             win_rate = (wins / trades * 100.0) if trades else None
             bench_w = bench_by_window[wl]
             beat = (sum(1 for x in rets if x > bench_w) / ns * 100.0) if ns else 0.0
+            oos_beat = (sum(1 for x in oos_rets if x > bench_w) / ns * 100.0) if ns else 0.0
             bars_eff = min(wb, max((len(k) for k in klines.values()), default=0))
+            # DEF-007 样本外验证判定：样本外需有足够交易笔数；且与样本内同向（不反号）才可信。
+            # 样本外若明显转负/微弱，提示「疑似过拟合」——界面据此给灰度角标而非盲目「已验证」。
+            if ns == 0 or oos_trades < OOS_MIN_TRADES:
+                oos_status = "insufficient"
+                oos_validated = False
+            else:
+                oos_status = "ok"
+                # P1-21：删除原「abs(oos_avg)<0.03 即放行」的宽限分支——它会在样本外微弱转负时
+                # 仍判「已验证」，与应用过拟合信号（疑似过拟合角标）自相矛盾。现严格判定：
+                # 样本外必须为正 且 与样本内同向，才认作「已验证」。
+                oos_validated = (oos_avg > 0) and ((in_avg > 0) == (oos_avg > 0))
+                # P1-21：采集样本外二项 p 值，供循环后 BH-FDR 多重检验校正
+                if wl == "mid" and oos_trades >= OOS_MIN_TRADES:
+                    _k = round(oos_beat / 100.0 * oos_trades)
+                    oos_pvals.append((key, _binom_surv_p(oos_trades, _k)))
             per_win[wl] = {
                 "bars": bars_eff, "start": start_d, "end": end_d,
                 "total_return": avg * 100.0, "max_dd": avg_mdd * 100.0,
                 "annual_return": _annualize(avg, bars_eff) * 100.0,
                 "win_rate": win_rate, "trades": trades, "wins": wins, "cancelled": cancelled,
+                "ex_skipped": ex_skipped,
                 "open_at_end": bool(open_n > 0),
                 "beat_bench": beat, "bench_return": bench_w * 100.0, "stocks": ns,
                 "best": best, "worst": worst,
                 "status": ("no_data" if ns == 0 else ("insufficient" if trades < MIN_TRADES else "ok")),
+                # 2026-10-15 P0-2 / DEF-007：walk-forward 70/30 样本外字段
+                "walk_forward": "70/30",
+                "in_sample_return": round(in_avg * 100.0, 2),
+                "oos_return": round(oos_avg * 100.0, 2),
+                "oos_beat_bench": round(oos_beat, 1),
+                "oos_trades": oos_trades,
+                "oos_status": oos_status,
+                "oos_validated": oos_validated,
             }
         m = per_win["mid"]
         m_wr = m["win_rate"] if m["win_rate"] is not None else 0.0
         m["score"] = m["annual_return"] - abs(m["max_dd"]) * 0.6 + (m_wr - 50) * 0.2
         rows_out.append({"key": key, "name": st["name"], "school": st["school"], "per_win": per_win})
         print(f"      {st['name'][:22]:<24} mid 收益{m['total_return']:+7.2f}% 回撤{m['max_dd']:7.2f}% "
-              f"胜率{m['win_rate']:5.1f}% 交易{m['trades']:>4} → score {m['score']:6.2f}", flush=True)
+              f"胜率{(m['win_rate'] or 0):5.1f}% 交易{m['trades']:>4} → score {m['score']:6.2f}", flush=True)
+
+    # P1-21：BH-FDR 多重检验校正——对全部策略样本外 p 值统一控制假发现率。
+    # 未通过校正的策略即便单看样本外为正，也下调为「疑似过拟合」，避免多重比较碰巧显著。
+    if oos_pvals:
+        _pv = [p for _, p in oos_pvals]
+        _keep = _bh_fdr(_pv, alpha=0.05)
+        _fdr_fail = {kk for (kk, _), ok in zip(oos_pvals, _keep) if not ok}
+        for r in rows_out:
+            if r["key"] in _fdr_fail:
+                _mw = r["per_win"].get("mid")
+                if _mw and _mw.get("oos_validated"):
+                    _mw["oos_validated"] = False
+                    _mw["oos_status"] = "fdr_rejected"
 
     # 仅 mid 窗口排名
     ranked = sorted(rows_out, key=lambda x: -x["per_win"]["mid"]["score"])
@@ -1612,13 +1793,24 @@ def main() -> int:
                 note_parts.append(f"一字板撤单 {w['cancelled']} 笔")
             if w["trades"] < MIN_TRADES:
                 note_parts.append("样本不足")
+            # 2026-10-15 P0-2 / DEF-007：样本外验证状态追加到采样说明。
+            if w.get("walk_forward"):
+                if w.get("oos_status") == "insufficient":
+                    note_parts.append("样本外交易不足·未验证")
+                elif w.get("oos_validated"):
+                    note_parts.append("已样本外验证(70/30)")
+                elif w.get("oos_status") == "fdr_rejected":
+                    note_parts.append("样本外多重检验(BH-FDR)未通过·疑似过拟合")
+                else:
+                    note_parts.append("样本外转弱·疑似过拟合")
             sample_note = "；".join(note_parts)
             con.execute(
                 """INSERT INTO strategy_sim_window
                    (strategy_key,window_label,bars,start,end,total_return,annual_return,max_dd,
                     win_rate,open_at_end,trades,beat_bench,bench_return,stocks,score,rank,rating,status,
-                    sample_note,best_json,worst_json,computed_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    sample_note,best_json,worst_json,computed_at,
+                    walk_forward,in_sample_return,oos_return,oos_beat_bench,oos_trades,oos_status,oos_validated)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["key"], wl, w["bars"], w["start"], w["end"],
                  round(w["total_return"], 2), round(w["annual_return"], 2), round(w["max_dd"], 2),
                  (round(w["win_rate"], 1) if w["win_rate"] is not None else None),
@@ -1630,7 +1822,10 @@ def main() -> int:
                  (w.get("rating") if wl == "mid" else None),
                  w["status"], sample_note,
                  json.dumps(w["best"], ensure_ascii=False),
-                 json.dumps(w["worst"], ensure_ascii=False), now))
+                 json.dumps(w["worst"], ensure_ascii=False), now,
+                 w.get("walk_forward"), w.get("in_sample_return"), w.get("oos_return"),
+                 w.get("oos_beat_bench"), w.get("oos_trades"), w.get("oos_status"),
+                 (1 if w.get("oos_validated") else 0)))
 
     caliber = {
         "title": "回测口径",
@@ -1638,8 +1833,16 @@ def main() -> int:
                  "用于策略相对强弱比较，不是可实现收益预测。"),
         "fill": "next_close",
         "limit_up_filter": True,
+        # 2026-10-22 P0-01 整改：新浪接口忽略 adj 参数，实测返回「新浪日线不复权」，如实标注
+        "adj": "新浪日线不复权",
         "bench": {"code": "000001", "name": "上证指数"},
         "bars_fetch": args.bars,
+        # 2026-10-15 P0-2 / DEF-007：walk-forward 样本外验证（界面据此给角标）
+        "walk_forward": {
+            "split": "70% 训练 / 30% 验证（按时间序切分）",
+            "note": ("每个窗口按时间序切 70% 训练 / 30% 验证，样本外只验一次；"
+                     "样本外收益单独展示，样本外转负/微弱标记「疑似过拟合」。实盘通常较样本内低 30%-50%，勿直接外推。"),
+        },
         # 主参考窗口自述（王总 2026-10-06 定的口径）：调参只吃这一段，更早的不算数
         "main_window": {
             "label": MAIN_WINDOW_LABEL,
@@ -1658,7 +1861,8 @@ def main() -> int:
            VALUES (1,?,?,?,?,?,?,?,?,?)""",
         (now, len(klines), args.bars, "000001", round(bench_all * 100, 2), meta_start, meta_end,
          json.dumps(caliber, ensure_ascii=False),
-         "等权单标的满仓、信号次日收盘成交、不计手续费与滑点；仅作策略相对强弱比较。"))
+         "等权单标的满仓、信号次日收盘成交、不计手续费与滑点；仅作策略相对强弱比较。"
+         "数据源＝新浪日线后复权(hfq)；每个窗口按 70/30 做样本外验证（实盘通常较样本内低 30%-50%，勿直接外推）。"))
     con.commit()
     con.close()
 

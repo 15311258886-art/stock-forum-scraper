@@ -357,6 +357,61 @@ def upsert_contest(con: sqlite3.Connection, cj: dict, c_updated: str) -> tuple[i
     return n_rnd, n_par, n_trk
 
 
+# ---------------------------------------------------------------- 镜像清理（去重/去僵尸）
+def mirror_bloggers(con: sqlite3.Connection, stocks: list, force: bool = False) -> dict:
+    """让 blogger_reco / blogger_perf 与「源 Excel 快照」严格对齐（2026-10-20 加）。
+
+    【为什么必须做】
+    UPSERT 只增不减：豆包每天**覆盖写**整张 Excel，被它裁掉的旧推荐、下架的博主
+    （实测残留「史诗级韭菜」18 行、「笨笨的韭菜」1 行）会永远留在库里。
+    后果不只是多几行 —— 同一博主同一只票可能在**不同批次**以不同 rec_date 各存一份，
+    统计被重复计算：实测 `A股短线女王-指南针` 库内 78 条（70+4+2+2 跨四个批次），
+    而 Excel 只有 70 条，`blogger_stats.n_stock` 因此虚高 8 条。
+
+    【安全阈值】
+    源被豆包写坏（只写了一半）时绝不能跟着删库。规则：待删比例 > 40% 且
+    源行数 < 库行数 × 0.75 时判定「疑似源被截断」→ 不删、打印告警、返回 skipped。
+    `--force-mirror` 可强行越过（人工确认源无误后使用）。
+
+    【口径】
+    只删「源里已不存在的 (blogger, rec_date, stock_code) 组合」；价格/名称等字段一律由
+    UPSERT 负责。绝不动 contest_*（那是另一份源、另一套幂等键）。
+    """
+    keys = set()
+    for r in stocks:
+        b, d, c = _s(r.get("博主")), _s(r.get("推荐日期")), _s(r.get("股票代码"))
+        if b and d and c:
+            keys.add((b, d, c))
+
+    rows = con.execute("SELECT id, blogger, rec_date, stock_code FROM blogger_reco").fetchall()
+    stale = [(rid, (b, d, c)) for rid, b, d, c in rows if (b, d, c) not in keys]
+    total, n_stale = len(rows), len(stale)
+
+    ratio = (n_stale / total) if total else 0.0
+    suspicious = total > 0 and ratio > 0.40 and len(keys) < total * 0.75
+    if suspicious and not force:
+        print("[mirror] ⚠ 疑似源被截断：待删 %d/%d（%.0f%%）、源仅 %d 行 → **跳过镜像清理**。"
+              " 确认源无误后加 --force-mirror 重跑。" % (n_stale, total, ratio * 100, len(keys)),
+              file=sys.stderr)
+        return {"skipped": True, "stale": n_stale, "total": total}
+
+    if not stale:
+        return {"skipped": False, "deleted_reco": 0, "deleted_perf": 0, "total": total}
+
+    con.executemany("DELETE FROM blogger_reco WHERE id=?", [(rid,) for rid, _ in stale])
+
+    # blogger_perf 是按 reco 算出的滚动跟踪，reco 行没了它就是一具僵尸（前端还会算进榜单）。
+    # 同样按三元组对齐；perf 可能缺 rec_date/stock_code（老数据），用 COALESCE 兜住。
+    perf = con.execute("SELECT id, blogger, rec_date, stock_code FROM blogger_perf").fetchall()
+    dead_perf = [pid for pid, b, d, c in perf
+                 if (b, d or "", c or "") not in keys and (b, d, c) not in keys]
+    if dead_perf:
+        con.executemany("DELETE FROM blogger_perf WHERE id=?", [(pid,) for pid in dead_perf])
+
+    return {"skipped": False, "deleted_reco": len(stale), "deleted_perf": len(dead_perf),
+            "total": total}
+
+
 # ---------------------------------------------------------------- 主流程
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
@@ -365,6 +420,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--contest-json", default=CONTEST_JSON, help="参赛股 contest.json 路径")
     ap.add_argument("--db", default=DB, help="目标 SQLite 库路径")
     ap.add_argument("--no-contest", action="store_true", help="只灌 Excel（博主荐股三表）")
+    ap.add_argument("--no-mirror", action="store_true",
+                    help="不清理「源 Excel 里已消失」的旧行（默认会清，见 mirror_bloggers）")
+    ap.add_argument("--force-mirror", action="store_true",
+                    help="越过「疑似源被截断」的安全阈值，强制镜像清理")
     ap.add_argument("--quiet", action="store_true", help="只输出一行汇总（供调度器）")
     args = ap.parse_args(argv)
 
@@ -392,6 +451,13 @@ def main(argv: list[str] | None = None) -> int:
         con.executescript(DDL)
         if bloggers_ok:
             n_reco, n_ovl, n_sta = upsert_bloggers(con, stocks, overlaps, stats, src_updated)
+            # 镜像清理（2026-10-20）：UPSERT 后把「源里已消失」的旧行删掉，
+            # 否则跨批次重复会污染 stats（实测 A股短线女王 虚高 8 条）。
+            mirror_info = {"skipped": True}
+            if not args.no_mirror:
+                mirror_info = mirror_bloggers(con, stocks, force=args.force_mirror)
+        else:
+            mirror_info = {"skipped": True}
 
         if not args.no_contest:
             if os.path.exists(args.contest_json):
@@ -416,6 +482,15 @@ def main(argv: list[str] | None = None) -> int:
             import blogger_rebuild as _rb
             _rb.rebuild_stats(con)
             _rb.rebuild_overlap(con)
+            # rebuild_* 只 UPSERT、不删 —— 源里已消失博主的旧 stats 行会留成僵尸
+            # （实测「史诗级韭菜」「笨笨的韭菜」n_stock=0 却仍占一行，前端 chip 里点进去是空的）。
+            # 这里补一刀：非「合计」行且 reco 里已无该博主 → 删。
+            if not args.no_mirror:
+                cur = con.execute(
+                    "DELETE FROM blogger_stats WHERE blogger <> '全部博主合计'"
+                    " AND blogger NOT IN (SELECT DISTINCT blogger FROM blogger_reco)")
+                if cur.rowcount:
+                    print("[mirror] 清理僵尸 stats 行 %d 条" % cur.rowcount, file=sys.stderr)
         except Exception as _e:  # noqa: BLE001
             print("[import_bloggers_direct] 汇总重算失败（已忽略，不影响导入）：%s" % _e,
                   file=sys.stderr)
@@ -452,6 +527,11 @@ def main(argv: list[str] | None = None) -> int:
             print("  contest_track       %d 行（源 %d）" % (cnt("contest_track"), n_trk))
             print("  contest.json        %s" % contest_note)
             print("  博主名单：%s" % bloggers)
+            if mirror_info.get("skipped"):
+                print("  镜像清理：跳过（源缺失 / --no-mirror / 疑似截断）")
+            else:
+                print("  镜像清理：删除源中已消失 reco %d 行、perf %d 行"
+                      % (mirror_info.get("deleted_reco", 0), mirror_info.get("deleted_perf", 0)))
             print("  参赛期数：%d" % rounds)
     finally:
         con.close()

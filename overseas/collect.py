@@ -171,3 +171,45 @@ def collect(db, cfg_data: dict | None = None, enabled_only: bool = True,
         "hotspots": len(hotspots),
         "sources": [r.as_dict() for r in results],
     }
+
+
+def collect_autosafe(db, cfg_data: dict | None = None, include_seed: bool = True) -> dict:
+    """调度器自动调用（安全版）：联网抓到真实条目才 reset 重建，抓不到(VPN 未通/被墙)保留旧数据。
+
+    原 collect(reset=True) 在抓取开始时清空海外新闻表——若网络不通，旧数据被清空只剩示例种子，
+    等于「越刷新越空」。本函数先探测联网是否抓到真实条目：
+      · 抓到 ≥1 条 → 走 collect(reset=True) 正常重建（含示例种子补充）；
+      · 抓到 0 条 → 不重置，仅刷新数据源状态（标注「联网未通·保留旧数据」），返回 skipped。
+    风险隔离：单域失败不影响主进程（调用方已 try/except）。
+    """
+    import logging as _logging
+    data = cfg_data or load_overseas_config()
+    try:
+        results = fetch_all(data, only_enabled=True)
+    except Exception as _e:  # noqa: BLE001
+        results = []
+        _logging.warning("overseas autosafe 联网抓取异常(保留旧数据): %s", str(_e)[:160])
+    live_items = sum(len(r.items) for r in results)
+    if live_items == 0:
+        # 联网不通：仅刷新源状态（保留旧新闻/热点），记元信息后返回
+        try:
+            all_cfgs = sources_of(data, enabled_only=False)
+            st = []
+            for cfg in all_cfgs:
+                enabled = bool(cfg.get("enabled"))
+                st.append(SourceResult(
+                    key=cfg.get("key", ""), name=cfg.get("name", ""), region=cfg.get("region", ""),
+                    enabled=enabled, ok=False, requires_key=bool(cfg.get("requires_key")),
+                    requires_vpn=bool(cfg.get("requires_vpn")),
+                    note=("联网未通·保留旧数据" if enabled else (cfg.get("note") or "未启用")),
+                    custom_status=("联网未通·保留旧数据" if enabled else ""),
+                    error=cfg.get("note") or "",
+                ).as_dict())
+            db.save_overseas_source_status(st)
+        except Exception:  # noqa: BLE001
+            _logging.exception("overseas autosafe 源状态刷新失败(忽略)")
+        db.set_meta("overseas_auto_last", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        db.set_meta("overseas_auto_status", "skipped_no_live")
+        return {"autosafe": True, "skipped": "no_live_items", "kept_old": True}
+    db.set_meta("overseas_auto_status", "ok")
+    return collect(db, cfg_data=data, include_seed=include_seed, reset=True, live=True)

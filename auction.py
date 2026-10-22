@@ -76,6 +76,27 @@ _INSERT_SQL = (
 )
 
 
+def _now_cst() -> "datetime":
+    """P2-06: CST 时区感知的当前时间，避免 naive datetime.now() 跨时区错乱。
+
+    回退到本地 datetime.now()，保证 timeutil 缺失时行为不变（仅时区精度退化）。
+    """
+    try:
+        from timeutil import now_cst
+        return now_cst()
+    except Exception:  # noqa: BLE001
+        return datetime.now()
+
+
+def _now_cst_str() -> str:
+    """P2-06: CST 时区感知时间戳字符串，回退到本地时间字符串。"""
+    try:
+        from timeutil import now_cst_str
+        return now_cst_str()
+    except Exception:  # noqa: BLE001
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _conn() -> sqlite3.Connection:
     con = sqlite3.connect(DB_PATH, timeout=20)
     con.row_factory = sqlite3.Row
@@ -240,6 +261,7 @@ def sample_trade_date() -> str | None:
 _TD_CACHE: dict = {"days": None, "ts": 0.0, "asof": None, "last_try": 0.0}
 _TD_TTL = 6 * 3600
 _TD_RETRY = 30  # 缩短到 30s：日历落后真实今天时尽快重抓，不再死等 6h TTL 却吐节前日历
+_TD_LOCK = threading.Lock()  # 防多线程同时未命中缓存 → 雷鸣般群体联网（thundering herd）
 
 # ---------------------------------------------------------------- 2026 确定性交易日历（兜底 oracle）
 # 长假后 Sina K线可能尚未刷新「最近交易日」，单纯依赖网络会在 10-08 这种日子被误判为休市，
@@ -262,7 +284,7 @@ def _cn_trade_days_2026(upto: str) -> list[str]:
         y, m, d = (int(x) for x in upto.split("-"))
         end = datetime(y, m, d)
     except Exception:  # noqa: BLE001
-        end = datetime.now()
+        end = _now_cst()
     start = end - timedelta(days=60)
     out: list[str] = []
     cur = start
@@ -284,27 +306,46 @@ def market_trade_days(n: int = 12) -> list[str]:
       ② 若缓存里最新交易日 < 真实今天（日历落后，如长假后首日上午源尚未刷新）→
          **直接重抓，绝不返回陈旧的节前日历**；源一旦补上今日数据，30s 内即可被系统看到
          （更稳的兜底见 latest_trade_date 的 2026 确定性日历）。
+      ③ 2026-10-17 修复（周六凌晨整站被冻 154s 的根因）：「落后重抓」在**休市日永远成立**
+         （缓存最新日=上周五 < 周六），旧逻辑于是休市日**每次调用都联网抓新浪**，网络劣化时
+         一次挂 20~150s，调度线程与 API 一起被拖死（静态资源都超时）。现改为：
+           · 今天不是「潜在交易日」（确定性日历：周末/已知节假日）→ 历史日历不会变，
+             有缓存（含空缓存）直接返回，**永不为「对齐今天」而联网**；
+           · 30s 节流（_TD_RETRY，last_try 此前只存不用）：距上次联网尝试不足 30s 一律回缓存，
+             把「网络抖动时每 10s 一挂」压成「最多 30s 试一次」，对 behind 路径同样生效；
+           · 加 _TD_LOCK 串行化抓取，防多线程同时未命中缓存集体联网。
     取不到返回 []（未知），交调用方按未知处理，绝不擅自填日期。
     """
     now = time.time()
     today = time.strftime("%Y-%m-%d")
     c = _TD_CACHE
-    cached = c["days"]
-    cached_max = max(cached) if cached else None
-    behind = bool(cached_max and cached_max < today)
-    if not behind:
-        if cached is not None and now - c["ts"] < _TD_TTL and c["asof"] == today:
+    with _TD_LOCK:
+        cached = c["days"]
+        cached_max = max(cached) if cached else None
+        try:
+            today_is_td = today in _cn_trade_days_2026(today)
+        except Exception:  # noqa: BLE001 —— 确定性日历算不了就按「可能是交易日」保守处理
+            today_is_td = True
+        # 休市日：历史日历 immutable，直接用缓存（哪怕空），不联网
+        if not today_is_td and cached is not None:
             return cached
-    # behind（日历落后今天）→ 直接重抓，不返回陈旧日历；取不到则返回源当前真实最新（best-effort，不谎报）。
-    days: list[str] = []
-    try:
-        rows = sina_kline_dates("sh000001", n) or []
-        days = sorted({str(r.get("day") or r.get("date") or "")[:10] for r in rows})
-        days = [d for d in days if d]
-    except Exception:  # noqa: BLE001 —— 日历取不到不许阻断抓数，交由调用方按未知处理
-        days = []
-    c.update({"days": days, "ts": now, "asof": today, "last_try": now})
-    return days
+        behind = bool(cached_max and cached_max < today and today_is_td)
+        if not behind:
+            if cached is not None and now - c["ts"] < _TD_TTL and c["asof"] == today:
+                return cached
+        # 30s 尝试节流（含 behind 路径：交易日盘中日K尚未印出今日时，旧逻辑同样每次调用都重抓）
+        if c.get("last_try") and now - float(c["last_try"]) < _TD_RETRY:
+            return cached if cached is not None else []
+        # behind（潜在交易日且日历落后今天）→ 直接重抓，不返回陈旧日历；取不到则返回源当前真实最新（best-effort，不谎报）。
+        days: list[str] = []
+        try:
+            rows = sina_kline_dates("sh000001", n) or []
+            days = sorted({str(r.get("day") or r.get("date") or "")[:10] for r in rows})
+            days = [d for d in days if d]
+        except Exception:  # noqa: BLE001 —— 日历取不到不许阻断抓数，交由调用方按未知处理
+            days = []
+        c.update({"days": days, "ts": now, "asof": today, "last_try": now})
+        return days
 
 
 def latest_trade_date(today: str | None = None) -> str | None:
@@ -403,7 +444,12 @@ def _record_error(con, msg: str) -> None:
     旧实现失败只静默 return False，前端永远看不到「为什么今天没数据」。这里把最近一次错误显式沉淀下来，
     便于排障；写盘失败（权限 / 目录）也不影响主流程。
     """
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # P2-06: 写入时间戳用 CST 时区感知时间，避免 naive datetime.now() 跨时区错乱
+    try:
+        from timeutil import now_cst_str
+        ts = now_cst_str()
+    except Exception:  # noqa: BLE001
+        ts = _now_cst_str()
     msg = str(msg)[:300]
     if con is not None:
         try:
@@ -428,7 +474,7 @@ def _in_auction_window(now: datetime | None = None) -> bool:
 
     9:30 开盘之后量就滚进连续竞价了，再存就是假竞价量——这是本模块最容易踩的坑，写死在这里。
     """
-    n = now or datetime.now()
+    n = now or _now_cst()
     return 9 * 60 + 15 <= n.hour * 60 + n.minute <= 9 * 60 + 35
 
 
@@ -458,7 +504,7 @@ def collect(conn=None, date: str | None = None, force: bool = False) -> dict:
         for r in con.execute("SELECT code, volume, amount FROM auction_snapshot WHERE date=?", (d,)).fetchall():
             old[r["code"]] = (r["volume"], r["amount"])
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = _now_cst_str()
         con.execute("DELETE FROM auction_snapshot WHERE date=?", (d,))   # 同一天重跑 = 覆盖成最新
         payload = []
         for r in rows:
@@ -542,7 +588,7 @@ def backfill(days: int = 10, limit: int = 1200, conn=None, force: bool = False) 
                 if ks:
                     plan[code] = ks
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = _now_cst_str()
         written = 0
         for code, ks in plan.items():
             by_day = {k["day"]: k for k in ks}
@@ -853,7 +899,7 @@ def maybe_snapshot(conn=None, now: datetime | None = None) -> bool:
     并落 viewer/logs/auction.log。
     """
     try:
-        now = now or datetime.now()
+        now = now or _now_cst()
         today = now.strftime("%Y-%m-%d")
         # 交易日闸（2026-10-09 重写，详见 _today_collectable）：
         # ★ 旧实现用「上证综指日K里有没有今天」当开市判据，但日K盘中不含今日（当日K线收盘后才印出），

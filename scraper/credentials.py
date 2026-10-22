@@ -164,3 +164,22 @@ def delete_credential(site: str) -> bool:
         _save_all(f, data)
         return True
     return False
+
+
+# --------------------------------------------------------------------------- #
+# 通用密钥（如 DeepSeek API Key）
+# --------------------------------------------------------------------------- #
+def save_secret(name: str, value: str) -> None:
+    """把任意密钥以密文存进同一份凭据库（复用本文件的 Fernet 密钥）。"""
+    f = _get_fernet()
+    data, entry = _entry(f, "secrets")
+    entry[name] = value
+    _save_all(f, data)
+
+
+def load_secret(name: str) -> str:
+    """取回 save_secret 存的密钥；不存在返回空串。"""
+    entry = _load_all(_get_fernet()).get("secrets") or {}
+    v = entry.get(name)
+    return v if isinstance(v, str) else ""
+

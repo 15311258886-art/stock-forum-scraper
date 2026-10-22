@@ -21,9 +21,12 @@
 """
 from __future__ import annotations
 
+import copy
 import re
 import sqlite3
 import sys
+import threading
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -45,6 +48,18 @@ _sent_score = _an._sent_score
 DB_PATH = ROOT / "viewer" / "app.db"
 _CACHE_NAME: dict | None = None
 _CACHE_IND: dict | None = None
+
+# ---------------------------------------------------------------- 进程级结果缓存（带 TTL）
+# 2026-10-13 性能修复：server.py 在每次 HTTP 请求里同步调用 build()，而 build() 是个
+# CPU 重活（开独立 sqlite 连接、逐帖打分/抽代码/聚合，单次 6~8 秒）。单进程多线程的
+# http.server 下，多个请求 + 后台调度叠加就把请求线程堵到整服务假死。
+# 修复：在 build 外层套一层内存缓存，TTL 120 秒；命中即秒回深拷贝，未命中才重算。
+# 服务是多线程的，必须用锁保证「查缓存 → 是否过期 → 重算 → 写回」这段的原子性，
+# 否则可能多个线程同时穿透重算，反而放大卡顿（惊群）。
+_BUILD_CACHE_TTL = 120.0  # 秒（两分钟）
+# key = (hours, max_posts)；value = (计算时刻 timestamp, 结果对象)
+_BUILD_CACHE: dict[tuple[int, int], tuple[float, dict]] = {}
+_BUILD_CACHE_LOCK = threading.Lock()
 
 
 def _score(text: str) -> float:
@@ -188,8 +203,11 @@ def _industry_map() -> dict[str, str]:
     return _CACHE_IND
 
 
-def build(hours: int = 24, max_posts: int = 800) -> dict:
-    """最近 hours 小时内的帖子 → 情绪结论。"""
+def _build_core(hours: int = 24, max_posts: int = 800) -> dict:
+    """最近 hours 小时内的帖子 → 情绪结论（真实计算路径，不含缓存）。
+
+    原 build() 全部逻辑下沉到这里；缓存壳见下方 build() 包装函数。
+    本函数内部逻辑、try/except 降级、返回字段结构一律不变。"""
     now = datetime.now()
     cutoff = (now - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
     out: dict = {
@@ -415,3 +433,30 @@ def build(hours: int = 24, max_posts: int = 800) -> dict:
                     f"只认双字以上词，先剔除「跌不动/不跌/跌透了」这类否定式再打分；"
                     f"未联网、不推测，样本不足会显式标注。")
     return out
+
+
+def build(hours: int = 24, max_posts: int = 800) -> dict:
+    """最近 hours 小时内的帖子 → 情绪结论（带 120 秒 TTL 的进程级缓存）。
+
+    公开入口，server.py 的 api_stocks() / api_today_decision() 都只调它。
+    两层保护：
+      1. 命中且未过期 → 直接返回缓存结果的深拷贝，毫秒级返回（原接口本应秒回）；
+      2. 未命中或过期 → 照常走 _build_core() 重算，写回缓存后再返回深拷贝。
+    始终返回深拷贝：多线程拿到的都是独立副本，任何调用方修改返回对象都不会
+    污染缓存里那份，避免多线程相互踩踏。缓存期内 generated_at 可能是至多 2 分钟前
+    的时刻（粗粒度情绪速览，误差可接受，不做特殊处理）。
+    """
+    key = (hours, max_posts)
+    now_ts = time.time()
+    with _BUILD_CACHE_LOCK:  # 锁住整段「查→判过期→重算→写回」，杜绝并发穿透重算（惊群）
+        entry = _BUILD_CACHE.get(key)
+        if entry is not None:
+            stored_ts, result = entry
+            if (now_ts - stored_ts) < _BUILD_CACHE_TTL:
+                # 命中且未过期：秒回深拷贝，跳过 6~8 秒重算
+                return copy.deepcopy(result)
+        # 未命中或已过期：照常重算（锁内执行，保证同时只有一个线程在算）
+        result = _build_core(hours, max_posts)
+        _BUILD_CACHE[key] = (now_ts, result)
+        # 写回的也是深拷贝给调用方；缓存里留原件，下次命中再拷贝
+        return copy.deepcopy(result)

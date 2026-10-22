@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-12T06:33:37.082Z",
+  "generated": "2026-10-14T23:31:51.824Z",
   "rows": [
     {
       "cat": "overview",
@@ -8,8 +8,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 1005,
-        "head": "今日一句话 资金主攻 创业板综（净买 6.58 亿 · 加速（龙头封板））；宏昌电子（龙虎榜净卖出 2.76 亿，当日 -5.4%（数据日 2026-10-09））；关注池今日无新增到价。 数据日 2026-10-09 · 生成于 2026",
+        "len": 1893,
+        "head": "历史背景非今日数据 · 与今日结论严格隔离 本页「今日决策」基于数据日 2026-10-14 生成，早于当前日期，属历史背景。 以下内容只描述截至 2026-10-14 的存量状态，不代表今日实时状态；今日结论请等数据刷新后再看。 已触碰 ",
         "tables": 0,
         "cards": 0,
         "empty": false,
@@ -24,7 +24,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 524,
+        "dLen": 559,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -38,14 +38,14 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 3122,
-        "head": "集合竞价 2026-10-12 · 当日快照 涨停意图 15 家 竞价上涨1680/ 全市场 5493 只 竞价下跌2925平盘 888 竞价总额152.31 亿竞价量/额合计 竞价均值-0.15%涨超 3% 65 家 竞价涨幅榜 按竞价涨",
+        "len": 3754,
+        "head": "集合竞价 2026-10-14 · 最近有数据的交易日 非今日数据 涨停意图 16 家 竞价上涨1211/ 全市场 5322 只 竞价下跌3342平盘 769 竞价总额117.84 亿竞价量/额合计 竞价均值-0.22%涨超 3% 48 家",
         "tables": 3,
-        "cards": 5,
+        "cards": 7,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 129
+        "entries": 173
       },
       "drill": {
         "clicked": true,
@@ -54,7 +54,7 @@
       "open": {
         "open": true,
         "what": "branchModal",
-        "dLen": 3695,
+        "dLen": 3124,
         "dShow": false,
         "branchVis": true,
         "fundVis": false
@@ -68,8 +68,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 1282,
-        "head": "结论今日消息面重心：AI算力 等 10 个方向被政策 / 公告 / 海外同时点到；Top5 条见下。窗口 48 小时 · 生成于 2026-10-12 14:30:58⚠️ 「国际局势」的最新数据停在 2026-09-26（不在本次 48 ",
+        "len": 1052,
+        "head": "结论今日消息面重心：银行 等 10 个方向被政策 / 公告 / 海外同时点到；Top5 条见下。窗口 48 小时 · 生成于 2026-10-15 07:29:04⚠️ 「国际局势」的最新数据停在 2026-09-26（不在本次 48 小时",
         "tables": 0,
         "cards": 0,
         "empty": false,
@@ -84,7 +84,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 574,
+        "dLen": 638,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -98,26 +98,22 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 984,
-        "head": "结论聪明钱最集中的方向是 央国企改革：4 只共识票、合计 15 人次「喊买入」。主线数据日 2026-10-09 · 生成于 2026-10-12 14:31:02共识方向共识票扎堆的地方央国企改革时代万恒5 新华传媒4 襄阳轴承3 龙版传",
+        "len": 7,
+        "head": "正在加载数据…",
         "tables": 0,
         "cards": 0,
         "empty": false,
-        "loading": false,
+        "loading": true,
         "errText": "",
         "entries": 0
       },
       "drill": {
-        "clicked": true,
-        "tag": "BUTTON.td-sym"
+        "clicked": false,
+        "reason": "no-entry"
       },
       "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 525,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
+        "open": false,
+        "what": "none"
       },
       "errs": []
     },
@@ -128,8 +124,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 622,
-        "head": "结论关注池 19 只：当日异动最大 圣诺生物 -10.54%；19 只开了提醒却没设目标价。生成于 2026-10-12 14:31:07⚠️ 有 19 只已开启到价提醒但没有设置目标价 —— 这些提醒永远不会触发。去「关注池」给它们标个目",
+        "len": 650,
+        "head": "结论关注池 24 只：当日异动最大 哈药股份 -6.10%；池内 1 只被看空/分歧；24 只开了提醒却没设目标价。生成于 2026-10-15 07:29:12⚠️ 有 24 只已开启到价提醒但没有设置目标价 —— 这些提醒永远不会触发。",
         "tables": 0,
         "cards": 0,
         "empty": false,
@@ -144,7 +140,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 539,
+        "dLen": 628,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -158,10 +154,10 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 21146,
-        "head": "帖子情绪速览（窗口 2026-10-11 14:30 ~ 2026-10-12 14:30，共 285 帖） 最近 24 小时共 285 帖，其中 114 帖点名了个股（一帖常提多只，所以下面票数会比帖数多）；按语气算，看多 15、看空 1",
+        "len": 30019,
+        "head": "帖子情绪速览（窗口 2026-10-14 07:28 ~ 2026-10-15 07:28，共 191 帖） 最近 24 小时共 191 帖，其中 99 帖点名了个股（一帖常提多只，所以下面票数会比帖数多）；按语气算，看多 8、看空 6、中",
         "tables": 1,
-        "cards": 1,
+        "cards": 2,
         "empty": false,
         "loading": false,
         "errText": "",
@@ -184,26 +180,48 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 6023,
-        "head": "每日预测 · 自我进化短线推荐 短线窗口 T+1 / T+3 / T+5 / T+10 · 历史沉淀 5 个预测日 重新生成 历史命中率（跑赢候选池同期等权） T+1 命中36% (n=69)T+3 命中22% (n=32)T+5 待积累T",
+        "len": 4906,
+        "head": "每日预测 · 四支柱方案 重新生成 市场状态：普跌（风控收紧） 上涨 31/156（20%） 中位涨幅 -2.57% 普跌 = 上涨占比<35% 或 中位涨幅≤-1.2%震荡 = 上涨占比<55% 或 指数低于20日线结构 = 其余（资金集",
         "tables": 0,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 20
+        "entries": 0
       },
       "drill": {
-        "clicked": true,
-        "tag": "SPAN[sym=002667].kline-chip"
+        "clicked": false,
+        "reason": "no-entry"
       },
       "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 578,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
+      "cat": "overview",
+      "tab": "resonance",
+      "label": "博主共振",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 14,
+        "head": "博主共振 正在融合多源信号…",
+        "tables": 0,
+        "cards": 0,
+        "empty": true,
+        "loading": true,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "skip"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
       },
       "errs": []
     },
@@ -214,23 +232,23 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 8191,
-        "head": "📅 数据日 2026-10-09（日终）交易日：2026-10-09 2026-10-08 2026-09-30 2026-09-29 2026-09-28 2026-09-24 2026-09-23 2026-09-22 2026-09",
+        "len": 7825,
+        "head": "📅 数据日 2026-10-14（日终）交易日： (+5) 2026-10-14 2026-10-13 2026-10-12 2026-10-09 2026-10-08 2026-09-30 2026-09-29 2026-09-28 2",
         "tables": 3,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 102
+        "entries": 96
       },
       "drill": {
         "clicked": true,
-        "tag": "SPAN[sym=300821].kline-chip"
+        "tag": "SPAN[sym=601579].kline-chip"
       },
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 3707,
+        "dLen": 572,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -244,26 +262,22 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 4678,
-        "head": "📅 数据日 2026-10-09（日终）交易日：2026-10-09 2026-10-08 2026-09-30 2026-09-29 2026-09-28 2026-09-24 2026-09-23 2026-09-22 2026-09",
-        "tables": 1,
+        "len": 7,
+        "head": "正在加载数据…",
+        "tables": 0,
         "cards": 0,
         "empty": false,
-        "loading": false,
+        "loading": true,
         "errText": "",
-        "entries": 107
+        "entries": 0
       },
       "drill": {
-        "clicked": true,
-        "tag": "SPAN.ol-chip"
+        "clicked": false,
+        "reason": "no-entry"
       },
       "open": {
-        "open": true,
-        "what": "branchModal",
-        "dLen": 3707,
-        "dShow": false,
-        "branchVis": true,
-        "fundVis": false
+        "open": false,
+        "what": "none"
       },
       "errs": []
     },
@@ -274,7 +288,7 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 3181,
+        "len": 3184,
         "head": "「被提及 N 次」= 人气（被讨论得多）；看好 / 看空 / 分歧 = 近 72 小时帖子里明确表态的方向（与「汇总 · 情绪速览」同一把尺子）。人气高 ≠ 被看好，两者分开看。 宁德时代创业板 300750宁德时代新能源科技股份有限公司 ",
         "tables": 0,
         "cards": 50,
@@ -290,7 +304,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 540,
+        "dLen": 575,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -304,8 +318,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 1671,
-        "head": "719看多431看空4799中性 情绪地图（按股票聚合多空，点击卡片看持仓与交易明细） 多 3「多 N」= 该股被 N 条看多情绪的帖子提及 空 1「空 N」= 该股被 N 条看空情绪的帖子提及 中性 2「中性 N」= 情绪词库未判出明确多",
+        "len": 1677,
+        "head": "915看多589看空6010中性 情绪地图（按股票聚合多空，点击卡片看持仓与交易明细） 多 3「多 N」= 该股被 N 条看多情绪的帖子提及 空 1「空 N」= 该股被 N 条看空情绪的帖子提及 中性 2「中性 N」= 情绪词库未判出明确多",
         "tables": 0,
         "cards": 30,
         "empty": false,
@@ -315,12 +329,12 @@
       },
       "drill": {
         "clicked": true,
-        "tag": "DIV[sym=600519].box"
+        "tag": "DIV[sym=300750].box"
       },
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 598,
+        "dLen": 575,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -334,26 +348,48 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 1618,
-        "head": "资金流向 🔄 刷新 全市场主力净流入榜 板块资金流 板块类型： 行业板块 概念板块 数据来源：新浪财经 板块资金流区间曲线 · 2026-10-09 单日 累计净额（行业板块） 净流入 9净流出 39全池 48 单日 · 最新交易日 指定",
+        "len": 286,
+        "head": "资金流向 🔄 刷新 全市场主力净流入榜 板块资金流 板块类型： 行业板块 概念板块 数据来源：— 板块资金流分时曲线 · 当日 累计净流入（行业板块） 单日 · 最新交易日 指定日期区间 当前口径：— 暂无曲线数据。 板块资金流排行（双向",
         "tables": 1,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 48
+        "entries": 0
       },
       "drill": {
-        "clicked": true,
-        "tag": "TD.bf-bn"
+        "clicked": false,
+        "reason": "no-entry"
       },
       "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 33,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
+      "cat": "money",
+      "tab": "industry-leaders",
+      "label": "龙头全景",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 279,
+        "head": "行业龙头全景 ⚠ 暂无可用的真实市值数据 行业市值排名需在本机（直连网络 + akshare）运行，沙箱无法获取真实市值；当前环境未能取得真实数据，已停止渲染以避免展示编造的头部名单。（真实源异常：('Connection aborted.",
+        "tables": 0,
+        "cards": 0,
+        "empty": false,
+        "loading": false,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "no-entry"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
       },
       "errs": []
     },
@@ -364,26 +400,22 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 23999,
-        "head": "近期热点 · 从「热词」到「板块」 核心作用把社区里零散的字面热词，翻译成「哪些板块正被资金与情绪驱动」。 能带来的价值① 提前发现板块级机会 ② 避开情绪回落区 ③ 用真实讨论量校准「热」的真假 ④ 每个数字都能点开看原始依据。 事实层（",
+        "len": 7,
+        "head": "正在加载数据…",
         "tables": 0,
         "cards": 0,
         "empty": false,
-        "loading": false,
+        "loading": true,
         "errText": "",
-        "entries": 1706
+        "entries": 0
       },
       "drill": {
-        "clicked": true,
-        "tag": "SPAN[sym=600036].stk-mini"
+        "clicked": false,
+        "reason": "no-entry"
       },
       "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 582,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
+        "open": false,
+        "what": "none"
       },
       "errs": []
     },
@@ -394,7 +426,7 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 4253,
+        "len": 4619,
         "head": "🌐 国际局势 · 全球事件驱动 A 股影响研判。研判事件含方向判断，为观点而非事实，所列个股仅作代表性观察标的、不构成投资建议；带\"印证\"标签的事件为国内外信源交叉核对结果；下方新闻流仅做机器分类、未做方向研判。 27研判事件17重大(强",
         "tables": 0,
         "cards": 0,
@@ -415,71 +447,19 @@
     },
     {
       "cat": "info",
-      "tab": "geo_policy",
-      "label": "全球政策雷达",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 7015,
-        "head": "🌐 全球政策雷达 · 全球事件驱动 A 股影响研判。研判事件含方向判断，为观点而非事实，所列个股仅作代表性观察标的、不构成投资建议；带\"印证\"标签的事件为国内外信源交叉核对结果；下方新闻流仅做机器分类、未做方向研判。 27研判事件17重大",
-        "tables": 0,
-        "cards": 0,
-        "empty": false,
-        "loading": false,
-        "errText": "",
-        "entries": 29
-      },
-      "drill": {
-        "clicked": false,
-        "reason": "skip"
-      },
-      "open": {
-        "open": false,
-        "what": "none"
-      },
-      "errs": []
-    },
-    {
-      "cat": "info",
-      "tab": "geo_tech",
-      "label": "科技前沿突破",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 4236,
-        "head": "🌐 科技前沿突破 · 全球事件驱动 A 股影响研判。研判事件含方向判断，为观点而非事实，所列个股仅作代表性观察标的、不构成投资建议；带\"印证\"标签的事件为国内外信源交叉核对结果；下方新闻流仅做机器分类、未做方向研判。 27研判事件17重大",
-        "tables": 0,
-        "cards": 0,
-        "empty": false,
-        "loading": false,
-        "errText": "",
-        "entries": 22
-      },
-      "drill": {
-        "clicked": false,
-        "reason": "skip"
-      },
-      "open": {
-        "open": false,
-        "what": "none"
-      },
-      "errs": []
-    },
-    {
-      "cat": "info",
       "tab": "overseas_sentiment",
-      "label": "美股港股舆情",
+      "label": "海外舆情",
       "info": {
         "found": true,
         "active": true,
-        "len": 16294,
-        "head": "国外视角优先：海外（美股/港股/国际）源权重更高，国内源仅作交叉比对（权重 0.45）。共 702 条海外条目。当前海外注意力最集中在 科技与AI（热度占比 33.2%），映射到国内最密集的方向是 黄金；净情绪指数 -7（整体偏空（净情绪 ",
+        "len": 30904,
+        "head": "舆情 热点 🕓 数据截至 2026-10-14 · 1 天前国外视角优先：海外（美股/港股/国际）源权重更高，国内源仅作交叉比对（权重 0.45）。共 701 条海外条目。当前海外注意力最集中在 科技与AI（热度占比 35%），映射到国内",
         "tables": 0,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 425
+        "entries": 876
       },
       "drill": {
         "clicked": true,
@@ -488,37 +468,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 1024,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
-      },
-      "errs": []
-    },
-    {
-      "cat": "info",
-      "tab": "overseas_hotspots",
-      "label": "国外驱动热点",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 14177,
-        "head": "模块二：由「国外新闻」驱动，自动汇总热点事件并做提升性影响分析。重点追踪四类事件：地缘冲突与战争 / 洪涝等自然灾害 / 重大科研论文发布 / 粮食歉收与减产。每条按「结论 → ① 事件概述 → ② 关键传导变量（油价·粮价等）→ ③ 涨跌",
-        "tables": 0,
-        "cards": 0,
-        "empty": false,
-        "loading": false,
-        "errText": "",
-        "entries": 425
-      },
-      "drill": {
-        "clicked": true,
-        "tag": "SPAN.stk"
-      },
-      "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 3874,
+        "dLen": 570,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -532,35 +482,9 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 17888,
-        "head": "政策风向 · 国家级 14:32:09 更新 📌 综合 80 条中央级政策研判 → 政策密集支持、短期情绪偏正面：券商、银行、房地产、金融IT；有明确政策利好、待落地措施验证：汽车、汽车零部件、锂电池；另有 8 个板块出现压制/约束条款、",
+        "len": 45,
+        "head": "政策风向 · 国家级 抓取中国政府网政策文件库 + 中央级快讯筛选（首载约 2–5 秒）…",
         "tables": 0,
-        "cards": 0,
-        "empty": true,
-        "loading": false,
-        "errText": "",
-        "entries": 244
-      },
-      "drill": {
-        "clicked": false,
-        "reason": "skip"
-      },
-      "open": {
-        "open": false,
-        "what": "none"
-      },
-      "errs": []
-    },
-    {
-      "cat": "info",
-      "tab": "news",
-      "label": "个股快讯公告",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 10486,
-        "head": "个股快讯 / 公告 自动盯盘 200 只 · 上次扫描 2026-10-12 14:24:19 · 已停止（7 分钟前未扫描） · 立即扫描 代码名称结论风险机会评级新公告最近公告 002812 恩捷股份 机会窗口 3 9 ★★★ 优先跟踪",
-        "tables": 2,
         "cards": 0,
         "empty": false,
         "loading": false,
@@ -578,20 +502,72 @@
       "errs": []
     },
     {
+      "cat": "info",
+      "tab": "news",
+      "label": "个股快讯公告",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 7,
+        "head": "正在加载数据…",
+        "tables": 0,
+        "cards": 0,
+        "empty": false,
+        "loading": true,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "no-entry"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
+      "cat": "info",
+      "tab": "bili_sentiment",
+      "label": "市场情绪",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 12,
+        "head": "正在读取 B站分堆数据…",
+        "tables": 0,
+        "cards": 0,
+        "empty": true,
+        "loading": true,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "skip"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
       "cat": "players",
       "tab": "players",
       "label": "选手与渠道",
       "info": {
         "found": true,
         "active": true,
-        "len": 26129,
-        "head": "真实抓取 342 条 / 示例 0 条 多层级人物覆盖：在原有 A/B/C/D 渠道基础上新增 E 主播大V（热度不高但影响力突出）与 F 长尾观察 两层。低层级权重递减，但一律露出（is_visible=1），可查看其观点与持仓，不因热度",
+        "len": 30622,
+        "head": "真实抓取 376 条 / 示例 0 条 多层级人物覆盖：在原有 A/B/C/D 渠道基础上新增 E 主播大V（热度不高但影响力突出）与 F 长尾观察 两层。低层级权重递减，但一律露出（is_visible=1），可查看其观点与持仓，不因热度",
         "tables": 1,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 263
+        "entries": 294
       },
       "drill": {
         "clicked": false,
@@ -610,8 +586,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 15598,
-        "head": "真实抓取 200 条 / 示例 0 条（来源：eastmoney, taoguba, sina, xueqiu） 每个选手均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺） + 所属层级（A~F）。标的列格式为「股票简称 + 股票代码",
+        "len": 16837,
+        "head": "真实抓取 200 条 / 示例 0 条（来源：taoguba, eastmoney, sina, xueqiu） 每个选手均标注其来源渠道：平台（淘股吧/东方财富/雪球/同花顺） + 所属层级（A~F）。标的列格式为「股票简称 + 股票代码",
         "tables": 1,
         "cards": 0,
         "empty": false,
@@ -636,14 +612,14 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 3492,
-        "head": "数据源：上市公司定期报告 / 临时公告披露的十大股东（东财 F10，交易所强制披露，免费公开）。 已做风险隔离：实控人、家族同持（父子/夫妻等）不计入牛散口径。 视角切换：① 牛散榜（谁在买） ② 变动流（本期买/卖了什么） 当前口径 十大",
-        "tables": 2,
+        "len": 7,
+        "head": "正在加载数据…",
+        "tables": 0,
         "cards": 0,
         "empty": false,
-        "loading": false,
+        "loading": true,
         "errText": "",
-        "entries": 188
+        "entries": 0
       },
       "drill": {
         "clicked": false,
@@ -662,23 +638,23 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 13962,
-        "head": "仅看入围选手（Tier A） 口径：喊买入=真实 BUY、喊持有=HOLD、持仓/关注=持仓快照（positions），三类分开计数、不合并。 按「共同持仓总人数」降序排列；共识基数已扩大到 100+ 选手池（覆盖淘股吧/东财/雪球/同花顺",
+        "len": 8457,
+        "head": "仅看入围选手（Tier A） 📅 数据截至 2026-10-14 口径：喊买入=真实 BUY、喊持有=HOLD、持仓/关注=持仓快照（positions），三类分开计数、不合并。 按「共同持仓总人数」降序排列；共识基数已扩大到 100+ ",
         "tables": 1,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 81
+        "entries": 38
       },
       "drill": {
         "clicked": true,
-        "tag": "TR[sym=300532]"
+        "tag": "TR[sym=601318]"
       },
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 1189,
+        "dLen": 728,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -692,23 +668,23 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 5557,
+        "len": 5841,
         "head": "按「窗口内 ≥2 位选手同向操作同一标的」聚合，共买（红）、共卖（绿）、共持（琥珀）分三组列出。 与左侧「共同持仓共识」口径不同：共识看的是现在还持有（持仓快照），本板块看的是最近 5 天谁同时动手（动作发生时点）—— 所以本板块能露出「窗",
         "tables": 3,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 23
+        "entries": 19
       },
       "drill": {
         "clicked": true,
-        "tag": "TR[sym=600241]"
+        "tag": "TR[sym=601318]"
       },
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 2284,
+        "dLen": 725,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -722,7 +698,7 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 41226,
+        "len": 41308,
         "head": "评分口径（三档，证据强度 A > B > C）： A 档·实测（满分 100，有交割单/持仓记录）= 实测收益 40 + 记录完整度 20 + 时间跨度 15 + 来源可信 15 + 被跟随度 10； B 档·提及（上限 60，帖子带时间且",
         "tables": 4,
         "cards": 0,
@@ -744,13 +720,13 @@
     {
       "cat": "opinion",
       "tab": "extref_soft",
-      "label": "软件荐股雷达",
+      "label": "外部荐股验证",
       "info": {
         "found": true,
         "active": true,
-        "len": 3660,
-        "head": "荐股验证报告同步信号库 外部荐股验证报告可作依据 · 已达 20 条 拿这 49 条已回填的真实行情核对外部榜单推的票：T+1 -2.01% / T+5 -5.01% / T+10 -5.00%。三个窗口一段都赚不出来——最好的 T+1 也",
-        "tables": 2,
+        "len": 49907,
+        "head": "验证报告 社区共识 信源榜 🕓 数据截至 2026-10-14 · 1 天前 荐股验证报告同步信号库 外部荐股验证报告可作依据 · 已达 20 条 拿这 49 条已回填的真实行情核对外部榜单推的票：T+1 -2.01% / T+5 -5.",
+        "tables": 4,
         "cards": 0,
         "empty": false,
         "loading": false,
@@ -764,62 +740,6 @@
       "open": {
         "open": false,
         "what": "none"
-      },
-      "errs": []
-    },
-    {
-      "cat": "opinion",
-      "tab": "extref_comm",
-      "label": "社区共识",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 32367,
-        "head": "社区共识同步信号库信源 33 家信号 159 条持牌机构 21 家已回填 49 · 待回填 110A 档 · 持牌投顾持有证监会证券投资咨询牌照的经营机构，可合法输出投资建议B 档 · 数据平台行情/数据终端服务商，已开放 MCP/Skil",
-        "tables": 1,
-        "cards": 0,
-        "empty": false,
-        "loading": false,
-        "errText": "",
-        "entries": 0
-      },
-      "drill": {
-        "clicked": false,
-        "reason": "no-entry"
-      },
-      "open": {
-        "open": false,
-        "what": "none"
-      },
-      "errs": []
-    },
-    {
-      "cat": "opinion",
-      "tab": "extref_rank",
-      "label": "信源胜率榜",
-      "info": {
-        "found": true,
-        "active": true,
-        "len": 775,
-        "head": "信源胜率榜同步信号库信源 33 家信号 159 条持牌机构 21 家已回填 49 · 待回填 110A 档 · 持牌投顾持有证监会证券投资咨询牌照的经营机构，可合法输出投资建议B 档 · 数据平台行情/数据终端服务商，已开放 MCP/Ski",
-        "tables": 1,
-        "cards": 0,
-        "empty": false,
-        "loading": false,
-        "errText": "",
-        "entries": 0
-      },
-      "drill": {
-        "clicked": true,
-        "tag": "TR.ex-rank-row"
-      },
-      "open": {
-        "open": true,
-        "what": "drawer",
-        "dLen": 13559,
-        "dShow": true,
-        "branchVis": false,
-        "fundVis": false
       },
       "errs": []
     },
@@ -830,8 +750,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 22968,
-        "head": "研报结论 · 自动排序2026-10-12 14:30 · 窗口 60 天 · 600 份研报 / 516 只个股 · 耗时 73s 近 60 天 600 份券商研报，覆盖 516 只个股。先说清一个口径：券商研报天然偏多（89% 的票都拿",
+        "len": 2126,
+        "head": "正在把近期研报压成结论（约需 1 分钟，页面不会卡，会自己刷新出来）… 全市场最新研报（原始清单） 全市场最新研报 标题机构评级目标价预测PE日期个股 上半年扣非归母净利润同比增长11%，持续布局算电协同 国信证券 — 23.61 2026",
         "tables": 1,
         "cards": 0,
         "empty": false,
@@ -850,20 +770,72 @@
       "errs": []
     },
     {
+      "cat": "opinion",
+      "tab": "blogger",
+      "label": "博主荐股",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 7,
+        "head": "正在加载数据…",
+        "tables": 0,
+        "cards": 0,
+        "empty": false,
+        "loading": true,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "no-entry"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
+      "cat": "opinion",
+      "tab": "contest",
+      "label": "当红参赛股",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 811,
+        "head": "当红参赛股 BRTV天下财经「当红不让」· 参赛名单与逐日追踪 更新于 2026-10-12 19:47 2026-10-109人2026-09-2812人2026-09-1912人 当红选手参赛标的 · 发布 2026-10-10 原视频",
+        "tables": 2,
+        "cards": 0,
+        "empty": false,
+        "loading": false,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "no-entry"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
       "cat": "watch",
       "tab": "watch",
       "label": "关注池",
       "info": {
         "found": true,
         "active": true,
-        "len": 1354,
-        "head": "关注池 更新于 2026-10-12 14:30:39 ＋ 加入自选 分组管理 检测到价 刷新 全部 19重点关注 17✎观察中 2✎基金池 0✎＋ 新分组 1 只标的当前无有效行情（停牌 / 未开盘 / 当日无成交）——当前价与涨跌一律显",
+        "len": 2555,
+        "head": "关注池 更新于 2026-10-15 07:28:41 ＋ 加入自选 分组管理 检测到价 刷新 全部 24短期 1✎随便看看 15✎极速下滑 1✎正热板块 0✎长期潜伏 8✎＋ 新分组 代码 / 名称加入时价当前价涨跌 入手值得率 战法信号",
         "tables": 1,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 19
+        "entries": 24
       },
       "drill": {
         "clicked": true,
@@ -872,7 +844,7 @@
       "open": {
         "open": true,
         "what": "drawer",
-        "dLen": 525,
+        "dLen": 612,
         "dShow": true,
         "branchVis": false,
         "fundVis": false
@@ -938,8 +910,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 336,
-        "head": "入手概率 全市场五维换手评分排序 评分窗口 近30日近60日近90日 榜宽 Top10Top30Top50 扫描中… 归档今天 刷新时间轴 全市场扫描中…约 5600 只逐只核对日 K，首次约 1 分钟（收盘后系统自动预热，平时点开秒出）。",
+        "len": 345,
+        "head": "入手概率 全市场五维换手评分排序 评分窗口 近20日近30日近60日近90日近100日 榜宽 Top10Top30Top50 扫描中… 归档今天 刷新时间轴 全市场扫描中…约 5600 只逐只核对日 K，首次约 1 分钟（收盘后系统自动预热",
         "tables": 0,
         "cards": 0,
         "empty": false,
@@ -964,8 +936,8 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 3576,
-        "head": "个股诊断 ← 返回入手概率🔄 重新诊断 代码 清空记录2026/10/12 输入代码自动出结果（也可以从汇总页/个股列表直接点代码进来），不用来回点「开始诊断」。 恩捷股份 002812 46.64 -2.53% 总市值 457.69 亿",
+        "len": 3650,
+        "head": "个股诊断 ← 返回入手概率🔄 重新诊断 代码 清空记录2026/10/15 输入代码自动出结果（也可以从汇总页/个股列表直接点代码进来），不用来回点「开始诊断」。 炜冈科技 001256 20.18 -2.28% 总市值 28.78 亿 ",
         "tables": 3,
         "cards": 0,
         "empty": false,
@@ -982,7 +954,7 @@
         "what": "none"
       },
       "errs": [],
-      "klineInk": 130520
+      "klineInk": 132435
     },
     {
       "cat": "watch",
@@ -992,7 +964,7 @@
         "found": true,
         "active": true,
         "len": 808,
-        "head": "多资产行情 指数ETF / 黄金 / 国债 / 美股 代码 添加 🔄 重试 全部A股指数ETF黄金国债海外ETF美股指数美股个股 代码名称 / 板块现价涨跌数据源 000001 上证指数A股指数 3800.05-0.36% tencent",
+        "head": "多资产行情 指数ETF / 黄金 / 国债 / 美股 代码 添加 🔄 重试 全部A股指数ETF黄金国债海外ETF美股指数美股个股 代码名称 / 板块现价涨跌数据源 000001 上证指数A股指数 3767.23-0.88% tencent",
         "tables": 1,
         "cards": 0,
         "empty": false,
@@ -1011,18 +983,70 @@
       "errs": []
     },
     {
+      "cat": "watch",
+      "tab": "lowbox",
+      "label": "长期低位",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 199,
+        "head": "长期低位震荡 埋伏\"便宜的好公司\"等突破 · 达瓦斯箱体(本土化)+邱国鹭+中特估 股票池 箱体时长 1年2年3年上市以来 低位阈值 20%30%40% 质量档 不限宽·ROE≥6/PE≤40/负债≤65严·ROE≥10/PE≤25/负债≤",
+        "tables": 0,
+        "cards": 0,
+        "empty": false,
+        "loading": false,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "no-entry"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
+      "cat": "watch",
+      "tab": "lowbox_radar",
+      "label": "突破雷达",
+      "info": {
+        "found": true,
+        "active": true,
+        "len": 138,
+        "head": "突破雷达 达瓦斯箱体(本土化) + 战法库 box_breakout/retest 达瓦斯突破雷达 口径：收盘站上箱顶 且 量比≥1.5 = 放量突破；近15日突破过、现价回到箱顶±3% = 回踩确认 复评中… 复评中…逐只复拉近130日K",
+        "tables": 0,
+        "cards": 0,
+        "empty": false,
+        "loading": false,
+        "errText": "",
+        "entries": 0
+      },
+      "drill": {
+        "clicked": false,
+        "reason": "skip"
+      },
+      "open": {
+        "open": false,
+        "what": "none"
+      },
+      "errs": []
+    },
+    {
       "cat": "learn",
       "tab": "strategy_lab",
       "label": "策略回测",
       "info": {
         "found": true,
         "active": true,
-        "len": 12763,
-        "head": "策略回测等权单标的满仓 · 信号次日收盘成交 · 仅作相对强弱比较 策略总数 100 可回测 90 参与排名 86 口径受限 4 不可回测 10 更新于 2026-10-06 10:48:40 回测口径：等权单标的满仓、信号次日收盘成交、不",
-        "tables": 1,
+        "len": 11,
+        "head": "正在读取策略回测数据…",
+        "tables": 0,
         "cards": 0,
         "empty": true,
-        "loading": false,
+        "loading": true,
         "errText": "",
         "entries": 0
       },
@@ -1043,7 +1067,7 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 1658,
+        "len": 1666,
         "head": "一条知识轨道 = 一个横向子板块。来源在 config/kb_sources.yaml 声明；上游每天覆盖写出该 md 文件， 程序按内容哈希判断要不要重吸取——内容没变就跳过，不做无意义重建。新增轨道只需在配置里加一条， 横向导航会自动多",
         "tables": 1,
         "cards": 0,
@@ -1069,14 +1093,14 @@
       "info": {
         "found": true,
         "active": true,
-        "len": 562,
-        "head": "巴菲特价值投资选股策略各期周报存档 · 按股票回查每一期荐股 6 期存档 2026-10-06 巴菲特价值投资选股策略 · A股周度筛选研报 10 只入围（核心 3 / 观察 3 / 剔除 4） 核心 3 观察 3 剔除 4 共 10 查看",
+        "len": 652,
+        "head": "巴菲特价值投资选股策略各期周报存档 · 按股票回查每一期荐股 7 期存档 2026-10-13 巴菲特价值投资选股策略 · A股周度筛选研报 10 只入围（核心 3 / 观察 2 / 剔除 5） 核心 3 观察 2 剔除 5 共 10 查看",
         "tables": 0,
         "cards": 0,
         "empty": false,
         "loading": false,
         "errText": "",
-        "entries": 6
+        "entries": 7
       },
       "drill": {
         "clicked": true,
@@ -1086,7 +1110,7 @@
         "open": true,
         "what": "bfModal",
         "dLen": 0,
-        "src": "http://127.0.0.1:8765/static/buffett/reports/2026-10-06.html"
+        "src": "http://127.0.0.1:8765/static/buffett/reports/2026-10-13.html"
       },
       "errs": []
     }

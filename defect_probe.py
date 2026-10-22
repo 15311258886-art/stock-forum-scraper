@@ -36,10 +36,20 @@ VIEWER = ROOT / "viewer"
 REPORTS = ROOT / "reports"
 
 # 被测源码清单（用于 code_sha256 快照，保证可复现）
+# 修复 P1-08：原清单只覆盖 predictor / screener_extra / auction 三个文件，strategy_sim / quant /
+# resonance / backtest / evolve / selfpick 完全在覆盖面外——而本次 P0-01 / P0-03 两个致命
+# 偏差恰好都在无人看守的那半边。现扩面到全部量化模块。
 TARGET_SOURCES = [
     VIEWER / "predictor.py",
     VIEWER / "screener_extra.py",
+    VIEWER / "quant.py",
+    VIEWER / "resonance.py",
+    VIEWER / "backtest.py",
+    VIEWER / "evolve.py",
+    VIEWER / "selfpick.py",
+    ROOT / "strategy_sim.py",
     ROOT / "auction.py",
+    ROOT / "screener.py",
 ]
 
 
@@ -122,12 +132,14 @@ def _build_static_findings() -> List[ProbeFinding]:
         "if lt is not None and date > lt and shares[code] > 0:",
         "窗口内退市标的按最后可得价强制平仓（delisted_exits 计数）",
         "中途退市标的必须被识别并强平，否则净值被冻结在最后收盘价而虚增。"))
-    # P3 复权漂移：使用 hfq
+    # P3 复权漂移：使用 真后复权（baostock adjustflag="1"）
+    # 修复 P0-03：旧探针用 adjustflag="2" 作为「hfq 已就位」证据，而 "2" 实为前复权，
+    # 等于把这个 bug 锁死成「通过」。现改为检查真后复权 adjustflag="1"。
     findings.append(_static_probe(
         "P3", "adj_drift", scre,
-        'adjustflag="2"',
-        "后复权 hfq（baostock adjustflag=2）",
-        "回测须用后复权，前复权随时间漂移会污染长期收益。"))
+        'adjustflag="1"',
+        "真后复权 hfq（baostock adjustflag=1）",
+        "回测须用真后复权，前复权随时间漂移会污染长期收益。"))
     # P4 过拟合：walk-forward 70/30
     findings.append(_static_probe(
         "P4", "overfit", scre,

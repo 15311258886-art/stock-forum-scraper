@@ -235,19 +235,21 @@ def reset_sample_clock() -> None:
 
 
 # ---------------------------------------------------------------- 快照：多源
-def _sina_snapshot(kind: str, pz: int, asc: int = 0) -> list:
+def _sina_snapshot(kind: str, pz: int, asc: int = 0,
+                   timeout: int = 10, retries: int = 1) -> list:
     """新浪板块资金流快照（主源，长期稳定）。
 
     字段：category(板块代码) name avg_changeratio(涨跌幅,小数) netamount(净额,元)
           ratioamount(净占比,小数) ts_name(代表股)
 
     asc=0 → 净流入榜；asc=1 → 净流出榜（「资金分布」两端都要看得见）。
+    timeout / retries 可由采样等后台路径收紧（2026-10-20：默认不变，采样传 5s/0 次重试）。
     """
     cfg = KINDS.get(kind) or KINDS[DEFAULT_KIND]
     url = ("%s?page=1&num=%d&sort=netamount&asc=%d&fenlei=%s&_=%s"
            % (_SINA_API, max(1, min(int(pz or 50), 200)), 1 if asc else 0,
               cfg["sina_fenlei"], _ts()))
-    txt = _http_text(url, _SINA_REF, timeout=10, retries=1)
+    txt = _http_text(url, _SINA_REF, timeout=timeout, retries=retries)
     if not txt:
         return []
     txt = txt.strip().lstrip("\ufeff")
@@ -598,18 +600,34 @@ def _market_note(res: dict) -> dict:
 
 
 # ---------------------------------------------------------------- 曲线 B：本机采样累积
+# 2026-10-20 采样减速修（王总反馈「启动过慢好久了」）：日志实测 board_flow_sample 单轮
+# 81~95s（13:04 / 13:06 两条 WARNING），期间纯 Python 计算占 GIL 冻结所有接口——页面转圈。
+# 根因：_do_sample 调完整 snapshot()，后者无条件 attach_members()（前 60 板块 × 1 请求，
+# 直连+代理双路 × 6s 超时 × 重试），采样落库只需要净额/涨跌幅，代表股纯属白抓；
+# MEM 缓存 300s 一过期，盘中每 30s 就重烧几十个请求，网络一抖即超时叠加。
+# 修法：① 采样走轻量路径（短超时/不重试/不取代表股）；② 连续失败退避 30s→300s。
+SAMPLE_FAIL_BACKOFF = 300   # 连续失败 ≥3 轮后的采样间隔（秒）
+_sample_fail_streak = {"n": 0}
+
+
 def _do_sample(conn, now: datetime) -> int:
-    """抓一次快照写库（industry + concept 各一）。返回写入条数。"""
+    """抓一次快照写库（industry + concept 各一）。返回写入条数。
+
+    采样专用轻量路径：只取新浪净额/涨跌幅（asc 双向），不取代表股、短超时、不重试、
+    失败不落东财兜底（采样是累积型的，缺一轮无伤大雅；东财兜底留给页面实时路径）。
+    """
     total = 0
     date_s = now.strftime("%Y-%m-%d")
     ts_s = now.strftime("%H:%M")
+    half = 30          # 双向各 30，合并后 ≤60 行，与旧 pz=60 等量
     for kind in KINDS:
-        snap = snapshot(kind, pz=60, force=True)
-        if not snap.get("ok"):
+        sina_in = _sina_snapshot(kind, half, asc=0, timeout=5, retries=0)
+        sina_out = _sina_snapshot(kind, half, asc=1, timeout=5, retries=0)
+        if not (sina_in or sina_out):
             continue
         rows = [(date_s, ts_s, kind, r["board_code"], r["board_name"],
                  r.get("main_net"), r.get("pct"))
-                for r in snap.get("rows", []) if r.get("board_name")]
+                for r in _merge_two_way(sina_in, sina_out) if r.get("board_name")]
         if not rows:
             continue
         conn.executemany(
@@ -622,7 +640,12 @@ def _do_sample(conn, now: datetime) -> int:
 
 
 def maybe_sample(conn) -> int:
-    """交易时段内按 SAMPLE_GAP 节流采样一次。由后台线程调用；异常绝不外抛。"""
+    """交易时段内按 SAMPLE_GAP 节流采样一次。由后台线程调用；异常绝不外抛。
+
+    2026-10-20 增加失败退避：连续 3 轮一无所获后，采样间隔从 SAMPLE_GAP(30s)
+    放宽到 SAMPLE_FAIL_BACKOFF(300s)，网络劣化期不再每 30s 空烧一轮冻结接口；
+    任一轮成功即清零退避、恢复正常节奏。
+    """
     try:
         now = datetime.now()
         # 休市日不采：新浪快照接口给的是「当天最新值」——休市那天就是上一交易日的全日量，
@@ -633,12 +656,22 @@ def maybe_sample(conn) -> int:
         if not (SAMPLE_START_MIN <= m <= SAMPLE_END_MIN):
             return 0
         with _sample_lock:
-            if now.timestamp() - _last_sample_ts["v"] < SAMPLE_GAP:
+            gap = SAMPLE_GAP if _sample_fail_streak["n"] < 3 else SAMPLE_FAIL_BACKOFF
+            if now.timestamp() - _last_sample_ts["v"] < gap:
                 return 0
             _last_sample_ts["v"] = now.timestamp()
         n = _do_sample(conn, now)
         if n:
+            if _sample_fail_streak["n"] >= 3:
+                logger.info("板块资金流采样恢复（此前连续失败 %d 轮，退避解除）",
+                            _sample_fail_streak["n"])
+            _sample_fail_streak["n"] = 0
             logger.info("板块资金流采样写入 %d 条（%s）", n, now.strftime("%H:%M"))
+        else:
+            _sample_fail_streak["n"] += 1
+            if _sample_fail_streak["n"] >= 3:
+                logger.warning("板块资金流采样连续 %d 轮无数据，退避至 %ds 后再试",
+                               _sample_fail_streak["n"], SAMPLE_FAIL_BACKOFF)
         return n
     except Exception:  # noqa: BLE001 —— 采样失败绝不能拖垮调度线程
         logger.exception("板块资金流采样异常（已忽略）")

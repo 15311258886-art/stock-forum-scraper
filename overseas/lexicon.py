@@ -30,10 +30,18 @@ BEAR_EN = [
     "restrict", "restriction", "prohibition", "collapse", "halt", "outflow", "loss", "losses",
     "lower", "pressure", "headwind", "delisting", "fraud", "investigation",
 ]
-BULL_ZH = ["涨停", "看好", "买入", "加仓", "建仓", "机会", "突破", "强势", "主升", "抄底", "利好",
-           "拉升", "封板", "连板", "上攻", "盈利", "爆发", "回暖", "超预期", "反弹", "受益", "景气"]
-BEAR_ZH = ["跌停", "割肉", "套牢", "卖出", "减仓", "清仓", "风险", "崩", "惨", "亏", "爆雷", "利空",
-           "下行", "杀跌", "破位", "出货", "踩雷", "退潮", "警示", "承压", "下调", "衰退", "制裁", "关税"]
+# 2026-10-21 统一：海外中文情绪词表直接复用国内 analytics 的单一真源（POS_WORDS / NEG_WORDS），
+# 避免「同一个中文词在国内判看多、海外判中性」的尺子裂缝。英文词（BULL_EN / BEAR_EN）仍属海外专有，保留。
+# 独立运行（viewer 不在 sys.path）时回退到下方内置表，保证 overseas 仍可单独跑。
+try:
+    from viewer.analytics import POS_WORDS as _POS_WORDS, NEG_WORDS as _NEG_WORDS
+    BULL_ZH = list(_POS_WORDS)
+    BEAR_ZH = list(_NEG_WORDS)
+except Exception:  # noqa: BLE001
+    BULL_ZH = ["涨停", "看好", "买入", "加仓", "建仓", "机会", "突破", "强势", "主升", "抄底", "利好",
+               "拉升", "封板", "连板", "上攻", "盈利", "爆发", "回暖", "超预期", "反弹", "受益", "景气"]
+    BEAR_ZH = ["跌停", "割肉", "套牢", "卖出", "减仓", "清仓", "风险", "崩", "惨", "亏", "爆雷", "利空",
+               "下行", "杀跌", "破位", "出货", "踩雷", "退潮", "警示", "承压", "下调", "衰退", "制裁", "关税"]
 
 _INTENSITY = {  # 强情绪词额外加权
     "crash": 2.0, "crashes": 2.0, "plunge": 2.0, "collapse": 2.0, "panic": 2.0,

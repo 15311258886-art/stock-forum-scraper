@@ -35,6 +35,7 @@ import sys
 import threading
 import time
 import urllib.request
+import concurrent.futures as cf
 from concurrent.futures import ThreadPoolExecutor
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +51,42 @@ _SKIP_STOP = {"fixed_stop_loss", "atr_trailing_stop",
 _SKIP_SCOPE = {"vol_target_sizing", "kelly_fraction_sizing",
                "dual_momentum", "monthly_rebalance"}                # 口径受限
 SKIP_KEYS = _SKIP_TIMING | _SKIP_STOP | _SKIP_SCOPE
+
+# 战法方向映射（2026-10-14 进哥需求：战法列要"说清楚"——几根看涨 / 看跌 / 中立）。
+# 流派（school）→ 方向标签：bull=看涨，neu=中立（条件/防御/风控），bear=看跌。
+# 说明：本战法库全部为做多触发型信号，没有真正的看跌战法，故 bear 正常为 0；
+# 保留该格子并标注原因，绝不臆造"看跌"数字。
+_STANCE_BY_SCHOOL = {
+    "趋势跟踪": "bull", "突破": "bull", "量价": "bull", "摆动指标": "bull",
+    "形态": "bull", "动量与相对强弱": "bull", "资金面": "bull",
+    "基本面": "bull", "板块": "bull",
+    "均值回归": "neu", "波动率与风控": "neu", "组合/仓位/择时": "neu",
+    "事件": "neu",
+}
+_STANCE_OVERRIDE = {            # 个别战法显式覆盖（名字已点明"防御/背离"等）
+    "vol_price_divergence": "neu",   # 量价背离（防御）
+}
+_KEY_SCHOOL: dict = {}
+_KEY_STANCE: dict = {}
+
+def _load_stance_maps():
+    global _KEY_SCHOOL, _KEY_STANCE
+    if _KEY_SCHOOL:
+        return
+    try:
+        import strategy_data as _sd
+        for s in getattr(_sd, "STRATEGIES", []) or []:
+            k = s.get("key")
+            if not k:
+                continue
+            _KEY_SCHOOL[k] = s.get("school")
+            _KEY_STANCE[k] = _STANCE_OVERRIDE.get(k) or _STANCE_BY_SCHOOL.get(s.get("school"), "neu")
+    except Exception:  # noqa: BLE001 —— strategy_data 缺失则全按中立兜底
+        pass
+
+def _stance_of(key):
+    _load_stance_maps()
+    return _KEY_STANCE.get(key, "neu")
 
 _SCAN_BARS = 270          # 覆盖 MA250 / 120日新高
 _MIN_BARS = 60            # 少于 60 根不判（指标暖机不够）
@@ -410,6 +447,134 @@ def bili_sim_rows(conn) -> dict:
         return _strat_rows(conn)
     except Exception:  # noqa: BLE001
         return {}
+
+
+# ---------------------------------------------------------------- 关注池专用复算
+# bars 磁盘缓存 IO 锁：全市场扫描（_load_bars）与关注池补抓可能并发写同一文件
+_BARS_IO_LOCK = threading.Lock()
+# 当日补抓到的 bars 内存兜底：磁盘写失败 / 被并发扫描冲掉时仍可复算
+_WATCH_BARS_MEM: dict = {}
+
+
+def signals_for_watch(codes, budget_s: float = 8.0) -> dict:
+    """关注池专用：为池内票单独复算战法信号（2026-10-14，不再看 Top200 截断榜）。
+
+    根因：bili_scan_result.json 的 hits 只存 Top200（按命中条数排序，上榜门槛 n≥6），
+    关注池里只命中 1~5 条的票全被挡在榜外 → 界面战法信号列全 «—»（是匹配逻辑缺陷，
+    不是「全不符合」）。
+
+    口径（与全市场扫描同一份规则引擎，零漂移）：
+      ① 读 bars 磁盘缓存取本地 bars；
+      ② 缺 bars 的票用 _fetch_tx_full 并行补抓（max_workers=8，总预算约 budget_s 秒；
+         抓不到就跳过，**绝不臆造**）；
+      ③ keys = scan_keys(bili_sim_rows(conn))（conn 用只读连接）；
+      ④ 每只票 × 每个 key 跑 build_signals，buy[-1] 为真即命中（基于最新一根日K）；
+      ⑤ 返回 {"by_code": {code: [{"sname","win_rate","mname","skey"}...]},
+              "signal_date": _last_trade_date(), "fetched": n, "cached": n}。
+    信号基于「最新一根日K」——调用方必须把 signal_date 带到界面（盘中最后一根未收盘，
+    以收盘复核为准）。
+    """
+    want, seen = [], set()
+    for c in (codes or []):
+        c = str(c or "").strip()
+        if c and c not in seen:
+            seen.add(c)
+            want.append(c)
+    signal_date = _last_trade_date()
+    if not want:
+        return {"by_code": {}, "signal_date": signal_date, "fetched": 0, "cached": 0}
+    # ① 本地 bars 缓存（当日有效；非当日视为无缓存，走补抓）
+    disk = _bars_cache_load()
+    if disk.get("day") != signal_date:
+        disk = {"day": signal_date, "bars": {}}
+    bars = dict(disk.get("bars") or {})
+    have = {c: bars[c] for c in want if c in bars and len(bars[c]) >= _MIN_BARS}
+    for c in want:                      # 内存兜底（磁盘写失败时仍可复算）
+        if c not in have and c in _WATCH_BARS_MEM and len(_WATCH_BARS_MEM[c]) >= _MIN_BARS:
+            have[c] = _WATCH_BARS_MEM[c]
+    cached = len(have)
+    # ② 缺 bars 的票并行补抓（带总预算；超时未完成的不等待、不写缓存、不造假）
+    need = [c for c in want if c not in have]
+    fetched = 0
+    if need:
+        ex = ThreadPoolExecutor(max_workers=8)
+        try:
+            futs = {ex.submit(_fetch_tx_full, c, _SCAN_BARS): c for c in need}
+            done, pending = cf.wait(futs, timeout=budget_s)
+            for fut in done:
+                code = futs[fut]
+                try:
+                    ks = fut.result()
+                except Exception:  # noqa: BLE001
+                    ks = []
+                if ks and len(ks) >= _MIN_BARS:
+                    rows = [[r[0], round(r[1], 3), round(r[2], 3), round(r[3], 3),
+                             round(r[4], 3), round(r[5], 1)] for r in ks]
+                    bars[code] = rows
+                    _WATCH_BARS_MEM[code] = rows
+                    fetched += 1
+            for fut in pending:
+                fut.cancel()
+        finally:
+            ex.shutdown(wait=False)
+        if fetched:
+            # 合并落盘（只追加、不清空既有票；先重读再合并，降低与全市场扫描的写竞争）
+            try:
+                with _BARS_IO_LOCK:
+                    fresh = _bars_cache_load()
+                    same_day = fresh.get("day") == signal_date
+                    merged = dict(fresh.get("bars") or {}) if same_day else {}
+                    merged.update({c: bars[c] for c in need if c in bars})
+                    _bars_cache_save({"day": signal_date, "bars": merged,
+                                      "fail": (fresh.get("fail") or {}) if same_day else {}})
+            except Exception:  # noqa: BLE001 —— 缓存写失败不阻断（有内存兜底）
+                pass
+    # ③ 策略 key（只读连接取 strategy_sim_window，避免线程安全问题）
+    conn = _conn_for_sim()
+    try:
+        sim = bili_sim_rows(conn)
+        keys = scan_keys(sim)
+        mmap = method_of_key(sim)
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        import strategy_sim as sim_mod
+    except Exception:  # noqa: BLE001
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import strategy_sim as sim_mod
+        except Exception:  # noqa: BLE001
+            sim_mod = None
+    # ④ 逐票 × 逐 key 复算（与 _mp_chunk 同一口径：build_signals 对最新一根日K 的 buy 判定）
+    by_code: dict = {}
+    if sim_mod is not None:
+        for code in want:
+            raw = have.get(code)
+            if not raw or len(raw) < _MIN_BARS:
+                continue                 # 缺 K 线的票保持 «—»，严禁臆造
+            try:
+                k = [{"d": r[0], "o": r[1], "h": r[2], "l": r[3], "c": r[4], "v": r[5]} for r in raw]
+            except Exception:  # noqa: BLE001
+                continue
+            hits = []
+            for key in keys:
+                try:
+                    buy, _sell = sim_mod.build_signals(key, k, None, code, "")
+                except Exception:  # noqa: BLE001
+                    continue
+                if buy and buy[-1]:
+                    s = sim.get(key) or {}
+                    mm = mmap.get(key) or {"key": key, "name": key, "kind": "技术面"}
+                    hits.append({"sname": s.get("name", key), "win_rate": s.get("win_rate"),
+                                 "mname": mm.get("name", key), "skey": key,
+                                 "school": _KEY_SCHOOL.get(key), "stance": _stance_of(key)})
+            if hits:
+                by_code[code] = hits
+    return {"by_code": by_code, "signal_date": signal_date,
+            "fetched": fetched, "cached": cached}
 
 
 # ---------------------------------------------------------------- 对外入口

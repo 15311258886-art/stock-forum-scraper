@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import sqlite3
@@ -173,6 +174,27 @@ def compute_all(force: bool = False, limit: int = 0) -> dict:
     ensure_table()
     con = _conn()
     try:
+        # 2026-10-15（性能修复 · 「API 随机卡十几秒 / 页面偶发打不开」的真根因）：
+        # 旧条件「任一窗口为 NULL 就重算」会让**数据源永远取不到的行情**对应的行**每轮都进队列**
+        # —— 实测固定 252 行、每轮 12~38 秒，而 compute_all 要抓 252 只票的 K 线（8 线程网络）
+        # 且在 Python 侧解析，**持有 GIL 期间整个服务所有 API 线程都被卡住**
+        # （静态资源走 C 层不受影响，所以症状是「接口随机慢十几秒、页面偶发转圈」而非整体崩）。
+        # 现改为：只有当「该窗口理论上还没走完」时才重算；已过窗口期限仍未补齐的行
+        # 视为数据源不可得，不再每轮空转（仍可用 force=1 全量重算，或调大 _WIN_DAYS 重试）。
+        _WIN_DAYS = {"r1": 4, "r3": 8, "r5": 12, "r10": 20}   # 自然日近似（交易日 ×1.5 + 缓冲）
+        _today = datetime.date.today()
+
+        def _should_retry(rec_date, p) -> bool:
+            for k, need in _WIN_DAYS.items():
+                if p[k] is None:
+                    try:
+                        d = datetime.date.fromisoformat(str(rec_date)[:10])
+                    except Exception:  # noqa: BLE001
+                        return True                 # 日期异常 → 保守重算
+                    if (_today - d).days <= need:
+                        return True                 # 窗口还没走完 → 值得再等
+            return False
+
         job = []
         for r in con.execute(
                 "SELECT blogger, rec_date, stock_code FROM blogger_reco"
@@ -183,8 +205,8 @@ def compute_all(force: bool = False, limit: int = 0) -> dict:
             p = con.execute(
                 "SELECT r1, r3, r5, r10 FROM blogger_perf WHERE blogger=? AND rec_date=? AND stock_code=?",
                 (r["blogger"], r["rec_date"], r["stock_code"])).fetchone()
-            # 没有 perf 行 → 补算；有行但任一窗口还是 NULL → 重算（窗口可能已走完）
-            if p is None or any(p[k] is None for k in ("r1", "r3", "r5", "r10")):
+            # 没有 perf 行 → 补算；有行但「窗口未走完却仍为 NULL」→ 重算（数据源当时取不到）
+            if p is None or _should_retry(r["rec_date"], p):
                 job.append((r["blogger"], r["rec_date"], r["stock_code"]))
     finally:
         con.close()

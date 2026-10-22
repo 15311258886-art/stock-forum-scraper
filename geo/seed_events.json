@@ -1,8 +1,8 @@
 {
   "_meta": {
     "desc": "国际局势 · 研判事件库。每条 = 一件国际大事 + 明确方向 + 板块/个股/原材料 + 国内外来源（含国外原文外链）+ 信源交叉印证。",
-    "as_of": "2026-09-27",
-    "window": "2026-09-13 ~ 2026-09-27",
+    "as_of": "2026-10-22",
+    "window": "2026-09-13 ~ 2026-10-22",
     "honesty": [
       "方向判断、确定性、强度均为研判（推断），不是事实；事实部分以 summary 与 sources 为准。",
       "代表个股为按板块口径选取的代表标的，不是推荐；个股涨跌另有自身基本面与资金面。",
@@ -25,31 +25,105 @@
       "direction": "利多能源/油运/军工/黄金，利空航空机场、下游化工与高油耗交运",
       "summary": "伊朗高级官员向路透表示，即便美方接受重开海峡的提案，伊朗也不会在核问题上让步，海峡将\"保持关闭直至条件满足\"；特朗普拒绝了伊方\"七天停火换复航\"的方案。美军中央司令部称已迫使 115 艘商船改道，海峡日通行一度降至 9 艘（战前约 85 艘）。布伦特 9 月一度冲至 106 美元，9 月 25 日因复航传闻回落至 97~104 美元区间。",
       "transmission": "海峡断供 → 原油/LNG 风险溢价抬升 → 上游油气与油服盈利上修、下游炼化与航运燃油成本抬升 → 出行链与化工承压",
-      "sectors_up": ["石油石化", "油气服务", "油运(LNG/VLCC)", "煤炭", "军工", "黄金"],
-      "sectors_down": ["航空机场", "物流快递", "下游化工", "旅游酒店"],
-      "commodities": ["布伦特原油", "WTI原油", "卡塔尔LNG", "JKM亚洲天然气", "VLCC运价"],
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "油运(LNG/VLCC)",
+        "煤炭",
+        "军工",
+        "黄金"
+      ],
+      "sectors_down": [
+        "航空机场",
+        "物流快递",
+        "下游化工",
+        "旅游酒店"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "卡塔尔LNG",
+        "JKM亚洲天然气",
+        "VLCC运价"
+      ],
       "symbols_up": [
-        {"code": "601857", "name": "中国石油"},
-        {"code": "600938", "name": "中国海油"},
-        {"code": "601808", "name": "中海油服"},
-        {"code": "600026", "name": "中远海能"},
-        {"code": "601872", "name": "招商轮船"},
-        {"code": "601975", "name": "招商南油"}
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600938",
+          "name": "中国海油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        },
+        {
+          "code": "601872",
+          "name": "招商轮船"
+        },
+        {
+          "code": "601975",
+          "name": "招商南油"
+        }
       ],
       "symbols_down": [
-        {"code": "601111", "name": "中国国航"},
-        {"code": "600029", "name": "南方航空"},
-        {"code": "600233", "name": "圆通速递"}
+        {
+          "code": "601111",
+          "name": "中国国航"
+        },
+        {
+          "code": "600029",
+          "name": "南方航空"
+        },
+        {
+          "code": "600233",
+          "name": "圆通速递"
+        }
       ],
       "decision": "主攻油气上游 + 油运（VLCC/LNG 运价弹性最大）；规避对油价敏感的下游化工与航空。海峡\"复航兑现\"是主要反向风险。",
       "watch": "美伊是否落地技术性复航框架；海峡 AIS 实际通行量是否回升；Brent 能否守住 95 美元上方。",
-      "tags": ["海峡", "原油", "能源安全"],
+      "tags": [
+        "海峡",
+        "原油",
+        "能源安全"
+      ],
       "sources": [
-        {"name": "Hamer Intelligence · Flash 预警", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/alerts/24109"},
-        {"name": "Hamer Intelligence · 24h 预判", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/forecasts/26502"},
-        {"name": "HNGN", "region": "国外", "lang": "en", "url": "https://www.hngn.com/articles/273366/20260925/iran-hardens-hormuz-line-after-netanyahu-draws-un-walkout.htm"},
-        {"name": "World Oil Monitor", "region": "国外", "lang": "en", "url": "https://worldoilmonitor.com/oil-crisis-history"},
-        {"name": "央视新闻（国际新闻早知道）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689600761214304810/"}
+        {
+          "name": "Hamer Intelligence · Flash 预警",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/alerts/24109"
+        },
+        {
+          "name": "Hamer Intelligence · 24h 预判",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/forecasts/26502"
+        },
+        {
+          "name": "HNGN",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.hngn.com/articles/273366/20260925/iran-hardens-hormuz-line-after-netanyahu-draws-un-walkout.htm"
+        },
+        {
+          "name": "World Oil Monitor",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://worldoilmonitor.com/oil-crisis-history"
+        },
+        {
+          "name": "央视新闻（国际新闻早知道）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689600761214304810/"
+        }
       ]
     },
     {
@@ -62,27 +136,82 @@
       "direction": "利多油运/集运运价与造船，利空依赖准时交付的出口制造与欧盟航线货主",
       "summary": "胡塞武装于 9 月 12—13 日完成对也门红海沿岸的接管，先后夺取摩卡港与丕林岛，距海峡非洲一侧仅约 20 公里，并袭击了沙特关键输油管道。此前曼德海峡已近乎关闭，集装箱班轮在绕行好望角与经苏伊士之间反复权衡：9 月亚洲—地中海航线复航后运价单周跌 12% 至约 4200 美元/FEU，但亚洲—北欧仍高于旺季前 20%~50%。",
       "transmission": "航道受威胁 → 绕行好望角（单程 +1~3 周）→ 有效运力被消耗 → 运价与保险兵险费抬升 → 出口制造交付成本抬升",
-      "sectors_up": ["航运港口", "油运", "船舶制造", "集运"],
-      "sectors_down": ["出口制造", "跨境电商", "汽车零部件出口"],
-      "commodities": ["集装箱运价(SCFI/FBX)", "船用燃油", "战争风险保费"],
+      "sectors_up": [
+        "航运港口",
+        "油运",
+        "船舶制造",
+        "集运"
+      ],
+      "sectors_down": [
+        "出口制造",
+        "跨境电商",
+        "汽车零部件出口"
+      ],
+      "commodities": [
+        "集装箱运价(SCFI/FBX)",
+        "船用燃油",
+        "战争风险保费"
+      ],
       "symbols_up": [
-        {"code": "601919", "name": "中远海控"},
-        {"code": "600018", "name": "上港集团"},
-        {"code": "001872", "name": "招商港口"},
-        {"code": "600026", "name": "中远海能"}
+        {
+          "code": "601919",
+          "name": "中远海控"
+        },
+        {
+          "code": "600018",
+          "name": "上港集团"
+        },
+        {
+          "code": "001872",
+          "name": "招商港口"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        }
       ],
       "symbols_down": [
-        {"code": "300866", "name": "安克创新"},
-        {"code": "002475", "name": "立讯精密"}
+        {
+          "code": "300866",
+          "name": "安克创新"
+        },
+        {
+          "code": "002475",
+          "name": "立讯精密"
+        }
       ],
       "decision": "关注集运与油运的运价弹性；对依赖欧线的出口链，把\"绕行运费 + 兵险\"计入毛利测算，别只看汇率。",
       "watch": "曼德海峡复航比例是否回落；SCFI 欧线是否止跌回升；兵险费率是否再度跳升。",
-      "tags": ["航道", "运价", "供应链"],
+      "tags": [
+        "航道",
+        "运价",
+        "供应链"
+      ],
       "sources": [
-        {"name": "Freightos 周报（Tetmo 转载）", "region": "国外", "lang": "en", "url": "https://tetmo.com/logistics-supply-chain/red-sea-transits-accelerate-while-houthi-advances-and-congestion-sustain-freight-rates"},
-        {"name": "Financial Ports", "region": "国外", "lang": "en", "url": "https://financialports.com/red-sea-shipping-revival-2m-teu-at-risk-as/"},
-        {"name": "Freightos Baltic（CommoPlast 转载）", "region": "国外", "lang": "en", "url": "https://www.commoplast.com/news/details/19984"},
-        {"name": "YES Containers", "region": "国外", "lang": "en", "url": "https://yescontainers.com/global-shipping-crisis-2026-container-prices"}
+        {
+          "name": "Freightos 周报（Tetmo 转载）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://tetmo.com/logistics-supply-chain/red-sea-transits-accelerate-while-houthi-advances-and-congestion-sustain-freight-rates"
+        },
+        {
+          "name": "Financial Ports",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://financialports.com/red-sea-shipping-revival-2m-teu-at-risk-as/"
+        },
+        {
+          "name": "Freightos Baltic（CommoPlast 转载）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.commoplast.com/news/details/19984"
+        },
+        {
+          "name": "YES Containers",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://yescontainers.com/global-shipping-crisis-2026-container-prices"
+        }
       ]
     },
     {
@@ -95,29 +224,93 @@
       "direction": "利多柴油/馏分油与炼化，煤化工与气头化工获替代性利好；利空物流与农业运输成本",
       "summary": "9 月 26 日凌晨，乌军远程无人机打击俄 Ilsky、Afipsky 炼厂，俄最大炼厂之一的 Perm（年加工超 1300 万吨）在遭袭后停产，另有 Novoshakhtinsk 炼厂停运；俄方称一夜击落 645 架无人机。9 月 20 日莫斯科炼油厂（年加工约 1200 万吨）亦被击中。全球柴油期货与炼油裂解价差升至历史高位，美国柴油均价升至 6.505 美元/加仑续刷纪录，俄国内至少 10 个联邦主体出现成品油短缺、莫斯科重启汽油限购。",
       "transmission": "炼能受损 → 俄成品油出口减量 → 欧亚柴油与燃料油裂解价差走扩 → 炼化与替代能源（煤制油/气）盈利改善 → 运输与农业用油成本上行",
-      "sectors_up": ["炼化一体化", "煤化工", "石油石化", "成品油贸易"],
-      "sectors_down": ["公路货运", "农业机械", "航空机场"],
-      "commodities": ["柴油(ICE Gasoil)", "ULSD", "燃料油", "Urals原油贴水"],
+      "sectors_up": [
+        "炼化一体化",
+        "煤化工",
+        "石油石化",
+        "成品油贸易"
+      ],
+      "sectors_down": [
+        "公路货运",
+        "农业机械",
+        "航空机场"
+      ],
+      "commodities": [
+        "柴油(ICE Gasoil)",
+        "ULSD",
+        "燃料油",
+        "Urals原油贴水"
+      ],
       "symbols_up": [
-        {"code": "600028", "name": "中国石化"},
-        {"code": "002493", "name": "荣盛石化"},
-        {"code": "600346", "name": "恒力石化"},
-        {"code": "600426", "name": "华鲁恒升"},
-        {"code": "600989", "name": "宝丰能源"}
+        {
+          "code": "600028",
+          "name": "中国石化"
+        },
+        {
+          "code": "002493",
+          "name": "荣盛石化"
+        },
+        {
+          "code": "600346",
+          "name": "恒力石化"
+        },
+        {
+          "code": "600426",
+          "name": "华鲁恒升"
+        },
+        {
+          "code": "600989",
+          "name": "宝丰能源"
+        }
       ],
       "symbols_down": [
-        {"code": "002352", "name": "顺丰控股"},
-        {"code": "601111", "name": "中国国航"}
+        {
+          "code": "002352",
+          "name": "顺丰控股"
+        },
+        {
+          "code": "601111",
+          "name": "中国国航"
+        }
       ],
       "decision": "炼化一体化与煤化工是这轮裂解价差走扩的直接受益方；但对柴油成本敏感的运输链要下调毛利预期。",
       "watch": "Perm/Ilsky/Afipsky 停车时长（例行检修 vs 结构性损坏）；欧洲柴油裂解价差与 Urals 贴水；美国是否出台柴油出口限制。",
-      "tags": ["炼油", "柴油", "能源设施"],
+      "tags": [
+        "炼油",
+        "柴油",
+        "能源设施"
+      ],
       "sources": [
-        {"name": "Hamer Intelligence · Alert", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/alerts/24149"},
-        {"name": "Hamer Intelligence · Alert", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/alerts/24150"},
-        {"name": "Kyiv Post", "region": "国外", "lang": "en", "url": "https://www.kyivpost.com/post/85374"},
-        {"name": "界面新闻/中国能源网", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7687925521933468194/"},
-        {"name": "新浪（卫晓·马晓霖）", "region": "国内", "lang": "zh", "url": "https://k.sina.com.cn/article_1887344341_707e96d502001vvcy.html"}
+        {
+          "name": "Hamer Intelligence · Alert",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/alerts/24149"
+        },
+        {
+          "name": "Hamer Intelligence · Alert",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/alerts/24150"
+        },
+        {
+          "name": "Kyiv Post",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.kyivpost.com/post/85374"
+        },
+        {
+          "name": "界面新闻/中国能源网",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7687925521933468194/"
+        },
+        {
+          "name": "新浪（卫晓·马晓霖）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://k.sina.com.cn/article_1887344341_707e96d502001vvcy.html"
+        }
       ]
     },
     {
@@ -130,24 +323,63 @@
       "direction": "利多军工、黄金与欧洲能源安全资产；利空欧洲风险资产与航运保险",
       "summary": "情报简报显示，俄无人机与直升机再次进入波兰、罗马尼亚领空，北约内部要求永久驻军与加大演习的呼声上升；同时有报道称华盛顿正评估在四个月内对古巴采取军事选项。俄方公开讨论对欧洲首都实施核打击的表态，使北约东翼风险定价上移。",
       "transmission": "北约东翼摩擦常态化 → 欧洲防务开支与军工订单预期上修 → 避险与黄金需求抬升 → 欧洲风险溢价压制出口估值",
-      "sectors_up": ["军工", "黄金", "能源安全", "网络安全"],
-      "sectors_down": ["出口链", "跨境物流"],
-      "commodities": ["黄金"],
+      "sectors_up": [
+        "军工",
+        "黄金",
+        "能源安全",
+        "网络安全"
+      ],
+      "sectors_down": [
+        "出口链",
+        "跨境物流"
+      ],
+      "commodities": [
+        "黄金"
+      ],
       "symbols_up": [
-        {"code": "600760", "name": "中航沈飞"},
-        {"code": "600893", "name": "航发动力"},
-        {"code": "002179", "name": "中航光电"},
-        {"code": "600547", "name": "山东黄金"}
+        {
+          "code": "600760",
+          "name": "中航沈飞"
+        },
+        {
+          "code": "600893",
+          "name": "航发动力"
+        },
+        {
+          "code": "002179",
+          "name": "中航光电"
+        },
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        }
       ],
       "symbols_down": [
-        {"code": "601919", "name": "中远海控"}
+        {
+          "code": "601919",
+          "name": "中远海控"
+        }
       ],
       "decision": "军工是长期订单逻辑，不是事件驱动的短炒题材；黄金按避险配置看待，别按趋势追高。",
       "watch": "北约是否公布针对此次领空侵犯的正式回应；欧洲防务预算调整。",
-      "tags": ["北约", "军工", "避险"],
+      "tags": [
+        "北约",
+        "军工",
+        "避险"
+      ],
       "sources": [
-        {"name": "Hamer Intelligence · 每日情报简报", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/briefs/2026-09-26"},
-        {"name": "央视新闻（国际新闻早知道）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7688858536444576271/"}
+        {
+          "name": "Hamer Intelligence · 每日情报简报",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/briefs/2026-09-26"
+        },
+        {
+          "name": "央视新闻（国际新闻早知道）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7688858536444576271/"
+        }
       ]
     },
     {
@@ -161,32 +393,91 @@
       "direction": "利多受关税压制的出口链与农产品贸易，利多外向型制造估值修复；对国产替代构成边际压制",
       "summary": "9 月 23—25 日中美两国元首在华盛顿举行峰会，达成八点共识：构建\"基于尊重、公平、对等的建设性战略稳定关系\"；建立贸易理事会机制；达成各 300 亿美元规模的对等降税安排（美方降税覆盖农产品、木材、化妆品，中方覆盖小家电、玩具、装饰品）；建立人工智能对话机制（11 月首轮）；两军签署危机沟通谅解备忘录。峰会以个人外交为主，无重大突破性公告。",
       "transmission": "对等降税 → 关税成本下降 → 出口链毛利率修复 → 相关出口制造与跨境电商订单能见度改善；同时国产替代的\"被迫性需求\"边际减弱",
-      "sectors_up": ["家电出口", "跨境电商", "农产品贸易", "轻工出口", "港口航运"],
-      "sectors_down": ["纯国产替代概念（边际）", "军工（情绪面）"],
-      "commodities": ["美豆", "木材"],
+      "sectors_up": [
+        "家电出口",
+        "跨境电商",
+        "农产品贸易",
+        "轻工出口",
+        "港口航运"
+      ],
+      "sectors_down": [
+        "纯国产替代概念（边际）",
+        "军工（情绪面）"
+      ],
+      "commodities": [
+        "美豆",
+        "木材"
+      ],
       "symbols_up": [
-        {"code": "000333", "name": "美的集团"},
-        {"code": "600690", "name": "海尔智家"},
-        {"code": "300866", "name": "安克创新"},
-        {"code": "600415", "name": "小商品城"},
-        {"code": "000998", "name": "隆平高科"}
+        {
+          "code": "000333",
+          "name": "美的集团"
+        },
+        {
+          "code": "600690",
+          "name": "海尔智家"
+        },
+        {
+          "code": "300866",
+          "name": "安克创新"
+        },
+        {
+          "code": "600415",
+          "name": "小商品城"
+        },
+        {
+          "code": "000998",
+          "name": "隆平高科"
+        }
       ],
       "symbols_down": [],
       "decision": "对出口链是\"确定性改善 + 幅度有限\"：降税清单规模合计 300 亿美元，落到单个公司要按品类占比折算，别按\"全面缓和\"定价。",
       "watch": "降税清单细则与生效时间表；贸易理事会首次会议；11 月 AI 对话能否触及芯片议题。",
-      "tags": ["峰会", "降税", "出口链"],
+      "tags": [
+        "峰会",
+        "降税",
+        "出口链"
+      ],
       "sources": [
-        {"name": "ABC News", "region": "国外", "lang": "en", "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"},
-        {"name": "南方都市报（网易转载）", "region": "国内", "lang": "zh", "url": "https://www.163.com/dy/article/L7QNE1O005129QAF.html"},
-        {"name": "中华人民共和国商务部", "region": "国内", "lang": "zh", "url": "https://www.mofcom.gov.cn/"},
-        {"name": "外交部例行记者会（京报网）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7687896335927886377/"}
+        {
+          "name": "ABC News",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"
+        },
+        {
+          "name": "南方都市报（网易转载）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.163.com/dy/article/L7QNE1O005129QAF.html"
+        },
+        {
+          "name": "中华人民共和国商务部",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.mofcom.gov.cn/"
+        },
+        {
+          "name": "外交部例行记者会（京报网）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7687896335927886377/"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "ABC News", "claim": "峰会以个人外交为主，达成八点共识与 300 亿美元对等降税，无重大突破性公告；AI 表述改用\"超级智能\"", "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"}
+          {
+            "src": "ABC News",
+            "claim": "峰会以个人外交为主，达成八点共识与 300 亿美元对等降税，无重大突破性公告；AI 表述改用\"超级智能\"",
+            "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"
+          }
         ],
         "domestic": [
-          {"src": "商务部", "claim": "中方公布八点共识，构建\"建设性战略稳定关系\"，建立贸易理事会与 AI 对话机制", "url": "https://www.mofcom.gov.cn/"}
+          {
+            "src": "商务部",
+            "claim": "中方公布八点共识，构建\"建设性战略稳定关系\"，建立贸易理事会与 AI 对话机制",
+            "url": "https://www.mofcom.gov.cn/"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认 300 亿美元对等降税与机制化安排落地；分歧在措辞——国外强调\"无突破\"、国内强调\"建设性稳定\"。"
@@ -203,23 +494,63 @@
       "direction": "利多出口链与稀土磁材（不确定性下降），利空纯\"管制博弈\"炒作的持续性",
       "summary": "美国财长贝森特 9 月 24 日称，原定 11 月 10 日到期的中美经贸休战协议延长至 2027 年 1 月 10 日；彭博称新延长期约为此前传闻六个月的三分之一。中方 2025 年 10 月 9 日公布的相关出口管制措施（含稀土、电池及域外适用规则）暂停实施至 2026 年 11 月 10 日的安排仍在轨道上，参议院口径称中方将处理氧化钇、钪、钕的供应关切。",
       "transmission": "休战延续 → 关税与管制尾部风险推后 → 出口链与磁材订单能见度改善 → 但两个 11 月到期日成为新的事件窗口，届时波动会放大",
-      "sectors_up": ["稀土永磁", "出口链", "家电出口", "汽车零部件"],
+      "sectors_up": [
+        "稀土永磁",
+        "出口链",
+        "家电出口",
+        "汽车零部件"
+      ],
       "sectors_down": [],
-      "commodities": ["稀土(镨钕/镝/铽)", "镓", "锗"],
+      "commodities": [
+        "稀土(镨钕/镝/铽)",
+        "镓",
+        "锗"
+      ],
       "symbols_up": [
-        {"code": "600111", "name": "北方稀土"},
-        {"code": "300748", "name": "金力永磁"},
-        {"code": "000970", "name": "中科三环"},
-        {"code": "600392", "name": "盛和资源"}
+        {
+          "code": "600111",
+          "name": "北方稀土"
+        },
+        {
+          "code": "300748",
+          "name": "金力永磁"
+        },
+        {
+          "code": "000970",
+          "name": "中科三环"
+        },
+        {
+          "code": "600392",
+          "name": "盛和资源"
+        }
       ],
       "symbols_down": [],
       "decision": "延长的是\"时间\"，不是\"解决\"：把 11 月 10 日与 11 月 27 日两个到期日记进日历，作为稀土与关键矿产的波动窗口。",
       "watch": "11 月 10 日稀土管制暂停是否再延期；11 月 27 日对美镓/锗/锑禁令是否恢复；美国\"关联方规则\"是否如期回归。",
-      "tags": ["休战", "稀土", "到期日"],
+      "tags": [
+        "休战",
+        "稀土",
+        "到期日"
+      ],
       "sources": [
-        {"name": "MIA / dpa", "region": "国外", "lang": "en", "url": "https://mia.mk/al/story/us-and-china-agree-to-extend-trade-truce-by-two-months"},
-        {"name": "Chosun Biz（Bloomberg 转述）", "region": "国外", "lang": "en", "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"},
-        {"name": "Referently · 关键矿产管制时间线", "region": "国外", "lang": "en", "url": "https://referently.com/chinas-critical-mineral-export-controls-gallium-germanium-antimony-graphite-and-rare-earths-timeline"}
+        {
+          "name": "MIA / dpa",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://mia.mk/al/story/us-and-china-agree-to-extend-trade-truce-by-two-months"
+        },
+        {
+          "name": "Chosun Biz（Bloomberg 转述）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"
+        },
+        {
+          "name": "Referently · 关键矿产管制时间线",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://referently.com/chinas-critical-mineral-export-controls-gallium-germanium-antimony-graphite-and-rare-earths-timeline"
+        }
       ]
     },
     {
@@ -233,23 +564,58 @@
       "direction": "利空对美出口占比高的制造与转口贸易，利多市场多元化与产能出海布局企业",
       "summary": "地方商务部门风险提示显示，美国正酝酿依据\"制造业产能过剩\"301 调查对中国商品加征额外关税，市场消息指或考虑加征约 7.5%；中方称此举将经贸问题政治化、保留采取必要措施的权利。301、232 与\"对等\"等工具叠加，叠加转口限制与原产地核查升级，使对美出口面临多层次约束。",
       "transmission": "关税工具箱化 → 对美出口成本抬升 + 原产地核查趋严 → 转口路径收窄 → 具备海外产能与市场多元化的企业相对占优",
-      "sectors_up": ["海外产能布局企业", "东盟产能转移受益", "内需消费"],
-      "sectors_down": ["对美出口制造", "转口贸易", "光伏出口", "锂电出口"],
+      "sectors_up": [
+        "海外产能布局企业",
+        "东盟产能转移受益",
+        "内需消费"
+      ],
+      "sectors_down": [
+        "对美出口制造",
+        "转口贸易",
+        "光伏出口",
+        "锂电出口"
+      ],
       "commodities": [],
       "symbols_up": [
-        {"code": "601689", "name": "拓普集团"},
-        {"code": "603305", "name": "旭升集团"}
+        {
+          "code": "601689",
+          "name": "拓普集团"
+        },
+        {
+          "code": "603305",
+          "name": "旭升集团"
+        }
       ],
       "symbols_down": [
-        {"code": "601012", "name": "隆基绿能"},
-        {"code": "300750", "name": "宁德时代"}
+        {
+          "code": "601012",
+          "name": "隆基绿能"
+        },
+        {
+          "code": "300750",
+          "name": "宁德时代"
+        }
       ],
       "decision": "对美出口占比高的标的，按\"加征 7.5% 落地\"做一次压力测试；优先看已在东南亚/墨西哥有实际产能的公司。",
       "watch": "301 调查是否正式立案与税率区间；豁免清单；原产地核查新规执行力度。",
-      "tags": ["301调查", "加征关税", "产能出海"],
+      "tags": [
+        "301调查",
+        "加征关税",
+        "产能出海"
+      ],
       "sources": [
-        {"name": "福建省商务厅 · 外贸风险分析", "region": "国内", "lang": "zh", "url": "https://swt.fujian.gov.cn/mqchzhfwpt/chzx/fxts/mrfxfx/202609/t20260924_7217638.htm"},
-        {"name": "商务部新闻发布会（何亚东）", "region": "国内", "lang": "zh", "url": "https://szb.ahnews.com.cn/ahrb/attachment/202604/10/36cc75a7-ff45-4b8d-a24e-3caeb1c72f14.pdf"}
+        {
+          "name": "福建省商务厅 · 外贸风险分析",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://swt.fujian.gov.cn/mqchzhfwpt/chzx/fxts/mrfxfx/202609/t20260924_7217638.htm"
+        },
+        {
+          "name": "商务部新闻发布会（何亚东）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://szb.ahnews.com.cn/ahrb/attachment/202604/10/36cc75a7-ff45-4b8d-a24e-3caeb1c72f14.pdf"
+        }
       ]
     },
     {
@@ -263,30 +629,75 @@
       "direction": "利多国内稀土磁材与军工材料链，利空日本汽车/电子产业链成本，间接影响日系在华供应链",
       "summary": "外交部 9 月 21 日回应《纽约时报》提问时表示，中方依法依规针对所有两用物项，禁止对日本军事用途及任何有助于提升日本军事实力的出口，目的是制止日本\"再军事化\"和拥核企图；同时强调维护关键矿产全球产供链稳定与安全的立场没有变化，合规民事用途出口申请依法批准。",
       "transmission": "对日管制 → 日本高端磁材与军工材料供应收紧 → 国内稀土磁材议价能力提升 → 日系汽车/电子链成本上行",
-      "sectors_up": ["稀土永磁", "军工新材料", "稀有金属"],
-      "sectors_down": ["日系供应链相关", "汽车零部件(日系配套)"],
-      "commodities": ["稀土(镝/铽)", "镓", "锗"],
+      "sectors_up": [
+        "稀土永磁",
+        "军工新材料",
+        "稀有金属"
+      ],
+      "sectors_down": [
+        "日系供应链相关",
+        "汽车零部件(日系配套)"
+      ],
+      "commodities": [
+        "稀土(镝/铽)",
+        "镓",
+        "锗"
+      ],
       "symbols_up": [
-        {"code": "600111", "name": "北方稀土"},
-        {"code": "300748", "name": "金力永磁"},
-        {"code": "300224", "name": "正海磁材"}
+        {
+          "code": "600111",
+          "name": "北方稀土"
+        },
+        {
+          "code": "300748",
+          "name": "金力永磁"
+        },
+        {
+          "code": "300224",
+          "name": "正海磁材"
+        }
       ],
       "symbols_down": [
-        {"code": "600699", "name": "均胜电子"}
+        {
+          "code": "600699",
+          "name": "均胜电子"
+        }
       ],
       "decision": "管制类事件的定价特点是\"审批节奏决定弹性\"：看许可发放速度，而不是看表态口径。",
       "watch": "日本是否寻求第三国替代供应；中方许可审批周期的实际变化。",
-      "tags": ["出口管制", "稀土", "日方"],
+      "tags": [
+        "出口管制",
+        "稀土",
+        "日方"
+      ],
       "sources": [
-        {"name": "外交部例行记者会（京报网）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7687896335927886377/"},
-        {"name": "Rare Earth Exchanges", "region": "国外", "lang": "en", "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"}
+        {
+          "name": "外交部例行记者会（京报网）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7687896335927886377/"
+        },
+        {
+          "name": "Rare Earth Exchanges",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "Rare Earth Exchanges", "claim": "中国稀土出口势头延续，供应边际收紧，海外磁材与军工材料价格承压", "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"}
+          {
+            "src": "Rare Earth Exchanges",
+            "claim": "中国稀土出口势头延续，供应边际收紧，海外磁材与军工材料价格承压",
+            "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"
+          }
         ],
         "domestic": [
-          {"src": "外交部例行记者会", "claim": "依法禁止对日军事用途及提升军事实力的两用物项出口，合规民事用途依法批准", "url": "https://www.toutiao.com/article/7687896335927886377/"}
+          {
+            "src": "外交部例行记者会",
+            "claim": "依法禁止对日军事用途及提升军事实力的两用物项出口，合规民事用途依法批准",
+            "url": "https://www.toutiao.com/article/7687896335927886377/"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认对日稀土与相关物项供应收紧；国内强调\"合规民事用途仍批准\"，国外更关注供应中断的价格传导。"
@@ -302,26 +713,76 @@
       "direction": "利多上游油气与油服，利空下游炼化成本与高油耗行业；对通胀预期构成上行压力",
       "summary": "国际能源署将霍尔木兹与红海通道的联合中断定性为全球油市史上最大供应中断之一。本轮冲突自 2026 年 2 月底爆发，布伦特从 1 月初约 57 美元升至 3 月 31 日峰值 118.35 美元，4 月停火后回落至 7 月约 72 美元，随后因油轮与海湾设施再遭袭击回升，9 月 25 日约 97~104 美元（部分口径 109.4 美元）。美国对伊推行\"经济弃儿\"行动并拟设 50 亿美元基金协助中东重建能源设施。",
       "transmission": "供应中断常态化 → 风险溢价长期化 → 上游资本开支与油服订单改善 → 同时抬升全球通胀预期，压制货币政策宽松空间",
-      "sectors_up": ["石油石化", "油气服务", "煤炭", "上游资源"],
-      "sectors_down": ["下游化工", "航空机场", "物流快递"],
-      "commodities": ["布伦特原油", "WTI原油", "天然气"],
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "煤炭",
+        "上游资源"
+      ],
+      "sectors_down": [
+        "下游化工",
+        "航空机场",
+        "物流快递"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "天然气"
+      ],
       "symbols_up": [
-        {"code": "601857", "name": "中国石油"},
-        {"code": "601808", "name": "中海油服"},
-        {"code": "600583", "name": "海油工程"},
-        {"code": "601088", "name": "中国神华"}
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600583",
+          "name": "海油工程"
+        },
+        {
+          "code": "601088",
+          "name": "中国神华"
+        }
       ],
       "symbols_down": [
-        {"code": "600309", "name": "万华化学"},
-        {"code": "601111", "name": "中国国航"}
+        {
+          "code": "600309",
+          "name": "万华化学"
+        },
+        {
+          "code": "601111",
+          "name": "中国国航"
+        }
       ],
       "decision": "油价里\"溢价\"与\"基本面\"要拆开算：按供需平衡布伦特合理中枢低于现价，一旦复航兑现，回落速度会很快，追高需设止损。",
       "watch": "美伊复航谈判；战略储备释放的边际效果；欧佩克+ 是否增产对冲。",
-      "tags": ["油价", "风险溢价", "通胀"],
+      "tags": [
+        "油价",
+        "风险溢价",
+        "通胀"
+      ],
       "sources": [
-        {"name": "World Oil Monitor", "region": "国外", "lang": "en", "url": "https://worldoilmonitor.com/oil-crisis-history"},
-        {"name": "oicharts", "region": "国外", "lang": "en", "url": "https://oicharts.com/news/global-oil-supply-pressures-fd26a3-1X1KEM0s"},
-        {"name": "HNGN", "region": "国外", "lang": "en", "url": "https://www.hngn.com/articles/273366/20260925/iran-hardens-hormuz-line-after-netanyahu-draws-un-walkout.htm"}
+        {
+          "name": "World Oil Monitor",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://worldoilmonitor.com/oil-crisis-history"
+        },
+        {
+          "name": "oicharts",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://oicharts.com/news/global-oil-supply-pressures-fd26a3-1X1KEM0s"
+        },
+        {
+          "name": "HNGN",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.hngn.com/articles/273366/20260925/iran-hardens-hormuz-line-after-netanyahu-draws-un-walkout.htm"
+        }
       ]
     },
     {
@@ -334,23 +795,64 @@
       "direction": "利多炼化与成品油贸易、煤制油替代；利空公路货运、农机与渔业等柴油密集行业",
       "summary": "俄炼厂连续被袭叠加对美柴油出口限制预期，使全球中间馏分油（柴油/取暖油）平衡急剧收紧，柴油期货与炼油裂解价差升至历史高位。美国汽车协会数据显示，9 月 20 日全美柴油均价升至 6.505 美元/加仑，刷新历史新高，距上次突破 6 美元不足十天。分析提示\"释放储备\"这一平抑手段的效果正在衰减，存在演变为真实燃料危机的可能。",
       "transmission": "柴油裂解走扩 → 炼化毛利抬升 → 煤制油/气头化工相对成本优势显现 → 运输与农业用油成本上行推升终端价格",
-      "sectors_up": ["炼化一体化", "煤化工", "石油石化", "成品油仓储贸易"],
-      "sectors_down": ["公路货运", "农业机械", "渔业", "航空货运"],
-      "commodities": ["柴油", "取暖油", "燃料油", "动力煤"],
+      "sectors_up": [
+        "炼化一体化",
+        "煤化工",
+        "石油石化",
+        "成品油仓储贸易"
+      ],
+      "sectors_down": [
+        "公路货运",
+        "农业机械",
+        "渔业",
+        "航空货运"
+      ],
+      "commodities": [
+        "柴油",
+        "取暖油",
+        "燃料油",
+        "动力煤"
+      ],
       "symbols_up": [
-        {"code": "600028", "name": "中国石化"},
-        {"code": "600426", "name": "华鲁恒升"},
-        {"code": "600989", "name": "宝丰能源"}
+        {
+          "code": "600028",
+          "name": "中国石化"
+        },
+        {
+          "code": "600426",
+          "name": "华鲁恒升"
+        },
+        {
+          "code": "600989",
+          "name": "宝丰能源"
+        }
       ],
       "symbols_down": [
-        {"code": "002352", "name": "顺丰控股"}
+        {
+          "code": "002352",
+          "name": "顺丰控股"
+        }
       ],
       "decision": "柴油紧张是\"结构性\"而非\"脉冲性\"：冬季取暖季叠加俄出口减量，裂解价差高位可能维持数周至数月。",
       "watch": "欧洲柴油裂解价差；美国是否出台柴油出口限制；俄炼厂停车时长确认。",
-      "tags": ["柴油", "裂解价差", "取暖季"],
+      "tags": [
+        "柴油",
+        "裂解价差",
+        "取暖季"
+      ],
       "sources": [
-        {"name": "Hamer Intelligence · Alert", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/alerts/24150"},
-        {"name": "界面新闻/中国能源网", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7687925521933468194/"}
+        {
+          "name": "Hamer Intelligence · Alert",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/alerts/24150"
+        },
+        {
+          "name": "界面新闻/中国能源网",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7687925521933468194/"
+        }
       ]
     },
     {
@@ -363,22 +865,59 @@
       "direction": "利多稀土与磁材（情绪主导），但基本面无紧平衡支撑，波动放大",
       "summary": "SMM 数据显示 9 月 22 日镨钕氧化物单日上涨约 5000 元/吨、镨钕金属涨约 7500 元/吨，9 月 23 日小幅回落后仍处近期高位。钕铁硼出口并非\"全面停摆\"，而是\"办理放缓、审查趋严\"：对最终用途、收货人身份、转售风险与军事敏感度审查更严，部分订单报关与单证周期拉长。中国钕铁硼月均出口约 5200 吨，欧洲约占 44%、亚洲约 39%、北美约 10%。",
       "transmission": "中美元首会晤预期 → 管制不确定性下降 → 贸易商惜售 + 磁材厂按需补库 → 报价上行；但终端并未全面超买，价格由情绪而非供需缺口推动",
-      "sectors_up": ["稀土永磁", "稀有金属", "磁材加工"],
-      "sectors_down": ["下游电机成本敏感环节"],
-      "commodities": ["镨钕氧化物", "镨钕金属", "镝", "铽"],
+      "sectors_up": [
+        "稀土永磁",
+        "稀有金属",
+        "磁材加工"
+      ],
+      "sectors_down": [
+        "下游电机成本敏感环节"
+      ],
+      "commodities": [
+        "镨钕氧化物",
+        "镨钕金属",
+        "镝",
+        "铽"
+      ],
       "symbols_up": [
-        {"code": "600111", "name": "北方稀土"},
-        {"code": "300748", "name": "金力永磁"},
-        {"code": "000970", "name": "中科三环"},
-        {"code": "600392", "name": "盛和资源"}
+        {
+          "code": "600111",
+          "name": "北方稀土"
+        },
+        {
+          "code": "300748",
+          "name": "金力永磁"
+        },
+        {
+          "code": "000970",
+          "name": "中科三环"
+        },
+        {
+          "code": "600392",
+          "name": "盛和资源"
+        }
       ],
       "symbols_down": [],
       "decision": "把\"会晤=管制全面放开\"与\"情绪上涨=供需缺口\"两个等式都拆掉；稀土是政策驱动品种，消息密集期追高风险最大。",
       "watch": "出口许可审批是否提速；磁材厂开工率与新增订单；11 月 10 日管制暂停到期节点。",
-      "tags": ["稀土", "镨钕", "情绪驱动"],
+      "tags": [
+        "稀土",
+        "镨钕",
+        "情绪驱动"
+      ],
       "sources": [
-        {"name": "SMM 上海有色网（Metal.com）", "region": "国外", "lang": "en", "url": "https://news.metal.com/en/newscontent/104133460-smm-analysis-china-us-talks-fuel-bullish-sentiment-in-pr-nd-market-but-fundamentals-prevail"},
-        {"name": "Rare Earth Exchanges", "region": "国外", "lang": "en", "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"}
+        {
+          "name": "SMM 上海有色网（Metal.com）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://news.metal.com/en/newscontent/104133460-smm-analysis-china-us-talks-fuel-bullish-sentiment-in-pr-nd-market-but-fundamentals-prevail"
+        },
+        {
+          "name": "Rare Earth Exchanges",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://rareearthexchanges.com/news/ex-china-rare-earth-supply-momentum"
+        }
       ]
     },
     {
@@ -391,23 +930,61 @@
       "direction": "区间震荡（利多受高利率压制）；回调不破中期结构则维持配置价值",
       "summary": "伦敦金现 9 月 21 日约 4285 美元/盎司、白银约 62.5 美元/盎司；美联储加息落地后金价短暂冲高又回落至 4250 美元附近震荡。世界黄金协会数据显示 2026 上半年亚洲央行增持黄金 120 吨，占全球央行购金约 40%；中国人民银行自 2022 年起连续 20 个月增持，截至 8 月储备约 2150 吨。SPDR Gold Trust 持仓 9 月 23 日为 1056.836 吨，较 8 月 28 日低点增加超 10 吨。",
       "transmission": "实际利率抬升 → 持有成本上行压制金价；央行购金 + ETF 净流入 → 结构性需求托底 → 形成\"上有顶下有底\"的区间格局",
-      "sectors_up": ["黄金", "贵金属采选", "黄金珠宝"],
+      "sectors_up": [
+        "黄金",
+        "贵金属采选",
+        "黄金珠宝"
+      ],
       "sectors_down": [],
-      "commodities": ["伦敦金", "伦敦银"],
+      "commodities": [
+        "伦敦金",
+        "伦敦银"
+      ],
       "symbols_up": [
-        {"code": "600547", "name": "山东黄金"},
-        {"code": "600489", "name": "中金黄金"},
-        {"code": "601899", "name": "紫金矿业"},
-        {"code": "600988", "name": "赤峰黄金"}
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        },
+        {
+          "code": "600489",
+          "name": "中金黄金"
+        },
+        {
+          "code": "601899",
+          "name": "紫金矿业"
+        },
+        {
+          "code": "600988",
+          "name": "赤峰黄金"
+        }
       ],
       "symbols_down": [],
       "decision": "黄金的核心矛盾是\"避险需求\"与\"高利率\"的再平衡，不是单一地缘事件；把它当配置资产，别当事件投机品。",
       "watch": "10 月议息会议加息概率（当前约 56.5%）；美债 10 年期收益率能否站稳 5%；央行月度购金数据。",
-      "tags": ["黄金", "央行购金", "实际利率"],
+      "tags": [
+        "黄金",
+        "央行购金",
+        "实际利率"
+      ],
       "sources": [
-        {"name": "VNFUND Asia Finance", "region": "国外", "lang": "en", "url": "https://www.vnfund.asia/fed-policy-shift-september-2026-gold-price-fluctuations-asian-buying-surge-hedging-demand"},
-        {"name": "券商中国（今日头条）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689351293097345551/"},
-        {"name": "金盛金融 · 黄金评论", "region": "国内", "lang": "zh", "url": "https://www.golday.com/Mkt/pinglun_detail/id/4368.html"}
+        {
+          "name": "VNFUND Asia Finance",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.vnfund.asia/fed-policy-shift-september-2026-gold-price-fluctuations-asian-buying-surge-hedging-demand"
+        },
+        {
+          "name": "券商中国（今日头条）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689351293097345551/"
+        },
+        {
+          "name": "金盛金融 · 黄金评论",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.golday.com/Mkt/pinglun_detail/id/4368.html"
+        }
       ]
     },
     {
@@ -421,34 +998,98 @@
       "direction": "利空高估值成长与黄金，利多银行息差与价值风格；压制外资流入新兴市场",
       "summary": "9 月 16—17 日 FOMC 以 12:0 全票将联邦基金利率目标区间上调 25bp 至 3.75%–4.00%，为 2023 年 7 月以来首次加息，标志 2024 年 9 月开启的降息周期正式结束。点阵图显示 18 名官员中 16 人预计 2026 年还应再升息一次，年底利率预测中值由 3.8% 上调至 4.1%，隐含\"年内再加息一次、2027 年维持、2028 年缓降\"。市场对 10 月再加息概率定价约 56.5%。",
       "transmission": "政策转鹰 → 实际利率与美元指数上行 → 全球风险资产估值承压、成长股杀估值 → A 股外资边际流出压力上升，价值与红利风格相对占优",
-      "sectors_up": ["银行", "红利/高股息", "价值蓝筹"],
-      "sectors_down": ["高估值成长", "黄金", "创新药/CXO", "港股互联网"],
-      "commodities": ["美元指数", "美债收益率"],
+      "sectors_up": [
+        "银行",
+        "红利/高股息",
+        "价值蓝筹"
+      ],
+      "sectors_down": [
+        "高估值成长",
+        "黄金",
+        "创新药/CXO",
+        "港股互联网"
+      ],
+      "commodities": [
+        "美元指数",
+        "美债收益率"
+      ],
       "symbols_up": [
-        {"code": "601318", "name": "中国平安"},
-        {"code": "600030", "name": "中信证券"}
+        {
+          "code": "601318",
+          "name": "中国平安"
+        },
+        {
+          "code": "600030",
+          "name": "中信证券"
+        }
       ],
       "symbols_down": [
-        {"code": "300750", "name": "宁德时代"},
-        {"code": "300274", "name": "阳光电源"}
+        {
+          "code": "300750",
+          "name": "宁德时代"
+        },
+        {
+          "code": "300274",
+          "name": "阳光电源"
+        }
       ],
       "decision": "外部流动性收紧是压制项而非决定项：A 股主要矛盾仍在国内政策与产业周期，但高估值成长需要更高的业绩兑现来对冲估值压力。",
       "watch": "10 月议息会议；美国 9 月 CPI/PCE 与就业数据；美元指数与人民币汇率走向。",
-      "tags": ["美联储", "加息", "流动性"],
+      "tags": [
+        "美联储",
+        "加息",
+        "流动性"
+      ],
       "sources": [
-        {"name": "Federal Reserve 官方 · FOMC 经济预测(SEP)", "region": "国外", "lang": "en", "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm"},
-        {"name": "TD Economics · FOMC 点评", "region": "国外", "lang": "en", "url": "https://economics.td.com/us-fomc-statement"},
-        {"name": "券商中国（今日头条）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689351293097345551/"},
-        {"name": "混沌天成研究（腾讯自选股转载）", "region": "国内", "lang": "zh", "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"}
+        {
+          "name": "Federal Reserve 官方 · FOMC 经济预测(SEP)",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm"
+        },
+        {
+          "name": "TD Economics · FOMC 点评",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://economics.td.com/us-fomc-statement"
+        },
+        {
+          "name": "券商中国（今日头条）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689351293097345551/"
+        },
+        {
+          "name": "混沌天成研究（腾讯自选股转载）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "Federal Reserve 官方 SEP", "claim": "9 月加息 25bp 至 3.75%–4.00%，点阵图中值年底 4.1%，暗示年内再加息一次", "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm"},
-          {"src": "TD Economics", "claim": "加息后释放更多紧缩信号，但\"再来一次\"概率高于\"三次\"的市场定价", "url": "https://economics.td.com/us-fomc-statement"}
+          {
+            "src": "Federal Reserve 官方 SEP",
+            "claim": "9 月加息 25bp 至 3.75%–4.00%，点阵图中值年底 4.1%，暗示年内再加息一次",
+            "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm"
+          },
+          {
+            "src": "TD Economics",
+            "claim": "加息后释放更多紧缩信号，但\"再来一次\"概率高于\"三次\"的市场定价",
+            "url": "https://economics.td.com/us-fomc-statement"
+          }
         ],
         "domestic": [
-          {"src": "券商中国/第一财经", "claim": "12:0 全票加息，沃什主席，美元指数重返 100，美股大幅跳水；年内或再加息一次", "url": "https://www.toutiao.com/article/7689351293097345551/"},
-          {"src": "新华财经 点评", "claim": "加息落地\"两难\"未解，更重视实际通胀结果与持续性", "url": "https://m.cnfin.com/yw-lb//zixun/20260917/4471034_1.html"}
+          {
+            "src": "券商中国/第一财经",
+            "claim": "12:0 全票加息，沃什主席，美元指数重返 100，美股大幅跳水；年内或再加息一次",
+            "url": "https://www.toutiao.com/article/7689351293097345551/"
+          },
+          {
+            "src": "新华财经 点评",
+            "claim": "加息落地\"两难\"未解，更重视实际通胀结果与持续性",
+            "url": "https://m.cnfin.com/yw-lb//zixun/20260917/4471034_1.html"
+          }
         ],
         "verdict": "一致",
         "note": "国外官方与国内市场解读一致确认转鹰；分歧仅在\"再加息几次\"——国外更谨慎(一次为主)，国内提示\"两难未解\"。"
@@ -465,20 +1106,45 @@
       "direction": "利空全球风险资产估值，利多美元与现金类资产；压制新兴市场外资流入",
       "summary": "9 月周内 10 年期美债收益率强势突破并站稳 5% 关口，周线收于 4.99%；长债拍卖与财政供给担忧升温，实际利率抬升直接压制贵金属与成长股估值。周五受美日利差与日本央行政策反复影响，全球资产快速变盘，美元指数剧烈波动。",
       "transmission": "长端利率上行 → 全球贴现率抬升 → 高久期资产（成长股/黄金/地产链）承压 → 资金向短久期与高股息集中",
-      "sectors_up": ["银行", "红利/高股息"],
-      "sectors_down": ["高估值成长", "黄金", "地产链"],
-      "commodities": ["美债收益率", "美元指数"],
+      "sectors_up": [
+        "银行",
+        "红利/高股息"
+      ],
+      "sectors_down": [
+        "高估值成长",
+        "黄金",
+        "地产链"
+      ],
+      "commodities": [
+        "美债收益率",
+        "美元指数"
+      ],
       "symbols_up": [
-        {"code": "601318", "name": "中国平安"}
+        {
+          "code": "601318",
+          "name": "中国平安"
+        }
       ],
       "symbols_down": [
-        {"code": "688256", "name": "寒武纪"}
+        {
+          "code": "688256",
+          "name": "寒武纪"
+        }
       ],
       "decision": "5% 是心理关口：站上去意味着全球无风险利率中枢上移，A 股的\"估值扩张\"逻辑要让位于\"盈利驱动\"。",
       "watch": "10 年期美债能否回落至 4.8% 以下；美国财政部发债计划；日本央行政策与日元干预。",
-      "tags": ["美债", "实际利率", "估值"],
+      "tags": [
+        "美债",
+        "实际利率",
+        "估值"
+      ],
       "sources": [
-        {"name": "混沌天成研究（腾讯自选股转载）", "region": "国内", "lang": "zh", "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"}
+        {
+          "name": "混沌天成研究（腾讯自选股转载）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"
+        }
       ]
     },
     {
@@ -492,16 +1158,33 @@
       "direction": "短期波动放大；利多日本出口链与日股，利空套息交易与高杠杆头寸",
       "summary": "日本央行周五政策落地，但行长发布会未释放连续加息指引，政策力度不及市场预期，日元快速跳水、美元拉升；随后日媒曝出日本央行开展汇率摸底干预前置操作，市场解读为官方威慑，日元急升、美元涨幅全部回吐。美日利差与干预预期互相拉扯，全球资产随之快速反转。",
       "transmission": "日元套息交易平仓 → 全球风险资产短期去杠杆 → 汇率波动外溢至新兴市场 → A 股北向资金波动加大",
-      "sectors_up": ["出口链（人民币口径受益）"],
-      "sectors_down": ["套息依赖型资产", "跨境高杠杆头寸"],
-      "commodities": ["美元/日元", "日元"],
+      "sectors_up": [
+        "出口链（人民币口径受益）"
+      ],
+      "sectors_down": [
+        "套息依赖型资产",
+        "跨境高杠杆头寸"
+      ],
+      "commodities": [
+        "美元/日元",
+        "日元"
+      ],
       "symbols_up": [],
       "symbols_down": [],
       "decision": "日元是目前全球流动性最敏感的开关：套息平仓一旦启动，A 股跌的往往不是基本面最差的，而是外资持仓最集中的。",
       "watch": "日本央行是否释放连续加息信号；实际干预是否落地；美日利差走向。",
-      "tags": ["日元", "套息交易", "汇率"],
+      "tags": [
+        "日元",
+        "套息交易",
+        "汇率"
+      ],
       "sources": [
-        {"name": "混沌天成研究（腾讯自选股转载）", "region": "国内", "lang": "zh", "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"}
+        {
+          "name": "混沌天成研究（腾讯自选股转载）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://gu.qq.com/resources/shy/news/detail-v2/index.html?t=1#/index?id=SN20260919222153b6315950"
+        }
       ]
     },
     {
@@ -515,22 +1198,53 @@
       "direction": "利多国产算力与半导体设备，利空依赖境外云算力的 AI 训练业务成本",
       "summary": "美国正研究新一轮先进芯片出口限制，重点从防止芯片实际流入中国，转向堵塞中国企业通过泰国、新加坡等海外数据中心遥距使用英伟达高阶 GPU 的渠道。新规可能包含\"Know Your Customer\"要求，数据中心运营商须掌握客户身份与算力用途，最快 9 月交业界征询意见。管制思路由\"管物\"向\"管算力\"延伸。",
       "transmission": "封堵境外算力租用 → 国产算力替代需求刚性上升 → 国产芯片、服务器、IDC 与液冷受益；同时抬高大模型训练成本",
-      "sectors_up": ["国产算力", "半导体设备", "AI服务器", "IDC/液冷"],
-      "sectors_down": ["境外算力依赖型AI企业"],
+      "sectors_up": [
+        "国产算力",
+        "半导体设备",
+        "AI服务器",
+        "IDC/液冷"
+      ],
+      "sectors_down": [
+        "境外算力依赖型AI企业"
+      ],
       "commodities": [],
       "symbols_up": [
-        {"code": "688256", "name": "寒武纪"},
-        {"code": "688041", "name": "海光信息"},
-        {"code": "002371", "name": "北方华创"},
-        {"code": "000977", "name": "浪潮信息"},
-        {"code": "601138", "name": "工业富联"}
+        {
+          "code": "688256",
+          "name": "寒武纪"
+        },
+        {
+          "code": "688041",
+          "name": "海光信息"
+        },
+        {
+          "code": "002371",
+          "name": "北方华创"
+        },
+        {
+          "code": "000977",
+          "name": "浪潮信息"
+        },
+        {
+          "code": "601138",
+          "name": "工业富联"
+        }
       ],
       "symbols_down": [],
       "decision": "\"管算力\"比\"管芯片\"更难规避，国产算力链的确定性反而更高；但要注意估值已部分反映，别把政策预期当业绩。",
       "watch": "新规是否正式发布与生效时点；境外数据中心合规表态；国产算力招标份额变化。",
-      "tags": ["芯片管制", "算力", "国产替代"],
+      "tags": [
+        "芯片管制",
+        "算力",
+        "国产替代"
+      ],
       "sources": [
-        {"name": "山东省商务厅（山东电子学会供稿）", "region": "国内", "lang": "zh", "url": "http://commerce.shandong.gov.cn/art/2026/9/16/art_250176_10382338.html"}
+        {
+          "name": "山东省商务厅（山东电子学会供稿）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "http://commerce.shandong.gov.cn/art/2026/9/16/art_250176_10382338.html"
+        }
       ]
     },
     {
@@ -544,25 +1258,67 @@
       "direction": "利多国产算力（华为昇腾链），利空英伟达在华收入与依赖进口芯片的算力企业",
       "summary": "美方已开始向约 10 家中国企业发放 H200 采购许可（每家上限 7.5 万颗），但据 C4ADS 与商务部说法，实际出货为零，预计至 2026 年中仍为零。英伟达在华 AI 芯片份额从 2023 年约 95% 降至新 H200 出货意义上的零；公司披露许可项出货不足其数据中心营收的 1%，并计提 4 亿美元 H200 库存减值。同期华为昇腾 910C 目标产量 60 万颗，昇腾系列合计或达 160 万颗。",
       "transmission": "\"许可≠收入\" → 进口路径事实上关闭 → 国产算力承接需求 → 华为昇腾产业链与国产服务器、光模块受益",
-      "sectors_up": ["国产算力", "光模块", "AI服务器", "半导体设备"],
-      "sectors_down": ["进口芯片依赖型", "消费电子代工"],
+      "sectors_up": [
+        "国产算力",
+        "光模块",
+        "AI服务器",
+        "半导体设备"
+      ],
+      "sectors_down": [
+        "进口芯片依赖型",
+        "消费电子代工"
+      ],
       "commodities": [],
       "symbols_up": [
-        {"code": "300308", "name": "中际旭创"},
-        {"code": "300502", "name": "新易盛"},
-        {"code": "000977", "name": "浪潮信息"},
-        {"code": "603019", "name": "中科曙光"}
+        {
+          "code": "300308",
+          "name": "中际旭创"
+        },
+        {
+          "code": "300502",
+          "name": "新易盛"
+        },
+        {
+          "code": "000977",
+          "name": "浪潮信息"
+        },
+        {
+          "code": "603019",
+          "name": "中科曙光"
+        }
       ],
       "symbols_down": [
-        {"code": "002475", "name": "立讯精密"}
+        {
+          "code": "002475",
+          "name": "立讯精密"
+        }
       ],
       "decision": "这条对国产算力是\"量的确认\"，不是\"情绪催化\"：看昇腾实际出货与国产服务器招标，而不是看新闻标题。",
       "watch": "H200 许可是否转化为实际合同；昇腾 910C 出货节奏；国产数据中心招标份额。",
-      "tags": ["英伟达", "昇腾", "算力国产化"],
+      "tags": [
+        "英伟达",
+        "昇腾",
+        "算力国产化"
+      ],
       "sources": [
-        {"name": "Adalytica（C4ADS 数据）", "region": "国外", "lang": "en", "url": "https://adalytica.com/news/nvidia-h200-china-licenses-no-shipments-f0a76d70"},
-        {"name": "The Index Today", "region": "国外", "lang": "en", "url": "https://www.theindextoday.com/?p=1069/"},
-        {"name": "whatledto · 出口管制时间线", "region": "国外", "lang": "en", "url": "https://whatledto.com/events/nvidia-china-export-controls"}
+        {
+          "name": "Adalytica（C4ADS 数据）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://adalytica.com/news/nvidia-h200-china-licenses-no-shipments-f0a76d70"
+        },
+        {
+          "name": "The Index Today",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.theindextoday.com/?p=1069/"
+        },
+        {
+          "name": "whatledto · 出口管制时间线",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://whatledto.com/events/nvidia-china-export-controls"
+        }
       ]
     },
     {
@@ -576,20 +1332,44 @@
       "direction": "中性偏多（降低 AI 领域误判风险），利多 AI 应用与数据要素，对半导体管制无直接松动",
       "summary": "峰会共识显示，中美同意建立人工智能对话机制，交流 AI 相关风险与惠益，首轮对话于 2026 年 11 月举行，并建立 AI 事件沟通渠道；美方同意在表述中使用\"超级智能\"替代\"人工智能\"，中方表示重视这一新提法。但美方贸易代表明确表示，涉及国家安全的所有出口管制项目都不在谈判桌上，\"芯片几乎未被讨论\"。",
       "transmission": "对话机制建立 → 降低技术误判与突发管制风险 → AI 应用与算力产业链预期稳定；但先进芯片管制并未松动，国产替代逻辑不改",
-      "sectors_up": ["AI应用", "数据要素", "国产算力", "网络安全"],
+      "sectors_up": [
+        "AI应用",
+        "数据要素",
+        "国产算力",
+        "网络安全"
+      ],
       "sectors_down": [],
       "commodities": [],
       "symbols_up": [
-        {"code": "603019", "name": "中科曙光"},
-        {"code": "000938", "name": "紫光股份"}
+        {
+          "code": "603019",
+          "name": "中科曙光"
+        },
+        {
+          "code": "000938",
+          "name": "紫光股份"
+        }
       ],
       "symbols_down": [],
       "decision": "\"对话\"是好消息但不是\"解禁\"：把这条理解为风险偏好修复（利好 AI 板块情绪），而不是供应链改善。",
       "watch": "11 月首轮 AI 对话的议程与实际产出；AI 事件沟通渠道是否真正启用。",
-      "tags": ["AI对话", "科技治理"],
+      "tags": [
+        "AI对话",
+        "科技治理"
+      ],
       "sources": [
-        {"name": "ABC News", "region": "国外", "lang": "en", "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"},
-        {"name": "Chosun Biz", "region": "国外", "lang": "en", "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"}
+        {
+          "name": "ABC News",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.abc.net.au/news/2026-09-27/president-donald-trump-xi-jinping-washington-summit-tariffs-ai/107200436"
+        },
+        {
+          "name": "Chosun Biz",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"
+        }
       ]
     },
     {
@@ -602,26 +1382,78 @@
       "direction": "利多建材/水利重建与替代性订单转移，利空日本本地制造与保险；日系零部件供应风险上升",
       "summary": "第 25 号台风\"杜鹃\"9 月 21 日前后以最高风速约 144 公里/小时袭击日本首都圈，单日降雨量超 680 毫米（约为当地 9 月整月 2 倍）。截至 9 月 26 日，千叶、神奈川两县遇难人数升至 12 人、3 人失联；千叶县印幡沼水坝决堤、约 6000 户停电、部分铁路因路基损毁需至少 3 个月修复；全日空与日航合计取消超 270 班航班，东京电玩展最后一日取消。日本防灾大臣表示将认定为重大灾害；第 26 号台风\"舒力基\"或将再次登陆本州。",
       "transmission": "灾害损毁 → 基建与住宅重建需求 → 水泥、防水、管材、工程机械订单抬升；同时日本本地汽车与半导体产线停产 → 部分订单外溢",
-      "sectors_up": ["建材(水泥/防水/管材)", "工程机械", "水利建设", "电力设备"],
-      "sectors_down": ["保险", "日本本地制造链", "旅游酒店(日本线)"],
-      "commodities": ["水泥", "钢材", "防水材料"],
+      "sectors_up": [
+        "建材(水泥/防水/管材)",
+        "工程机械",
+        "水利建设",
+        "电力设备"
+      ],
+      "sectors_down": [
+        "保险",
+        "日本本地制造链",
+        "旅游酒店(日本线)"
+      ],
+      "commodities": [
+        "水泥",
+        "钢材",
+        "防水材料"
+      ],
       "symbols_up": [
-        {"code": "600585", "name": "海螺水泥"},
-        {"code": "002271", "name": "东方雨虹"},
-        {"code": "600031", "name": "三一重工"},
-        {"code": "601669", "name": "中国电建"}
+        {
+          "code": "600585",
+          "name": "海螺水泥"
+        },
+        {
+          "code": "002271",
+          "name": "东方雨虹"
+        },
+        {
+          "code": "600031",
+          "name": "三一重工"
+        },
+        {
+          "code": "601669",
+          "name": "中国电建"
+        }
       ],
       "symbols_down": [
-        {"code": "601318", "name": "中国平安"}
+        {
+          "code": "601318",
+          "name": "中国平安"
+        }
       ],
       "decision": "重建链是\"慢变量\"：订单落地有滞后，别在第一周按情绪追；重点看日本汽车/半导体产线是否停产以及停产时长。",
       "watch": "\"舒力基\"登陆路径与二次灾损；日本汽车与半导体工厂复产时间；日本政府重建预算。",
-      "tags": ["台风", "重建", "日本供应链"],
+      "tags": [
+        "台风",
+        "重建",
+        "日本供应链"
+      ],
       "sources": [
-        {"name": "The Hindu", "region": "国外", "lang": "en", "url": "https://www.thehindu.com/news/international/flights-scrapped-evacuations-urged-as-typhoon-dujuan-wallops-japan/article71494400.ece"},
-        {"name": "Nation Thailand", "region": "国外", "lang": "en", "url": "https://www.nationthailand.com/news/general/40071330"},
-        {"name": "新华社（新浪转载）", "region": "国内", "lang": "zh", "url": "https://k.sina.com.cn/article_1699432410_654b47da02001we8o.html"},
-        {"name": "环球网（NHK 译介）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7688999570973426217/"}
+        {
+          "name": "The Hindu",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.thehindu.com/news/international/flights-scrapped-evacuations-urged-as-typhoon-dujuan-wallops-japan/article71494400.ece"
+        },
+        {
+          "name": "Nation Thailand",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.nationthailand.com/news/general/40071330"
+        },
+        {
+          "name": "新华社（新浪转载）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://k.sina.com.cn/article_1699432410_654b47da02001we8o.html"
+        },
+        {
+          "name": "环球网（NHK 译介）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7688999570973426217/"
+        }
       ]
     },
     {
@@ -634,22 +1466,59 @@
       "direction": "利多疫苗、体外诊断与防疫物资；利空刚果（金）钴/铜供应链稳定性",
       "summary": "刚果（金）埃博拉疫情持续扩大，且一架小型飞机坠毁致 13 人死亡；尼泊尔洪灾救援团队安全回国，救援体系承压；津巴布韦因基础设施失修长期面临霍乱与伤寒高发，医院仅能维持急诊。南亚与非洲多国的公共卫生与救灾能力同时吃紧。",
       "transmission": "疫情扩大 → 疫苗与检测需求上升 → 防疫链情绪催化；同时刚果（金）疫情若影响矿区 → 钴/铜供应预期趋紧",
-      "sectors_up": ["疫苗", "体外诊断", "防疫物资", "有色金属(钴/铜)"],
-      "sectors_down": ["区域旅游", "援助依赖型当地消费"],
-      "commodities": ["钴", "铜"],
+      "sectors_up": [
+        "疫苗",
+        "体外诊断",
+        "防疫物资",
+        "有色金属(钴/铜)"
+      ],
+      "sectors_down": [
+        "区域旅游",
+        "援助依赖型当地消费"
+      ],
+      "commodities": [
+        "钴",
+        "铜"
+      ],
       "symbols_up": [
-        {"code": "300122", "name": "智飞生物"},
-        {"code": "603392", "name": "万泰生物"},
-        {"code": "300244", "name": "迪安诊断"},
-        {"code": "601899", "name": "紫金矿业"}
+        {
+          "code": "300122",
+          "name": "智飞生物"
+        },
+        {
+          "code": "603392",
+          "name": "万泰生物"
+        },
+        {
+          "code": "300244",
+          "name": "迪安诊断"
+        },
+        {
+          "code": "601899",
+          "name": "紫金矿业"
+        }
       ],
       "symbols_down": [],
       "decision": "防疫链的历史规律是\"脉冲快、退潮也快\"：除非出现跨境扩散，否则只做事件窗口内的短逻辑。",
       "watch": "埃博拉是否跨境扩散；刚果（金）钴出口与物流是否受影响；WHO 是否升级预警。",
-      "tags": ["埃博拉", "防疫", "钴"],
+      "tags": [
+        "埃博拉",
+        "防疫",
+        "钴"
+      ],
       "sources": [
-        {"name": "央视新闻（国际新闻早知道）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689600761214304810/"},
-        {"name": "深圳市外办 · 全球安全风险周报", "region": "国内", "lang": "zh", "url": "https://fao.sz.gov.cn/xxgk/hwaqtx/content/post_1974880.html"}
+        {
+          "name": "央视新闻（国际新闻早知道）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689600761214304810/"
+        },
+        {
+          "name": "深圳市外办 · 全球安全风险周报",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://fao.sz.gov.cn/xxgk/hwaqtx/content/post_1974880.html"
+        }
       ]
     },
     {
@@ -662,22 +1531,54 @@
       "direction": "分化：谈判决口未关（利多风险资产），但阵营对抗加剧（利多军工/黄金）",
       "summary": "第 81 届联大一般性辩论期间，伊朗总统佩泽希齐扬称伊朗\"完全不\"想要核武器、愿在国际法框架内降低铀浓缩水平并接受核查，但不会接受以强权、制裁或军事威胁迫使其让步，并列出重开霍尔木兹海峡的条件。以色列总理称打死哈马斯财务负责人。立陶宛议会通过宪法修正案提案，拟解除禁止部署核武器与外国军事基地的条款，俄方警告将带来重大安全影响。卡塔尔首相与伊朗总统在纽约会晤，讨论缓和地区紧张局势。",
       "transmission": "谈判窗口与军事对峙并行 → 风险资产随表态反复波动 → 军工与黄金获得情绪支撑，油价随复航预期反复",
-      "sectors_up": ["军工", "黄金", "石油石化"],
-      "sectors_down": ["航空机场"],
-      "commodities": ["原油", "黄金"],
+      "sectors_up": [
+        "军工",
+        "黄金",
+        "石油石化"
+      ],
+      "sectors_down": [
+        "航空机场"
+      ],
+      "commodities": [
+        "原油",
+        "黄金"
+      ],
       "symbols_up": [
-        {"code": "600760", "name": "中航沈飞"},
-        {"code": "600547", "name": "山东黄金"}
+        {
+          "code": "600760",
+          "name": "中航沈飞"
+        },
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        }
       ],
       "symbols_down": [
-        {"code": "601111", "name": "中国国航"}
+        {
+          "code": "601111",
+          "name": "中国国航"
+        }
       ],
       "decision": "地缘政治\"表态行情\"波动最大：跟随表态做交易胜率低，建议等有实际条款或复航数据落地再动。",
       "watch": "伊朗七项条件与美方回应；复航是否落地；北约对东翼部署的正式安排。",
-      "tags": ["联大", "伊朗", "谈判"],
+      "tags": [
+        "联大",
+        "伊朗",
+        "谈判"
+      ],
       "sources": [
-        {"name": "央视新闻（国际新闻早知道）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7688858536444576271/"},
-        {"name": "重庆市公安局 · 境外安全资讯周报", "region": "国内", "lang": "zh", "url": "https://gaj.cq.gov.cn/zwgk/zfgk/gsgg/202609/t20260922_16114949.html"}
+        {
+          "name": "央视新闻（国际新闻早知道）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7688858536444576271/"
+        },
+        {
+          "name": "重庆市公安局 · 境外安全资讯周报",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://gaj.cq.gov.cn/zwgk/zfgk/gsgg/202609/t20260922_16114949.html"
+        }
       ]
     },
     {
@@ -690,20 +1591,51 @@
       "direction": "若会晤成行则利多风险偏好与欧洲能源价格回落；未成行则维持军工/能源溢价",
       "summary": "俄总统新闻秘书佩斯科夫 9 月 25 日称，俄、美、乌三方会晤可能在近期举行，但暂无具体细节；美方提议在阿联酋组织三方技术级会晤。此前短暂\"首都静默\"破裂，俄乌恢复大规模纵深互袭：基辅 9 月 25 日遭袭致 7 人死亡、46 人受伤；俄方称一夜拦截 592~645 架乌无人机，乌方打击俄军工与能源设施。",
       "transmission": "谈判预期升 → 欧洲能源风险溢价回吐；谈判落空 → 军工与炼化裂解价差维持强势",
-      "sectors_up": ["军工", "石油石化", "煤化工"],
-      "sectors_down": ["欧洲航线航空", "欧洲风险资产"],
-      "commodities": ["原油", "柴油", "天然气"],
+      "sectors_up": [
+        "军工",
+        "石油石化",
+        "煤化工"
+      ],
+      "sectors_down": [
+        "欧洲航线航空",
+        "欧洲风险资产"
+      ],
+      "commodities": [
+        "原油",
+        "柴油",
+        "天然气"
+      ],
       "symbols_up": [
-        {"code": "000768", "name": "中航西飞"},
-        {"code": "600028", "name": "中国石化"}
+        {
+          "code": "000768",
+          "name": "中航西飞"
+        },
+        {
+          "code": "600028",
+          "name": "中国石化"
+        }
       ],
       "symbols_down": [],
       "decision": "三方会晤是\"可能性\"不是\"事件\"：留意公告窗口，别提前建仓押注谈判结果。",
       "watch": "阿联酋技术级会晤是否成行；俄乌袭击强度变化；欧洲天然气库存与价格。",
-      "tags": ["俄乌", "三方会晤", "停火"],
+      "tags": [
+        "俄乌",
+        "三方会晤",
+        "停火"
+      ],
       "sources": [
-        {"name": "央视新闻（国际新闻早知道）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689600761214304810/"},
-        {"name": "Hamer Intelligence · 每日情报简报", "region": "国外", "lang": "en", "url": "https://hamerintel.com/data/briefs/2026-09-26"}
+        {
+          "name": "央视新闻（国际新闻早知道）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689600761214304810/"
+        },
+        {
+          "name": "Hamer Intelligence · 每日情报简报",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://hamerintel.com/data/briefs/2026-09-26"
+        }
       ]
     },
     {
@@ -716,20 +1648,49 @@
       "direction": "利空对伊贸易与相关能源结算链，利多能源自主与国产替代叙事",
       "summary": "美方称已警告中国，直接或间接向伊朗提供信息、零部件或军事装备\"完全不可接受\"，并称中方承诺不提供此类支持；美媒报道称有中国公司提供的卫星图像被用于伊朗对美军约旦基地的袭击。中方表示鼓励各方坚持和平解决、保持对话势头。中国是伊朗最大贸易伙伴，购买伊朗海运原油的 80% 以上。",
       "transmission": "二级制裁风险上升 → 涉伊贸易结算与航运合规成本抬升 → 能源进口来源多元化与自主可控叙事强化",
-      "sectors_up": ["能源安全", "国产替代", "军工"],
-      "sectors_down": ["涉伊贸易链", "原油进口依赖型企业"],
-      "commodities": ["原油"],
+      "sectors_up": [
+        "能源安全",
+        "国产替代",
+        "军工"
+      ],
+      "sectors_down": [
+        "涉伊贸易链",
+        "原油进口依赖型企业"
+      ],
+      "commodities": [
+        "原油"
+      ],
       "symbols_up": [
-        {"code": "601857", "name": "中国石油"},
-        {"code": "600760", "name": "中航沈飞"}
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600760",
+          "name": "中航沈飞"
+        }
       ],
       "symbols_down": [],
       "decision": "这是\"二级制裁风险\"而非\"贸易禁令\"：受影响最大的是与伊朗有实际结算与运输业务的企业，投资组合里要单独排查。",
       "watch": "美方是否对涉伊中国企业采取具体制裁；伊朗原油出口量变化。",
-      "tags": ["二级制裁", "伊朗", "能源安全"],
+      "tags": [
+        "二级制裁",
+        "伊朗",
+        "能源安全"
+      ],
       "sources": [
-        {"name": "Chosun Biz", "region": "国外", "lang": "en", "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"},
-        {"name": "新华社（中方立场）", "region": "国内", "lang": "zh", "url": "https://www.toutiao.com/article/7689600761214304810/"}
+        {
+          "name": "Chosun Biz",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://biz.chosun.com/en/en-international/2026/09/26/6SINWCXM5FAJXK2QU5FTGCBZGA"
+        },
+        {
+          "name": "新华社（中方立场）",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7689600761214304810/"
+        }
       ]
     },
     {
@@ -743,34 +1704,101 @@
       "direction": "利空对欧高耗能出口（钢铁/铝/水泥/化肥/氢），利多绿电直连、低碳认证、碳监测与能效改造",
       "summary": "欧盟碳边境调节机制(CBAM)于 2026 年 1 月 1 日结束过渡期、进入实质征税阶段，覆盖钢铁、铝、水泥、化肥、氢、电力六行业。首张证书价格 2026 年 4 月 7 日公布为 75.36 欧元/吨 CO₂e（约合人民币 580 元/吨，为中国碳价 6 倍以上）。2025 年 12 月扩容提案拟自 2028 年起将约 180 种钢铁铝下游产品（机械、汽车零部件、家电）纳入，监管从原材料延伸至全产业链。",
       "transmission": "碳成本等同 → 出口欧盟须补足与欧盟同等碳价 → 高耗能出口毛利受压；绿电直连/低碳工艺成\"碳通关密钥\"，碳监测与能效改造需求上升",
-      "sectors_up": ["绿电直连", "碳监测/核查", "能效改造", "低碳铝/钢", "资源回收"],
-      "sectors_down": ["对欧钢铁出口", "对欧铝出口", "水泥出口", "化肥出口"],
-      "commodities": ["EUA碳价", "电解铝", "钢材"],
+      "sectors_up": [
+        "绿电直连",
+        "碳监测/核查",
+        "能效改造",
+        "低碳铝/钢",
+        "资源回收"
+      ],
+      "sectors_down": [
+        "对欧钢铁出口",
+        "对欧铝出口",
+        "水泥出口",
+        "化肥出口"
+      ],
+      "commodities": [
+        "EUA碳价",
+        "电解铝",
+        "钢材"
+      ],
       "symbols_up": [
-        {"code": "002340", "name": "格林美"},
-        {"code": "300274", "name": "阳光电源"}
+        {
+          "code": "002340",
+          "name": "格林美"
+        },
+        {
+          "code": "300274",
+          "name": "阳光电源"
+        }
       ],
       "symbols_down": [
-        {"code": "600019", "name": "宝钢股份"},
-        {"code": "601600", "name": "中国铝业"}
+        {
+          "code": "600019",
+          "name": "宝钢股份"
+        },
+        {
+          "code": "601600",
+          "name": "中国铝业"
+        }
       ],
       "decision": "CBAM 不是短期事件，是 2026—2028 的确定性成本约束；出口链按\"碳成本 + 客户转移\"重估，绿电/低碳工艺是通关密钥。",
       "watch": "2027 年 CBAM 证书实际清缴；2028 年钢铝下游 180 种产品扩围；欧盟碳价走势（ING 看 83 欧、BNEF 看 149 欧/2030）。",
-      "tags": ["CBAM", "碳关税", "绿色贸易壁垒"],
+      "tags": [
+        "CBAM",
+        "碳关税",
+        "绿色贸易壁垒"
+      ],
       "sources": [
-        {"name": "Business.gov.uk · EU CBAM 指南", "region": "国外", "lang": "en", "url": "https://www.business.gov.uk/campaign/europe/european-union-eu-regulations/eu-carbon-border-adjustment-mechanism-eu-cbam/"},
-        {"name": "3Degrees · CBAM 出口商须知", "region": "国外", "lang": "en", "url": "https://3degreesinc.com/?p=41345/"},
-        {"name": "山东省商务厅 · 第三国碳价抵扣征询", "region": "国内", "lang": "zh", "url": "http://commerce.shandong.gov.cn/art/2026/6/2/art_250176_10367607.html"},
-        {"name": "腾讯/环球网 · 75.36 欧/吨碳税开征", "region": "国内", "lang": "zh", "url": "https://news.qq.com/rain/a/20260519A08CW000"}
+        {
+          "name": "Business.gov.uk · EU CBAM 指南",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.business.gov.uk/campaign/europe/european-union-eu-regulations/eu-carbon-border-adjustment-mechanism-eu-cbam/"
+        },
+        {
+          "name": "3Degrees · CBAM 出口商须知",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://3degreesinc.com/?p=41345/"
+        },
+        {
+          "name": "山东省商务厅 · 第三国碳价抵扣征询",
+          "region": "国内",
+          "lang": "zh",
+          "url": "http://commerce.shandong.gov.cn/art/2026/6/2/art_250176_10367607.html"
+        },
+        {
+          "name": "腾讯/环球网 · 75.36 欧/吨碳税开征",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://news.qq.com/rain/a/20260519A08CW000"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "Business.gov.uk", "claim": "CBAM 2026-01-01 进入实质阶段，覆盖钢铁/铝/水泥/化肥/氢/电力六行业，进口商须购证书", "url": "https://www.business.gov.uk/campaign/europe/european-union-eu-regulations/eu-carbon-border-adjustment-mechanism-eu-cbam/"},
-          {"src": "3Degrees", "claim": "首张证书 75.36 欧/吨 CO₂e，2026 按季、2027 起按周更新；数据质量劣势会被加价（2026 +10%/2028 +30%）", "url": "https://3degreesinc.com/?p=41345/"}
+          {
+            "src": "Business.gov.uk",
+            "claim": "CBAM 2026-01-01 进入实质阶段，覆盖钢铁/铝/水泥/化肥/氢/电力六行业，进口商须购证书",
+            "url": "https://www.business.gov.uk/campaign/europe/european-union-eu-regulations/eu-carbon-border-adjustment-mechanism-eu-cbam/"
+          },
+          {
+            "src": "3Degrees",
+            "claim": "首张证书 75.36 欧/吨 CO₂e，2026 按季、2027 起按周更新；数据质量劣势会被加价（2026 +10%/2028 +30%）",
+            "url": "https://3degreesinc.com/?p=41345/"
+          }
         ],
         "domestic": [
-          {"src": "山东省商务厅", "claim": "第三国碳价抵扣严苛，中国碳成本难抵，钢铁/铝/水泥/化肥直接承压", "url": "http://commerce.shandong.gov.cn/art/2026/6/2/art_250176_10367607.html"},
-          {"src": "腾讯/环球网", "claim": "75.36 欧/吨约合 580 元/吨，为中国碳价 6 倍；2028 钢铝全面征税倒计时", "url": "https://news.qq.com/rain/a/20260519A08CW000"}
+          {
+            "src": "山东省商务厅",
+            "claim": "第三国碳价抵扣严苛，中国碳成本难抵，钢铁/铝/水泥/化肥直接承压",
+            "url": "http://commerce.shandong.gov.cn/art/2026/6/2/art_250176_10367607.html"
+          },
+          {
+            "src": "腾讯/环球网",
+            "claim": "75.36 欧/吨约合 580 元/吨，为中国碳价 6 倍；2028 钢铝全面征税倒计时",
+            "url": "https://news.qq.com/rain/a/20260519A08CW000"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认 CBAM 已实质征税且成本刚性；分歧在于叙事——国内更强调\"绿色贸易壁垒\"，国外侧重合规操作细节与数据质量劣势。"
@@ -787,32 +1815,96 @@
       "direction": "分化：利多黄金/军工/欧洲防务；利空欧洲风险资产与对欧出口链情绪；间接抬升全球能源风险溢价",
       "summary": "第 81 届联大期间，法国总统马克龙进入第二任期末、无议会多数与预算空间；德国总理默茨上任 16 个月即被多家外媒称为\" borrowed time\"，极右翼 AfD 在地方选举连续领先、全国民调首次跃居第一，基民盟在柏林与梅前州得票受挫。法国极右翼勒庞领跑 2027 总统选举。能源危机被极右翼用作选举武器，德法意选举年临近，欧洲政治碎片化与欧盟一体化不确定性上升。",
       "transmission": "极右翼崛起 → 欧盟一体化与气候/产业政策不确定性 → 欧元与欧洲资产承压；能源危机被政治化放大 → 全球能源风险溢价抬升",
-      "sectors_up": ["黄金", "军工", "防务", "能源安全"],
-      "sectors_down": ["对欧出口链", "欧洲业务占比高企业", "欧元资产"],
-      "commodities": ["欧元", "天然气", "柴油"],
+      "sectors_up": [
+        "黄金",
+        "军工",
+        "防务",
+        "能源安全"
+      ],
+      "sectors_down": [
+        "对欧出口链",
+        "欧洲业务占比高企业",
+        "欧元资产"
+      ],
+      "commodities": [
+        "欧元",
+        "天然气",
+        "柴油"
+      ],
       "symbols_up": [
-        {"code": "600547", "name": "山东黄金"},
-        {"code": "600760", "name": "中航沈飞"}
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        },
+        {
+          "code": "600760",
+          "name": "中航沈飞"
+        }
       ],
       "symbols_down": [],
       "decision": "这是慢变量，不是交易信号；但对欧出口链要计入\"欧盟政策风险溢价\"，别只看汇率与需求。",
       "watch": "法国 2027 总统选举（勒庞领跑）、德国后续选举；欧盟 2028—2034 预算谈判；能源价格走势。",
-      "tags": ["欧洲政局", "极右翼", "能源危机"],
+      "tags": [
+        "欧洲政局",
+        "极右翼",
+        "能源危机"
+      ],
       "sources": [
-        {"name": "Le Monde（英文版）", "region": "国外", "lang": "en", "url": "https://www.lemonde.fr/en/opinion/article/2026/09/21/the-dead-end-of-germany-s-nationalist-retreat_6757765_23.html"},
-        {"name": "European Pulse", "region": "国外", "lang": "en", "url": "https://europeanpulse.com/europe-s-energy-squeeze-hands-far-right-parties-a-potent-election-weapon"},
-        {"name": "Invesco · 2026 全球政策展望", "region": "国外", "lang": "en", "url": "http://www.invesco.com/content/dam/invesco/apac/en/pdf/insights/2025/december/2026-global-policy-outlook.pdf"},
-        {"name": "求是网 · 德国发展困境与政治僵局", "region": "国内", "lang": "zh", "url": "https://www.qstheory.cn/20260815/f0ce37a57b28494694d148901aeb1c08/c.html"},
-        {"name": "中国日报", "region": "国内", "lang": "zh", "url": "https://cnews.chinadaily.com.cn/"}
+        {
+          "name": "Le Monde（英文版）",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.lemonde.fr/en/opinion/article/2026/09/21/the-dead-end-of-germany-s-nationalist-retreat_6757765_23.html"
+        },
+        {
+          "name": "European Pulse",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://europeanpulse.com/europe-s-energy-squeeze-hands-far-right-parties-a-potent-election-weapon"
+        },
+        {
+          "name": "Invesco · 2026 全球政策展望",
+          "region": "国外",
+          "lang": "en",
+          "url": "http://www.invesco.com/content/dam/invesco/apac/en/pdf/insights/2025/december/2026-global-policy-outlook.pdf"
+        },
+        {
+          "name": "求是网 · 德国发展困境与政治僵局",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.qstheory.cn/20260815/f0ce37a57b28494694d148901aeb1c08/c.html"
+        },
+        {
+          "name": "中国日报",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://cnews.chinadaily.com.cn/"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "Le Monde", "claim": "默茨成' borrowed time'总理，AfD 首次全国领跑，法德领导人二战后同时最弱", "url": "https://www.lemonde.fr/en/opinion/article/2026/09/21/the-dead-end-of-germany-s-nationalist-retreat_6757765_23.html"},
-          {"src": "European Pulse", "claim": "能源危机成极右翼选举武器，德法意选举年临近，政治外溢风险加大", "url": "https://europeanpulse.com/europe-s-energy-squeeze-hands-far-right-parties-a-potent-election-weapon"}
+          {
+            "src": "Le Monde",
+            "claim": "默茨成' borrowed time'总理，AfD 首次全国领跑，法德领导人二战后同时最弱",
+            "url": "https://www.lemonde.fr/en/opinion/article/2026/09/21/the-dead-end-of-germany-s-nationalist-retreat_6757765_23.html"
+          },
+          {
+            "src": "European Pulse",
+            "claim": "能源危机成极右翼选举武器，德法意选举年临近，政治外溢风险加大",
+            "url": "https://europeanpulse.com/europe-s-energy-squeeze-hands-far-right-parties-a-potent-election-weapon"
+          }
         ],
         "domestic": [
-          {"src": "求是网", "claim": "德国政府满意度跌至 12% 历史新低，选择党跃居联邦第二，执政联盟稳定性弱化", "url": "https://www.qstheory.cn/20260815/f0ce37a57b28494694d148901aeb1c08/c.html"},
-          {"src": "中国日报", "claim": "欧洲能源与政治双重不确定性上升", "url": "https://cnews.chinadaily.com.cn/"}
+          {
+            "src": "求是网",
+            "claim": "德国政府满意度跌至 12% 历史新低，选择党跃居联邦第二，执政联盟稳定性弱化",
+            "url": "https://www.qstheory.cn/20260815/f0ce37a57b28494694d148901aeb1c08/c.html"
+          },
+          {
+            "src": "中国日报",
+            "claim": "欧洲能源与政治双重不确定性上升",
+            "url": "https://cnews.chinadaily.com.cn/"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认欧洲政治碎片化与极右翼上升；国外更强调对欧盟解体的风险，国内更聚焦对华经贸影响。"
@@ -829,35 +1921,104 @@
       "direction": "利多国产算力/半导体设备/先进封装/光模块；利空对英伟达供应链单一依赖",
       "summary": "2026 年 AI 加速器市场 IDC 预估突破 3000 亿美元、年复合增长 38%。英伟达 Blackwell Ultra(GB300) 采用台积 4NP、显存带宽破 20TB/s、推理较 H100 约 5 倍；后继 Rubin 于 2026 下半年登陆、HBM4 288GB。AMD MI400(CDNA5) HBM4 432GB、Helios 机架 31TB；ROCm 7.0 接近 CUDA 持平。谷歌 TPU v7 Ironwood 通用可用。台积 CoWoS 月产能 2026 底预估超 10 万片，AI 服务器机架单价超百万美元。",
       "transmission": "算力需求爆发 → 台积 CoWoS 产能为王 → 国产替代与先进封装受益；架构战从单芯片转向机架/互联/封装",
-      "sectors_up": ["国产算力", "半导体设备", "先进封装", "光模块", "AI服务器"],
-      "sectors_down": ["英伟达单链依赖", "传统CPU算力"],
+      "sectors_up": [
+        "国产算力",
+        "半导体设备",
+        "先进封装",
+        "光模块",
+        "AI服务器"
+      ],
+      "sectors_down": [
+        "英伟达单链依赖",
+        "传统CPU算力"
+      ],
       "commodities": [],
       "symbols_up": [
-        {"code": "688256", "name": "寒武纪"},
-        {"code": "688041", "name": "海光信息"},
-        {"code": "002371", "name": "北方华创"},
-        {"code": "688981", "name": "中芯国际"},
-        {"code": "603501", "name": "韦尔股份"}
+        {
+          "code": "688256",
+          "name": "寒武纪"
+        },
+        {
+          "code": "688041",
+          "name": "海光信息"
+        },
+        {
+          "code": "002371",
+          "name": "北方华创"
+        },
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "603501",
+          "name": "韦尔股份"
+        }
       ],
       "symbols_down": [],
       "decision": "AI 芯片是\"系统级\"竞争（机架/互联/封装），不是单芯片对标；A 股主线看国产算力 + 设备 + 封装，别只盯 GPU 参数。",
       "watch": "英伟达 Rubin(2H26) 与 AMD MI350X(1Q27) 量产节奏；台积 CoWoS 产能分配；寒武纪/海光新一代流片。",
-      "tags": ["AI芯片", "算力", "先进封装"],
+      "tags": [
+        "AI芯片",
+        "算力",
+        "先进封装"
+      ],
       "sources": [
-        {"name": "techdirectory.sg · AI Chip Manufacturers 2026", "region": "国外", "lang": "en", "url": "https://techdirectory.sg/insights/ai-chip-manufacturers-2026"},
-        {"name": "US Business Times · NVIDIA vs AMD 2026", "region": "国外", "lang": "en", "url": "https://usabusinesstimes.com/nvidia-vs-amd-who-controls-the-ai-chip-race-in-2026"},
-        {"name": "DataMintelligence · AI Chip Market 2026-2035", "region": "国外", "lang": "en", "url": "https://datamintelligence.com/research-report/artificial-intelligence-chip-market"},
-        {"name": "台湾 CIO View · AI 晶片军备竞赛 2026", "region": "国内", "lang": "zh", "url": "https://www.cioview.com.tw/%e7%a7%91%e6%8a%80%e6%96%b0%e8%81%9e/ai%e6%99%b6%e7%89%87%e8%bb%8d%e5%82%99%e7%ab%9e%e8%b3%bd2026.html"},
-        {"name": "中国日报", "region": "国内", "lang": "zh", "url": "https://cnews.chinadaily.com.cn/"}
+        {
+          "name": "techdirectory.sg · AI Chip Manufacturers 2026",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://techdirectory.sg/insights/ai-chip-manufacturers-2026"
+        },
+        {
+          "name": "US Business Times · NVIDIA vs AMD 2026",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://usabusinesstimes.com/nvidia-vs-amd-who-controls-the-ai-chip-race-in-2026"
+        },
+        {
+          "name": "DataMintelligence · AI Chip Market 2026-2035",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://datamintelligence.com/research-report/artificial-intelligence-chip-market"
+        },
+        {
+          "name": "台湾 CIO View · AI 晶片军备竞赛 2026",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.cioview.com.tw/%e7%a7%91%e6%8a%80%e6%96%b0%e8%81%9e/ai%e6%99%b6%e7%89%87%e8%bb%8d%e5%82%99%e7%ab%9e%e8%b3%bd2026.html"
+        },
+        {
+          "name": "中国日报",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://cnews.chinadaily.com.cn/"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "techdirectory.sg", "claim": "英伟达 Blackwell/Rubin 主导，AMD MI400(HBM4 432GB) 追赶，谷歌 TPU v7/Ironwood 通用可用", "url": "https://techdirectory.sg/insights/ai-chip-manufacturers-2026"},
-          {"src": "US Business Times", "claim": "CUDA 护城河仍深，AMD ROCm 7.0 接近持平但仍是第二", "url": "https://usabusinesstimes.com/nvidia-vs-amd-who-controls-the-ai-chip-race-in-2026"}
+          {
+            "src": "techdirectory.sg",
+            "claim": "英伟达 Blackwell/Rubin 主导，AMD MI400(HBM4 432GB) 追赶，谷歌 TPU v7/Ironwood 通用可用",
+            "url": "https://techdirectory.sg/insights/ai-chip-manufacturers-2026"
+          },
+          {
+            "src": "US Business Times",
+            "claim": "CUDA 护城河仍深，AMD ROCm 7.0 接近持平但仍是第二",
+            "url": "https://usabusinesstimes.com/nvidia-vs-amd-who-controls-the-ai-chip-race-in-2026"
+          }
         ],
         "domestic": [
-          {"src": "台湾 CIO View", "claim": "台积 CoWoS 月产 2026 底>10 万片，AI 服务器机架单价超百万美元，台湾供应链满产", "url": "https://www.cioview.com.tw/%e7%a7%91%e6%8a%80%e6%96%b0%e8%81%9e/ai%e6%99%b7%e7%89%87%e8%bb%8d%e5%82%99%e7%ab%9e%e8%b3%bd2026.html"},
-          {"src": "中国日报", "claim": "国产算力与先进封装加速，AI 芯片成全球最热赛道", "url": "https://cnews.chinadaily.com.cn/"}
+          {
+            "src": "台湾 CIO View",
+            "claim": "台积 CoWoS 月产 2026 底>10 万片，AI 服务器机架单价超百万美元，台湾供应链满产",
+            "url": "https://www.cioview.com.tw/%e7%a7%91%e6%8a%80%e6%96%b0%e8%81%9e/ai%e6%99%b7%e7%89%87%e8%bb%8d%e5%82%99%e7%ab%9e%e8%b3%bd2026.html"
+          },
+          {
+            "src": "中国日报",
+            "claim": "国产算力与先进封装加速，AI 芯片成全球最热赛道",
+            "url": "https://cnews.chinadaily.com.cn/"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认算力需求爆发与台积产能瓶颈；分歧在\"国产替代进度\"——国外偏谨慎(系统级差距)，国内偏乐观。"
@@ -874,35 +2035,874 @@
       "direction": "利多固态电池/锂资源(硫化物)/设备与电解质；利空传统液态锂电池估值叙事与燃油车",
       "summary": "CIBF 2026（深圳，5 月）多家中国厂商宣布 500Wh/kg 级以上量产时间表：宁德时代全固态目标 2026 年底小批量装车、能量密度 500Wh/kg（液态 2.5 倍）；比亚迪硫化物路线重庆璧山 20GWh 产线 Q3 小批量、2027 小批量；国轩\"金石\"全固态 400Wh/kg、2GWh 产线推进；广汽系 GBT 720Wh/kg 目标、年底量产。行业共识：氧化物路线可复用 70% 现有产线，量产确定性高于硫化物。",
       "transmission": "能量密度 500Wh/kg → 续航 1200km+ → 高端车与 eVTOL 率先应用 → 设备/电解质/锂资源受益；2027—2028 降本至主流",
-      "sectors_up": ["固态电池", "锂资源", "电池设备", "电解质材料"],
-      "sectors_down": ["传统液态电池(边际)", "燃油车链"],
-      "commodities": ["锂", "硫化物电解质", "固态电解质"],
+      "sectors_up": [
+        "固态电池",
+        "锂资源",
+        "电池设备",
+        "电解质材料"
+      ],
+      "sectors_down": [
+        "传统液态电池(边际)",
+        "燃油车链"
+      ],
+      "commodities": [
+        "锂",
+        "硫化物电解质",
+        "固态电解质"
+      ],
       "symbols_up": [
-        {"code": "300750", "name": "宁德时代"},
-        {"code": "002594", "name": "比亚迪"},
-        {"code": "002074", "name": "国轩高科"},
-        {"code": "002460", "name": "赣锋锂业"},
-        {"code": "300073", "name": "当升科技"}
+        {
+          "code": "300750",
+          "name": "宁德时代"
+        },
+        {
+          "code": "002594",
+          "name": "比亚迪"
+        },
+        {
+          "code": "002074",
+          "name": "国轩高科"
+        },
+        {
+          "code": "002460",
+          "name": "赣锋锂业"
+        },
+        {
+          "code": "300073",
+          "name": "当升科技"
+        }
       ],
       "symbols_down": [],
       "decision": "固态是\"量产确定性\"战胜\"理论天花板\"（氧化物复用 70% 产线）；但装车≠跑通，看 2026 底小批量与良率。",
       "watch": "宁德/比亚迪 Q3 量产线投产；2026 底小批量装车；中科院 LLZO 良率(89.3%) 与界面衰减。",
-      "tags": ["固态电池", "量产元年", "锂"],
+      "tags": [
+        "固态电池",
+        "量产元年",
+        "锂"
+      ],
       "sources": [
-        {"name": "iEVChina · Solid-State Battery Revolution 2026", "region": "国外", "lang": "en", "url": "https://ievchina.com/?p=1750/"},
-        {"name": "中国日报", "region": "国内", "lang": "zh", "url": "https://cnews.chinadaily.com.cn/a/202608/24/WS6a8c0b4345ce1aabf7a9380c.html"},
-        {"name": "产业观察 · 2026 固态电池量产元年", "region": "国内", "lang": "zh", "url": "https://ima.qq.com/wiki/?shareId=bd96f51fc1a96ddcfce41a0426046d06352f5f68bf8cd7906e3f1bb13a17c190"}
+        {
+          "name": "iEVChina · Solid-State Battery Revolution 2026",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://ievchina.com/?p=1750/"
+        },
+        {
+          "name": "中国日报",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://cnews.chinadaily.com.cn/a/202608/24/WS6a8c0b4345ce1aabf7a9380c.html"
+        },
+        {
+          "name": "产业观察 · 2026 固态电池量产元年",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://ima.qq.com/wiki/?shareId=bd96f51fc1a96ddcfce41a0426046d06352f5f68bf8cd7906e3f1bb13a17c190"
+        }
       ],
       "cross_check": {
         "foreign": [
-          {"src": "iEVChina", "claim": "CIBF2026 多家中国厂商宣布 500+Wh/kg 量产，CATL/BYD Q3 2026，GBT 720Wh/kg 目标", "url": "https://ievchina.com/?p=1750/"}
+          {
+            "src": "iEVChina",
+            "claim": "CIBF2026 多家中国厂商宣布 500+Wh/kg 量产，CATL/BYD Q3 2026，GBT 720Wh/kg 目标",
+            "url": "https://ievchina.com/?p=1750/"
+          }
         ],
         "domestic": [
-          {"src": "中国日报", "claim": "国轩'金石'400Wh/kg、比亚迪硫化物通过车规、2026 固态钠电商业化拐点", "url": "https://cnews.chinadaily.com.cn/a/202608/24/WS6a8c0b4345ce1aabf7a9380c.html"},
-          {"src": "产业观察", "claim": "宁德 500Wh/kg 小批量、比亚迪 2027 小批量，氧化物路线产线兼容度 70%", "url": "https://ima.qq.com/wiki/?shareId=bd96f51fc1a96ddcfce41a0426046d06352f5f68bf8cd7906e3f1bb13a17c190"}
+          {
+            "src": "中国日报",
+            "claim": "国轩'金石'400Wh/kg、比亚迪硫化物通过车规、2026 固态钠电商业化拐点",
+            "url": "https://cnews.chinadaily.com.cn/a/202608/24/WS6a8c0b4345ce1aabf7a9380c.html"
+          },
+          {
+            "src": "产业观察",
+            "claim": "宁德 500Wh/kg 小批量、比亚迪 2027 小批量，氧化物路线产线兼容度 70%",
+            "url": "https://ima.qq.com/wiki/?shareId=bd96f51fc1a96ddcfce41a0426046d06352f5f68bf8cd7906e3f1bb13a17c190"
+          }
         ],
         "verdict": "一致",
         "note": "国内外均确认 2026 为量产元年、能量密度跃升；分歧在\"全固态 vs 半固态\"界定与量产节奏，国内口径更激进。"
+      }
+    },
+    {
+      "eid": "geo-20261017-meast-oil",
+      "title": "中东油价重返110：美伊持续僵持 + 美国会拟制裁俄柴油出口",
+      "category": "geopolitics",
+      "event_date": "2026-10-17",
+      "intensity": 5,
+      "certainty": 0.82,
+      "direction": "利多油气上游/油运/煤炭/黄金/军工，利空航空机场、下游化工、高油耗交运",
+      "summary": "美伊就霍尔木兹海峡仍「边打边谈」，海峡通行未完全恢复；10月17日美国国会两党议员提出议案拟撤销俄柴油相关许可并实施新制裁，布伦特自5月以来首次突破110美元。此前G7已宣布释放至多1亿桶战略储备、中东原油出口恢复至战前约90%，但成品油炼化修复仅约60%，柴油价格创新高。",
+      "transmission": "地缘风险溢价抬升 → 原油/成品油价格上行 → 上游油气与油服盈利上修、下游炼化与航运燃油成本抬升 → 出行链与化工承压；避险资金推升黄金与美元。",
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "油运(LNG/VLCC)",
+        "煤炭",
+        "黄金",
+        "军工"
+      ],
+      "sectors_down": [
+        "航空机场",
+        "物流快递",
+        "下游化工",
+        "旅游酒店"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "柴油",
+        "VLCC运价",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600938",
+          "name": "中国海油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        },
+        {
+          "code": "601872",
+          "name": "招商轮船"
+        },
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601111",
+          "name": "中国国航"
+        },
+        {
+          "code": "600029",
+          "name": "南方航空"
+        },
+        {
+          "code": "600233",
+          "name": "圆通速递"
+        }
+      ],
+      "decision": "主攻油气上游 + 油运（运价弹性最大）；黄金作对冲。海峡复航与俄柴油制裁落地是双向风险，设移动止盈。",
+      "watch": "美伊是否落地技术性复航框架；美国会对俄柴油制裁议案进展；Brent 能否守住 105 美元上方。",
+      "tags": [
+        "海峡",
+        "原油",
+        "能源安全",
+        "制裁"
+      ],
+      "sources": [
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261014-fed-hike",
+      "title": "美联储加息预期反复：10-14 美国 CPI 升温，10-29 议息成全球风险资产焦点",
+      "category": "macro",
+      "event_date": "2026-10-14",
+      "intensity": 4,
+      "certainty": 0.7,
+      "direction": "利空高估值成长（科创/港股创新药/AI硬件），利多红利/银行/公用事业/黄金等防御与久期稳健资产",
+      "summary": "北京时间10月14日晚美国公布9月CPI偏热，市场对美联储10月加息预期显著升温；美联储主席沃什表态不预判议息结果，但10月加息押注仍一度维持。长端美债收益率走高，10年期重上5.12%。美联储将于北京时间10月29日凌晨公布10月利率决议。机构普遍认为外部冲击更多体现为短期情绪扰动，不改变A股中长期趋势。",
+      "transmission": "美无风险利率上行 → 人民币汇率与跨境资金短期承压、全球长久期资产估值受抑 → A股高估值成长波动放大；国内货币政策「以我为主」对冲，红利与防御底仓相对占优。",
+      "sectors_up": [
+        "银行",
+        "公用事业",
+        "红利低波",
+        "黄金",
+        "煤炭"
+      ],
+      "sectors_down": [
+        "半导体",
+        "AI算力硬件",
+        "创新药",
+        "科创板高估值"
+      ],
+      "commodities": [
+        "美债10Y收益率",
+        "美元指数",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "601398",
+          "name": "工商银行"
+        },
+        {
+          "code": "600900",
+          "name": "长江电力"
+        },
+        {
+          "code": "601988",
+          "name": "中国银行"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "002230",
+          "name": "科大讯飞"
+        }
+      ],
+      "decision": "加息窗口期维持中性偏防御，底仓配银行/公用事业/红利；科技成长等10-29议息落地、长端利率回落后右侧布局。",
+      "watch": "10-29 FOMC 结果与点阵图；10Y美债是否守住5.0%~5.3%区间；美元指数与北向资金流向。",
+      "tags": [
+        "美联储",
+        "加息",
+        "美债",
+        "流动性"
+      ],
+      "sources": [
+        {
+          "name": "证券日报：外部扰动不改A股中长期运行趋势",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://stock.eastmoney.com/news/1699,202610173898788670.html"
+        },
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20260929-uschina",
+      "title": "9月底中美高层会晤达成八项共识，关税博弈降温、聚焦科技金融",
+      "category": "trade",
+      "event_date": "2026-09-29",
+      "intensity": 3,
+      "certainty": 0.72,
+      "direction": "中期利多风险偏好、出口链与科技成长；关税降温缓释外部摩擦",
+      "summary": "9月底中美高层会晤后，双方在中美经贸关系上更多聚焦科技金融，关税贸易博弈降温；会晤达成八项共识，成果较5月更多。中美并公布各约300亿美元「对等」降税清单。机构认为会晤利好中美风偏回升，科技叙事从上游资本开支转向下游应用、中国科技从海外算力映射转向国产替代与新技术。",
+      "transmission": "外部摩擦缓释 → 全球风险偏好回升、美元走弱 → 出口链与科技成长估值修复；中美科技金融合作预期抬升国产替代与AI应用主线。",
+      "sectors_up": [
+        "半导体",
+        "AI应用",
+        "消费电子",
+        "出口链",
+        "通信"
+      ],
+      "sectors_down": [
+        "避险黄金(相对)"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "002230",
+          "name": "科大讯飞"
+        },
+        {
+          "code": "000725",
+          "name": "京东方A"
+        }
+      ],
+      "symbols_down": [],
+      "decision": "作为10月科技换主线的外部底色，逢回调布局国产替代与AI应用；关税清单受益细分需逐条核对。",
+      "watch": "对等降税清单细则落地行业；科技金融合作具体举措；后续谈判是否反复。",
+      "tags": [
+        "中美",
+        "关税",
+        "科技金融",
+        "风险偏好"
+      ],
+      "sources": [
+        {
+          "name": "中信建投：10月宏观及资产配置·科技换主线",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://finance.sina.com.cn/wm/2026-09-29/doc-initmuyi8028585.shtml"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261017-tech-export",
+      "title": "商务部/科技部拟对 AI、生物医药、光伏三领域40项技术实施出口管制",
+      "category": "tech",
+      "event_date": "2026-10-17",
+      "intensity": 3,
+      "certainty": 0.8,
+      "direction": "利多半导体设备/工业软件/AI软硬件国产替代，利空依赖海外市场的光伏出口链",
+      "summary": "10月17日国常会同日，商务部、科技部拟对人工智能、生物医药、光伏三个领域共40项技术实施出口管制，其中禁止出口14项、限制出口26项，并同步实施出口前登记管理。该举措强化自主可控与国产替代逻辑，同时对光伏等出口依赖领域构成情绪与订单扰动。",
+      "transmission": "管制升级 → 国产替代急迫性提升 → 半导体设备/工业软件/AI基础软件需求与政策溢价上升；光伏出口链面临海外准入与订单不确定性。",
+      "sectors_up": [
+        "半导体设备",
+        "工业软件",
+        "国产AI软件",
+        "信创"
+      ],
+      "sectors_down": [
+        "光伏组件(出口)",
+        "海外收入占比高制造"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "002371",
+          "name": "北方华创"
+        },
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "600584",
+          "name": "长电科技"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601012",
+          "name": "隆基绿能"
+        },
+        {
+          "code": "600438",
+          "name": "通威股份"
+        }
+      ],
+      "decision": "沿国产替代主线布局设备/软件，规避出口敞口大的光伏标的；关注清单正式稿与豁免条款。",
+      "watch": "40项技术正式清单与生效时间；是否有豁免/过渡期；光伏海外订单实际影响。",
+      "tags": [
+        "出口管制",
+        "国产替代",
+        "半导体",
+        "光伏"
+      ],
+      "sources": [
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261017-semi-selloff",
+      "title": "费城半导体指数八连跌创2008来最长纪录，AI资本开支回报疑虑外溢至A股",
+      "category": "tech",
+      "event_date": "2026-10-17",
+      "intensity": 4,
+      "certainty": 0.68,
+      "direction": "短期利空A股AI算力/半导体情绪（外溢），但国产存储与自主可控逻辑分化走强",
+      "summary": "10月17日费城半导体指数连跌八个交易日、创2008年金融危机以来最长连跌，八个交易日蒸发市值约2万亿美元；CoreWeave债务承压暴露AI资本开支回报疑虑。同日韩国Kospi因三星电子、SK海力士供给担忧暴跌超7%。A股节后科技成长已回调约10%，科创与港股创新药等利率敏感方向领跌，但国产替代与存储突破形成分化。",
+      "transmission": "美股科技回撤 + 韩国存储杀跌 → 全球AI交易情绪降温 → A股算力硬件/半导体短期承压；但长鑫等国产突破与出口管制强化自主可控，结构分化。",
+      "sectors_up": [
+        "国产存储",
+        "半导体材料(分化)",
+        "自主可控"
+      ],
+      "sectors_down": [
+        "AI算力硬件",
+        "光模块",
+        "消费电子(情绪)",
+        "半导体(短线)"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "603986",
+          "name": "兆易创新"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "300502",
+          "name": "新易盛"
+        },
+        {
+          "code": "002475",
+          "name": "立讯精密"
+        }
+      ],
+      "decision": "不追高算力硬件，等美股半导体企稳、长端利率回落后右侧；重点看国产存储/材料的独立逻辑。",
+      "watch": "费半能否止跌、纳指企稳；三星/SK海力士供给表态；国内三季报AI链业绩兑现度。",
+      "tags": [
+        "半导体",
+        "AI资本开支",
+        "费半",
+        "情绪外溢"
+      ],
+      "sources": [
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        },
+        {
+          "name": "SCMP：China/HK stocks fall as US inflation spurs Fed concerns",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.scmp.com/business/china-business/article/3370932/mainland-china-hong-kong-stocks-fall-us-inflation-spurs-fed-tightening-concerns"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261017-cxmt",
+      "title": "长鑫科技前三季度净利超1300亿扭亏，年底推高密存储新品挑战韩厂",
+      "category": "tech",
+      "event_date": "2026-10-17",
+      "intensity": 3,
+      "certainty": 0.85,
+      "direction": "利多国产存储/半导体材料与设备，强化自主可控主线",
+      "summary": "长鑫科技（CXMT）前三季度净利润超1300亿元、同比扭亏为盈，拟最高20亿元回购股票；并称年底将推出存储密度更高的新产品，技术上挑战三星、SK海力士的垄断地位。在费半连跌、韩厂供给担忧背景下，国产存储突破成为A股半导体结构分化的正向变量。",
+      "transmission": "国产存储技术突破 → 份额与定价权提升预期 → 存储链（设计/封测/材料/设备）盈利与估值上修；对冲海外存储杀跌的外溢。",
+      "sectors_up": [
+        "国产存储",
+        "半导体封测",
+        "半导体材料",
+        "半导体设备"
+      ],
+      "sectors_down": [],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "600584",
+          "name": "长电科技"
+        },
+        {
+          "code": "603986",
+          "name": "兆易创新"
+        }
+      ],
+      "symbols_down": [],
+      "decision": "作为半导体自主可控核心正向催化，沿存储链逢回调布局；以长鑫新品量产节奏为跟踪锚。",
+      "watch": "长鑫年底新品量产与良率；韩厂价格战反应；国产存储订单与产能爬坡。",
+      "tags": [
+        "长鑫",
+        "国产存储",
+        "半导体",
+        "自主可控"
+      ],
+      "sources": [
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261017-aiplus",
+      "title": "国常会部署深化拓展「人工智能+」行动，以落地应用牵引技术创新",
+      "category": "tech",
+      "event_date": "2026-10-17",
+      "intensity": 3,
+      "certainty": 0.8,
+      "direction": "利多AI应用/算力基建/数据要素，政策确定性强化科技主线",
+      "summary": "10月17日国常会部署深化拓展「人工智能+」行动，要求以落地应用牵引技术创新；会议同时原则通过价格法修正草案、明确治理低价无序竞争。政策定调为AI从主题走向落地应用提供确定性，与中美科技聚焦应用、国内科技换主线形成共振。",
+      "transmission": "顶层政策定调 → 应用场景与算力基建需求预期抬升 → AI应用/算力/数据要素估值与订单预期改善；治理低价竞争利好行业格局出清。",
+      "sectors_up": [
+        "AI应用",
+        "算力基建",
+        "数据要素",
+        "工业软件"
+      ],
+      "sectors_down": [],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "002230",
+          "name": "科大讯飞"
+        },
+        {
+          "code": "601360",
+          "name": "三六零"
+        },
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        }
+      ],
+      "symbols_down": [],
+      "decision": "沿「AI+落地应用」选业绩能见度高的细分，规避纯题材；结合三季报验证。",
+      "watch": "「人工智能+」具体行动方案与财政/产业配套；首批示范行业与项目落地。",
+      "tags": [
+        "人工智能+",
+        "国常会",
+        "AI应用",
+        "政策"
+      ],
+      "sources": [
+        {
+          "name": "华尔街见闻早餐FM-Radio 2026-10-17",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://new.qq.com/rain/a/20261017A032N300"
+        }
+      ]
+    },
+    {
+      "eid": "geo-20261022-saudi-attack",
+      "title": "沙特Shaybah油田遭致命无人机袭击+达曼机场遇袭，美撤离驻沙非紧急人员，油价再冲112",
+      "category": "geopolitics",
+      "event_date": "2026-10-22",
+      "intensity": 5,
+      "certainty": 0.85,
+      "direction": "利多油气上游/油运/煤炭/黄金/军工，利空航空机场、下游化工、高油耗交运；柴油与成品油运输受限延续",
+      "summary": "10月21日沙特东部省谢拜(Shaybah)油田（沙特阿美，约100万桶/日Arab Light产能，位于空旷区）遭无人机袭击，拦截碎片坠落致2死2伤，生产运营未受影响；22日凌晨达曼法赫德国王国际机场遭袭致1死8伤；美国国务院21日下令驻沙特非紧急人员及家属撤离（胡塞袭击频次上升、波及民用机场与关键基建）。伊朗加大霍尔木兹航运袭船力度，以色列战机19—20日编队逼近伊朗边境（以方称威慑演习、美方忧其诱使开火），美以据报拟中期选举后再次打击伊朗。布伦特10月22日盘中冲至112美元、WTI逼近100美元；Brent年初至今累涨约80%。高盛估计Brent内含约25美元风险溢价。成品油（柴油/航煤）运输仍受限，乌克兰对俄炼厂袭击升级叠加推高柴油。",
+      "transmission": "中东设施遇袭 + 美撤离人员 + 以军压境 → 供应风险溢价再升 → 上游油气/油服盈利上修、下游炼化与航运燃油成本抬升 → 避险推升黄金；复航/外交进展为反向风险",
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "油运(LNG/VLCC)",
+        "煤炭",
+        "黄金",
+        "军工"
+      ],
+      "sectors_down": [
+        "航空机场",
+        "物流快递",
+        "下游化工",
+        "旅游酒店"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "柴油",
+        "VLCC运价",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600938",
+          "name": "中国海油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        },
+        {
+          "code": "601872",
+          "name": "招商轮船"
+        },
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601111",
+          "name": "中国国航"
+        },
+        {
+          "code": "600029",
+          "name": "南方航空"
+        },
+        {
+          "code": "600233",
+          "name": "圆通速递"
+        }
+      ],
+      "decision": "与10-17中东油价事件同源但新增'沙特本土设施遭致命袭击+美撤离人员'，风险溢价从'海峡'扩至'沙特本土安全'；主攻油气上游+油运，黄金对冲。复航与美以打击节奏是双向风险，设移动止盈。",
+      "watch": "沙特油田/机场后续袭击频次；胡塞是否扩大对沙特基础设施袭击；美以中期选举后是否对伊动武；Brent能否守住110美元上方",
+      "tags": [
+        "沙特",
+        "油田袭击",
+        "原油",
+        "能源安全",
+        "中东"
+      ],
+      "sources": [
+        {
+          "name": "中国基金报/网易 · 原油又暴涨了",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.163.com/dy/article/L9S4HP2805568W0A.html"
+        },
+        {
+          "name": "财联社/今日头条 · 沙特达曼机场及东部油田遭袭 美要求非紧急人员撤离",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7699268267881333248"
+        },
+        {
+          "name": "中财网 · 原油期货价格上涨 沙特遭遇致命袭击",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.cfi.net.cn/p20261022000169.html"
+        },
+        {
+          "name": "Gulf News · US-Israel-Iran war: Blasts near Hormuz, oil prices rise",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://gulfnews.com/uae/us-israel-iran-war-blasts-near-hormuz-oil-prices-rise-flights-disrupted-trump-declares-no-negotiations-with-iran-1.500719353"
+        },
+        {
+          "name": "BERNAMA-Anadolu · Oil Prices Rise Over Two Pct after Attack On Saudi Oil Field",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://bernama.com/misc/rss/news.php?id=2624124"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Gulf News",
+            "claim": "Shaybah油田遭拦截(碎片2死)、达曼机场遇袭1死；Brent 10-22盘中111.3美元、WTI 99.11；美下令撤离人员、拟中期选举后打击伊朗",
+            "url": "https://gulfnews.com/uae/us-israel-iran-war-blasts-near-hormuz-oil-prices-rise-flights-disrupted-trump-declares-no-negotiations-with-iran-1.500719353"
+          },
+          {
+            "src": "BERNAMA-Anadolu",
+            "claim": "Brent 111.40美元(+2.4%)、WTI 99.30美元(+2.22%)，袭击致2死，美撤离驻沙外交人员",
+            "url": "https://bernama.com/misc/rss/news.php?id=2624124"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "中国基金报/网易",
+            "claim": "Shaybah油田遇袭2死、运营未受影响；达曼机场遇袭1死；美撤离人员；Brent冲112、WTI逼100",
+            "url": "https://www.163.com/dy/article/L9S4HP2805568W0A.html"
+          },
+          {
+            "src": "财联社/今日头条",
+            "claim": "沙特东部油田无人机袭击碎片坠2死2伤、达曼机场1死8伤；美要求非紧急人员撤离沙特",
+            "url": "https://www.toutiao.com/article/7699268267881333248"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认Shaybah油田遇袭致死+美撤离人员+油价破110；国外强调霍尔木兹/胡塞背景与风险溢价，国内侧重事件时间线与A股影响。"
+      }
+    },
+    {
+      "eid": "geo-20261021-france-crisis",
+      "title": "法国股债双杀：10Y法债收益率破5%(2002年来首次)，法德利差扩至欧债危机级，穆迪23日重评主权评级",
+      "category": "politics",
+      "event_date": "2026-10-21",
+      "intensity": 4,
+      "certainty": 0.82,
+      "direction": "利多黄金/军工(避险)与欧元区防御资产，利空欧洲风险资产与对欧出口链情绪；欧元走弱间接抬升美元与全球无风险利率",
+      "summary": "法国10年期国债收益率10月21日盘中突破5.00%至5.005%（2002年以来首次），法德10Y利差扩至约157bp、为2011年欧债危机以来最高；CAC40年内明显落后（截至10-19 CAC40年内-3.45% vs DAX +3.39%、FTSE100 +8.39%）。法国公共债务占GDP约119%(Q2)，赤字率仍>5%；2027年预算案须12月17日前议会通过，各派分歧大、总统选举临近令过关存疑。惠誉警告财政整顿愈益艰难、评级展望面临下调；穆迪将于10月23日重评法国主权评级（现Aa3/负面）。17日全国约55万—80万人示威、多地骚乱与约3000家商铺遭劫，巴黎等实施局部宵禁。能源价格上涨+融资需求+货币趋紧共同推升借贷成本。",
+      "transmission": "债务/赤字高企 + 政治不稳 → 法债遭抛售、收益率破5% → 法德利差走阔、欧元承压 → 欧洲风险资产估值受压、对欧出口链情绪降温；避险资金流向黄金",
+      "sectors_up": [
+        "黄金",
+        "军工",
+        "防务",
+        "能源安全"
+      ],
+      "sectors_down": [
+        "对欧出口链",
+        "欧洲业务占比高企业",
+        "欧元资产",
+        "银行(欧系)"
+      ],
+      "commodities": [
+        "欧元",
+        "法国OAT国债收益率",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        },
+        {
+          "code": "600760",
+          "name": "中航沈飞"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "600019",
+          "name": "宝钢股份"
+        }
+      ],
+      "decision": "这是9-21欧洲政坛右转事件的'兑现版'：从政治叙事转为实际股债双杀。对欧出口链计入'欧盟政策+金融双重风险溢价'；黄金作对冲。关注10-23穆迪评级与12-17预算投票。",
+      "watch": "10-23穆迪是否下调法国评级；12-17预算案议会投票结果；法德利差与10Y法债能否回落至4.8%下方；法国社会骚乱是否再升级",
+      "tags": [
+        "法国",
+        "欧债",
+        "政治危机",
+        "避险",
+        "欧元"
+      ],
+      "sources": [
+        {
+          "name": "新华社/今日头条 · 法国10年期国债收益率创24年来新高",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7699106455462396450/"
+        },
+        {
+          "name": "同花顺 · 法国,股债双杀",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://news.10jqka.com.cn/20261020/c680880765.shtml"
+        },
+        {
+          "name": "搜狐 · 法国,股债双杀",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.sohu.com/a/1090255152_120988576"
+        },
+        {
+          "name": "Quintet Private Bank · France: why markets are growing uneasy",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.quintet.com/en-gb/market-updates/france-why-markets-are-growing-uneasy"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Quintet Private Bank",
+            "claim": "CAC40自9月-5.6%落后STOXX600；10Y法债达5%(2002来最高)、较德债高约1.5%；债务约120%GDP、赤字>5%、12-17前预算须过会",
+            "url": "https://www.quintet.com/en-gb/market-updates/france-why-markets-are-growing-uneasy"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "新华社/今日头条",
+            "claim": "10Y法债盘中破5%(2002来首次)，法德利差约157bp(2011欧债危机来最高)，债务119%GDP，穆迪10-23重评",
+            "url": "https://www.toutiao.com/article/7699106455462396450/"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认法债收益率破5%与财政/政治双重脆弱；国外更强调债务可持续性与选举风险，国内更聚焦社会骚乱与评级重评时点。"
+      }
+    },
+    {
+      "eid": "geo-20261021-tw-chip",
+      "title": "台湾拟进一步收紧AI芯片及先进半导体对大陆出口管制，国台办回应'封锁围堵压不住进步'",
+      "category": "tech",
+      "event_date": "2026-10-21",
+      "intensity": 3,
+      "certainty": 0.78,
+      "direction": "利多国产算力/半导体设备/先进封装/AI服务器，利空依赖台系供应链的组装与代工情绪；长期强化自主可控主线",
+      "summary": "台经济主管部门负责人龚明鑫近期接受彭博专访称，台湾拟将AI服务器与尖端半导体纳入出口管制清单，进一步与美国限制措施保持一致（援引'台美对等贸易协定'ART承诺），新制上路后向大陆运送受限AI硬件将依'贸易法'追究刑责，但未透露实施时程；10月21日国台办例行发布会回应称民进党当局'对美亦步亦趋'、坑害台湾产业界与民众，强调大陆科技自立自强、外部封锁围堵压不住进步。此前10月17日商务部/科技部已拟对AI、生物医药、光伏三领域40项技术实施出口管制（禁止14项/限制26项）。",
+      "transmission": "台系管制升级预期 → 国产替代急迫性再升 → 半导体设备/工业软件/AI基础软件与算力链需求与政策溢价上行；同时台系代工与供应链不确定性扰动部分组装环节情绪",
+      "sectors_up": [
+        "半导体设备",
+        "国产算力",
+        "先进封装",
+        "工业软件",
+        "AI服务器"
+      ],
+      "sectors_down": [
+        "台系供应链代工(情绪)",
+        "消费电子(情绪)"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "002371",
+          "name": "北方华创"
+        },
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "688256",
+          "name": "寒武纪"
+        },
+        {
+          "code": "603019",
+          "name": "中科曙光"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "002475",
+          "name": "立讯精密"
+        }
+      ],
+      "decision": "延续10-17科技出口管制主线：国产替代确定性再强化，沿设备/算力/封装布局；对台系代工敞口大的标的短期情绪承压，但基本面看国产替代兑现度。",
+      "watch": "台湾新管制清单是否正式公告与生效时间；美对华AI芯片管制是否进一步协同收紧；国产算力/设备招标份额变化",
+      "tags": [
+        "台湾",
+        "出口管制",
+        "AI芯片",
+        "半导体",
+        "国产替代"
+      ],
+      "sources": [
+        {
+          "name": "澎湃新闻 · 台湾经济主管部门负责人称会配合美国政策...",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.thepaper.cn/newsDetail_forward_34299417?commTag=true"
+        },
+        {
+          "name": "今日头条/政知新媒体 · 龚明鑫称会配合美国...",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7698989508213998106/"
+        },
+        {
+          "name": "中央社(CNA) · 彭博专访 龚明鑫:台湾准备对中国紧缩AI晶片出口管制",
+          "region": "国外",
+          "lang": "zh",
+          "url": "https://www.cna.com.tw/news/afe/202610163006.aspx"
+        },
+        {
+          "name": "The Straits Times · Taiwan to curb AI chip exports to China as part of US trade deal",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.straitstimes.com/asia/east-asia/taiwan-to-curb-ai-chip-exports-to-china-as-part-of-us-trade-deal"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "中央社(CNA)/Bloomberg",
+            "claim": "龚明鑫10-12彭博专访，拟将AI服务器与尖端半导体纳入管制，依贸易法究刑责，与美ART承诺一致，时程未定",
+            "url": "https://www.cna.com.tw/news/afe/202610163006.aspx"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "澎湃新闻/国台办",
+            "claim": "龚明鑫称配合美国进一步限制AI芯片及先进半导体出口大陆，国台办10-21回应'封锁围堵压不住进步'",
+            "url": "https://www.thepaper.cn/newsDetail_forward_34299417?commTag=true"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认台湾拟跟进美国收紧对大陆AI芯片/先进半导体管制；国外聚焦法律工具与走私背景，国内侧重国台办政治回应与产业影响。"
       }
     }
   ]

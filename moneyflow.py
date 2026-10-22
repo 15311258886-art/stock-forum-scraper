@@ -203,6 +203,11 @@ def stock(symbol: str, force: bool = False) -> dict:
         return dict(payload)
     last = rows[-1]
     last_date = last.get("date")
+    # P3-22 说明（注释即可，不改逻辑）：个股资金流的「按交易日归一」由 fflow 每根 K 自带的
+    # date 保证——recent 序列里每一根都用它自己的 trade_date，不存在跨交易日错位，也不会把
+    # 上一交易日的累计值当成本日。is_intraday 只在「last_date 确为本机交易日且处于连续竞价时段」
+    # 时为真，区分「今日盘中累计(f62)」与「上一交易日日终值」，避免把 T-1 日终值错标成本日盘中值
+    # （即所谓「差一个交易日」的错位）。本机时钟须为 CST；非 CST 环境用 timeutil 校正（见 P2-06）。
     # 盘中（交易日 + 连续竞价时段）里 fflow 最后一根 = 今日盘中累计 → is_intraday=True；
     # 其余情况（盘后/隔日）= 该交易日的日终值 → is_intraday=False，但仍如实给出 data_date。
     is_intraday = bool(last_date == time.strftime("%Y-%m-%d") and _is_trading_time())

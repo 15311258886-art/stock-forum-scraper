@@ -21,29 +21,36 @@ const TABS = [
   ['watch', 'watch_brief', '今日提示', ['.td-sym'], null],
   ['overview', 'summary', '汇总', ['.kline-chip[data-sym]', '.wt-sym[data-wt-open]'], null],
   ['overview', 'prediction', '每日预测', ['.kline-chip[data-sym]'], null],
+  // 2026-10-15 新增：博主共振（内置四支柱：个股共振/战法体系/信源画像/自我提升）
+  ['overview', 'resonance', '博主共振', ['.res-card', '.res-sc-h', '.res-kb-item'], null],
   ['money', 'lhb', '游资龙虎榜', ['.kline-chip[data-sym]'], null],
   ['money', 'lhb_sectors', '板块动向', ['.ol-chip', '.bf-bn[data-bf-open]'], null],
   ['money', 'stocks', '当前讨论股票', ['.stk-card[data-sym]'], null],
   ['money', 'sentiment', '舆论情绪', ['.stk-card[data-sym]'], null],
   ['money', 'moneyflow', '资金流向', ['.bf-bn[data-bf-open]', '.bf-mem[data-wt-open]'], null],
+  // 2026-10-15 补：龙头全景（P2-1 从一级分类折叠进「钱往哪走」，此前漏在 TABS 外）
+  ['money', 'industry-leaders', '龙头全景', ['.il-row', 'tr[data-sym]'], null],
   ['info', 'topics', '近期热点', ['.stk-mini[data-sym]', '.stk[data-sym]'], null],
+  // 2026-10-15 P2-1 已把 全球政策雷达/科技前沿突破 合并进「国际局势」子导航、
+  // 国外驱动热点 合并进「海外舆情」子导航 —— TABS 里的旧三条已删（否则跑到空白面板误报）
   ['info', 'geo_events', '国际局势', [], null],
-  ['info', 'geo_policy', '全球政策雷达', [], null],
-  ['info', 'geo_tech', '科技前沿突破', [], null],
-  ['info', 'overseas_sentiment', '美股港股舆情', ['[data-ov-sym]'], null],
-  ['info', 'overseas_hotspots', '国外驱动热点', ['.stk[data-hp-sym]'], null],
+  ['info', 'overseas_sentiment', '海外舆情', ['[data-ov-sym]'], null],
   ['info', 'policy', '政策风向', ['.pol-stk', '.pol-item'], null],
   ['info', 'news', '个股快讯公告', ['.wt-sym[data-wt-open]'], null],
+  // 2026-10-15 补：市场情绪（B站视频语「情绪/大势」堆，此前漏在 TABS 外）
+  ['info', 'bili_sentiment', '市场情绪', ['.bl-item', '.bp-item', '.stk[data-sym]'], null],
   ['players', 'players', '选手与渠道', ['tr[data-sym]', '.stk[data-sym]'], null],
   ['players', 'operating', '正在操作股票', ['.stk[data-sym]'], null],
   ['players', 'niusan', '牛散追踪', ['.stk[data-sym]'], null],
   ['players', 'consensus', '共同持仓共识', ['tr[data-sym]'], null],
   ['players', 'cohold', '近5日共同买入', ['tr[data-sym]'], null],
   ['players', 'persons', '相关人物', ['.stk[data-sym]'], null],
-  ['opinion', 'extref_soft', '软件荐股雷达', ['.ex-signal', '.ex-src'], null],
-  ['opinion', 'extref_comm', '社区共识', ['.ex-signal'], null],
-  ['opinion', 'extref_rank', '信源胜率榜', ['.ex-rank-row', '.ex-src'], null],
+  // 2026-10-15 P2-1 已把 社区共识/信源胜率榜 合并进「外部荐股验证」面板内子导航
+  ['opinion', 'extref_soft', '外部荐股验证', ['.ex-signal', '.ex-src'], null],
   ['opinion', 'research', '研报评级', ['.wt-sym[data-wt-open]'], null],
+  // 2026-10-15 补：博主荐股 / 当红参赛股（NAV 里存在但 TABS 一直缺位）
+  ['opinion', 'blogger', '博主荐股', ['.bl-row', 'tr[data-sym]'], null],
+  ['opinion', 'contest', '当红参赛股', ['tr[data-sym]', '.ct-row'], null],
   ['watch', 'watch', '关注池', ['tr[data-sym]', '.wt-sym[data-wt-open]'], null],
   ['watch', 'watch_alerts', '到价提醒', [], null],
   ['watch', 'screener', '智能选股', ['.wt-sym[data-wt-open]'], null],
@@ -51,6 +58,9 @@ const TABS = [
   ['watch', 'rate', '入手概率', ['.wt-sym'], null],
   ['watch', 'diag', '个股诊断', [], 'diag'],
   ['watch', 'multiquote', '多资产', [], null],
+  // 2026-10-13 补：板块二「长期低位震荡」两页签（lowbox 扫描表 / lowbox_radar 突破雷达）纳入全量审计
+  ['watch', 'lowbox', '长期低位', ['.wt-sym[data-wt-open]', '[data-lb-add]'], null],
+  ['watch', 'lowbox_radar', '突破雷达', [], null],
   ['learn', 'strategy_lab', '策略回测', ['.sl-item'], null],
   ['learn', 'learn_tracks', '学习轨道管理', ['.kb-track-item', '.kb-src'], null],
 ];
@@ -134,7 +144,10 @@ async function panelInfo(page, tab) {
       tables: box.querySelectorAll('table').length,
       cards: box.querySelectorAll('.card, .ml-card, .stk-card, .ex-signal, .kb-term, .kb-src, .sl-item, .bf-report').length,
       empty: !!box.querySelector('.empty'),
-      loading: /加载中|加载失败|获取失败|出错了|error/i.test(txt.slice(0, 200)),
+      // 2026-10-15：把「加载态占位」文案也识别成 loading（否则占位 len 很短 → 被误判成"面板空白"）。
+      // 项目里各面板的占位文案：selectNav 的统一占位「正在加载数据…」+ 策略回测「正在读取策略回测数据…」
+      // + 今日决策/消息面等「正在汇总…」+ 博主共振「正在融合多源信号…」。
+      loading: /加载中|加载失败|获取失败|出错了|error|正在加载|正在读取|正在汇总|正在融合/i.test(txt.slice(0, 200)),
       errText: err.slice(0, 120),
       // 该面板内可点击个股/节点入口数量
       entries: box.querySelectorAll('[data-sym], [data-wt-open], [data-feat-open], [data-ol-sym], [data-ov-sym], [data-hp-sym], [data-bf-open], .ml-branch, .ol-chip, .ex-signal').length,
@@ -160,7 +173,7 @@ async function panelInfo(page, tab) {
   page.on('console', (m) => { if (m.type() === 'error') errs.push('[CONSOLE] ' + m.text().slice(0, 200)); });
   page.on('response', (r) => { if (r.status() >= 400) bad.push(r.status() + ' ' + r.url().replace(URL, '')); });
 
-  await page.goto(URL + '/', { waitUntil: 'networkidle2', timeout: 60000 });
+  await page.goto(URL + '/', { waitUntil: 'domcontentloaded', timeout: 60000 });
   await sleep(2500);
 
   const rows = [];
@@ -213,9 +226,11 @@ async function panelInfo(page, tab) {
       await sleep(tab === 'multiquote' ? 7000 : 3000);
     }
     let info = await panelInfo(page, tab);
-    // 防抖动：面板已就位但内容是空的（且不在 loading）→ 稍等再测。
-    if (info.found && !info.loading && info.len < 40) {
-      await sleep(tab === 'multiquote' ? 12000 : 5000);
+    // 防抖动（2026-10-15 增强）：面板已就位但内容为空 → 自适应轮询，最长再等 14s。
+    // 背景：博主荐股 / 聪明钱共识 / 相关人物 / 龙虎榜 等大数据面板首屏要 3–8s，
+    // 旧的「只多等 5s 且判一次」会把「慢」系统性误报成「空白/打不开」。
+    for (let i = 0; i < 7 && info.found && !info.loading && info.len < 40; i++) {
+      await sleep(2000);
       info = await panelInfo(page, tab);
     }
     // 钻节点

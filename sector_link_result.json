@@ -1,1051 +1,243 @@
 {
   "summary": {
     "n": 28,
-    "t1_avg": -0.36,
-    "t3_avg": -0.21,
-    "bench_t1_avg": 0.63,
-    "bench_t3_avg": 2.53,
-    "excess_t1": -1.0,
-    "excess_t3": -2.74,
-    "t1_win_rate": 42.0,
+    "t1_avg": -0.47,
+    "t3_avg": -1.27,
+    "bench_t1_avg": -0.23,
+    "bench_t3_avg": 0.04,
+    "excess_t1": -0.24,
+    "excess_t3": -1.32,
+    "t1_win_rate": 33.0,
     "pending_n": 4
   },
   "detail": [
     {
-      "date": "2026-09-24",
-      "sector": "福建板块",
-      "onlist_n": 5,
+      "date": "2026-10-13",
+      "sector": "广东板块",
+      "onlist_n": 8,
       "onlist": [
-        {
-          "code": "000592",
-          "name": "平潭发展"
-        },
-        {
-          "code": "002614",
-          "name": "奥佳华"
-        },
-        {
-          "code": "300300",
-          "name": "海峡创新"
-        },
-        {
-          "code": "600802",
-          "name": "福建水泥"
-        },
-        {
-          "code": "600815",
-          "name": "厦工股份"
-        }
-      ],
-      "onlist_names": "平潭发展/奥佳华/海峡创新/福建水泥/厦工股份",
-      "net_yi": 10.57,
-      "net_amt": 1057404199.11,
-      "members_n": 178,
-      "sampled": 25,
-      "t1_avg": -2.4,
-      "t3_avg": -3.41,
-      "t1_win": 16.0,
-      "bench_t1": 0.0,
-      "bench_t3": 2.39,
-      "pending": false
-    },
-    {
-      "date": "2026-09-24",
-      "sector": "央国企改革",
-      "onlist_n": 22,
-      "onlist": [
-        {
-          "code": "000504",
-          "name": "南华生物"
-        },
-        {
-          "code": "000607",
-          "name": "华媒控股"
-        },
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "000850",
-          "name": "华茂股份"
-        },
-        {
-          "code": "000978",
-          "name": "桂林旅游"
-        },
-        {
-          "code": "001234",
-          "name": "泰慕士"
-        },
-        {
-          "code": "002205",
-          "name": "国统股份"
-        },
-        {
-          "code": "002819",
-          "name": "东方中科"
-        }
-      ],
-      "onlist_names": "南华生物/华媒控股/超声电子/华茂股份/桂林旅游/泰慕士",
-      "net_yi": 10.01,
-      "net_amt": 1000567225.8,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": -0.7,
-      "t3_avg": 2.08,
-      "t1_win": 38.0,
-      "bench_t1": 0.0,
-      "bench_t3": 2.39,
-      "pending": false
-    },
-    {
-      "date": "2026-09-24",
-      "sector": "机械设备",
-      "onlist_n": 11,
-      "onlist": [
-        {
-          "code": "002164",
-          "name": "宁波东力"
-        },
-        {
-          "code": "002819",
-          "name": "东方中科"
-        },
-        {
-          "code": "002849",
-          "name": "威星智能"
-        },
-        {
-          "code": "301311",
-          "name": "昆船智能"
-        },
-        {
-          "code": "301689",
-          "name": "电科思仪"
-        },
-        {
-          "code": "301699",
-          "name": "洛轴股份"
-        },
-        {
-          "code": "600815",
-          "name": "厦工股份"
-        },
-        {
-          "code": "600843",
-          "name": "上工申贝"
-        }
-      ],
-      "onlist_names": "宁波东力/东方中科/威星智能/昆船智能/电科思仪/洛轴股份",
-      "net_yi": 6.87,
-      "net_amt": 687043003.13,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -2.09,
-      "t3_avg": -1.19,
-      "t1_win": 8.0,
-      "bench_t1": 0.0,
-      "bench_t3": 2.39,
-      "pending": false
-    },
-    {
-      "date": "2026-09-24",
-      "sector": "人工智能",
-      "onlist_n": 11,
-      "onlist": [
-        {
-          "code": "000560",
-          "name": "我爱我家"
-        },
-        {
-          "code": "002172",
-          "name": "澳洋健康"
-        },
-        {
-          "code": "002413",
-          "name": "雷科防务"
-        },
         {
           "code": "002579",
           "name": "中京电子"
         },
         {
-          "code": "002614",
-          "name": "奥佳华"
+          "code": "002811",
+          "name": "郑中设计"
         },
         {
-          "code": "002819",
-          "name": "东方中科"
+          "code": "002980",
+          "name": "华盛昌"
         },
         {
-          "code": "300192",
-          "name": "科德教育"
+          "code": "301041",
+          "name": "金百泽"
         },
         {
-          "code": "300300",
-          "name": "海峡创新"
-        }
-      ],
-      "onlist_names": "我爱我家/澳洋健康/雷科防务/中京电子/奥佳华/东方中科",
-      "net_yi": 6.65,
-      "net_amt": 665135889.47,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -2.55,
-      "t3_avg": -1.66,
-      "t1_win": 12.0,
-      "bench_t1": 0.0,
-      "bench_t3": 2.39,
-      "pending": false
-    },
-    {
-      "date": "2026-09-28",
-      "sector": "广东板块",
-      "onlist_n": 3,
-      "onlist": [
-        {
-          "code": "000513",
-          "name": "丽珠集团"
+          "code": "301513",
+          "name": "尚水智能"
         },
         {
-          "code": "000823",
-          "name": "超声电子"
+          "code": "301660",
+          "name": "粤芯半导体"
         },
         {
-          "code": "688628",
-          "name": "优利德"
-        }
-      ],
-      "onlist_names": "丽珠集团/超声电子/优利德",
-      "net_yi": 4.07,
-      "net_amt": 406837913.8,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": 2.52,
-      "t3_avg": 2.3,
-      "t1_win": 75.0,
-      "bench_t1": 0.44,
-      "bench_t3": 4.25,
-      "pending": false
-    },
-    {
-      "date": "2026-09-28",
-      "sector": "无人机",
-      "onlist_n": 3,
-      "onlist": [
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "600353",
-          "name": "旭光电子"
-        },
-        {
-          "code": "603373",
-          "name": "安邦护卫"
-        }
-      ],
-      "onlist_names": "超声电子/旭光电子/安邦护卫",
-      "net_yi": 4.06,
-      "net_amt": 405644044.83,
-      "members_n": 232,
-      "sampled": 25,
-      "t1_avg": 0.03,
-      "t3_avg": -1.23,
-      "t1_win": 48.0,
-      "bench_t1": 0.44,
-      "bench_t3": 4.25,
-      "pending": false
-    },
-    {
-      "date": "2026-09-28",
-      "sector": "参股银行",
-      "onlist_n": 3,
-      "onlist": [
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "301190",
-          "name": "善水科技"
-        },
-        {
-          "code": "600293",
-          "name": "三峡新材"
-        }
-      ],
-      "onlist_names": "超声电子/善水科技/三峡新材",
-      "net_yi": 4.05,
-      "net_amt": 404880422.06,
-      "members_n": 227,
-      "sampled": 25,
-      "t1_avg": -0.01,
-      "t3_avg": 0.67,
-      "t1_win": 48.0,
-      "bench_t1": 0.44,
-      "bench_t3": 4.25,
-      "pending": false
-    },
-    {
-      "date": "2026-09-28",
-      "sector": "5G概念",
-      "onlist_n": 2,
-      "onlist": [
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "600353",
-          "name": "旭光电子"
-        }
-      ],
-      "onlist_names": "超声电子/旭光电子",
-      "net_yi": 3.84,
-      "net_amt": 383566513.6,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": 1.06,
-      "t3_avg": -1.81,
-      "t1_win": 68.0,
-      "bench_t1": 0.44,
-      "bench_t3": 4.25,
-      "pending": false
-    },
-    {
-      "date": "2026-09-29",
-      "sector": "广东板块",
-      "onlist_n": 14,
-      "onlist": [
-        {
-          "code": "000002",
-          "name": "万科A"
-        },
-        {
-          "code": "000011",
-          "name": "深物业A"
-        },
-        {
-          "code": "000513",
-          "name": "丽珠集团"
-        },
-        {
-          "code": "000823",
-          "name": "超声电子"
-        },
-        {
-          "code": "002303",
-          "name": "美盈森"
-        },
-        {
-          "code": "002717",
-          "name": "*ST岭南"
-        },
-        {
-          "code": "002813",
-          "name": "路畅科技"
-        },
-        {
-          "code": "002815",
-          "name": "崇达技术"
-        }
-      ],
-      "onlist_names": "万科A/深物业A/丽珠集团/超声电子/美盈森/*ST岭南",
-      "net_yi": 8.31,
-      "net_amt": 830828713.17,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": -0.16,
-      "t3_avg": -0.7,
-      "t1_win": 50.0,
-      "bench_t1": 1.94,
-      "bench_t3": 2.11,
-      "pending": false
-    },
-    {
-      "date": "2026-09-29",
-      "sector": "深成500",
-      "onlist_n": 3,
-      "onlist": [
-        {
-          "code": "000002",
-          "name": "万科A"
-        },
-        {
-          "code": "000513",
-          "name": "丽珠集团"
-        },
-        {
-          "code": "002074",
-          "name": "国轩高科"
-        }
-      ],
-      "onlist_names": "万科A/丽珠集团/国轩高科",
-      "net_yi": 7.36,
-      "net_amt": 735803862.88,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -0.01,
-      "t3_avg": -0.68,
-      "t1_win": 64.0,
-      "bench_t1": 1.94,
-      "bench_t3": 2.11,
-      "pending": false
-    },
-    {
-      "date": "2026-09-29",
-      "sector": "长江三角",
-      "onlist_n": 2,
-      "onlist": [
-        {
-          "code": "002074",
-          "name": "国轩高科"
-        },
-        {
-          "code": "002172",
-          "name": "澳洋健康"
-        }
-      ],
-      "onlist_names": "国轩高科/澳洋健康",
-      "net_yi": 5.71,
-      "net_amt": 570639151.96,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": 0.15,
-      "t3_avg": 1.45,
-      "t1_win": 56.0,
-      "bench_t1": 1.94,
-      "bench_t3": 2.11,
-      "pending": false
-    },
-    {
-      "date": "2026-09-29",
-      "sector": "高市净率",
-      "onlist_n": 6,
-      "onlist": [
-        {
-          "code": "002172",
-          "name": "澳洋健康"
-        },
-        {
-          "code": "002813",
-          "name": "路畅科技"
-        },
-        {
-          "code": "002827",
-          "name": "高争民爆"
-        },
-        {
-          "code": "301689",
-          "name": "电科思仪"
-        },
-        {
-          "code": "301716",
-          "name": "鸿富诚"
+          "code": "603386",
+          "name": "骏亚科技"
         },
         {
           "code": "688655",
           "name": "迅捷兴"
         }
       ],
-      "onlist_names": "澳洋健康/路畅科技/高争民爆/电科思仪/鸿富诚/迅捷兴",
-      "net_yi": 5.52,
-      "net_amt": 552423991.71,
-      "members_n": 200,
-      "sampled": 25,
-      "t1_avg": 0.54,
-      "t3_avg": 1.0,
-      "t1_win": 40.0,
-      "bench_t1": 1.94,
-      "bench_t3": 2.11,
-      "pending": false
-    },
-    {
-      "date": "2026-09-30",
-      "sector": "浙江板块",
-      "onlist_n": 11,
-      "onlist": [
-        {
-          "code": "001246",
-          "name": "力勤资源"
-        },
-        {
-          "code": "002119",
-          "name": "康强电子"
-        },
-        {
-          "code": "002164",
-          "name": "宁波东力"
-        },
-        {
-          "code": "002244",
-          "name": "滨江集团"
-        },
-        {
-          "code": "002388",
-          "name": "新亚制程"
-        },
-        {
-          "code": "300893",
-          "name": "松原安全"
-        },
-        {
-          "code": "301218",
-          "name": "华是科技"
-        },
-        {
-          "code": "600059",
-          "name": "古越龙山"
-        }
-      ],
-      "onlist_names": "力勤资源/康强电子/宁波东力/滨江集团/新亚制程/松原安全",
-      "net_yi": 11.86,
-      "net_amt": 1186196549.65,
+      "onlist_names": "中京电子/郑中设计/华盛昌/金百泽/尚水智能/粤芯半导体",
+      "net_yi": 4.87,
+      "net_amt": 486780868.41,
       "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -1.03,
-      "t3_avg": -1.6,
-      "t1_win": 28.0,
-      "bench_t1": 1.82,
-      "bench_t3": 1.38,
+      "sampled": 24,
+      "t1_avg": -1.02,
+      "t3_avg": -3.28,
+      "t1_win": 25.0,
+      "bench_t1": -0.61,
+      "bench_t3": -0.61,
       "pending": false
     },
     {
-      "date": "2026-09-30",
-      "sector": "一带一路",
-      "onlist_n": 4,
-      "onlist": [
-        {
-          "code": "001246",
-          "name": "力勤资源"
-        },
-        {
-          "code": "002717",
-          "name": "*ST岭南"
-        },
-        {
-          "code": "301139",
-          "name": "元道退"
-        },
-        {
-          "code": "605058",
-          "name": "澳弘电子"
-        }
-      ],
-      "onlist_names": "力勤资源/*ST岭南/元道退/澳弘电子",
-      "net_yi": 4.85,
-      "net_amt": 484888371.65,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": 0.17,
-      "t3_avg": -0.11,
-      "t1_win": 52.0,
-      "bench_t1": 1.82,
-      "bench_t3": 1.38,
-      "pending": false
-    },
-    {
-      "date": "2026-09-30",
-      "sector": "AI应用",
-      "onlist_n": 2,
-      "onlist": [
-        {
-          "code": "000560",
-          "name": "我爱我家"
-        },
-        {
-          "code": "301218",
-          "name": "华是科技"
-        }
-      ],
-      "onlist_names": "我爱我家/华是科技",
-      "net_yi": 4.55,
-      "net_amt": 455163496.96,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -1.9,
-      "t3_avg": 2.36,
-      "t1_win": 20.0,
-      "bench_t1": 1.82,
-      "bench_t3": 1.38,
-      "pending": false
-    },
-    {
-      "date": "2026-09-30",
-      "sector": "华为概念",
+      "date": "2026-10-13",
+      "sector": "电子",
       "onlist_n": 9,
       "onlist": [
         {
-          "code": "000560",
-          "name": "我爱我家"
+          "code": "002579",
+          "name": "中京电子"
         },
         {
-          "code": "002388",
-          "name": "新亚制程"
-        },
-        {
-          "code": "002717",
-          "name": "*ST岭南"
+          "code": "002636",
+          "name": "金安国纪"
         },
         {
           "code": "002866",
           "name": "传艺科技"
         },
         {
-          "code": "002962",
-          "name": "五方光电"
+          "code": "301041",
+          "name": "金百泽"
+        },
+        {
+          "code": "301583",
+          "name": "托伦斯"
+        },
+        {
+          "code": "301660",
+          "name": "粤芯半导体"
+        },
+        {
+          "code": "603386",
+          "name": "骏亚科技"
+        },
+        {
+          "code": "605058",
+          "name": "澳弘电子"
+        }
+      ],
+      "onlist_names": "中京电子/金安国纪/传艺科技/金百泽/托伦斯/粤芯半导体",
+      "net_yi": 4.56,
+      "net_amt": 456483461.18,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -1.83,
+      "t3_avg": -4.75,
+      "t1_win": 8.0,
+      "bench_t1": -0.61,
+      "bench_t3": -0.61,
+      "pending": false
+    },
+    {
+      "date": "2026-10-13",
+      "sector": "一带一路",
+      "onlist_n": 10,
+      "onlist": [
+        {
+          "code": "000759",
+          "name": "中百集团"
+        },
+        {
+          "code": "002430",
+          "name": "杭氧股份"
+        },
+        {
+          "code": "002639",
+          "name": "雪人集团"
+        },
+        {
+          "code": "002811",
+          "name": "郑中设计"
         },
         {
           "code": "301139",
           "name": "元道退"
         },
         {
-          "code": "301218",
-          "name": "华是科技"
+          "code": "600202",
+          "name": "哈空调"
         },
         {
-          "code": "600418",
-          "name": "江淮汽车"
+          "code": "600354",
+          "name": "敦煌种业"
+        },
+        {
+          "code": "605058",
+          "name": "澳弘电子"
         }
       ],
-      "onlist_names": "我爱我家/新亚制程/*ST岭南/传艺科技/五方光电/元道退",
-      "net_yi": 4.49,
-      "net_amt": 449018506.72,
+      "onlist_names": "中百集团/杭氧股份/雪人集团/郑中设计/元道退/哈空调",
+      "net_yi": 4.36,
+      "net_amt": 436256976.24,
       "members_n": 300,
       "sampled": 25,
-      "t1_avg": -0.97,
-      "t3_avg": -0.76,
-      "t1_win": 24.0,
-      "bench_t1": 1.82,
-      "bench_t3": 1.38,
+      "t1_avg": -1.33,
+      "t3_avg": -2.89,
+      "t1_win": 16.0,
+      "bench_t1": -0.61,
+      "bench_t3": -0.61,
       "pending": false
     },
     {
-      "date": "2026-10-08",
-      "sector": "央国企改革",
-      "onlist_n": 18,
+      "date": "2026-10-13",
+      "sector": "光通信模块",
+      "onlist_n": 3,
       "onlist": [
         {
-          "code": "000678",
-          "name": "襄阳轴承"
+          "code": "002579",
+          "name": "中京电子"
         },
         {
-          "code": "000850",
-          "name": "华茂股份"
+          "code": "002980",
+          "name": "华盛昌"
         },
         {
-          "code": "002285",
-          "name": "世联行"
-        },
-        {
-          "code": "002490",
-          "name": "山东墨龙"
-        },
-        {
-          "code": "002580",
-          "name": "圣阳股份"
-        },
-        {
-          "code": "002717",
-          "name": "*ST岭南"
-        },
-        {
-          "code": "300530",
-          "name": "领湃科技"
-        },
-        {
-          "code": "301689",
-          "name": "电科思仪"
+          "code": "301660",
+          "name": "粤芯半导体"
         }
       ],
-      "onlist_names": "襄阳轴承/华茂股份/世联行/山东墨龙/圣阳股份/*ST岭南",
-      "net_yi": 9.19,
-      "net_amt": 918891288.3,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": 0.42,
-      "t3_avg": null,
-      "t1_win": 58.0,
-      "bench_t1": -1.61,
-      "bench_t3": null,
+      "onlist_names": "中京电子/华盛昌/粤芯半导体",
+      "net_yi": 4.09,
+      "net_amt": 409090201.12,
+      "members_n": 121,
+      "sampled": 25,
+      "t1_avg": -2.31,
+      "t3_avg": -6.12,
+      "t1_win": 12.0,
+      "bench_t1": -0.61,
+      "bench_t3": -0.61,
       "pending": false
     },
     {
-      "date": "2026-10-08",
-      "sector": "创投",
+      "date": "2026-10-14",
+      "sector": "福建板块",
       "onlist_n": 6,
       "onlist": [
         {
-          "code": "000850",
-          "name": "华茂股份"
+          "code": "002029",
+          "name": "七匹狼"
         },
         {
-          "code": "002384",
-          "name": "东山精密"
+          "code": "002639",
+          "name": "雪人集团"
         },
         {
-          "code": "002580",
-          "name": "圣阳股份"
+          "code": "300299",
+          "name": "富春股份"
         },
         {
-          "code": "600400",
-          "name": "红豆股份"
+          "code": "600693",
+          "name": "东百集团"
         },
         {
-          "code": "600663",
-          "name": "陆家嘴"
+          "code": "603668",
+          "name": "天马科技"
         },
         {
-          "code": "600825",
-          "name": "新华传媒"
+          "code": "603992",
+          "name": "松霖科技"
         }
       ],
-      "onlist_names": "华茂股份/东山精密/圣阳股份/红豆股份/陆家嘴/新华传媒",
-      "net_yi": 7.13,
-      "net_amt": 712536371.12,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": 0.58,
-      "t3_avg": null,
-      "t1_win": 54.0,
-      "bench_t1": -1.61,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-08",
-      "sector": "电力设备",
-      "onlist_n": 12,
-      "onlist": [
-        {
-          "code": "002074",
-          "name": "国轩高科"
-        },
-        {
-          "code": "002580",
-          "name": "圣阳股份"
-        },
-        {
-          "code": "002805",
-          "name": "丰元股份"
-        },
-        {
-          "code": "002882",
-          "name": "金龙羽"
-        },
-        {
-          "code": "300530",
-          "name": "领湃科技"
-        },
-        {
-          "code": "300619",
-          "name": "金银河"
-        },
-        {
-          "code": "301513",
-          "name": "尚水智能"
-        },
-        {
-          "code": "301697",
-          "name": "贝特利"
-        }
-      ],
-      "onlist_names": "国轩高科/圣阳股份/丰元股份/金龙羽/领湃科技/金银河",
-      "net_yi": 6.28,
-      "net_amt": 628435013.97,
-      "members_n": 300,
+      "onlist_names": "七匹狼/雪人集团/富春股份/东百集团/天马科技/松霖科技",
+      "net_yi": 4.01,
+      "net_amt": 401018234.11,
+      "members_n": 178,
       "sampled": 25,
-      "t1_avg": 1.26,
-      "t3_avg": null,
-      "t1_win": 76.0,
-      "bench_t1": -1.61,
-      "bench_t3": null,
+      "t1_avg": -3.11,
+      "t3_avg": -2.78,
+      "t1_win": 4.0,
+      "bench_t1": -0.78,
+      "bench_t3": 1.3,
       "pending": false
     },
     {
-      "date": "2026-10-08",
-      "sector": "新能源车",
-      "onlist_n": 12,
-      "onlist": [
-        {
-          "code": "000678",
-          "name": "襄阳轴承"
-        },
-        {
-          "code": "002074",
-          "name": "国轩高科"
-        },
-        {
-          "code": "002384",
-          "name": "东山精密"
-        },
-        {
-          "code": "002805",
-          "name": "丰元股份"
-        },
-        {
-          "code": "300530",
-          "name": "领湃科技"
-        },
-        {
-          "code": "300619",
-          "name": "金银河"
-        },
-        {
-          "code": "301686",
-          "name": "中塑股份"
-        },
-        {
-          "code": "301697",
-          "name": "贝特利"
-        }
-      ],
-      "onlist_names": "襄阳轴承/国轩高科/东山精密/丰元股份/领湃科技/金银河",
-      "net_yi": 6.0,
-      "net_amt": 600292107.93,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": 0.4,
-      "t3_avg": null,
-      "t1_win": 64.0,
-      "bench_t1": -1.61,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-09",
-      "sector": "创业板综",
-      "onlist_n": 10,
-      "onlist": [
-        {
-          "code": "300189",
-          "name": "神农种业"
-        },
-        {
-          "code": "300364",
-          "name": "中文在线"
-        },
-        {
-          "code": "300369",
-          "name": "绿盟科技"
-        },
-        {
-          "code": "300413",
-          "name": "芒果超媒"
-        },
-        {
-          "code": "300821",
-          "name": "东岳硅材"
-        },
-        {
-          "code": "300981",
-          "name": "中红医疗"
-        },
-        {
-          "code": "301513",
-          "name": "尚水智能"
-        },
-        {
-          "code": "301599",
-          "name": "理奇智能"
-        }
-      ],
-      "onlist_names": "神农种业/中文在线/绿盟科技/芒果超媒/东岳硅材/中红医疗",
-      "net_yi": 6.58,
-      "net_amt": 657632503.48,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -0.41,
-      "t3_avg": null,
-      "t1_win": 20.0,
-      "bench_t1": 1.21,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-09",
-      "sector": "人工智能",
-      "onlist_n": 10,
-      "onlist": [
-        {
-          "code": "002172",
-          "name": "澳洋健康"
-        },
-        {
-          "code": "002212",
-          "name": "天融信"
-        },
-        {
-          "code": "002316",
-          "name": "亚联发展"
-        },
-        {
-          "code": "300364",
-          "name": "中文在线"
-        },
-        {
-          "code": "300369",
-          "name": "绿盟科技"
-        },
-        {
-          "code": "300413",
-          "name": "芒果超媒"
-        },
-        {
-          "code": "301599",
-          "name": "理奇智能"
-        },
-        {
-          "code": "601929",
-          "name": "吉视传媒"
-        }
-      ],
-      "onlist_names": "澳洋健康/天融信/亚联发展/中文在线/绿盟科技/芒果超媒",
-      "net_yi": 5.47,
-      "net_amt": 546713149.04,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -0.55,
-      "t3_avg": null,
-      "t1_win": 44.0,
-      "bench_t1": 1.21,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-09",
-      "sector": "低空经济",
-      "onlist_n": 4,
-      "onlist": [
-        {
-          "code": "000420",
-          "name": "吉林化纤"
-        },
-        {
-          "code": "002212",
-          "name": "天融信"
-        },
-        {
-          "code": "002733",
-          "name": "雄韬股份"
-        },
-        {
-          "code": "603101",
-          "name": "汇嘉时代"
-        }
-      ],
-      "onlist_names": "吉林化纤/天融信/雄韬股份/汇嘉时代",
-      "net_yi": 4.65,
-      "net_amt": 465466195.37,
-      "members_n": 300,
-      "sampled": 25,
-      "t1_avg": -1.14,
-      "t3_avg": null,
-      "t1_win": 24.0,
-      "bench_t1": 1.21,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-09",
-      "sector": "山东板块",
-      "onlist_n": 5,
-      "onlist": [
-        {
-          "code": "001300",
-          "name": "三柏硕"
-        },
-        {
-          "code": "002242",
-          "name": "九阳股份"
-        },
-        {
-          "code": "002805",
-          "name": "丰元股份"
-        },
-        {
-          "code": "300821",
-          "name": "东岳硅材"
-        },
-        {
-          "code": "301689",
-          "name": "电科思仪"
-        }
-      ],
-      "onlist_names": "三柏硕/九阳股份/丰元股份/东岳硅材/电科思仪",
-      "net_yi": 4.25,
-      "net_amt": 424536428.86,
-      "members_n": 300,
-      "sampled": 24,
-      "t1_avg": -1.97,
-      "t3_avg": null,
-      "t1_win": 25.0,
-      "bench_t1": 1.21,
-      "bench_t3": null,
-      "pending": false
-    },
-    {
-      "date": "2026-10-12",
-      "sector": "创业板综",
-      "onlist_n": 8,
-      "onlist": [
-        {
-          "code": "300006",
-          "name": "莱美药业"
-        },
-        {
-          "code": "300821",
-          "name": "东岳硅材"
-        },
-        {
-          "code": "300829",
-          "name": "金丹科技"
-        },
-        {
-          "code": "301052",
-          "name": "果麦文化"
-        },
-        {
-          "code": "301419",
-          "name": "阿莱德"
-        },
-        {
-          "code": "301513",
-          "name": "尚水智能"
-        },
-        {
-          "code": "301658",
-          "name": "首航新能"
-        },
-        {
-          "code": "301697",
-          "name": "贝特利"
-        }
-      ],
-      "onlist_names": "莱美药业/东岳硅材/金丹科技/果麦文化/阿莱德/尚水智能",
-      "net_yi": 4.79,
-      "net_amt": 479038035.2,
-      "members_n": 300,
-      "sampled": 0,
-      "t1_avg": null,
-      "t3_avg": null,
-      "t1_win": null,
-      "bench_t1": null,
-      "bench_t3": null,
-      "pending": true
-    },
-    {
-      "date": "2026-10-12",
-      "sector": "西部大开发",
+      "date": "2026-10-14",
+      "sector": "AIGC概念",
       "onlist_n": 7,
       "onlist": [
-        {
-          "code": "000710",
-          "name": "贝瑞基因"
-        },
         {
           "code": "000892",
           "name": "欢瑞世纪"
@@ -1055,42 +247,168 @@
           "name": "博纳影业"
         },
         {
-          "code": "002630",
-          "name": "*ST华西"
+          "code": "002878",
+          "name": "元隆雅图"
+        },
+        {
+          "code": "002990",
+          "name": "盛视科技"
+        },
+        {
+          "code": "300299",
+          "name": "富春股份"
+        },
+        {
+          "code": "603466",
+          "name": "风语筑"
+        },
+        {
+          "code": "605287",
+          "name": "德才股份"
+        }
+      ],
+      "onlist_names": "欢瑞世纪/博纳影业/元隆雅图/盛视科技/富春股份/风语筑",
+      "net_yi": 3.6,
+      "net_amt": 360388444.89,
+      "members_n": 132,
+      "sampled": 25,
+      "t1_avg": -2.57,
+      "t3_avg": -3.43,
+      "t1_win": 0.0,
+      "bench_t1": -0.78,
+      "bench_t3": 1.3,
+      "pending": false
+    },
+    {
+      "date": "2026-10-14",
+      "sector": "抖音概念(字节概念)",
+      "onlist_n": 3,
+      "onlist": [
+        {
+          "code": "002878",
+          "name": "元隆雅图"
+        },
+        {
+          "code": "300299",
+          "name": "富春股份"
+        },
+        {
+          "code": "605287",
+          "name": "德才股份"
+        }
+      ],
+      "onlist_names": "元隆雅图/富春股份/德才股份",
+      "net_yi": 3.07,
+      "net_amt": 307036450.19,
+      "members_n": 111,
+      "sampled": 25,
+      "t1_avg": -2.01,
+      "t3_avg": -3.39,
+      "t1_win": 8.0,
+      "bench_t1": -0.78,
+      "bench_t3": 1.3,
+      "pending": false
+    },
+    {
+      "date": "2026-10-14",
+      "sector": "影视概念",
+      "onlist_n": 5,
+      "onlist": [
+        {
+          "code": "000892",
+          "name": "欢瑞世纪"
+        },
+        {
+          "code": "001330",
+          "name": "博纳影业"
+        },
+        {
+          "code": "002343",
+          "name": "慈文传媒"
+        },
+        {
+          "code": "300299",
+          "name": "富春股份"
+        },
+        {
+          "code": "605287",
+          "name": "德才股份"
+        }
+      ],
+      "onlist_names": "欢瑞世纪/博纳影业/慈文传媒/富春股份/德才股份",
+      "net_yi": 2.95,
+      "net_amt": 295495089.04,
+      "members_n": 65,
+      "sampled": 25,
+      "t1_avg": -2.49,
+      "t3_avg": -4.04,
+      "t1_win": 4.0,
+      "bench_t1": -0.78,
+      "bench_t3": 1.3,
+      "pending": false
+    },
+    {
+      "date": "2026-10-15",
+      "sector": "西部大开发",
+      "onlist_n": 11,
+      "onlist": [
+        {
+          "code": "000892",
+          "name": "欢瑞世纪"
+        },
+        {
+          "code": "000995",
+          "name": "皇台酒业"
         },
         {
           "code": "002696",
           "name": "百洋股份"
         },
         {
-          "code": "300006",
-          "name": "莱美药业"
+          "code": "002945",
+          "name": "华林证券"
         },
         {
           "code": "301139",
           "name": "元道退"
+        },
+        {
+          "code": "600721",
+          "name": "百花医药"
+        },
+        {
+          "code": "600792",
+          "name": "云煤能源"
+        },
+        {
+          "code": "600847",
+          "name": "万里股份"
         }
       ],
-      "onlist_names": "贝瑞基因/欢瑞世纪/博纳影业/*ST华西/百洋股份/莱美药业",
-      "net_yi": 3.08,
-      "net_amt": 308353611.1,
+      "onlist_names": "欢瑞世纪/皇台酒业/百洋股份/华林证券/元道退/百花医药",
+      "net_yi": 9.03,
+      "net_amt": 903426571.58,
       "members_n": 300,
-      "sampled": 0,
-      "t1_avg": null,
-      "t3_avg": null,
-      "t1_win": null,
-      "bench_t1": null,
-      "bench_t3": null,
-      "pending": true
+      "sampled": 25,
+      "t1_avg": 0.75,
+      "t3_avg": 0.34,
+      "t1_win": 72.0,
+      "bench_t1": 0.79,
+      "bench_t3": 0.26,
+      "pending": false
     },
     {
-      "date": "2026-10-12",
-      "sector": "储能概念",
-      "onlist_n": 4,
+      "date": "2026-10-15",
+      "sector": "华为概念",
+      "onlist_n": 8,
       "onlist": [
         {
-          "code": "002531",
-          "name": "天顺风能"
+          "code": "002639",
+          "name": "雪人集团"
+        },
+        {
+          "code": "002768",
+          "name": "国恩股份"
         },
         {
           "code": "002866",
@@ -1101,13 +419,667 @@
           "name": "元道退"
         },
         {
-          "code": "301658",
-          "name": "首航新能"
+          "code": "600869",
+          "name": "远东股份"
+        },
+        {
+          "code": "603096",
+          "name": "新经典"
+        },
+        {
+          "code": "603386",
+          "name": "骏亚科技"
+        },
+        {
+          "code": "603533",
+          "name": "掌阅科技"
         }
       ],
-      "onlist_names": "天顺风能/传艺科技/元道退/首航新能",
-      "net_yi": 2.99,
-      "net_amt": 299276302.42,
+      "onlist_names": "雪人集团/国恩股份/传艺科技/元道退/远东股份/新经典",
+      "net_yi": 4.85,
+      "net_amt": 485377141.48,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -0.03,
+      "t3_avg": 0.7,
+      "t1_win": 52.0,
+      "bench_t1": 0.79,
+      "bench_t3": 0.26,
+      "pending": false
+    },
+    {
+      "date": "2026-10-15",
+      "sector": "新能源车",
+      "onlist_n": 5,
+      "onlist": [
+        {
+          "code": "001359",
+          "name": "平安电工"
+        },
+        {
+          "code": "002768",
+          "name": "国恩股份"
+        },
+        {
+          "code": "301282",
+          "name": "金禄电子"
+        },
+        {
+          "code": "301591",
+          "name": "肯特股份"
+        },
+        {
+          "code": "600869",
+          "name": "远东股份"
+        }
+      ],
+      "onlist_names": "平安电工/国恩股份/金禄电子/肯特股份/远东股份",
+      "net_yi": 4.35,
+      "net_amt": 434923085.75,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": 1.22,
+      "t3_avg": 1.99,
+      "t1_win": 64.0,
+      "bench_t1": 0.79,
+      "bench_t3": 0.26,
+      "pending": false
+    },
+    {
+      "date": "2026-10-15",
+      "sector": "人形机器人",
+      "onlist_n": 4,
+      "onlist": [
+        {
+          "code": "002768",
+          "name": "国恩股份"
+        },
+        {
+          "code": "600869",
+          "name": "远东股份"
+        },
+        {
+          "code": "603386",
+          "name": "骏亚科技"
+        },
+        {
+          "code": "605189",
+          "name": "富春染织"
+        }
+      ],
+      "onlist_names": "国恩股份/远东股份/骏亚科技/富春染织",
+      "net_yi": 4.25,
+      "net_amt": 425382121.21,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": 1.92,
+      "t3_avg": 5.64,
+      "t1_win": 80.0,
+      "bench_t1": 0.79,
+      "bench_t3": 0.26,
+      "pending": false
+    },
+    {
+      "date": "2026-10-16",
+      "sector": "江苏板块",
+      "onlist_n": 3,
+      "onlist": [
+        {
+          "code": "002531",
+          "name": "天顺风能"
+        },
+        {
+          "code": "603259",
+          "name": "药明康德"
+        },
+        {
+          "code": "603968",
+          "name": "醋化股份"
+        }
+      ],
+      "onlist_names": "天顺风能/药明康德/醋化股份",
+      "net_yi": 15.15,
+      "net_amt": 1515022646.92,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -0.19,
+      "t3_avg": 0.7,
+      "t1_win": 40.0,
+      "bench_t1": 1.3,
+      "bench_t3": -0.78,
+      "pending": false
+    },
+    {
+      "date": "2026-10-16",
+      "sector": "创新药",
+      "onlist_n": 5,
+      "onlist": [
+        {
+          "code": "300006",
+          "name": "莱美药业"
+        },
+        {
+          "code": "301520",
+          "name": "万邦医药"
+        },
+        {
+          "code": "600668",
+          "name": "尖峰集团"
+        },
+        {
+          "code": "600721",
+          "name": "百花医药"
+        },
+        {
+          "code": "603259",
+          "name": "药明康德"
+        }
+      ],
+      "onlist_names": "莱美药业/万邦医药/尖峰集团/百花医药/药明康德",
+      "net_yi": 13.1,
+      "net_amt": 1310372128.92,
+      "members_n": 221,
+      "sampled": 25,
+      "t1_avg": -0.59,
+      "t3_avg": -0.72,
+      "t1_win": 48.0,
+      "bench_t1": 1.3,
+      "bench_t3": -0.78,
+      "pending": false
+    },
+    {
+      "date": "2026-10-16",
+      "sector": "医药生物",
+      "onlist_n": 8,
+      "onlist": [
+        {
+          "code": "300006",
+          "name": "莱美药业"
+        },
+        {
+          "code": "300111",
+          "name": "向日葵"
+        },
+        {
+          "code": "301520",
+          "name": "万邦医药"
+        },
+        {
+          "code": "600613",
+          "name": "神奇制药"
+        },
+        {
+          "code": "600671",
+          "name": "天目药业"
+        },
+        {
+          "code": "600721",
+          "name": "百花医药"
+        },
+        {
+          "code": "603168",
+          "name": "莎普爱思"
+        },
+        {
+          "code": "603259",
+          "name": "药明康德"
+        }
+      ],
+      "onlist_names": "莱美药业/向日葵/万邦医药/神奇制药/天目药业/百花医药",
+      "net_yi": 12.86,
+      "net_amt": 1285873962.87,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -0.64,
+      "t3_avg": 0.27,
+      "t1_win": 40.0,
+      "bench_t1": 1.3,
+      "bench_t3": -0.78,
+      "pending": false
+    },
+    {
+      "date": "2026-10-16",
+      "sector": "CRO",
+      "onlist_n": 3,
+      "onlist": [
+        {
+          "code": "301520",
+          "name": "万邦医药"
+        },
+        {
+          "code": "600721",
+          "name": "百花医药"
+        },
+        {
+          "code": "603259",
+          "name": "药明康德"
+        }
+      ],
+      "onlist_names": "万邦医药/百花医药/药明康德",
+      "net_yi": 12.38,
+      "net_amt": 1237782427.47,
+      "members_n": 52,
+      "sampled": 25,
+      "t1_avg": -0.56,
+      "t3_avg": 1.38,
+      "t1_win": 40.0,
+      "bench_t1": 1.3,
+      "bench_t3": -0.78,
+      "pending": false
+    },
+    {
+      "date": "2026-10-19",
+      "sector": "广东板块",
+      "onlist_n": 10,
+      "onlist": [
+        {
+          "code": "000576",
+          "name": "甘化科工"
+        },
+        {
+          "code": "000823",
+          "name": "超声电子"
+        },
+        {
+          "code": "002724",
+          "name": "海洋王"
+        },
+        {
+          "code": "002889",
+          "name": "东方嘉盛"
+        },
+        {
+          "code": "300852",
+          "name": "四会富仕"
+        },
+        {
+          "code": "301313",
+          "name": "凡拓数创"
+        },
+        {
+          "code": "301513",
+          "name": "尚水智能"
+        },
+        {
+          "code": "301666",
+          "name": "大普微"
+        }
+      ],
+      "onlist_names": "甘化科工/超声电子/海洋王/东方嘉盛/四会富仕/凡拓数创",
+      "net_yi": 5.58,
+      "net_amt": 558132869.13,
+      "members_n": 300,
+      "sampled": 24,
+      "t1_avg": -0.9,
+      "t3_avg": null,
+      "t1_win": 21.0,
+      "bench_t1": -1.8,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-19",
+      "sector": "专精特新",
+      "onlist_n": 9,
+      "onlist": [
+        {
+          "code": "002134",
+          "name": "天津普林"
+        },
+        {
+          "code": "002767",
+          "name": "先锋电子"
+        },
+        {
+          "code": "300411",
+          "name": "金盾股份"
+        },
+        {
+          "code": "301513",
+          "name": "尚水智能"
+        },
+        {
+          "code": "301591",
+          "name": "肯特股份"
+        },
+        {
+          "code": "301666",
+          "name": "大普微"
+        },
+        {
+          "code": "603286",
+          "name": "日盈电子"
+        },
+        {
+          "code": "603330",
+          "name": "天洋新材"
+        }
+      ],
+      "onlist_names": "天津普林/先锋电子/金盾股份/尚水智能/肯特股份/大普微",
+      "net_yi": 5.47,
+      "net_amt": 547039588.3,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": 2.59,
+      "t3_avg": null,
+      "t1_win": 84.0,
+      "bench_t1": -1.8,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-19",
+      "sector": "浙江板块",
+      "onlist_n": 9,
+      "onlist": [
+        {
+          "code": "002085",
+          "name": "万丰奥威"
+        },
+        {
+          "code": "002164",
+          "name": "宁波东力"
+        },
+        {
+          "code": "002767",
+          "name": "先锋电子"
+        },
+        {
+          "code": "300411",
+          "name": "金盾股份"
+        },
+        {
+          "code": "301052",
+          "name": "果麦文化"
+        },
+        {
+          "code": "600267",
+          "name": "海正药业"
+        },
+        {
+          "code": "600537",
+          "name": "*ST亿晶"
+        },
+        {
+          "code": "603001",
+          "name": "奥康国际"
+        }
+      ],
+      "onlist_names": "万丰奥威/宁波东力/先锋电子/金盾股份/果麦文化/海正药业",
+      "net_yi": 4.6,
+      "net_amt": 459509041.81,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": 0.03,
+      "t3_avg": null,
+      "t1_win": 60.0,
+      "bench_t1": -1.8,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-19",
+      "sector": "创业板综",
+      "onlist_n": 9,
+      "onlist": [
+        {
+          "code": "300411",
+          "name": "金盾股份"
+        },
+        {
+          "code": "300798",
+          "name": "锦鸡股份"
+        },
+        {
+          "code": "300852",
+          "name": "四会富仕"
+        },
+        {
+          "code": "301052",
+          "name": "果麦文化"
+        },
+        {
+          "code": "301230",
+          "name": "泓博医药"
+        },
+        {
+          "code": "301313",
+          "name": "凡拓数创"
+        },
+        {
+          "code": "301513",
+          "name": "尚水智能"
+        },
+        {
+          "code": "301591",
+          "name": "肯特股份"
+        }
+      ],
+      "onlist_names": "金盾股份/锦鸡股份/四会富仕/果麦文化/泓博医药/凡拓数创",
+      "net_yi": 4.54,
+      "net_amt": 454059879.68,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": 1.0,
+      "t3_avg": null,
+      "t1_win": 72.0,
+      "bench_t1": -1.8,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-20",
+      "sector": "人工智能",
+      "onlist_n": 14,
+      "onlist": [
+        {
+          "code": "002889",
+          "name": "东方嘉盛"
+        },
+        {
+          "code": "002929",
+          "name": "润建股份"
+        },
+        {
+          "code": "300244",
+          "name": "迪安诊断"
+        },
+        {
+          "code": "300466",
+          "name": "赛摩智能"
+        },
+        {
+          "code": "301313",
+          "name": "凡拓数创"
+        },
+        {
+          "code": "603636",
+          "name": "南威软件"
+        },
+        {
+          "code": "688004",
+          "name": "博汇科技"
+        },
+        {
+          "code": "688018",
+          "name": "乐鑫科技"
+        }
+      ],
+      "onlist_names": "东方嘉盛/润建股份/迪安诊断/赛摩智能/凡拓数创/南威软件",
+      "net_yi": 11.02,
+      "net_amt": 1102363295.09,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -0.01,
+      "t3_avg": null,
+      "t1_win": 48.0,
+      "bench_t1": -0.26,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-20",
+      "sector": "小米概念",
+      "onlist_n": 4,
+      "onlist": [
+        {
+          "code": "300115",
+          "name": "长盈精密"
+        },
+        {
+          "code": "688018",
+          "name": "乐鑫科技"
+        },
+        {
+          "code": "688608",
+          "name": "恒玄科技"
+        },
+        {
+          "code": "688787",
+          "name": "海天瑞声"
+        }
+      ],
+      "onlist_names": "长盈精密/乐鑫科技/恒玄科技/海天瑞声",
+      "net_yi": 8.58,
+      "net_amt": 857957033.74,
+      "members_n": 235,
+      "sampled": 25,
+      "t1_avg": 0.86,
+      "t3_avg": null,
+      "t1_win": 48.0,
+      "bench_t1": -0.26,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-20",
+      "sector": "浙江板块",
+      "onlist_n": 10,
+      "onlist": [
+        {
+          "code": "001225",
+          "name": "和泰机电"
+        },
+        {
+          "code": "002164",
+          "name": "宁波东力"
+        },
+        {
+          "code": "300244",
+          "name": "迪安诊断"
+        },
+        {
+          "code": "301052",
+          "name": "果麦文化"
+        },
+        {
+          "code": "600267",
+          "name": "海正药业"
+        },
+        {
+          "code": "603105",
+          "name": "芯能科技"
+        },
+        {
+          "code": "603119",
+          "name": "浙江荣泰"
+        },
+        {
+          "code": "605488",
+          "name": "福莱新材"
+        }
+      ],
+      "onlist_names": "和泰机电/宁波东力/迪安诊断/果麦文化/海正药业/芯能科技",
+      "net_yi": 7.24,
+      "net_amt": 723908950.16,
+      "members_n": 300,
+      "sampled": 25,
+      "t1_avg": -0.3,
+      "t3_avg": null,
+      "t1_win": 44.0,
+      "bench_t1": -0.26,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-20",
+      "sector": "消费电子概念",
+      "onlist_n": 5,
+      "onlist": [
+        {
+          "code": "300115",
+          "name": "长盈精密"
+        },
+        {
+          "code": "603626",
+          "name": "科森科技"
+        },
+        {
+          "code": "605488",
+          "name": "福莱新材"
+        },
+        {
+          "code": "688018",
+          "name": "乐鑫科技"
+        },
+        {
+          "code": "688608",
+          "name": "恒玄科技"
+        }
+      ],
+      "onlist_names": "长盈精密/科森科技/福莱新材/乐鑫科技/恒玄科技",
+      "net_yi": 7.1,
+      "net_amt": 709655330.67,
+      "members_n": 218,
+      "sampled": 24,
+      "t1_avg": 0.3,
+      "t3_avg": null,
+      "t1_win": 42.0,
+      "bench_t1": -0.26,
+      "bench_t3": null,
+      "pending": false
+    },
+    {
+      "date": "2026-10-21",
+      "sector": "广东板块",
+      "onlist_n": 13,
+      "onlist": [
+        {
+          "code": "000712",
+          "name": "锦龙股份"
+        },
+        {
+          "code": "000823",
+          "name": "超声电子"
+        },
+        {
+          "code": "001323",
+          "name": "慕思股份"
+        },
+        {
+          "code": "002076",
+          "name": "星光股份"
+        },
+        {
+          "code": "002181",
+          "name": "粤传媒"
+        },
+        {
+          "code": "002313",
+          "name": "日海智能"
+        },
+        {
+          "code": "002724",
+          "name": "海洋王"
+        },
+        {
+          "code": "002792",
+          "name": "通宇通讯"
+        }
+      ],
+      "onlist_names": "锦龙股份/超声电子/慕思股份/星光股份/粤传媒/日海智能",
+      "net_yi": 13.54,
+      "net_amt": 1353645822.8,
       "members_n": 300,
       "sampled": 0,
       "t1_avg": null,
@@ -1118,46 +1090,134 @@
       "pending": true
     },
     {
-      "date": "2026-10-12",
-      "sector": "电力设备",
+      "date": "2026-10-21",
+      "sector": "通信技术",
       "onlist_n": 8,
       "onlist": [
         {
-          "code": "002058",
-          "name": "紫竹高科"
+          "code": "000823",
+          "name": "超声电子"
         },
         {
-          "code": "002531",
-          "name": "天顺风能"
+          "code": "002313",
+          "name": "日海智能"
         },
         {
-          "code": "002630",
-          "name": "*ST华西"
+          "code": "002792",
+          "name": "通宇通讯"
         },
         {
-          "code": "002692",
-          "name": "远程股份"
+          "code": "002929",
+          "name": "润建股份"
         },
         {
-          "code": "002805",
-          "name": "丰元股份"
+          "code": "003021",
+          "name": "兆威机电"
         },
         {
-          "code": "301513",
-          "name": "尚水智能"
+          "code": "300115",
+          "name": "长盈精密"
         },
         {
-          "code": "301658",
-          "name": "首航新能"
+          "code": "301139",
+          "name": "元道退"
         },
         {
-          "code": "301697",
-          "name": "贝特利"
+          "code": "301486",
+          "name": "致尚科技"
         }
       ],
-      "onlist_names": "紫竹高科/天顺风能/*ST华西/远程股份/丰元股份/尚水智能",
-      "net_yi": 2.82,
-      "net_amt": 282101162.7,
+      "onlist_names": "超声电子/日海智能/通宇通讯/润建股份/兆威机电/长盈精密",
+      "net_yi": 12.22,
+      "net_amt": 1221868325.08,
+      "members_n": 300,
+      "sampled": 0,
+      "t1_avg": null,
+      "t3_avg": null,
+      "t1_win": null,
+      "bench_t1": null,
+      "bench_t3": null,
+      "pending": true
+    },
+    {
+      "date": "2026-10-21",
+      "sector": "虚拟现实",
+      "onlist_n": 5,
+      "onlist": [
+        {
+          "code": "002929",
+          "name": "润建股份"
+        },
+        {
+          "code": "300115",
+          "name": "长盈精密"
+        },
+        {
+          "code": "300296",
+          "name": "利亚德"
+        },
+        {
+          "code": "301313",
+          "name": "凡拓数创"
+        },
+        {
+          "code": "301486",
+          "name": "致尚科技"
+        }
+      ],
+      "onlist_names": "润建股份/长盈精密/利亚德/凡拓数创/致尚科技",
+      "net_yi": 10.53,
+      "net_amt": 1052641438.87,
+      "members_n": 222,
+      "sampled": 0,
+      "t1_avg": null,
+      "t3_avg": null,
+      "t1_win": null,
+      "bench_t1": null,
+      "bench_t3": null,
+      "pending": true
+    },
+    {
+      "date": "2026-10-21",
+      "sector": "创业板综",
+      "onlist_n": 10,
+      "onlist": [
+        {
+          "code": "300006",
+          "name": "莱美药业"
+        },
+        {
+          "code": "300007",
+          "name": "汉威科技"
+        },
+        {
+          "code": "300115",
+          "name": "长盈精密"
+        },
+        {
+          "code": "300296",
+          "name": "利亚德"
+        },
+        {
+          "code": "301052",
+          "name": "果麦文化"
+        },
+        {
+          "code": "301102",
+          "name": "兆讯传媒"
+        },
+        {
+          "code": "301159",
+          "name": "三维天地"
+        },
+        {
+          "code": "301313",
+          "name": "凡拓数创"
+        }
+      ],
+      "onlist_names": "莱美药业/汉威科技/长盈精密/利亚德/果麦文化/兆讯传媒",
+      "net_yi": 10.18,
+      "net_amt": 1017766669.86,
       "members_n": 300,
       "sampled": 0,
       "t1_avg": null,
@@ -1168,5 +1228,5 @@
       "pending": true
     }
   ],
-  "generated_at": "2026-10-12 16:49:26"
+  "generated_at": "2026-10-21 16:50:47"
 }

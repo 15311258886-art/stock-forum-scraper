@@ -98,6 +98,8 @@ def main() -> int:
         r = subprocess.run(
             cmd, cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=3600,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         run["returncode"] = r.returncode
         run["tail"] = "\n".join((r.stdout or "").splitlines()[-25:])
@@ -112,6 +114,8 @@ def main() -> int:
             [PY, os.path.join(BASE, "lhb_fetch.py"), "--days", "6"],
             cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=900,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         lhb["returncode"] = r2.returncode
         lhb["tail"] = "\n".join((r2.stdout or "").splitlines()[-8:])
@@ -127,6 +131,8 @@ def main() -> int:
             [PY, os.path.join(BASE, "holders_fetch.py"), "--limit", "600"],
             cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=1800,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         holders["returncode"] = r3.returncode
         holders["tail"] = "\n".join((r3.stdout or "").splitlines()[-8:])
@@ -138,6 +144,8 @@ def main() -> int:
             [PY, os.path.join(BASE, "holders_tag.py")],
             cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=600,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         holders["tag_rc"] = r4.returncode
         holders["tag_tail"] = "\n".join((r4.stdout or "").splitlines()[-6:])
@@ -152,6 +160,8 @@ def main() -> int:
             [PY, os.path.join(BASE, "lhb_sector_link.py"), "--days", "7"],
             cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=1800,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         sector["returncode"] = r5.returncode
         sector["tail"] = "\n".join((r5.stdout or "").splitlines()[-8:])
@@ -168,6 +178,8 @@ def main() -> int:
             [PY, os.path.join(BASE, "sector_chain.py")],
             cwd=BASE, capture_output=True, text=True,
             encoding="utf-8", errors="ignore", timeout=1800,
+
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         chain["returncode"] = r6.returncode
         chain["tail"] = "\n".join((r6.stdout or "").splitlines()[-8:])

@@ -83,11 +83,20 @@ def _worth_scores(codes: list, days: int = 30) -> dict:
     日 K 走 decline_kcache 当天磁盘缓存、流通股本走 7 天缓存（与 turnover_top 同源）。
     K 线不足 / 成交量缺失 / 评分异常的票记 None（按不满足阈值处理，不硬评分；
     None 不落缓存，下次自动重试——与「抓失败不标新鲜」纪律一致）。
+
+    2026-10-13 进哥：评分窗口可调（20~100 天）。缓存按 (code, days) 分键，
+    否则切换窗口会拿到旧窗口的分数、误判。窗口上限夹在日 K 缓存上限内
+    (_DECLINE_KEEP_BARS-1=139)，超过则降级到该上限——长窗值得率见板块二用 120 日。
     """
     codes = [str(c) for c in codes if c]
     if not codes:
         return {}
+    days = max(5, min(int(days or 30), _DECLINE_KEEP_BARS - 1))
     today = _dt.date.today().isoformat()
+
+    def _key(c):
+        return "%s|%d" % (c, days)
+
     with _WORTH_LOCK2:
         if _WORTH_MEM.get("date") != today:
             mem = {}
@@ -102,8 +111,8 @@ def _worth_scores(codes: list, days: int = 30) -> dict:
             _WORTH_MEM.update({"date": today, "scores": mem})
         else:
             mem = _WORTH_MEM["scores"]
-        todo = [c for c in codes if c not in mem]
-    out = {c: mem.get(c) for c in codes}
+        todo = [c for c in codes if _key(c) not in mem]
+    out = {c: mem.get(_key(c)) for c in codes}
     if not todo:
         return out
     try:
@@ -122,7 +131,7 @@ def _worth_scores(codes: list, days: int = 30) -> dict:
         except Exception:  # noqa: BLE001
             ev = None
         if ev and ev.get("score") is not None:
-            fresh[code] = ev["score"]
+            fresh[_key(code)] = ev["score"]
     if fresh:
         with _WORTH_LOCK2:
             _WORTH_MEM["scores"].update(fresh)
@@ -1416,8 +1425,10 @@ def ideal_buy_point(bars, price):
         if p <= 0 or not bars:
             return None, None, False
         win = list(bars)[-60:]
-        highs = [float(b[3]) for b in win if len(b) > 3 and b[3] is not None]
-        lows = [float(b[4]) for b in win if len(b) > 4 and b[4] is not None]
+        # 修复 P1-20：调用方传入的 bar 元组格式为 (date, close, high, low, vol)
+        # （见同文件 _fetch_tencent_full docstring 与 b[1]=close），故 b[2]=high、b[3]=low。
+        highs = [float(b[2]) for b in win if len(b) > 2 and b[2] is not None]
+        lows = [float(b[3]) for b in win if len(b) > 3 and b[3] is not None]
         amp = 0.02
         if highs and lows and len(highs) == len(lows):
             seg = [(h, l) for h, l in zip(highs[-20:], lows[-20:])

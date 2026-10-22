@@ -109,3 +109,17 @@ kb_sources:
     enabled: true
     path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_知行图表交易_图表技术与量化交易体系.md
 
+  # 2026-10-15 补登：赚1亿的进度条（交易心性·防骗·生涯设计，与土斯/牛筋丸的价值投资、
+  # 鼠柚子的短线技术、土豆的财报拆解互补，填的是「心性维度」这块空）
+  # 之前文件已存在于 bili_data 但漏登记，看板上一直没有这条轨道。
+  - doc_key: bili_jinzhitiao
+    track: 赚1亿·交易心性
+    title: "@B站@赚1亿的进度条 交易心性与防骗体系"
+    group: learn
+    order: 7
+    kind: article
+    enabled: true
+    path: F:\AI Agent部署知识库\2026-10-11-00-38-16\bili_data\知识沉淀_赚1亿的进度条_交易心性体系.md
+    # 兜底：UP 主昵称或目录变动时自动跟上最新一份
+    path_glob: F:/AI Agent部署知识库/**/bili_data/知识沉淀_赚1亿的进度条*.md
+

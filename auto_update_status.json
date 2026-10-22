@@ -1,68 +1,68 @@
 {
-  "started": "2026-10-12 16:31:43",
-  "ended": "2026-10-12 16:50:24",
-  "seconds": 1120,
+  "started": "2026-10-21 16:31:24",
+  "ended": "2026-10-21 16:51:35",
+  "seconds": 1210,
   "ok": true,
   "returncode": 0,
   "error": null,
   "wal_checkpoint": true,
   "before": {
-    "players": 346,
+    "players": 402,
     "positions": 271,
-    "trades": 992,
-    "news": 3949,
-    "posts": 5997,
-    "lhb_stocks": 879,
-    "lhb_seats": 6774,
-    "stock_names": 5587,
-    "lhb_depts": 5568,
-    "lhb_inst": 478,
-    "stock_holders": 29570,
-    "stock_holder_num": 6159,
-    "lhb_sector_focus": 51
+    "trades": 1401,
+    "news": 10028,
+    "posts": 13696,
+    "lhb_stocks": 1317,
+    "lhb_seats": 10188,
+    "stock_names": 5588,
+    "lhb_depts": 8322,
+    "lhb_inst": 750,
+    "stock_holders": 33607,
+    "stock_holder_num": 7017,
+    "lhb_sector_focus": 85
   },
   "after": {
-    "players": 346,
+    "players": 402,
     "positions": 271,
-    "trades": 998,
-    "news": 3961,
-    "posts": 6018,
-    "lhb_stocks": 925,
-    "lhb_seats": 7085,
-    "stock_names": 5587,
-    "lhb_depts": 5819,
-    "lhb_inst": 517,
-    "stock_holders": 30889,
-    "stock_holder_num": 6450,
-    "lhb_sector_focus": 55
+    "trades": 1405,
+    "news": 10101,
+    "posts": 13788,
+    "lhb_stocks": 1444,
+    "lhb_seats": 11136,
+    "stock_names": 5588,
+    "lhb_depts": 9071,
+    "lhb_inst": 839,
+    "stock_holders": 33755,
+    "stock_holder_num": 7048,
+    "lhb_sector_focus": 93
   },
   "delta": {
     "players": 0,
     "positions": 0,
-    "trades": 6,
-    "news": 12,
-    "posts": 21,
-    "lhb_stocks": 46,
-    "lhb_seats": 311,
+    "trades": 4,
+    "news": 73,
+    "posts": 92,
+    "lhb_stocks": 127,
+    "lhb_seats": 948,
     "stock_names": 0,
-    "lhb_depts": 251,
-    "lhb_inst": 39,
-    "stock_holders": 1319,
-    "stock_holder_num": 291,
-    "lhb_sector_focus": 4
+    "lhb_depts": 749,
+    "lhb_inst": 89,
+    "stock_holders": 148,
+    "stock_holder_num": 31,
+    "lhb_sector_focus": 8
   },
   "lhb": {
     "returncode": 0,
-    "tail": "  2026-10-12: 个股 46 · 席位 311 · 营业部 251 · 机构 39\n  2026-10-09: 个股 82 · 席位 646 · 营业部 500 · 机构 49\n  2026-10-08: 个股 82 · 席位 587 · 营业部 500 · 机构 46\n[lhb] 完成：写入 {\"stocks\": 210, \"seats\": 1544, \"depts\": 1251, \"inst\": 134}；命中交易日 3 个\n      2026-10-12(股46/席311/部251/机39)\n      2026-10-09(股82/席646/部500/机49)\n      2026-10-08(股82/席587/部500/机46)\n[lhb] 库内最新交易日 = 2026-10-12"
+    "tail": "  2026-10-19: 个股 80 · 席位 606 · 营业部 500 · 机构 44\n  2026-10-16: 个股 66 · 席位 530 · 营业部 450 · 机构 43\n[lhb] 完成：写入 {\"stocks\": 273, \"seats\": 2084, \"depts\": 1699, \"inst\": 176}；命中交易日 4 个\n      2026-10-21(股45/席333/部249/机39)\n      2026-10-20(股82/席615/部500/机50)\n      2026-10-19(股80/席606/部500/机44)\n      2026-10-16(股66/席530/部450/机43)\n[lhb] 库内最新交易日 = 2026-10-21"
   },
   "sector_chain": {
     "returncode": 0,
-    "tail": "[chain] 交易日 2026-09-24 ~ 2026-10-12（7 天）\n[chain] 去重上榜股 426 条\n[chain] 待算板块 4 个（基准日 2026-10-12）\n  ..1/4 创业板综: 上榜8只 龙头=莱美药业 梯队90只(涨19) 分支6个\n  ..2/4 西部大开发: 上榜7只 龙头=莱美药业 梯队90只(涨15) 分支6个\n  ..3/4 储能概念: 上榜4只 龙头=天顺风能 梯队90只(涨22) 分支6个\n  ..4/4 电力设备: 上榜8只 龙头=天顺风能 梯队90只(涨27) 分支6个\n[chain] 落库 4 条 -> sector_chain"
+    "tail": "[chain] 交易日 2026-10-13 ~ 2026-10-21（7 天）\n[chain] 去重上榜股 424 条\n[chain] 待算板块 4 个（基准日 2026-10-21）\n  ..1/4 广东板块: 上榜13只 龙头=长盈精密 梯队90只(涨35) 分支6个\n  ..2/4 通信技术: 上榜8只 龙头=长盈精密 梯队90只(涨55) 分支6个\n  ..3/4 虚拟现实: 上榜5只 龙头=长盈精密 梯队90只(涨46) 分支6个\n  ..4/4 创业板综: 上榜10只 龙头=长盈精密 梯队90只(涨46) 分支6个\n[chain] 落库 4 条 -> sector_chain"
   },
   "backup": {
     "ok": true,
-    "msg": "今日已备份，跳过（--force 可强制重备）"
+    "msg": "已备份：app.db.daily-20261021（147.4 MB）；保留策略 daily=30 / weekly=4；异地双副本 OK：1 个（D:/stock-backups\\backup_mirror-app.db.daily-20261021）"
   },
-  "log_tail": "2026-10-12 16:36:49,891 WARNING 未配置 players 目标页，跳过选手筛选\n2026-10-12 16:36:49,891 WARNING 未配置 player_page_tpl，跳过持仓采集\n2026-10-12 16:36:51,928 INFO 雪球代理 http://127.0.0.1:53269 探测失败（第 1/2 次），继续尝试\n2026-10-12 16:36:51,928 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:36:51,930 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-12 16:37:02,881 WARNING 雪球代理 http://127.0.0.1:53269 连续 2 次探测失败，已自动停用并降级为直连（之后不再重复告警，最早 10 分钟后重试第 1 次）；代理恢复后会自动重新启用，或清空环境变量 XQ_PROXY 立即直连。\n2026-10-12 16:37:02,882 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:03,633 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:04,503 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:05,413 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:06,309 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:07,059 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:07,793 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:08,556 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-12 16:37:09,399 INFO 站点 xueqiu 完成：{'site': 'xueqiu', 'raw_pages': 9, 'news': 10, 'trades': 1, 'posts': 40, 'players': 0, 'positions': 0}\n2026-10-12 16:37:09,435 INFO 选手池重建完成：候选 3173 -> 入选 346（既有保留 346 + 行为入选 0）\n2026-10-12 16:37:09,435 INFO 选手池重建：{'total': 346, 'kept': 242, 'derived': 0, 'candidates': 3173}\n2026-10-12 16:37:09,436 INFO ==== 回填汇总（2026-10-12 16:37:09）====\n2026-10-12 16:37:09,436 INFO   eastmoney: raw_pages=12 news=0 trades=0 posts=0 players=0 positions=0\n2026-10-12 16:37:09,436 INFO   sina: raw_pages=12 news=120 trades=7 posts=360 players=15 positions=0\n2026-10-12 16:37:09,436 INFO   ths: raw_pages=5 news=34 trades=0 posts=34 players=0 positions=0\n2026-10-12 16:37:09,436 INFO   taoguba: raw_pages=3 news=5 trades=10 posts=20 players=15 positions=0\n2026-10-12 16:37:09,436 INFO   xueqiu: raw_pages=9 news=10 trades=1 posts=40 players=0 positions=0\n2026-10-12 16:37:09,436 INFO   选手池：total=346 derived=0 candidates=3173\n2026-10-12 16:37:09,436 INFO 日志已落盘：F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\run_backfill_local.log",
+  "log_tail": "2026-10-21 16:37:08,699 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:08,786 WARNING 雪球浏览器服务返回 500\n2026-10-21 16:37:08,787 INFO 常驻浏览器不可用，回退一次性抓取: https://xueqiu.com/k?q=000001\n2026-10-21 16:37:08,788 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:18,418 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-21 16:37:18,419 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:18,507 WARNING 雪球浏览器服务返回 500\n2026-10-21 16:37:18,507 INFO 常驻浏览器不可用，回退一次性抓取: https://xueqiu.com/k?q=300750\n2026-10-21 16:37:18,508 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:27,812 INFO 雪球代理 127.0.0.1:53269 不可用，本次降级为直连（浏览器不走代理）\n2026-10-21 16:37:27,813 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:27,910 WARNING 雪球浏览器服务返回 500\n2026-10-21 16:37:27,911 INFO 常驻浏览器不可用，回退一次性抓取: https://xueqiu.com/k?q=601318\n2026-10-21 16:37:27,912 INFO 已加载雪球 cookie 18 条（来自 F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\cookies.txt）\n2026-10-21 16:37:36,135 INFO 站点 xueqiu 完成：{'site': 'xueqiu', 'raw_pages': 9, 'news': 10, 'trades': 3, 'posts': 40, 'players': 0, 'positions': 0}\n2026-10-21 16:37:36,229 INFO 选手池重建完成：候选 6905 -> 入选 402（既有保留 402 + 行为入选 0）\n2026-10-21 16:37:36,230 INFO 选手池重建：{'total': 402, 'kept': 286, 'derived': 0, 'candidates': 6905}\n2026-10-21 16:37:36,231 INFO ==== 回填汇总（2026-10-21 16:37:36）====\n2026-10-21 16:37:36,231 INFO   eastmoney: raw_pages=12 news=238 trades=7 posts=240 players=0 positions=0\n2026-10-21 16:37:36,231 INFO   sina: raw_pages=12 news=120 trades=8 posts=360 players=12 positions=0\n2026-10-21 16:37:36,231 INFO   ths: raw_pages=5 news=43 trades=0 posts=43 players=0 positions=0\n2026-10-21 16:37:36,231 INFO   taoguba: 失败 -> taoguba 需要登录但当前未登录。点击「点此登录」按钮，程序会自动打开浏览器登录并保存 Cookie，然后再次「抓取并更新」即可拿到实时数据。\n2026-10-21 16:37:36,231 INFO   xueqiu: raw_pages=9 news=10 trades=3 posts=40 players=0 positions=0\n2026-10-21 16:37:36,231 INFO   选手池：total=402 derived=0 candidates=6905\n2026-10-21 16:37:36,231 INFO 日志已落盘：F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\run_backfill_local.log",
   "note": "雪球无需 cookie（指纹修复后匿名可抓）；龙虎榜已纳入本编排。查看器需关窗重开才能看到新数据。"
 }

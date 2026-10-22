@@ -42,7 +42,10 @@ import sys
 # ---------------------------------------------------------------- 配置
 ROOT = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(ROOT, "viewer", "app.db")
-SKIP_DIRS = {".venv", "node_modules", "archive", "__pycache__", ".git"}
+# 2026-10-15 扩展：backups/ 是历史备份、artifacts/ 是一次性产物脚本 —— 不是产品代码。
+# 扫进来只产生 C1/C2 误报（实测 8 条 C1 全出自这两个目录），会把真正的口径问题淹没。
+SKIP_DIRS = {".venv", "node_modules", "archive", "__pycache__", ".git",
+             "backups", "artifacts"}
 PY_EXTS = {".py", ".pyi"}
 JS_EXTS = {".js", ".mjs"}
 
