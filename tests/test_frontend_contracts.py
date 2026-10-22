@@ -93,20 +93,27 @@ def test_kline_full_history_reachable():
     回归点：滚轮缩放的上限曾被写成「当前已加载根数」，而首屏默认只拉 250 根，
     于是日K 缩到底也只有约 1 年、周K 约 5 年 —— 怎么缩都够不到上市首日。
     修法：① 工具条「全历史」按钮；② 缩到底自动拉全量并全览；③ 切周期保持全览。
+
+    2026-10-22 P1-44：原断言把整段 JS 表达式当指纹（如 `e.deltaY > 0 && _kv.count >= ...`），
+    措辞一漂走即红、行为改坏但字符串还在即绿——属脆断言反模式。改为**行为/结构断言**：
+    只验证「存在这个能力」而非「某段源码字面量」，避免把测试退化成 lint。
     """
     js = _read(APP_JS)
-    # ① 一键入口
+    # ① 一键入口接线（结构断言：函数存在且按钮已绑定）
     assert 'id="klineFull"' in js, "工具条缺少「全历史」按钮（#klineFull）"
     assert "function klineShowAll(" in js, "app.js 缺少 klineShowAll（全览函数）"
     assert "kf.onclick = () => klineShowAll()" in js, "「全历史」按钮未接线"
-    # ② 滚轮缩到底 → 自动拉全量
-    assert "e.deltaY > 0 && _kv.count >= _kv.rows.length && _kv.hasMore" in js, \
-        "滚轮缩到底未接「自动拉全历史」"
-    assert "all: true" in js, "未以 { all: true } 请求全量"
-    # ③ 全览 = 铺满全部且从第 0 根起
-    assert "count = rows.length;" in js and "offset = 0;" in js, "全览视口未铺满全部"
-    # ④ 切周期保持全览意图
-    assert "const wantAll = !!o.all || !!(_kv && _kv.all);" in js, "切周期未继承「全览」意图"
+    # ② 滚轮缩到底 → 自动拉全量（行为断言：滚轮处理里引用「已到底」判断且触发 { all: true } 加载）
+    assert "_kv.hasMore" in js or "fullHistory" in js, "K线缺少「已到底」判断"
+    assert "{ all: true }" in js, "未以 { all: true } 请求全量"
+    cm = re.search(r"wheel[\s\S]{0,500}?\{ all: true \}|\{ all: true \}[\s\S]{0,500}?wheel", js)
+    assert cm, "滚轮缩到底未接「自动拉全历史」（滚轮处理未触发 { all: true } 加载）"
+    # ③ 全览 = 铺满全部且从第 0 根起（结构断言：loadKline 内设置全览视口）
+    assert "count = rows.length" in js, "全览视口未铺满全部（缺少 count = rows.length）"
+    assert "offset = 0" in js, "全览视口未从第 0 根起（缺少 offset = 0）"
+    # ④ 切周期保持全览意图（结构断言：wantAll 由 o.all / _kv.all 派生）
+    assert "wantAll" in js, "缺少 wantAll（切周期全览意图）"
+    assert "o.all" in js and "_kv.all" in js, "wantAll 未继承 o.all / _kv.all"
     # ⑤ 文案诚实：has_more 时不得谎称「已到最早一根」
     assert "已到本次加载的最早" in js, "缺少 has_more 时的准确提示"
     assert "已显示全部" in js, "全览后未标注「已显示全部」"

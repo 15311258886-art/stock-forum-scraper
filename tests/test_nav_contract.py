@@ -27,6 +27,14 @@ DYNAMIC_TABS = {
     "policy",            # 政策面板动态建
     "growth",            # 复盘成长动态建
     "learn_zdx_stock",   # 学习轨道动态建
+    # 2026-10-22 P1-44：低位突破三面板（含子面板）运行时动态建容器，无 index.html 预置
+    "lowbox",            # 低位突破（app.js 动态建 #p-lowbox）
+    "lowbox_bottom",     # 长期底部埋伏（lowbox 子面板）
+    "lowbox_radar",      # 突破雷达（lowbox 子面板）
+    # 2026-10-22 P1-44：豆包三面板经独立 NAV 块注入（非主 `const NAV = [`），运行时可达
+    "dy_reso",           # 豆包×主力共振
+    "integrate",         # 整合图谱
+    "tech",              # 豆包技术方法
 }
 
 # 非导航直达的诊断/运维面板（有容器，但入口不在左侧导航）。
