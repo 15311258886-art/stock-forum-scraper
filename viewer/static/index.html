@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- P1-54：内容安全策略基线（2026-10-22 全量整改）。
+       本应用内联脚本/事件处理器极多（pywebview 桥 + 大量 onclick），故 script/style 保留 'unsafe-inline'；
+       基线防护聚焦：禁 object/embed、锁 base-uri、防 iframe 嵌套（frame-ancestors）、connect 仅同源。
+       若后续清理为外部脚本，可收紧 script-src 去掉 'unsafe-inline'。 -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" />
   <!-- 前端版本号唯一真源：/api/version 从这里解析；改 app.js/app.css 必须跟着加（见文件末尾脚注） -->
-  <meta name="app-version" content="20261012-klineall" />
+  <meta name="app-version" content="20261022-fix1" />
   <title>股票讨论实时查看器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
-  <link id="theme-link" rel="stylesheet" href="static/themes/light-tech.css" />
-  <link rel="stylesheet" href="static/app.css?v=20261012-klineall" />
+  <link id="theme-link" rel="stylesheet" href="static/themes/dark-dashboard.css" />
+  <link rel="stylesheet" href="static/app.css?v=20261022-avoid" />
+  <link rel="stylesheet" href="static/etf.css?v=20261017-etf-2" />
   <link rel="stylesheet" href="static/visual-upgrade.css" />
   <link rel="stylesheet" href="static/bili_methods.css?v=20261012-biliconsensus" />
+  <!-- 抖音博主语料（2026-10-20）：独立样式层，颜色走主题变量，暗/浅自适应 -->
+  <link rel="stylesheet" href="static/douyin_corpus.css?v=20261021-dy11c" />
   <link rel="stylesheet" href="static/industry_leaders.css?v=20260922-il1" />
 </head>
 <body>
@@ -31,17 +40,33 @@
          ① 数据抓取（管"数据新不新"）：实时刷新 / 自动调度 + 调度状态牌
          ② 页面刷新（管"页面新不新"）：盘中轮询开关 + 状态牌（状态牌也可点击开关）
          ③ 手动操作：登录检测 / 立即刷新 / 刷新海外舆情 / 抓取并更新 -->
-    <label class="switch" title="数据抓取：勾选后每 5 分钟自动抓一次新数据（淘股吧+东财），对应左侧红点倒计时"><input type="checkbox" id="realtime" /> 实时刷新(5分钟)</label>
-    <label class="switch" title="数据抓取：工作日 9:00-16:00 每约 10 分钟后台自动抓取淘股吧+东财，无需开页面"><input type="checkbox" id="schedAuto" /> 自动调度</label>
+    <label class="switch" title="数据抓取（按需补抓）：勾选后每 5 分钟自动抓一次新数据（淘股吧+东财）。与「自动调度」互补、不冲突——自动调度是交易日后台主引擎，本开关是随时可触发的按需补抓，两者都只往库里进数据。"><input type="checkbox" id="realtime" /> 实时刷新(5分钟)</label>
+    <label class="switch" title="数据抓取（后台主引擎）：工作日 9:00-16:00 每约 10 分钟后台自动抓取淘股吧+东财，无需开页面。与「实时刷新」不冲突，二者叠加生效、都只往库里进新数据。"><input type="checkbox" id="schedAuto" /> 自动调度</label>
     <span class="rb-sched" id="schedText" title="「自动调度」的运行状态（只读显示，开关在上面那个复选框）">📡 调度状态：加载中…</span>
     <span class="tb-sep"></span>
-    <label class="switch" title="页面刷新：交易时段(9:30-11:30/13:00-15:00)内每 60 秒自动重刷「当前看到的板块」页面；不动后台抓取"><input type="checkbox" id="pagePoll" /> 盘中轮询(60秒)</label>
+    <label class="switch" title="页面刷新（仅重渲、不抓数）：交易时段(9:30-11:30/13:00-15:00)内每 60 秒自动重刷「当前看到的板块」页面；只重画界面、绝不触发后台抓取。与左侧两个抓取开关职责不同，请按需开启。"><input type="checkbox" id="pagePoll" /> 盘中轮询(60秒)</label>
     <span class="rb-poll" id="pagePollState" title="「盘中轮询」的状态牌，点一下也可开/关（与左边复选框等效）">盘中轮询：关闭</span>
     <span class="tb-sep"></span>
-    <button class="btn sm" id="btnLogin" title="检测淘股吧登录凭据是否有效">登录检测</button>
-    <button class="btn sm" id="btnRefreshNow" title="手动：立即抓一次新数据并刷新全部面板（按钮会临时变成「刷新中…」）">立即刷新</button>
-    <button class="btn" id="btnOverseas" title="手动：抓取海外舆情数据并刷新对应面板">刷新海外舆情</button>
-    <button class="btn primary" id="btnFetch" title="手动：立即抓取淘股吧+东财新数据，入库并刷新全部面板（按钮会临时变成「抓取中…」）">抓取并更新</button>
+    <!-- 2026-10-20 进哥要求收敛顶栏：原「登录检测 / 立即刷新 / 刷新海外舆情 / 抓取并更新」
+         四个散按钮合并为一个「一键刷新」（btnAllRefresh）。旧按钮保留在 DOM 但隐藏——
+         app.js 顶部对它们的 onclick 绑定仍在，删掉会在加载时报空指针；隐藏即可。 -->
+    <button class="btn sm" id="btnLogin" hidden title="（已并入一键刷新）检测淘股吧登录凭据是否有效">登录检测</button>
+    <button class="btn sm" id="btnRefreshNow" hidden title="（已并入一键刷新）手动：立即抓一次新数据并刷新全部面板">立即刷新</button>
+    <button class="btn" id="btnOverseas" hidden title="（已并入一键刷新）手动：抓取海外舆情数据并刷新对应面板">刷新海外舆情</button>
+    <button class="btn" id="btnFetch" hidden title="（已并入一键刷新）手动：抓取淘股吧+东财新数据并入库">抓取并更新</button>
+    <button class="btn primary" id="btnAllRefresh" title="一键完成：① 登录检测 → ② 抓取淘股吧/东财新数据 → ③ 刷新海外舆情（联网，失败自动保留旧数据） → ④ 同步国际局势事件库 → 刷新全部面板。按钮会显示当前进度（第几步）。">一键刷新</button>
+    <span class="tb-sep"></span>
+    <!-- 2026-10-22 全量整改新增：信息密度 / 命令面板 / 设置（运维）入口 -->
+    <button class="btn sm" id="btnDensity" title="切换「紧凑 / 舒适」密度，立即生效并记忆">舒适密度</button>
+    <button class="btn sm" id="btnCmdPalette" title="命令面板（Ctrl/⌘+K）：搜个股、跳面板、执行动作">⌘ 命令</button>
+    <button class="btn sm" id="btnSettings" title="设置 / 运维：后台服务可控、日志目录、备份恢复、刷新与回填配置">⚙ 设置</button>
+  </div>
+
+  <!-- P2-36 免责声明横幅（2026-10-22 全量整改）：个人研究工具，所有数据/结论仅供学习，不构成任何投资建议。常驻、不可关闭，仅本会话可折叠。 -->
+  <div class="disclaimer-bar" id="disclaimerBar" role="note">
+    <span class="db-ico">⚠</span>
+    <span class="db-txt">个人研究工具，所有数据 / 结论仅供学习参考，<b>不构成任何投资建议</b>。据此操作风险自负。</span>
+    <button class="db-fold" id="disclaimerFold" title="折叠/展开">收起 ▴</button>
   </div>
 
   <!-- 应用外壳（2026-09-23 布局改造）：左侧一列竖向导航**贴住视口最左缘**（不再被居中容器含住），
@@ -54,7 +79,7 @@
     <aside class="sidenav" id="sidenav" aria-label="主导航"></aside>
 
     <div class="content">
-      <div class="hint hint-slim" id="statusHint" role="status" aria-live="polite">顶栏开关分两类：实时刷新 / 自动调度 管「数据抓取」（往库里进新数据）；盘中轮询 管「页面刷新」（交易时段每 60 秒自动重刷当前板块，点右侧状态牌也能开关）。鼠标停在任何控件上都有说明。</div>
+      <div class="hint hint-slim" id="statusHint" role="status" aria-live="polite">顶栏开关分两类：①「实时刷新 / 自动调度」管数据抓取——二者<strong>不冲突、叠加生效</strong>，自动调度是交易日后台主引擎、实时刷新是随时可开的按需补抓，都只往库里进新数据；②「盘中轮询」管页面刷新——<strong>仅重渲当前板块、不抓数</strong>（交易时段每 60 秒）。鼠标停在任何控件上都有更详细说明。</div>
 
       <div class="cards" id="cards"></div>
 
@@ -70,6 +95,23 @@
       <div class="panel" id="p-watch_brief"></div>
       <div class="panel active" id="p-summary"></div>
       <div class="panel" id="p-dashboard"></div>
+      <!-- 博主共振（2026-10-15 进哥需求）：紧跟「每日预测」之后的子板块，面板内三支柱
+           个股共振（票为中心）/ 战法体系（战法为中心）/ 信源画像（人为中心）。
+           数据来自 /api/resonance（后端 resonance.py 产出，查看器只读）。 -->
+      <div class="panel" id="p-resonance"></div>
+      <!-- 避雷名单（2026-10-21 进哥拍板）：低分卡的显式归因面板。
+           实证 C 级 -4.51% vs 全样本 +1.93%，只做排除不做推荐。
+           数据来自 /api/avoid（后端 resonance.avoid_payload 产出）。 -->
+      <div class="panel" id="p-avoid"></div>
+  <!-- 量化信号（2026-10-16 进哥需求）：第三维信号源，面板内五子视图
+       因子全景 / 多因子选股 / 因子回测 / 菜谱预设 / 量化因子的自我学习与成长。
+       数据来自 /api/quant（后端 quant.py 产出，查看器只读）。 -->
+      <div class="panel" id="p-quant"></div>
+      <!-- ETF 基金（2026-10-17 进哥需求）：今日总览与量化/共振并列的顶层 NAV 子项。
+           左右对称两栏：左 A = 量化多因子中的 ETF 候选（复用 quant 因子 + metalearn 权重），
+           右 B = ETF 专属投顾 6 维（全部待接入）。两栏分离、绝不混叠。
+           数据来自 /api/etf（后端 etf.py 产出，查看器只读）。 -->
+      <div class="panel" id="p-etf"></div>
       <div class="panel" id="p-stocks"></div>
       <div class="panel" id="p-operating"></div>
       <div class="panel" id="p-players"></div>
@@ -88,15 +130,9 @@
       <div class="panel" id="p-sentiment"></div>
       <div class="panel" id="p-topics"></div>
       <div class="panel" id="p-overseas_sentiment"></div>
-      <div class="panel" id="p-overseas_hotspots"></div>
+      <div class="panel" id="p-global_market"></div>
       <div class="panel" id="p-geo_events"></div>
-      <!-- 全球政策雷达（2026-09-27 新增）：国际局势下「别国政策/内政」独立面板 -->
-      <div class="panel" id="p-geo_policy"></div>
-      <!-- 科技前沿突破（2026-09-27 新增）：国际局势下「科技新突破」独立面板 -->
-      <div class="panel" id="p-geo_tech"></div>
       <div class="panel" id="p-extref_soft"></div>
-      <div class="panel" id="p-extref_comm"></div>
-      <div class="panel" id="p-extref_rank"></div>
       <!-- 自选池（2026-09-27 新增）：关注池（可分组/改名/标目标价）+ 到价提醒。
            数据来自独立模块 watchlib.py（表 watch_*，零 JOIN 既有业务表）。 -->
       <div class="panel" id="p-watch"></div>
@@ -140,6 +176,14 @@
       <div class="panel" id="p-bili_authors"></div>
       <!-- ③ 技术·价值教学：cat=technical,value（3306+397 条）；挂在「复盘成长」下 -->
       <div class="panel" id="p-bili_techvalue"></div>
+      <!-- 技术方法（2026-10-20 进哥拍板走 A）：抖音博主的「技术和方法」语料独立成面板。
+           为什么不并进上面的「技术·价值教学」：那个面板吃的是 B站 bili_pile 分类堆（3 个 cat），
+           抖音这里 2701 条是**视频级摘要语料、需后端分页 + 关键词搜索**，两者数据结构不同构；
+           硬塞会让 B站的「方法卡片 + 一键筛股」逻辑和抖音的搜索分页互相打架。
+           容器内容由 static/douyin_corpus.js 的 DOUYIN.renderTech() 渲染，进入面板才懒加载。 -->
+      <div class="panel" id="p-tech"></div>
+    <div class="panel" id="p-integrate"></div>
+    <div class="panel" id="p-dy_reso"></div>
     </div>
   </div>
 
@@ -166,11 +210,37 @@
     <div class="drawer-resize" id="drawerResize" title="拖拽调整大小"></div>
   </div>
 
+  <!-- ===== 2026-10-22 全量整改新增：命令面板 / 设置(运维) / 首启引导 容器（内容由 app.js 注入） ===== -->
+  <div class="cmd-mask" id="cmdMask"></div>
+  <div class="cmd-palette" id="cmdPalette" role="dialog" aria-modal="true" aria-label="命令面板" hidden>
+    <input class="cmd-input" id="cmdInput" type="text" placeholder="搜索个股代码/名称，或输入命令（如 刷新、龙虎榜、设置）…" autocomplete="off" />
+    <div class="cmd-list" id="cmdList"></div>
+    <div class="cmd-foot">↑↓ 选择 · Enter 打开 · Esc 关闭 · 直接输入 6 位代码回车看个股</div>
+  </div>
+
+  <div class="modal-mask" id="settingsMask" hidden></div>
+  <div class="modal settings-modal" id="settingsModal" role="dialog" aria-modal="true" aria-label="设置 / 运维" hidden>
+    <div class="modal-head">
+      <span class="modal-title">⚙ 设置 / 运维</span>
+      <button class="dbtn close" id="settingsClose" title="关闭（Esc）">✕</button>
+    </div>
+    <div class="modal-body" id="settingsBody"></div>
+  </div>
+
+  <div class="modal-mask" id="firstRunMask" hidden></div>
+  <div class="modal firstrun-modal" id="firstRunModal" role="dialog" aria-modal="true" aria-label="首次使用引导" hidden>
+    <div class="modal-head"><span class="modal-title">欢迎使用 · 3 步快速上手</span></div>
+    <div class="modal-body" id="firstRunBody"></div>
+    <div class="modal-foot" id="firstRunFoot"></div>
+  </div>
+
   <!-- 新闻/公告分类规则：由 viewer/newsclass.py（唯一真源）在服务启动时重写出这份文件；改词表只改 py 再重启 -->
   <script src="static/news_rules.js?v=20261007-fast"></script>
-  <script src="static/app.js?v=20261012-klineall"></script>
+  <script src="static/app.js?v=20261022-fix1"></script>
   <script src="static/screener_extra.js?v=20261007-b125"></script>
   <script src="static/industry_leaders.js?v=20261008-il1"></script>
+  <!-- 抖音博主语料（2026-10-20）：必须在 app.js 之后加载（app.js 的 renderSentiment 会调 DOUYIN） -->
+  <script src="static/douyin_corpus.js?v=20261021-dy11c"></script>
   <!-- 版本号串：改 app.js/app.css 后必须跟着加，否则王总桌面页面走缓存看不到新文案（2026-10-01 踩过）。
        另外页面每 60s 会跟 /api/version 比一次版本：不一致就在顶部弹「界面已更新，点此刷新」提示条，
        解决「后端改了、旧窗口里的旧 JS 还在跑、王总说看不到新功能」这一类问题。 -->

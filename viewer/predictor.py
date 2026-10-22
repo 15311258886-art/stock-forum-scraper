@@ -35,7 +35,8 @@ import sqlite3
 import sys
 import threading
 import time
-from collections import Counter, defaultdict
+import traceback
+from collections import Counter, defaultdict, deque
 from datetime import datetime, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -382,7 +383,12 @@ def _migrate(con: sqlite3.Connection) -> None:
 
 
 def _today() -> str:
-    return datetime.now().strftime("%Y-%m-%d")
+    # P2-06: 单点替换 naive datetime.now() → 时区感知的 CST 时间，避免跨时区错乱
+    try:
+        from timeutil import today_cst
+        return today_cst()
+    except Exception:  # noqa: BLE001 —— timeutil 不可用时回退 naive（保持旧行为）
+        return datetime.now().strftime("%Y-%m-%d")
 
 
 def _latest_trade_date_anchor() -> str:
@@ -422,13 +428,17 @@ def _f(x, d=None):
 
 
 def _pct_le(sorted_vals: list, x) -> float:
-    """x 在已排序列表 sorted_vals 中的百分位（0~1）。用于把不同量纲的强度归一到可比区间。"""
+    """x 在已排序列表 sorted_vals 中的百分位（0~1，含等号 = 小于等于 x 的占比）。
+
+    P1-16 语义修正：原实现用严格小于（`<`），返回的是「小于 x 的占比」，与函数名
+    pct_le（percentile ≤）不符；现改为「≤ x 的占比」，与命名及下游「归一化到 0~1」口径一致。
+    """
     if not sorted_vals:
         return 0.5
     lo, hi = 0, len(sorted_vals)
     while lo < hi:
         mid = (lo + hi) // 2
-        if sorted_vals[mid] < x:
+        if sorted_vals[mid] <= x:
             lo = mid + 1
         else:
             hi = mid
@@ -658,12 +668,22 @@ def sig_tech_replay(k: list, strat_list: list) -> dict:
 
 
 # ---------------------------------------------------------------- 信号：其它五路
-def sig_sentiment(con: sqlite3.Connection) -> dict:
+def sig_sentiment(con: sqlite3.Connection, asof: str | None = None) -> dict:
     """论坛情绪：近 LOOKBACK_DAYS 天，某票被提及次数 + 关联帖平均情绪分。
 
     strength = 提及次数 × (1 + 情绪分)，情绪为负则打折。
+
+    asof：数据隔离边界（P1-01）。给定 asof 时，回看窗口以 asof 为锚点
+    （since = asof - LOOKBACK_DAYS 天），避免用到未来帖；为 None 时退化为「今天」锚点。
     """
-    since = (datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    if asof is None:
+        since = (datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    else:
+        try:
+            since = (datetime.strptime(asof[:10], "%Y-%m-%d")
+                     - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+        except Exception:  # noqa: BLE001
+            since = (datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
     rows = con.execute(
         "SELECT m.symbol, m.symbol_name, p.sentiment, p.sentiment_score "
         "FROM stock_mentions m LEFT JOIN posts p ON p.id = m.post_id_ref "
@@ -927,7 +947,22 @@ def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
         for c in cs:
             sym_words.setdefault(c, set()).add(w)
     pol, ovs, bf, sen, fol = {}, {}, {}, {}, {}
-    for r in con.execute("SELECT sectors, importance, level FROM policy_news"):
+    # P1-01: 板块热度三源均按 asof 截断 + 5 日窗口（[asof-5d, asof]），杜绝前视偏差。
+    # asof 为 None 时退化为全量（保持旧行为）。各源日期列：
+    #   policy_news.pub_time / overseas_hotspots.first_seen(回退 updated_at) / board_flow_samples.trade_date
+    if asof is not None:
+        pol_win = (" WHERE date(pub_time) <= date(?) "
+                   "AND date(pub_time) >= date(?, '-5 day')")
+        ovs_win = (" WHERE date(COALESCE(first_seen, updated_at)) <= date(?) "
+                   "AND date(COALESCE(first_seen, updated_at)) >= date(?, '-5 day')")
+        bf_win = (" AND date(trade_date) <= date(?) "
+                  "AND date(trade_date) >= date(?, '-5 day')")
+        pol_p, ovs_p, bf_p = (asof, asof), (asof, asof), (asof, asof)
+    else:
+        pol_win, ovs_win, bf_win = "", "", ""
+        pol_p = ovs_p = bf_p = ()
+    for r in con.execute(
+            "SELECT sectors, importance, level FROM policy_news" + pol_win, pol_p):
         try:
             ws = json.loads(r["sectors"] or "[]")
         except Exception:  # noqa: BLE001
@@ -938,7 +973,8 @@ def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
         lvl = 1.5 if str(r["level"] or "") == "中央" else 1.0
         for w in ws:
             pol[str(w)] = pol.get(str(w), 0.0) + imp * lvl
-    for r in con.execute("SELECT domestic_sectors, heat FROM overseas_hotspots"):
+    for r in con.execute(
+            "SELECT domestic_sectors, heat FROM overseas_hotspots" + ovs_win, ovs_p):
         try:
             ws = json.loads(r["domestic_sectors"] or "[]") if r["domestic_sectors"] else []
         except Exception:  # noqa: BLE001
@@ -948,14 +984,15 @@ def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
                 ovs[str(w)] = ovs.get(str(w), 0.0) + float(r["heat"] or 1.0)
     for r in con.execute(
             "SELECT board_name, main_net FROM board_flow_samples "
-            "WHERE kind='industry' AND main_net>0"):
-        bf[str(r["board_name"])] = bf.get(str(r["board_name"]), 0.0) + float(r["main_net"] or 0)
-    sent = sig_sentiment(con)
+            "WHERE kind='industry' AND main_net>0" + bf_win, bf_p):
+        bn = str(r["board_name"])
+        bf[bn] = bf.get(bn, 0.0) + float(r["main_net"] or 0)
+    sent = sig_sentiment(con, asof=asof)
     for sym, v in sent.items():
         for w in sym_words.get(sym, set()):
             sen[w] = sen.get(w, 0.0) + v["strength"] * 0.1
     try:
-        follow = sig_follow(con)
+        follow = sig_follow(con, asof=asof)
         for sym, v in follow.items():
             for w in sym_words.get(sym, set()):
                 fol[w] = fol.get(w, 0.0) + v["strength"] * 0.1
@@ -1377,14 +1414,21 @@ def sig_follow(con: sqlite3.Connection, asof: str | None = None) -> dict:
            "WHERE symbol IS NOT NULL AND symbol != ''")
     args: list = []
     if asof:
-        sql += " AND post_time <= ?"
+        # P1-10: 数据隔离边界 = [asof-10d, asof]，既避免用到未来帖，又把信号收窄到近 10 日窗口
+        sql += " AND post_time <= ? AND post_time >= date(?, '-10 day')"
+        args.append(asof)
         args.append(asof)
     try:
         rows = con.execute(sql + " ORDER BY id", args).fetchall()
     except Exception:  # noqa: BLE001
         return {}
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    # P1-10: 新近度锚点随 asof 走（asof 为 None 时用今天），与上方 asof 隔离边界保持一致口径
+    if asof:
+        anchor = asof[:10]
+    else:
+        anchor = datetime.now().strftime("%Y-%m-%d")
+    anchor_dt = datetime.strptime(anchor, "%Y-%m-%d") if anchor else None
     out: dict = {}
     for r in rows:
         sym = str(r["symbol"] or "").strip().zfill(6)
@@ -1399,11 +1443,13 @@ def sig_follow(con: sqlite3.Connection, asof: str | None = None) -> dict:
         # 2) 新近度衰减：当天 1.3 / 3 天内 1.1 / 10 天内 1.0 / 更早 0.6
         ts = str(r["post_time"] or "")
         day = ts[:10]
-        if day >= today:
+        if anchor_dt is None:
+            rec = 1.0
+        elif day >= anchor:
             rec = 1.3
-        elif day >= (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d"):
+        elif day >= (anchor_dt - timedelta(days=3)).strftime("%Y-%m-%d"):
             rec = 1.1
-        elif day >= (datetime.now() - timedelta(days=10)).strftime("%Y-%m-%d"):
+        elif day >= (anchor_dt - timedelta(days=10)).strftime("%Y-%m-%d"):
             rec = 1.0
         else:
             rec = 0.6
@@ -1604,9 +1650,19 @@ def load_weights(con: sqlite3.Connection) -> dict:
     return w
 
 
-def _shrunk_hit(n: int, hit: int) -> float:
-    """贝叶斯收缩命中率：样本少 → 靠近 0.5 先验；样本多 → 靠近实盘表现。"""
-    return (hit + PRIOR_HIT * PRIOR_N) / (n + PRIOR_N) if (n + PRIOR_N) > 0 else PRIOR_HIT
+def _shrunk_hit(n: int, hit: int, prior_hit: float = PRIOR_HIT,
+                prior_n: float = PRIOR_N) -> float:
+    """Beta-Binomial 贝叶斯收缩命中率（P1-17）。
+
+    逐路用 SIGNAL_PRIOR[k] 作 Beta 先验（caller 传入 prior_hit=_ph），比旧版「全局固定
+    PRIOR_HIT/PRIOR_N」更统一——每条信号有自己校准过的先验，冷启动也更稳。
+    后验均值 = (hit + α) / (n + α + β)，其中 α = prior_hit·prior_n，β = (1-prior_hit)·prior_n。
+    默认参数与旧版等价（prior_hit=PRIOR_HIT, prior_n=PRIOR_N），不破坏无参调用方。
+    """
+    a = prior_hit * prior_n
+    b = (1.0 - prior_hit) * prior_n
+    denom = n + a + b
+    return (hit + a) / denom if denom > 0 else prior_hit
 
 
 def _history_coverage(con: sqlite3.Connection) -> dict:
@@ -1715,10 +1771,12 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
             n3, h3 = int(r["n_t3"] or 0), int(r["n_hit_t3"] or 0)
             n5, h5 = int(r["n_t5"] or 0), int(r["n_hit_t5"] or 0)
             n10, h10 = int(r["n_t10"] or 0), int(r["n_hit_t10"] or 0)
-        s1 = _shrunk_hit(n1, h1)
-        s3 = _shrunk_hit(n3, h3)
-        s5 = _shrunk_hit(n5, h5)
-        s10 = _shrunk_hit(n10, h10)
+        # P1-17: 逐路用 SIGNAL_PRIOR[k] 作 Beta-Binomial 先验均值，冷启动更稳且统一框架
+        _ph = SIGNAL_PRIOR.get(k, PRIOR_HIT)
+        s1 = _shrunk_hit(n1, h1, prior_hit=_ph)
+        s3 = _shrunk_hit(n3, h3, prior_hit=_ph)
+        s5 = _shrunk_hit(n5, h5, prior_hit=_ph)
+        s10 = _shrunk_hit(n10, h10, prior_hit=_ph)
         # 权重主轴：T+1（0.28）+ T+3（0.34）+ T+5（0.28）+ T+10（0.10）。
         # 旧版只吃 T+5（0.6），而 T+5 样本长期为 0（窗口未到期）→ 主轴恒为中性 0.5，
         # 自学习等于空转（2026-10-11 王总定：把已到期的 T+1/T+3 纳入主轴）。
@@ -1794,12 +1852,32 @@ def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
             "VALUES (?,?,?,?,?,?,?) ON CONFLICT(signal_key) DO UPDATE SET "
             "weight=excluded.weight, weight_prev=predictor_score.weight, updated_at=excluded.updated_at",
             (k, "signal", meta.get("name", k), None, after, before, ts))
+    # P1-14：rescore 幂等化——同一 engine_ver + 同一交易日（_today）已写过调权日志则跳过重复写入，
+    # 避免重跑/重试把同一批权重变化记成多条日志（权重 UPSERT 与 walk-forward 仍每次执行，不受影响）。
+    _sig_key = "rescore_done_%s_%s" % (ENGINE_VER, _today())
+    _already = False
+    try:
+        _already = con.execute("SELECT 1 FROM meta WHERE key=?", (_sig_key,)).fetchone() is not None
+    except Exception:  # noqa: BLE001  meta 不可用时退化为每轮都记（旧行为）
+        _already = False
     if changes:
-        con.executemany(
-            "INSERT INTO predictor_adjust_log (log_date,signal_key,kind,weight_before,weight_after,reason,created_at) "
-            "VALUES (?,?,?,?,?,?,?)", changes)
+        if not _already:
+            con.executemany(
+                "INSERT INTO predictor_adjust_log (log_date,signal_key,kind,weight_before,weight_after,reason,created_at) "
+                "VALUES (?,?,?,?,?,?,?)", changes)
+            try:
+                con.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (_sig_key, "1"))
+            except Exception:  # noqa: BLE001
+                pass
     con.commit()
-    return {"weights": new_w, "adjusted": len(changes), "detail": detail}
+    # A3-3 整改：每次调权后用滚动窗口重跑最近 250 交易日样本外命中率（walk-forward 报告），
+    # 供「把权重调乱 → 报告显示命中率下降」的验收路径直接可见。
+    try:
+        wf = _walk_forward_track(con)
+    except Exception:  # noqa: BLE001
+        wf = {"ok": False, "error": "walk-forward 重跑失败"}
+    return {"weights": new_w, "adjusted": len(changes), "detail": detail,
+            "walk_forward": wf}
 
 
 def _ensure_score_rows(con: sqlite3.Connection, items: list) -> None:
@@ -1827,11 +1905,51 @@ def _ensure_score_rows(con: sqlite3.Connection, items: list) -> None:
 
 
 # ---------------------------------------------------------------- 合成与生成
-def _market_view(sig_stats: dict, senti: dict, weights: dict, top_sectors: list) -> tuple:
+def _pool_regime(bars_map: dict) -> dict:
+    """候选池价格状态（2026-10-15 修复 market_view 普跌失灵）。
+
+    背景：宽度=多信号共振占比，度量的是"信号共识"而非"价格趋势"。2026-09-28~10-14
+    连续 8 天宽度≥35% 说"偏强可积极选股"，同期池等权两根 -2% 级阴线——普跌里信号
+    共振照样扩散（超跌票集体触发技术面），宽度门形同虚设。此处用池内 K 线直接算
+    价格证据，与四支柱 A 柱的"普跌"判定同源（价格维度），供 _market_view 联动降级。
+
+    返回 {"chg1": 当日池等权涨跌%, "down_ratio": 下跌家数占比%,
+          "chg5": 近5日池等权涨跌%, "n": 参与统计只数}；数据不足返回 {}。"""
+    chg1_list, chg5_list = [], []
+    for k in bars_map.values():
+        try:
+            c1, c2 = _f(k[-1].get("c")), _f(k[-2].get("c"))
+            if c1 and c2:
+                chg1_list.append((c1 / c2 - 1) * 100)
+            if len(k) >= 6:
+                c6 = _f(k[-6].get("c"))
+                if c1 and c6:
+                    chg5_list.append((c1 / c6 - 1) * 100)
+        except Exception:  # noqa: BLE001
+            continue
+    n = len(chg1_list)
+    if n < 10:  # 样本太少不构成行情判断
+        return {}
+    out = {
+        "chg1": sum(chg1_list) / n,
+        "down_ratio": sum(1 for x in chg1_list if x < 0) / n * 100,
+        "n": n,
+    }
+    if chg5_list:
+        out["chg5"] = sum(chg5_list) / len(chg5_list)
+    return out
+
+
+def _market_view(sig_stats: dict, senti: dict, weights: dict, top_sectors: list,
+                 regime: dict | None = None) -> tuple:
     """由信号统计合成当日研判（纯数据描述 + 强弱结论，不引入外部判断）。
 
     宽度口径用「多信号共振只数占比」而非技术面触发率 —— 后者因 86 条策略近乎全触发
-    （99%）会变成恒为偏强的伪信号；前者才反映"有多少票被多路独立信号共同看多"。"""
+    （99%）会变成恒为偏强的伪信号；前者才反映"有多少票被多路独立信号共同看多"。
+
+    2026-10-15 普跌联动修复：宽度是信号共识度，不是价格趋势。池等权当日普跌
+    （下跌家数≥60% 或当日跌逾 1.5%）时，无论宽度多高，结论强制降为防守——
+    宽度与价格背离时以价格为准，并如实写出背离，供人工复核。"""
     conv_n = sig_stats.get("conv_n", 0)
     pool_n = sig_stats.get("_pool", 1) or 1
     breadth = conv_n / pool_n * 100 if pool_n else 0
@@ -1844,6 +1962,14 @@ def _market_view(sig_stats: dict, senti: dict, weights: dict, top_sectors: list)
     else:
         tone, style = "偏弱", "信号稀少，宜降低仓位等待"
     parts = ["多信号共振 %d/%d 只（%.0f%%）" % (conv_n, pool_n, breadth)]
+    rg = regime or {}
+    chg1, down_ratio = rg.get("chg1"), rg.get("down_ratio")
+    if chg1 is not None and down_ratio is not None:
+        parts.append("池等权当日 %+.2f%%、下跌 %d/%d 只" % (chg1, round(down_ratio / 100 * (rg.get("n") or 0)), rg.get("n") or 0))
+        if "chg5" in rg:
+            parts.append("近5日 %+.2f%%" % rg["chg5"])
+        if down_ratio >= 60 or chg1 <= -1.5:
+            tone, style = "防守（价格普跌修正宽度）", "池内普跌，信号共振与价格背离，宜降仓防守、慎追高拥挤票"
     if senti.get("net") is not None:
         parts.append("论坛情绪净多 %+d" % senti["net"])
     if sig_stats.get("inst_n"):
@@ -2083,9 +2209,13 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     # 权重快照：前端信号条要同时显示「命中数」和「权重%」，两个口径必须对齐
     sig_stats["_w"] = {k: round(float(weights.get(k, 0.0)), 4) for k in SIGNAL_KEYS}
     sig_stats["_prior"] = {k: SIGNAL_PRIOR.get(k, 1.0) for k in SIGNAL_KEYS}
+    # 池价格状态（普跌联动，2026-10-15）：与宽度同屏落库，market_view 与反向证据共用
+    regime = _pool_regime(bars_map)
+    if regime:
+        sig_stats["_regime"] = {k: round(v, 4) for k, v in regime.items()}
     sec_map = _sector_of(con, [s for s, _ in picked])
     top_sectors = [s for s, _ in Counter(sec_map.values()).most_common(5)]
-    view, style = _market_view(sig_stats, {"net": net_senti}, weights, top_sectors)
+    view, style = _market_view(sig_stats, {"net": net_senti}, weights, top_sectors, regime)
 
     con.execute("DELETE FROM prediction_item WHERE run_date=?", (td,))
     con.execute("DELETE FROM prediction_run WHERE run_date=?", (td,))
@@ -2229,6 +2359,28 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
                 continue
             if idx + 1 < len(k):
                 row["next_open"] = _f(k[idx + 1].get("o"))
+            # P1-03：统一「可否成交」判定（board_rules.tradeable）。信号日涨停→无法买入、停牌→无成交，
+            # 这种 entry 的收益不可兑现，混入复盘会虚抬命中率；直接标灰跳过，不污染统计。
+            try:
+                from board_rules import tradeable as _tradeable
+                if not _tradeable(k[idx], "buy", sym, (it.get("name") or ""), rd):
+                    pending += 1
+                    upd.append((None, None, None, None, None, None, None, None, None,
+                                None, None, None, None,
+                                None, None, None, None,
+                                None, None, None, None,
+                                "涨停/停牌不可买入，收益不可兑现", None, rd, sym))
+                    continue
+            except Exception:  # noqa: BLE001  board_rules 不可用时不阻断复盘
+                pass
+            # P1-04：净收益闸门——命中判定用「扣交易成本后的净收益」对比基准（佣金/印花/滑点来回约 0.3%），
+            # 避免把刚够覆盖成本的微弱超额当成真命中。成本用 screener_extra._trade_cost 折算成收益率口径。
+            try:
+                from screener_extra import _trade_cost as _tc, INIT_CAPITAL as _N0
+                _N = _N0
+                _cost_rate = (_tc(_N, True, sym, 1.0) + _tc(_N, False, sym, 1.0)) / _N
+            except Exception:  # noqa: BLE001
+                _cost_rate = 0.003
             for w in WINDOWS:
                 r = _window_ret(k, idx, w)
                 if r is None:
@@ -2236,11 +2388,12 @@ def review(con: sqlite3.Connection, force: bool = False, progress=None) -> dict:
                 b = bench.get(w)
                 row["ret"][w] = r
                 row["hit"][w] = (1 if (b is not None and r > b) else 0)
-                # 整改 #16：并列算 T+1 开盘口径（入场价=T+1 开盘，出场同为 idx+w）
+                # 整改 #16 + P1-02：并列算 T+1 开盘口径（含双边滑点），P1-04：命中判定改用净收益。
                 r2 = _window_ret2(k, idx, w)
                 if r2 is not None:
                     row["ret2"][w] = r2
-                    row["hit2"][w] = (1 if (b is not None and r2 > b) else 0)
+                    r2_net = r2 - _cost_rate
+                    row["hit2"][w] = (1 if (b is not None and r2_net > b) else 0)
             # 逐日曲线（沉淀）：自预测日次日起，最多 MAX_SERIES 个交易日
             for j in range(idx + 1, min(len(k), idx + 1 + MAX_SERIES)):
                 c = _f(k[j].get("c"))
@@ -2361,7 +2514,10 @@ def _window_ret2(k: list, idx: int | None, w: int) -> float | None:
     c1 = _f(k[j].get("c"))
     if c1 is None:
         return None
-    return c1 / o1 - 1.0
+    # P1-02：T+1 开盘买入付买入滑点、T+w 收盘卖出付卖出滑点，净收益口径扣双边滑点
+    # （与 screener_extra.SLIPPAGE_RATE=0.001 对齐）。这是「rescore 主轴切 T+1 开盘+滑点」的收益侧落地。
+    _SLIP = 0.001
+    return (c1 * (1 - _SLIP)) / (o1 * (1 + _SLIP)) - 1.0
 
 
 def _aggregate(con: sqlite3.Connection) -> dict:
@@ -2424,6 +2580,190 @@ def _aggregate(con: sqlite3.Connection) -> dict:
 
 
 # ---------------------------------------------------------------- 前端载荷
+# ---- 样本外验证（A3-2 整改，2026-10-13）------------------------------------
+# 规格：交叉验证按时间切分（80% 训练 / 20% 最新样本外），**样本外命中率必须单独展示**，
+# 禁止只给全样本命中率（全样本含训练集，数字会虚高）。本段把 prediction_run 的全部
+# 预测交易日按时间序切成「训练段 / 样本外段」，只统计样本外段在 T+1/T+3/T+5/T+10
+# 的实盘命中，与训练段、全样本分开返回，绝不混合成一个数。
+OOS_TEST_FRACTION = 0.20         # 最新 20% 交易日作为样本外测试段
+OOS_TRAIN_FRACTION = 0.80        # 前 80% 交易日作为训练段
+OOS_MIN_RUNS = 3                 # 样本外至少要有这么多天，才单独报命中率
+
+
+def _binomial_ci(k, n, z=1.96):
+    """二项比例 95% 置信区间（Wald 近似）。返回 (low, high) 或 None（n=0）。
+
+    P1-06：命中率配套 95% CI——样本少时点估计方差大、区间宽，前端据此标「不可信」，
+    而不是只给一个看似精确的点估计（避免小样本命中率被当成铁律）。
+    """
+    if not n:
+        return None
+    p = k / n
+    se = math.sqrt(p * (1 - p) / n)
+    lo = max(0.0, p - z * se)
+    hi = min(1.0, p + z * se)
+    return (round(lo, 4), round(hi, 4))
+
+
+def _out_of_sample_stats(con: sqlite3.Connection) -> dict:
+    """预测引擎样本外命中率（按时间切分，A3-2）。
+
+    口径：
+      - 拿 prediction_run 的 run_date（预测交易日序）按 80% 训练 / 20% 样本外切分；
+      - 样本外段的命中率只统计 prediction_item.hit_*（跑赢候选池同期等权平均），
+        未到期窗口为 NULL 自然不计入样本 —— 缺失不是 0，更不是命中；
+      - 返回 train(in_sample) / out_of_sample(test) / compare 三段，前端单独展示样本外命中率，
+        避免「全样本（含训练集）数字虚高」的自欺。
+    """
+    wrap = {"ok": True,
+            "split": "80% 训练 / 20% 样本外（按预测交易日序）",
+            "split_note": "样本外命中率单独展示（非全样本）：全样本含训练集，数字会虚高",
+            "in_sample": None, "out_of_sample": None, "oos_hit": None,
+            "compare": []}
+    try:
+        runs = [r["run_date"] for r in con.execute(
+            "SELECT run_date FROM prediction_run ORDER BY run_date").fetchall()]
+        if len(runs) < OOS_MIN_RUNS + 1:
+            wrap["ok"] = False
+            wrap["note"] = "预测样本不足，无法按时间切分样本外（至少需要 %d 个预测交易日）" % (OOS_MIN_RUNS + 1)
+            return wrap
+        n = len(runs)
+        k = n - max(OOS_MIN_RUNS, int(round(n * OOS_TEST_FRACTION)))
+        if k < 1:
+            k = 1
+        train_dates, test_dates = runs[:k], runs[k:]
+
+        def _seg(dates) -> dict:
+            acc = {w: [0, 0] for w in (1, 3, 5, 10)}     # [样本数, 命中数]
+            if not dates:
+                return {}
+            q = ",".join("?" * len(dates))
+            rows = con.execute(
+                "SELECT hit_t1,hit_t3,hit_t5,hit_t10 FROM prediction_item "
+                "WHERE run_date IN (%s)" % q, dates).fetchall()
+            for r in rows:
+                for w in (1, 3, 5, 10):
+                    h = r["hit_t%d" % w]
+                    if h is not None:            # 未到期 = None = 不计数，不是「没命中」
+                        acc[w][0] += 1
+                        acc[w][1] += int(h)
+            return {("t%d" % w): {"n": acc[w][0], "hit": acc[w][1],
+                                  "hit_rate": round(acc[w][1] / acc[w][0], 4) if acc[w][0] else None,
+                                  "ci95": _binomial_ci(acc[w][1], acc[w][0])}
+                    for w in (1, 3, 5, 10)}
+
+        train = _seg(train_dates)
+        test = _seg(test_dates)
+        wrap["train_start"] = train_dates[0]
+        wrap["train_end"] = train_dates[-1]
+        wrap["test_start"] = test_dates[0]
+        wrap["test_end"] = test_dates[-1]
+        wrap["train_n"] = len(train_dates)
+        wrap["test_n"] = len(test_dates)
+        wrap["in_sample"] = train
+        wrap["out_of_sample"] = test
+        # oos_hit：样本外（测试段）各窗口命中率，供前端/复盘面板单独展示
+        wrap["oos_hit"] = {("t%d" % w): (test.get("t%d" % w) or {}).get("hit_rate")
+                           for w in (1, 3, 5, 10)}
+        # 样本内 vs 样本外对比（可读行）
+        for w in (1, 3, 5, 10):
+            tr = (train.get("t%d" % w) or {})
+            te = (test.get("t%d" % w) or {})
+            wrap["compare"].append({
+                "window": "T+%d" % w,
+                "train_n": tr.get("n", 0), "train_rate": tr.get("hit_rate"), "train_ci": tr.get("ci95"),
+                "test_n": te.get("n", 0), "test_rate": te.get("hit_rate"), "test_ci": te.get("ci95"),
+            })
+        return wrap
+    except Exception:  # noqa: BLE001 —— 统计失败不阻塞预测接口
+        wrap["ok"] = False
+        wrap["error"] = "样本外切分统计失败：%s" % traceback.format_exc(limit=1)
+        return wrap
+
+
+# ---- walk-forward 滚动报告（A3-3 整改，2026-10-13）--------------------------
+# 规格：engine 每次调整权重后，必须用滚动窗口重跑最近 250 个交易日的样本外命中率，
+# 生成「命中率轨迹图」，并与 predictor_adjust_log 的每次调整原因一一对齐展示。
+# 这里实现「滚动窗口重跑最近 250 交易日样本外命中率」：
+#   - 对每个预测交易日 d，只用「截至 d 之前（含）」的到期样本（T+1 主轴）算滚动窗口命中率；
+#   - 每一步都不使用 d 之后的数据 → 轨迹点天然点内时点（与 A3-1 时间穿越防护同口径）；
+#   - 调权记录（predictor_adjust_log）原样返回，前端把「某次调权 → 之后命中率变化」对齐看。
+WF_WINDOW = 250                 # 滚动窗口：最近 250 个交易日
+WF_MIN_WINDOW = 20              # 窗口内至少这么多到期样本才产出轨迹点
+WF_TRACK_WINDOWS = (1, 3, 5)    # 轨迹主轴窗口（T+1 先到期，样本最多）
+
+
+def _walk_forward_track(con: sqlite3.Connection) -> dict:
+    """walk-forward 滚动报告：最近 250 个交易日样本外命中率轨迹 + 调权对齐。
+
+    返回：
+      - points: [{run_date, window, n, oos_hit_rate, ...}] 滚动窗口样本外命中率轨迹；
+      - aligns: predictor_adjust_log 的每次调整（时间 + 信号 + 原因 + 调整前后权重），
+        供前端与轨迹一一对齐（某次调权之后命中率是否改善）。
+    """
+    wrap = {"ok": True,
+            "method": "walk-forward：滚动窗口重跑最近 250 个交易日样本外命中率",
+            "window": WF_WINDOW, "points": [], "aligns": [],
+            "note": "命中率轨迹：横轴=预测日，纵轴=截至该日滚动窗口的样本外命中率；"
+                    "每次调权（predictor_adjust_log）在轨迹上对齐标注，观察调权后命中率变化。"}
+    try:
+        runs = [r["run_date"] for r in con.execute(
+            "SELECT run_date FROM prediction_run ORDER BY run_date").fetchall()]
+        if not runs:
+            wrap["ok"] = False
+            return wrap
+        # 一次取全量到期样本，按 run_date 分组，避免 N+1 查询
+        all_rows = con.execute(
+            "SELECT run_date, hit_t1, hit_t3, hit_t5 FROM prediction_item "
+            "WHERE run_date IN (SELECT run_date FROM prediction_run)").fetchall()
+        by_day: dict = {}
+        for r in all_rows:
+            bag = by_day.setdefault(r["run_date"], {w: [0, 0] for w in WF_TRACK_WINDOWS})
+            for w in WF_TRACK_WINDOWS:
+                h = r["hit_t%d" % w]
+                if h is not None:          # 未到期 = None = 不计数，不是「没命中」
+                    bag[w][0] += 1
+                    bag[w][1] += int(h)
+        # 双端队列维护「最近 WF_WINDOW 个预测交易日」的滚动累计
+        win: deque = deque()
+        acc = {w: [0, 0] for w in WF_TRACK_WINDOWS}
+        for d in runs:
+            day = by_day.get(d, {w: [0, 0] for w in WF_TRACK_WINDOWS})
+            win.append(day)
+            for w in WF_TRACK_WINDOWS:
+                acc[w][0] += day[w][0]
+                acc[w][1] += day[w][1]
+            if len(win) > WF_WINDOW:
+                out = win.popleft()
+                for w in WF_TRACK_WINDOWS:
+                    acc[w][0] -= out[w][0]
+                    acc[w][1] -= out[w][1]
+            # T+1 为主轴（到期样本最多），其它窗口作补充
+            n1 = acc[1][0]
+            if n1 >= WF_MIN_WINDOW:
+                point = {"run_date": d, "window": min(len(win), WF_WINDOW),
+                         "n": n1, "oos_hit_rate": round(acc[1][1] / n1, 4)}
+                for w in (3, 5):
+                    nw = acc[w][0]
+                    point["t%d_n" % w] = nw
+                    point["t%d_oos_hit_rate" % w] = round(acc[w][1] / nw, 4) if nw else None
+                wrap["points"].append(point)
+        # 调权对齐：predictor_adjust_log 每次调整（时间序）
+        for r in con.execute(
+                "SELECT log_date, signal_key, kind, weight_before, weight_after, reason "
+                "FROM predictor_adjust_log ORDER BY log_date ASC, id ASC").fetchall():
+            wrap["aligns"].append({
+                "log_date": r["log_date"] or "", "signal_key": r["signal_key"] or "",
+                "kind": r["kind"] or "", "weight_after": r["weight_after"],
+                "weight_before": r["weight_before"], "reason": r["reason"] or "",
+            })
+        return wrap
+    except Exception:  # noqa: BLE001 —— 报告失败不阻塞预测接口
+        wrap["ok"] = False
+        wrap["error"] = "walk-forward 滚动报告计算失败"
+        return wrap
+
+
 def _score_row(r) -> dict:
     def wr(n, h):
         n, h = int(n or 0), int(h or 0)
@@ -2537,6 +2877,8 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
             "hit_compare": hit_compare,
             "entry_basis_note": ("hit/ret 为 T 日收盘入场口径；hit2/ret2 为 T+1 开盘入场口径"
                                  "（更贴近真实可成交性，命中率通常更低，属「变诚实」而非「变差」）。"),
+            # A3-5（2026-10-13）：反向证据列表 —— 谁在反对这个结论，机会与风险同屏
+            "against": _against_evidence(con, run),
         }
         if stale:
             out["stale"] = True
@@ -2550,6 +2892,117 @@ def today_payload(con: sqlite3.Connection | None = None) -> dict:
     finally:
         if own:
             con.close()
+
+
+# ===== A3-5 反向证据列表（2026-10-13）：谁在反对这个结论 =====
+_AGAINST_MAX = 6
+
+
+def _against_evidence(con: sqlite3.Connection, run) -> list:
+    """针对当日研判结论生成「反向证据列表」—— 只使用落库的真实数据，绝不无中生有。
+
+    语义：市场研判结论说明「谁在推进」，反向证据则回答「谁在反对这个结论、谁至少没配合」，
+    机会与风险同屏展示，避免只看到看多一面（偏食）。每条都写明「谁 in 反对、反对什么、
+    数据源自哪」；确实没有反向证据时返回 []，由前端如实显示「暂无反向证据」，不硬凑。
+    注意：这不是对结论的否定判断，而是结论成立所需的反向条件清单，用于让用户自己权衡。
+
+    反向证据来源（全部真实可查，与 generate 阶段同口径）：
+      ① 市场宽度不足：多信号共振只数占比 < 35% → 大多数候选票没被多路独立信号证实；
+      ② 论坛情绪对立：近 LOOKBACK_DAYS 天情绪净多 < 0 → 散户情绪站在结论对面；
+      ③ 资金在撤：lhb_sector_focus 最近交易日净流出板块 → 钱在撤，若它是主线即直接反证；
+      ④ 自我修正史：predictor_adjust_log 最近被调低权重的信号 → 历史复盘跑输，反对押注它。
+    """
+    out: list = []
+    # ① 市场宽度反向（breadth_json = generate 期 sig_stats 快照，conv_n/_pool 同口径）
+    try:
+        bd = json.loads(run["breadth_json"] or "{}")
+        conv_n = int(bd.get("conv_n") or 0)
+        pool_n = int(bd.get("_pool") or 1) or 1
+        breadth = conv_n / pool_n * 100 if pool_n else 0
+        tone = ("偏强" if breadth >= 35
+                else "中性偏强" if breadth >= 20
+                else "中性偏弱" if breadth >= 10 else "偏弱")
+        if breadth < 35:
+            out.append({
+                "who": "市场宽度（多信号共振只数占比）",
+                "what": "仅 %.0f%%（%d/%d）候选票被多路独立信号共同证实，宽度%s，反对把它当成全面普涨"
+                        % (breadth, conv_n, pool_n, tone),
+                "source": "breadth_json@" + str(run["run_date"]),
+            })
+    except Exception:  # noqa: BLE001
+        pass
+    # ①b 候选池价格普跌（2026-10-15 新增：宽度=信号共识≠价格趋势，普跌日宽度可能虚高）
+    try:
+        bd = json.loads(run["breadth_json"] or "{}")
+        rg = bd.get("_regime") or {}
+        dr, c1 = _f(rg.get("down_ratio"), 0.0) or 0.0, _f(rg.get("chg1"), 0.0) or 0.0
+        if dr >= 60 or c1 <= -1.5:
+            out.append({
+                "who": "候选池价格（等权）",
+                "what": "当日池等权 %+.2f%%、下跌家数占比 %.0f%%（%d 只样本），价格普跌，"
+                        "反对把「多信号共振宽度偏强」解读为可积极选股"
+                        % (c1, dr, int(rg.get("n") or 0)),
+                "source": "breadth_json._regime@" + str(run["run_date"]),
+            })
+    except Exception:  # noqa: BLE001
+        pass
+    # ② 论坛情绪对立（与 generate 的 net_senti 完全同口径）
+    try:
+        net_senti = 0
+        for r in con.execute(
+                "SELECT sentiment_score FROM posts WHERE post_time >= ?",
+                ((datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d"),)):
+            v = _f(r["sentiment_score"], 0.0) or 0.0
+            v = max(-1.0, min(1.0, v / 4.0))
+            if v > SENT_POS:
+                net_senti += 1
+            elif v < SENT_NEG:
+                net_senti -= 1
+        if net_senti < 0:
+            out.append({
+                "who": "论坛散户情绪",
+                "what": "近 %d 日情绪净多 %+d（看空/悲观言论多于看多），散户情绪站在这条结论对面"
+                        % (LOOKBACK_DAYS, net_senti),
+                "source": "posts@近%d日" % LOOKBACK_DAYS,
+            })
+    except Exception:  # noqa: BLE001
+        pass
+    # ③ 资金在撤：lhb_sector_focus 最近交易日的净流出板块（钱在撤 = 反对追多）
+    try:
+        srow = con.execute("SELECT MAX(trade_date) AS d FROM lhb_sector_focus").fetchone()
+        sdate = srow["d"] if srow else None
+        if sdate:
+            for r in con.execute(
+                    "SELECT sector, net_amt FROM lhb_sector_focus WHERE trade_date=? "
+                    "AND net_amt<0 ORDER BY net_amt ASC LIMIT 2", (sdate,)).fetchall():
+                out.append({
+                    "who": "板块资金流向",
+                    "what": "%s 资金净流出 %s 亿（钱在撤，若恰好是看多主线则是最直接的反证）"
+                            % (r["sector"], abs(round((_f(r["net_amt"]) or 0.0) / 1e8, 2))),
+                    "source": "lhb_sector_focus@" + str(sdate),
+                })
+                if len(out) >= _AGAINST_MAX:
+                    return out[:_AGAINST_MAX]
+    except Exception:  # noqa: BLE001
+        pass
+    # ④ 自我修正史：最近被调低权重的信号（历史复盘跑输 → 它在反对继续押注该信号）
+    try:
+        for a in con.execute(
+                "SELECT * FROM predictor_adjust_log "
+                "WHERE weight_after IS NOT NULL AND weight_before IS NOT NULL "
+                "AND weight_after < weight_before ORDER BY id DESC LIMIT 3").fetchall():
+            nm = SIGNAL_META.get(a["signal_key"], {}).get("name") or a["signal_key"]
+            out.append({
+                "who": "引擎自我修正（%s）" % nm,
+                "what": "该信号权重已从 %.0f%% 调低至 %.0f%%（历史复盘跑输，反对继续重仓押注）"
+                        % ((a["weight_before"] or 0) * 100, (a["weight_after"] or 0) * 100),
+                "source": "predictor_adjust_log@" + str(a["log_date"]),
+            })
+            if len(out) >= _AGAINST_MAX:
+                break
+    except Exception:  # noqa: BLE001
+        pass
+    return out[:_AGAINST_MAX]
 
 
 def _db_latest_data_date() -> str | None:
@@ -2636,7 +3089,9 @@ def scores_payload(con: sqlite3.Connection | None = None) -> dict:
         stg.sort(key=lambda x: (-(x["t5"]["rate"] if x["t5"]["rate"] is not None else -1),
                                 -(x["t5"]["n"] or 0)))
         return {"ok": True, "signals": sig, "schools": sch, "strategies": stg,
-                "windows": list(WINDOWS)}
+                "windows": list(WINDOWS),
+                # A3-2 样本外验证：样本外命中率单独展示（非全样本，含训练集会虚高）
+                "out_of_sample": _out_of_sample_stats(con)}
     finally:
         if own:
             con.close()
@@ -2681,7 +3136,11 @@ def track_payload(con: sqlite3.Connection | None = None) -> dict:
             summary["t%d" % w] = {"n": n, "hit": h,
                                   "hit_rate": round(h / n, 4) if n else None}
         return {"ok": True, "days": out, "summary": summary,
-                "runs": len(out), "windows": list(WINDOWS)}
+                "runs": len(out), "windows": list(WINDOWS),
+                # A3-2 样本外验证：复盘轨迹也单独给样本外命中率，禁止只拿全样本充数
+                "out_of_sample": _out_of_sample_stats(con),
+                # A3-3 walk-forward：滚动窗口重跑最近 250 交易日样本外命中率轨迹（含调权对齐）
+                "walk_forward": _walk_forward_track(con)}
     finally:
         if own:
             con.close()

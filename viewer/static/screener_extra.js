@@ -257,7 +257,7 @@
         const configured = d && d.configured;
         modal("设置 · DeepSeek API Key",
           `<div class="sc-set">
-            <p class="muted">Key 仅写入本机服务器文件（viewer/.deepseek_key），<b>不上传、不经浏览器</b>，填一次即可。</p>
+            <p class="muted">Key 经 Fernet 加密后写入本机凭据库（与浏览器 Cookie 同库），<b>不再明文落盘、不上传、不经浏览器</b>，填一次即可。</p>
             <p class="muted">获取：登录 platform.deepseek.com → API Keys → 创建密钥；并在开放平台单独充值（网页会员 ≠ API 余额）。</p>
             <input id="scDsKey" class="sc-in2" type="password" placeholder="sk-..." style="width:100%;margin:6px 0" />
             <button class="btn sm" id="scDsSave">保存</button>

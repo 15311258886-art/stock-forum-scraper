@@ -1,48 +1,67 @@
-/* 方案 B · 深色数据大屏（近黑底 / 霓虹青绿，大 KPI 卡片发光） */
+/* 方案 B · 暗色高级版（近黑底 / 单一稀缺品牌红 #DA291C / 发丝线分层 / 无霓虹辉光）
+   设计依据：用户选定法拉利暗色模板（近黑底 + 单一稀缺强调色 + 锐利亮度阶分层）的底层逻辑；
+   保留全部变量名、仅替换数值，下游 app.css / visual-upgrade.css 无需改动。
+   色值对照见 Ardot 画布「设计令牌板」（fileId 736135364597121）。 */
 :root {
-  --bg:#0B0E14; --topbar:#11151F; --panel:#151A24; --text:#E5E7EB; --muted:#8B95A5;
-  --border:#232B38; --accent:#22D3EE; --accent2:#34D399; --tag:#1B2230; --hover:#1E2735;
-  --bull:#F87171; --bull-bg:#2A1414; --bear:#34D399; --bear-bg:#0F2A22;  /* 看多=红、看空=绿（A股惯例） */
+  /* 画板与层级：近黑底 + 亮度阶分层（无辉光、无重投影） */
+  --bg:#16181D;          /* 画板底 */
+  --topbar:#12141A;      /* 顶栏 / 左导航（比画板再压一阶） */
+  --panel:#20232B;       /* 卡片 / 面板 */
+  --text:#FFFFFF;        /* 主文字 纯白 */
+  --muted:#A6ABB5;       /* 次文字 灰阶 */
+  --border:#2C313B;      /* 发丝分隔线（1px 代替边框/阴影） */
+  --accent:#DA291C;      /* 品牌红 · 唯一稀缺强调色（按键/导航/链接/边框） */
+  --accent2:#6E7681;     /* 次级中性（不抢戏、无蓝） */
+  --tag:#1B1E25;         /* 内嵌标签底（略深于 panel） */
+  --hover:#262A33;       /* 行/项悬停（比 panel 亮一阶，给可点反馈） */
+  --accent-rgb: 218 41 28;   /* 供 color-mix / rgba 透出红调 */
+  --bull:#F2544C;        /* 涨=红（A股惯例，比品牌红更亮便于读数） */
+  --bull-bg:#2A1816;     /* 涨底（暗红） */
+  --bear:#1FB873;        /* 跌=绿（A股惯例） */
+  --bear-bg:#0F241A;     /* 跌底（暗绿） */
   /* 刷新时效：超时=琥珀（与涨红/跌绿区分开，避免误读为行情色） */
-  --warn:#FBBF24; --warn-bg:#3A2A0A; --err:#F87171;
+  --warn:#E0A33E;        /* 风险琥珀 */
+  --warn-bg:#2A2110;
+  --err:#F2544C;         /* 错误：复用涨红同源，避免再引入一个色 */
+  /* 结构令牌：app.css 以 var(--x, 浅色fallback) 形式引用。浅色主题靠 fallback 不崩，
+     暗色必须显式定义，否则卡片退回白底 #fff、墨字退回黑字 #111（暗底下看不见）。 */
+  --card:#20232B;        /* 卡片底（与 panel 一致） */
+  --panel2:#262A33;      /* 次级面板 */
+  --surface:#20232B;     /* 表面层 */
+  --surface-2:#1B1E25;   /* 次级表面（与 tag 一致） */
+  --bg-sub:#1B1E25;      /* 次级背景 */
+  --line:#2C313B;        /* 分隔线（与 border 一致） */
+  --border-dim:#23262E;  /* 弱分隔线 */
+  --bd:#2C313B;          /* 通用描边 */
+  --ink:#FFFFFF;         /* 墨字：暗色用亮字（浅色主题为 #111） */
+  --text-dim:#A6ABB5;    /* 次级文字（与 muted 一致） */
+  --amber-soft:#2A2110;  /* 琥珀软底（与 warn-bg 一致） */
+  --vz-r-lg:14px;        /* 视觉升级层大圆角（visual-upgrade.css 漏定义，补上） */
 }
-.card, .box, .bar-card, table { box-shadow: 0 0 0 1px #22d3ee10, 0 8px 24px #0006; }
-/* ---- P2 语义令牌层（2026-09-23）：徽标 / 状态色不再写死，4 套主题各一套 ---- */
+
+/* 卡片 / 面板 / 表格：去掉霓虹辉光环，改用发丝描边 + 极轻贴地阴影（无光晕） */
+.card, .box, .bar-card, table {
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+
+/* ---- P2 语义令牌层：徽标 / 状态色（暗色高级版）----
+   全部降饱和、压暗，做成"安静的暗色芯片"，不再 candy / 霓虹；保留类别色相以便区分。 */
 :root {
-  --on-accent: #06181D;
-  --on-ok-strong: #06181D;
-  --c1-fg: #FCD34D;
-  --c1-bg: #3A2A0A;
-  --c2-fg: #93C5FD;
-  --c2-bg: #16263F;
-  --c3-fg: #6EE7B7;
-  --c3-bg: #10291F;
-  --c4-fg: #F0ABFC;
-  --c4-bg: #2C1436;
-  --c5-fg: #7DD3FC;
-  --c5-bg: #0C2A3A;
-  --c6-fg: #94A3B8;
-  --c6-bg: #232B38;
-  --c-orange-fg: #FDBA74;
-  --c-orange-bg: #3A2109;
-  --c-orange-line: #C2410C;
-  --c-violet-fg: #C4B5FD;
-  --c-violet-bg: #241A3D;
-  --c-violet-line: #8B5CF6;
-  --c-teal-fg: #5EEAD4;
-  --c-teal-bg: #0C2A28;
-  --c-teal-line: #14B8A6;
-  --ok: #34D399;
-  --ok-fg: #6EE7B7;
-  --ok-bg: #10291F;
-  --ok-strong: #34D399;
-  --warn-line: #FCD34D;
-  --warn-strong: #F59E0B;
-  --err-bg: #2A1414;
-  --err-line: #7F1D1D;
-  --err-strong: #EF4444;
-  --info: #38BDF8;
-  --neutral-fg: #94A3B8;
-  --neutral-bg: #1E2735;
-  --neutral-line: #3A4757;
+  --on-accent: #FFFFFF;       /* 红底上的文字用纯白（红为中暗，白字对比足够） */
+  --on-ok-strong: #FFFFFF;
+  --c1-fg: #D8B25E;  --c1-bg: #2A2110;   /* 金 */
+  --c2-fg: #7E94AB;  --c2-bg: #19222E;   /* 钢蓝（低饱和） */
+  --c3-fg: #6FB892;  --c3-bg: #122820;   /* 绿 */
+  --c4-fg: #B58BC4;  --c4-bg: #241A2E;   /* 紫（低饱和） */
+  --c5-fg: #6FB4C4;  --c5-bg: #10242A;   /* 青（低饱和） */
+  --c6-fg: #9AA1AC;  --c6-bg: #23262E;   /* 中性灰 */
+  --c-orange-fg: #D7945A; --c-orange-bg: #2A1C0E; --c-orange-line: #8A5A2E;
+  --c-violet-fg: #A98FCE; --c-violet-bg: #211A2E; --c-violet-line: #6E54A0;
+  --c-teal-fg: #5FB8AC;   --c-teal-bg: #0F2422;   --c-teal-line: #2E7A70;
+  --ok: #1FB873;  --ok-fg: #6FB892;  --ok-bg: #122820;  --ok-strong: #1FB873;
+  --warn-line: #E0A33E;  --warn-strong: #E0A33E;
+  --err-bg: #2A1816; --err-line: #7A2A24; --err-strong: #F2544C;
+  --info: #7E94AB;
+  --neutral-fg: #9AA1AC; --neutral-bg: #262A33; --neutral-line: #3A414C;
 }

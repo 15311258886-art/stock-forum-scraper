@@ -137,7 +137,7 @@ def _to_bs(code: str) -> str:
 def get_kline(code: str, start: str, end: str):
     """返回 [{date, open, high, low, close, volume, pct, suspended}]。
 
-    仅走真实源：优先 baostock（adjustflag="2" 后复权），备选 akshare（adjust="hfq"）。
+    仅走真实源：优先 baostock（adjustflag="1" 真后复权），备选 akshare（adjust="hfq"）。
     两者都不可用或失败时返回 []（绝不构造假数据）。
     - date: 'YYYY-MM-DD'
     - pct: 当日涨跌幅（%，如 1.23 表示 +1.23%）
@@ -151,7 +151,7 @@ def get_kline(code: str, start: str, end: str):
             rs = _bs.query_history_k_data_plus(
                 _to_bs(code),
                 "date,open,high,low,close,volume,pctChg,tradestatus",
-                start_date=start, end_date=end, frequency="d", adjustflag="2")
+                start_date=start, end_date=end, frequency="d", adjustflag="1")
             out = []
             while (rs is not None) and rs.error_code == "0" and rs.next():
                 d = rs.get_row_data()
@@ -200,11 +200,19 @@ def get_kline(code: str, start: str, end: str):
 
 # ───────────────────────── B7 回测：约束 / 成本 / 指标工具 ─────────────────────────
 def _limit_pct(code: str) -> float:
-    """按板块返回涨跌停幅度：创业板(300)/科创板(688)/北交所(8 开头) 用 20%，其余 10%。"""
+    """按板块返回涨跌停幅度（P1-07 / P3-09：统一走 board_rules.limit_pct 唯一真源）。
+
+    创业板(300)/科创板(688)/北交所(8) 按板块 + 注册制落地日时变；ST 5%；其余主板 10%。
+    board_rules 不可用时回退旧常数，保持兼容。
+    """
     c = _norm_ak(code)
-    if c[:3] in ("300", "688") or c.startswith("8"):
-        return LIMIT_STAR
-    return LIMIT_MAIN
+    try:
+        from board_rules import limit_pct as _br_limit_pct
+        return _br_limit_pct(c, "")
+    except Exception:  # noqa: BLE001
+        if c[:3] in ("300", "688") or c.startswith("8"):
+            return LIMIT_STAR
+        return LIMIT_MAIN
 
 
 def _is_limit_up(bar: dict, code: str) -> bool:
@@ -654,7 +662,18 @@ def _apply_reasonableness_gate(result: dict) -> None:
         "max_drawdown": result.get("max_drawdown"),
         "daily_returns": daily,
     }
-    ctx = {"module": "viewer/screener_extra.py", "function": "backtest", "test_mode": False}
+    # P1-55：单标的回测时按该票板块取对应涨跌停带宽（±11%/±21%/±31%）；
+    # 多标的组合回测是跨板块净值（已分散、日常波动远小于单票），保守沿用主板带宽。
+    _board = "主板"
+    _used = result.get("codes_used") or []
+    if len(_used) == 1:
+        try:
+            from board_rules import board_of
+            _board = board_of(_used[0], "")
+        except Exception:  # noqa: BLE001
+            _board = "主板"
+    ctx = {"module": "viewer/screener_extra.py", "function": "backtest",
+           "test_mode": False, "board": _board}
     try:
         run_gates(metrics, ctx)
     except Exception:  # noqa: BLE001
@@ -783,21 +802,43 @@ def themes_map():
 
 # ───────────────────────── B6 自然语言选股（DeepSeek 代理） ─────────────────────────
 def get_deepseek_key():
-    """优先环境变量，其次 viewer/.deepseek_key 文件（明文，仅本机）。"""
+    """优先环境变量；其次加密凭据库（Fernet）；遗留明文文件首次读取时自动迁移并删除。
+
+    不再以明文落盘：旧版 viewer/.deepseek_key 第一次被读到时会迁移进加密库并就地删除。
+    """
     ek = os.environ.get("DEEPSEEK_API_KEY")
     if ek:
         return ek.strip()
+    # 遗留明文文件迁移（一次性）
     fp = ROOT / ".deepseek_key"
     if fp.exists():
         try:
-            return fp.read_text(encoding="utf-8").strip()
+            raw = fp.read_text(encoding="utf-8").strip()
         except Exception:  # noqa: BLE001
-            return ""
-    return ""
+            raw = ""
+        if raw:
+            set_deepseek_key(raw)  # 迁移进加密库
+            try:
+                fp.unlink()
+            except OSError:
+                pass
+            return raw
+    # 加密凭据库
+    try:
+        from scraper.credentials import load_secret
+        return load_secret("deepseek_api_key")
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def set_deepseek_key(key: str) -> None:
-    (ROOT / ".deepseek_key").write_text(key.strip(), encoding="utf-8")
+    key = (key or "").strip()
+    try:
+        from scraper.credentials import save_secret
+        save_secret("deepseek_api_key", key)
+    except Exception:  # noqa: BLE001
+        # 极端兜底：cryptography 不可用等，退回明文（不推荐，仅保可用）
+        (ROOT / ".deepseek_key").write_text(key, encoding="utf-8")
 
 
 SYSTEM_PROMPT = """你是A股选股条件解析器。把用户自然语言转成结构化 JSON，字段：

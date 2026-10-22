@@ -25,6 +25,24 @@ from typing import Optional
 # 完全隔离，不触碰真库。
 DB_PATH = Path(os.environ.get("VIEWER_DB") or (Path(__file__).resolve().parent / "app.db"))
 
+# ---------------------------------------------------------------------------
+# 2026-10-15 P0-1：positions 快照**时效闸**。
+# 背景：positions 依赖「选手详情页」采集，本机从未配置 player_page_tpl（日志反复
+#   「未配置 player_page_tpl，跳过持仓采集」），库里最新一行停在 2021-06-20。
+#   不加闸时，5 年前的持仓会被当成「现在还有人在拿」，直接污染「共识榜 / 相关人物 /
+#   个股详情持仓」。现规定：只采信 post_time 落在最近 N 天内的快照行，更旧的整批丢弃，
+#   共识改由 trades / trades_v2 的新鲜流水兜底驱动（见 consensus_stocks 兜底源）。
+# 可用环境变量 VIEWER_POSITIONS_MAX_AGE_DAYS 覆盖；<=0 表示不限（仅供调试/历史回溯）。
+POSITIONS_MAX_AGE_DAYS = int(os.environ.get("VIEWER_POSITIONS_MAX_AGE_DAYS") or 90)
+
+
+def positions_cutoff_date(max_age_days: int | None = None) -> str:
+    """返回 positions 快照的时效下限日（YYYY-MM-DD）；空串表示「不限年龄」。"""
+    n = POSITIONS_MAX_AGE_DAYS if max_age_days is None else int(max_age_days)
+    if n <= 0:
+        return ""
+    return (datetime.now() - timedelta(days=n)).strftime("%Y-%m-%d")
+
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -846,7 +864,8 @@ class Database:
         return "WATCH"
 
     def consensus_stocks(self, min_holders: int = 2,
-                         only_qualified: bool = False) -> list[dict]:
+                         only_qualified: bool = False,
+                         max_age_days: int | None = None) -> list[dict]:
         """各股被多少人（跨渠道/跨平台/跨层级）共同持仓/关注，按总人数降序。
 
         2026-10-10 口径改革（王总批准）—— **把「喊买入(BUY)」与「喊持有(HOLD)/持仓快照(WATCH)」拆开计数**。
@@ -875,6 +894,12 @@ class Database:
         _RANK = self._CONSENSUS_SIGNAL_RANK
 
         # 主源：positions 持仓/关注快照（有仓位占比；action 多为「关注/操作」）。
+        # 2026-10-15 P0-1：加时效闸——只采信最近 max_age_days 天内的快照行。
+        #   本机 positions 全表 271 行（267 行 post_time 为空 + 4 行停在 2021-06-20），
+        #   不加闸会把 5 年前 / 无时间戳的持仓当成「现在还有人拿着」→ 共识榜 / 相关人物 /
+        #   个股持仓全部失真。过滤后 positions 无近期行 → rows 只剩下方 trades 新鲜流水兜底源
+        #   （这正是「彻底弃用陈旧快照、改由新鲜流水驱动」的期望结果）。
+        _cut = positions_cutoff_date(max_age_days)
         rows = list(self.conn.execute(
             """SELECT p.symbol, p.symbol_name, p.player, p.channel, p.post_url, p.action,
                       p.ratio, p.site, p.post_time,
@@ -885,7 +910,9 @@ class Database:
                       CASE WHEN pl.tier = 'A' THEN 1 ELSE 0 END AS is_a,
                       COALESCE(p.axis, pl.axis) AS row_axis
                FROM positions p LEFT JOIN players pl ON pl.name = p.player
-               WHERE p.symbol IS NOT NULL AND p.symbol <> '' """
+               WHERE p.symbol IS NOT NULL AND p.symbol <> ''
+                 AND (? = '' OR COALESCE(substr(p.post_time,1,10),'') >= ?) """,
+            (_cut, _cut)
         ).fetchall())
         # 2026-09-25 新增：**真实 trades 兜底源**。
         # 背景：positions 表依赖「详情页」（多数站点需登录）才有数据，真实采集下常为空，
@@ -1028,6 +1055,9 @@ class Database:
         ).fetchall():
             heat[r["symbol"]] = heat.get(r["symbol"], 0) + r["n"]
 
+        # 2026-10-15 P0-1：数据截至日 = 本次**实际采信**的行的最新 post_time。
+        # 供界面如实标注「数据截至 YYYY-MM-DD」，杜绝把 5 年前的快照当成今天的数据。
+        _asof = max((str(r["post_time"] or "")[:10] for r in rows if r["post_time"]), default="")
         out = []
         for s, d in agg.items():
             if len(d["holders"]) < min_holders:
@@ -1037,6 +1067,9 @@ class Database:
             out.append({
                 "symbol": s,
                 "symbol_name": name,
+                "data_asof": _asof,
+                "positions_max_age_days": (POSITIONS_MAX_AGE_DAYS if max_age_days is None
+                                           else int(max_age_days)),
                 "label": f"{name}（{s}）" if name else f"{s}（名称待补全）",
                 "holders": len(d["holders"]),
                 "buy_holders": len(d["buy"]),

@@ -93,7 +93,9 @@ def parse_report(html_path: str) -> dict | None:
     cands: dict = {}  # code -> (prio, pick)
 
     def _span_text(cell: str) -> str:
-        m = re.search(r'class="(?:tag|pill)[^"]*"[^>]*>(.*?)</span>', cell, re.S)
+        # 兼容 tag / pill / badge 三种徽标类名；一格多徽标时只取第一个（分档徽标通常在最前，
+        # 后续的“新进 / 回归 / 出池”等状态徽标不应参与分档映射）
+        m = re.search(r'class="(?:tag|pill|badge)[^"]*"[^>]*>(.*?)</span>', cell, re.S)
         return _strip_tags(m.group(1)) if m else ""
 
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S):

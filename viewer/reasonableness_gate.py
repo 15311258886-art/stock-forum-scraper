@@ -29,8 +29,21 @@ TOTAL_RETURN_BOUNDS = (-0.95, 2.0)
 SHARPE_BOUNDS = (-2.0, 3.0)
 # max_drawdown：必须是 [负, 0]（0 表示无回撤；正数意味着把收益误标为回撤）
 MAX_DRAWDOWN_BOUNDS = (-1.0, 0.0)
-# 单日收益（含涨跌停 ±10%/±20%，取主板口径 ±11% 留 1% 余量）
+# 单日收益（按板块分带，P1-55）：
+#   · 主板（含沪/深主板、风险警示板）         ±11%（留 1% 余量）
+#   · 创业板 / 科创板（20% 板）              ±21%
+#   · 北交所（30% 板）                       ±31%
+# 缺板块上下文时回退主板口径（保守）。
 DAILY_RETURN_BOUNDS = (-0.11, 0.11)
+DAILY_RETURN_BOUNDS_BY_BOARD = {
+    "主板": (-0.11, 0.11),
+    "沪市主板": (-0.11, 0.11),
+    "深市主板": (-0.11, 0.11),
+    "风险警示板": (-0.11, 0.11),
+    "创业板": (-0.21, 0.21),
+    "科创板": (-0.21, 0.21),
+    "北交所": (-0.31, 0.31),
+}
 
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 GATE_WARNINGS_PATH = REPORTS_DIR / "gate_warnings.json"
@@ -80,15 +93,17 @@ def check_drawdown(value, ctx: dict) -> GateResult:
     return _check("max_drawdown", value, MAX_DRAWDOWN_BOUNDS, ctx)
 
 
-def check_daily_return(value, ctx: dict) -> GateResult:
+def check_daily_return(value, ctx: dict, board: str = "主板") -> GateResult:
     """单日收益校验：value 可为单值或列表；列表逐笔校验，任一越界即 error。
 
-    单日收益含涨跌停（主板 ±10% / 创业板·科创板 ±20%），主板口径 ±11% 留 1% 余量。
+    按板块分带（P1-55）：主板 ±11% / 创业板·科创板 ±21% / 北交所 ±31%；缺板块上下文回退主板口径。
+    board 可由 ctx["board"] 统一指定（单标的回测），也可后续扩展为逐笔传板块。
     """
+    bounds = DAILY_RETURN_BOUNDS_BY_BOARD.get(board, DAILY_RETURN_BOUNDS)
     if value is None:
-        return GateResult("daily_return", True, "skip", None, DAILY_RETURN_BOUNDS,
+        return GateResult("daily_return", True, "skip", None, bounds,
                           "skip: 未提供单日收益序列")
-    lo, hi = DAILY_RETURN_BOUNDS
+    lo, hi = bounds
     items = value if isinstance(value, (list, tuple)) else [value]
     violations = []
     for i, v in enumerate(items):
@@ -120,7 +135,8 @@ def run_gates(metrics: dict, ctx: dict) -> list:
         check_total_return(metrics.get("total_return"), ctx),
         check_sharpe(metrics.get("sharpe"), ctx),
         check_drawdown(metrics.get("max_drawdown"), ctx),
-        check_daily_return(metrics.get("daily_returns"), ctx),
+        check_daily_return(metrics.get("daily_returns"), ctx,
+                          board=ctx.get("board", "主板")),
     ]
     if not ctx.get("test_mode"):
         _record_warnings(results, ctx)

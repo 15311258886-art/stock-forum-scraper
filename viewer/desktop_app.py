@@ -41,6 +41,7 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -167,6 +168,35 @@ def _port_in_use(host: str = "127.0.0.1", port: int = PORT) -> bool:
         return s.connect_ex((host, port)) == 0
 
 
+def _disk_build_id() -> str:
+    """磁盘上的后端代码指纹（与 server 侧同一实现，见 viewer/build_id.py）。"""
+    try:
+        from viewer import build_id as _bid
+        return _bid.of_disk(ROOT)
+    except Exception:  # noqa: BLE001 —— 指纹算不出来不阻断启动
+        return ""
+
+
+def _running_backend_build() -> dict:
+    """探测 8765 上正在监听的后端，返回其 /api/version；拿不到返回 {}。"""
+    try:
+        with urllib.request.urlopen(BASE + "/api/version", timeout=2) as r:
+            d = json.loads(r.read().decode("utf-8", "replace"))
+        return d if isinstance(d, dict) else {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _wait_backend_refresh(old_build, tries: int = 100, interval: float = 0.3) -> bool:
+    """等后端换成新代码（/api/version 的 build_id 变掉）。最多 tries×interval 秒。"""
+    for _ in range(tries):
+        cur = _running_backend_build()
+        if cur.get("build_id") and cur.get("build_id") != old_build:
+            return True
+        time.sleep(interval)
+    return False
+
+
 def _acquire_single_instance() -> bool:
     """True=本进程是唯一实例；False=已有实例在运行。非 Windows 环境一律放行。
 
@@ -284,7 +314,28 @@ def main():
 
     server_ready = _port_in_use()
     if server_ready:
-        logging.info("[desktop_app] 端口 %s 已有服务在监听，直接复用（未重复启动后端）。", PORT)
+        # 2026-10-16：端口有人听 ≠ 跑的是最新代码。原来在这里无条件「复用」，于是改了
+        # .py / 静态资源后双击图标重启，后端仍是旧进程、旧代码，新接口直接 404
+        # （进哥 10-16 反馈的「量化信号」404 就是这么来的——旧进程 02:17 起，
+        #  量化路由 09:42 才写进 server.py，它当然没有）。
+        # 现在改为：比对「运行中后端的 build_id」与「磁盘 build_id」，不一致就接管重启
+        # （新后端进程会终止旧后端并抢占端口，见 server._takeover_stale_server）。
+        _running = _running_backend_build()
+        _disk = _disk_build_id()
+        if _disk and _running and _running.get("build_id") != _disk:
+            logging.warning("[desktop_app] 8765 上的后端是旧代码（运行 build=%s ≠ 磁盘 build=%s），"
+                            "接管重启中…", _running.get("build_id"), _disk)
+            try:
+                _spawn_server_process()          # 新进程负责终止旧后端并接管端口
+                if _wait_backend_refresh(_running.get("build_id")):
+                    logging.info("[desktop_app] 后端已切换到最新代码（build=%s）。", _disk)
+                else:
+                    logging.warning("[desktop_app] 后端接管超时，暂以现有后端继续"
+                                    "（页面可能仍是旧代码，稍后重开一次即可）。")
+            except Exception as e:  # noqa: BLE001 —— 接管失败不影响开窗
+                logging.warning("[desktop_app] 接管旧后端失败（%s），沿用现有后端。", e)
+        else:
+            logging.info("[desktop_app] 端口 %s 已有服务在监听，直接复用（未重复启动后端）。", PORT)
     else:
         # 2026-10-06：默认拉**独立进程**跑后端，不再用本进程 daemon 线程
         # （旧做法下窗口一崩/一关，服务随 os._exit(0) 一起没了，页面就成死页）。
