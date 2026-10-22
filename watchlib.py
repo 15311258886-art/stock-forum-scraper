@@ -14,11 +14,22 @@
   watch_items   池中标的（股票或基金；目标价、关注度、板块、备注、加入时价格…）
   watch_alerts  触发记录（一条 = 一次「到价」事件；支持已读 / 未读）
 
+多对多分组（2026-10-14 改造）：
+  一只标的可同时在多个分组。主存储 = watch_item_groups(item_id, group_id, sort_order)；
+  watch_items.group_id **保留为主组**（兼容旧读法），新逻辑一律以关联表为准：
+    · list_items 附加 groups（数组）/ n_groups；
+    · list_groups 的 n_items 按 DISTINCT item_id 去重计数；
+    · 增 / 改 / 移出分组走 set_groups / add_to_group / remove_from_group；
+    · 组内排序走 reorder_in_group（sort_order = 10,20,30…）。
+  ensure_schema 内一次性幂等迁移：历史单 group_id → 关联表。
+
 对外函数：
-  ensure_schema(conn)                     建表（幂等）
+  ensure_schema(conn)                     建表 + 多对多迁移（幂等）
   seed_default_groups(conn)               无分组时补默认分组
   list_groups / add_group / rename_group / remove_group
   list_items / add_item / get_item / update_item / remove_item
+  item_group_ids(conn, iid)               标的的全部关联组 id（按组 sort_order）
+  set_groups / add_to_group / remove_from_group / reorder_in_group
   check_alerts(conn, prices, now)         到价判定 → 生成 watch_alerts，返回触发清单
   list_alerts / count_unread / mark_alert / mark_all_read / clear_alerts
 """
@@ -86,7 +97,7 @@ CREATE TABLE IF NOT EXISTS watch_items (
     symbol          TEXT NOT NULL,             -- 6 位代码（不含前缀）
     name            TEXT DEFAULT '',
     kind            TEXT DEFAULT 'stock',      -- stock | fund
-    group_id        INTEGER,                   -- 归属分组（弱关联，不做外键）
+    group_id        INTEGER,                   -- 主组（弱关联，不做外键；新逻辑以 watch_item_groups 为准）
     sector          TEXT DEFAULT '',           -- 板块 / 行业
     note            TEXT DEFAULT '',           -- 备注
     attention       INTEGER DEFAULT 3,         -- 关注度 1..5
@@ -103,6 +114,17 @@ CREATE TABLE IF NOT EXISTS watch_items (
 
 CREATE INDEX IF NOT EXISTS ix_watch_items_symbol ON watch_items(symbol);
 CREATE INDEX IF NOT EXISTS ix_watch_items_group  ON watch_items(group_id);
+
+-- 多对多分组（2026-10-14）：一只标的可同时在多个分组，组内排序存 sort_order。
+CREATE TABLE IF NOT EXISTS watch_item_groups (
+    item_id     INTEGER NOT NULL,
+    group_id    INTEGER NOT NULL,
+    sort_order  INTEGER DEFAULT 0,
+    added_at    TEXT,
+    PRIMARY KEY (item_id, group_id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_wig_group ON watch_item_groups(group_id);
 
 CREATE TABLE IF NOT EXISTS watch_alerts (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,8 +150,17 @@ DEFAULT_GROUPS = [
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
+    """建表（幂等）+ 多对多迁移（幂等，只跑 INSERT OR IGNORE，不覆盖用户后续排序）。"""
     conn.executescript(SCHEMA)
-    conn.commit()
+    # 历史数据迁移：单 group_id → 关联表。已存在 (item_id, group_id) 则忽略，
+    # 因此重复调用 / 用户改过组内排序后都不会被冲掉。
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO watch_item_groups(item_id, group_id, sort_order, added_at)"
+            " SELECT id, group_id, sort_order, added_at FROM watch_items WHERE group_id IS NOT NULL")
+        conn.commit()
+    except sqlite3.Error:
+        conn.rollback()
 
 
 def seed_default_groups(conn: sqlite3.Connection) -> None:
@@ -149,9 +180,10 @@ def seed_default_groups(conn: sqlite3.Connection) -> None:
 
 # ---------------------------------------------------------------- 分组 CRUD
 def list_groups(conn: sqlite3.Connection) -> list[dict]:
+    """分组列表。n_items = 关联表 DISTINCT item_id（一只票在多组不重复计数）。"""
     rows = conn.execute(
         "SELECT g.*, "
-        " (SELECT COUNT(*) FROM watch_items w WHERE w.group_id = g.id) AS n_items"
+        " (SELECT COUNT(DISTINCT item_id) FROM watch_item_groups w WHERE w.group_id = g.id) AS n_items"
         " FROM watch_groups g ORDER BY g.sort_order, g.id"
     ).fetchall()
     return [dict(r) for r in rows]
@@ -190,8 +222,31 @@ def rename_group(conn: sqlite3.Connection, gid: int, name: str) -> dict:
     return {"ok": True, "id": gid, "name": name}
 
 
+def reorder_groups(conn: sqlite3.Connection, ordered_ids) -> dict:
+    """按给定顺序重写 watch_groups.sort_order = 10,20,30…（2026-10-14 进哥：分组前后顺序可调）。
+    ordered_ids 应为**完整**分组 id 列表（前端从 list_groups 全量传入）；
+    万一漏了某个 id，漏掉的排到末尾（按 id 序），不会被丢掉。"""
+    ids = [int(x) for x in (ordered_ids or []) if str(x).lstrip("-").isdigit()]
+    if not ids:
+        return {"ok": False, "error": "缺少 ids"}
+    known = {r["id"] for r in conn.execute("SELECT id FROM watch_groups").fetchall()}
+    ids = [g for g in ids if g in known]
+    leftover = sorted(known - set(ids))
+    try:
+        with conn:
+            for i, gid in enumerate(ids):
+                conn.execute("UPDATE watch_groups SET sort_order=? WHERE id=?", ((i + 1) * 10, gid))
+            base = len(ids) * 10
+            for j, gid in enumerate(leftover):
+                conn.execute("UPDATE watch_groups SET sort_order=? WHERE id=?", (base + (j + 1) * 10, gid))
+    except sqlite3.Error as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "n": len(ids) + len(leftover)}
+
+
 def remove_group(conn: sqlite3.Connection, gid: int, reassign_to: int | None = None) -> dict:
-    """删分组。组内标的**不删**，改挂到 reassign_to（缺省挂到第一个其它分组；无其它组则为未分组）。"""
+    """删分组。组内标的**不删**：关联表记录删除；主组被删的 item 改挂剩余第一组，
+    无剩余组回退 reassign_to / 默认组（保持「标的不删」老行为）。"""
     row = conn.execute("SELECT id, name FROM watch_groups WHERE id=?", (gid,)).fetchone()
     if not row:
         return {"ok": False, "error": "分组不存在"}
@@ -199,8 +254,22 @@ def remove_group(conn: sqlite3.Connection, gid: int, reassign_to: int | None = N
     if other is None:
         r = conn.execute("SELECT id FROM watch_groups WHERE id<>? ORDER BY sort_order, id LIMIT 1", (gid,)).fetchone()
         other = r[0] if r else None
-    moved = conn.execute("SELECT COUNT(*) FROM watch_items WHERE group_id=?", (gid,)).fetchone()[0]
-    conn.execute("UPDATE watch_items SET group_id=? WHERE group_id=?", (other, gid))
+    moved = conn.execute(
+        "SELECT COUNT(DISTINCT item_id) FROM watch_item_groups WHERE group_id=?", (gid,)).fetchone()[0]
+    # 主组指向被删组的 item：优先改挂它自己的剩余关联组，否则 reassign_to / 默认组
+    victims = [r[0] for r in conn.execute(
+        "SELECT id FROM watch_items WHERE group_id=?", (gid,)).fetchall()]
+    conn.execute("DELETE FROM watch_item_groups WHERE group_id=?", (gid,))
+    for iid in victims:
+        r = conn.execute(
+            "SELECT mg.group_id FROM watch_item_groups mg "
+            "JOIN watch_groups g ON g.id = mg.group_id "
+            "WHERE mg.item_id=? ORDER BY g.sort_order, mg.sort_order, g.id LIMIT 1", (iid,)).fetchone()
+        if r:
+            conn.execute("UPDATE watch_items SET group_id=? WHERE id=?", (r[0], iid))
+        else:
+            fallback = other if other is not None else _default_group_id(conn)
+            conn.execute("UPDATE watch_items SET group_id=? WHERE id=?", (fallback, iid))
     conn.execute("DELETE FROM watch_groups WHERE id=?", (gid,))
     conn.commit()
     return {"ok": True, "moved": moved, "reassigned_to": other}
@@ -208,16 +277,39 @@ def remove_group(conn: sqlite3.Connection, gid: int, reassign_to: int | None = N
 
 # ---------------------------------------------------------------- 标的 CRUD
 def list_items(conn: sqlite3.Connection, group_id: int | None = None) -> list[dict]:
-    sql = ("SELECT i.*, g.name AS group_name, g.color AS group_color "
-           "FROM watch_items i LEFT JOIN watch_groups g ON g.id = i.group_id ")
-    params: tuple = ()
+    """池内标的。每项附加 groups（数组，按组 sort_order 排）/ n_groups；保留 group_id/group_name（主组）。
+
+    排序：指定 group_id 时按该组内 mg.sort_order, attention DESC, id DESC；
+    不指定时按主组 sort_order，再 attention DESC, id DESC。
+    """
     if group_id is not None:
-        sql += "WHERE i.group_id=? "
-        params = (group_id,)
-    sql += "ORDER BY i.attention DESC, i.sort_order, i.id DESC"
+        sql = ("SELECT i.*, g.name AS group_name, g.color AS group_color "
+               "FROM watch_items i "
+               "JOIN watch_item_groups mg ON mg.item_id = i.id AND mg.group_id = ? "
+               "LEFT JOIN watch_groups g ON g.id = i.group_id "
+               "ORDER BY mg.sort_order, i.attention DESC, i.id DESC")
+        params: tuple = (group_id,)
+    else:
+        sql = ("SELECT i.*, g.name AS group_name, g.color AS group_color "
+               "FROM watch_items i LEFT JOIN watch_groups g ON g.id = i.group_id "
+               "ORDER BY COALESCE(g.sort_order, 9999), i.attention DESC, i.id DESC")
+        params = ()
+    rows = conn.execute(sql, params).fetchall()
+    # 一次性取全部关联分组（避免 N+1），按组 sort_order 排序
+    rel: dict = {}
+    for r in conn.execute(
+            "SELECT mg.item_id AS item_id, g.id AS gid, g.name AS name, g.color AS color,"
+            " mg.sort_order AS isort "
+            "FROM watch_item_groups mg JOIN watch_groups g ON g.id = mg.group_id "
+            "ORDER BY g.sort_order, mg.sort_order, g.id").fetchall():
+        rel.setdefault(r["item_id"], []).append(
+            {"id": r["gid"], "name": r["name"], "color": r["color"], "sort_order": r["isort"]})
     out = []
-    for r in conn.execute(sql, params).fetchall():
+    for r in rows:
         d = dict(r)
+        gl = rel.get(d["id"]) or []
+        d["groups"] = gl
+        d["n_groups"] = len(gl)
         d["days_watched"] = _days_between(d.get("added_at"))
         out.append(d)
     return out
@@ -232,17 +324,176 @@ _ITEM_FIELDS = ("symbol", "name", "kind", "group_id", "sector", "note", "attenti
                 "target_price", "alert_dir", "alert_on", "sort_order")
 
 
+def _group_name(conn: sqlite3.Connection, gid) -> str:
+    r = conn.execute("SELECT name FROM watch_groups WHERE id=?", (gid,)).fetchone()
+    return r[0] if r else str(gid)
+
+
+def _default_group_id(conn: sqlite3.Connection):
+    """兜底组：优先系统预置组（is_default=1），否则第一个组；无分组返回 None。"""
+    r = conn.execute("SELECT id FROM watch_groups WHERE is_default=1 ORDER BY sort_order, id LIMIT 1").fetchone()
+    if r:
+        return r[0]
+    r = conn.execute("SELECT id FROM watch_groups ORDER BY sort_order, id LIMIT 1").fetchone()
+    return r[0] if r else None
+
+
+def _sync_primary_group(conn: sqlite3.Connection, iid: int):
+    """主组 = 剩余关联组中按组 sort_order 的第一个；无剩余则回退默认组。"""
+    r = conn.execute(
+        "SELECT mg.group_id FROM watch_item_groups mg "
+        "JOIN watch_groups g ON g.id = mg.group_id "
+        "WHERE mg.item_id=? ORDER BY g.sort_order, mg.sort_order, g.id LIMIT 1", (iid,)).fetchone()
+    gid = r[0] if r else _default_group_id(conn)
+    conn.execute("UPDATE watch_items SET group_id=? WHERE id=?", (gid, iid))
+    return gid
+
+
+def item_group_ids(conn: sqlite3.Connection, iid: int) -> list:
+    """标的的全部关联组 id（按组 sort_order 排）。"""
+    return [r[0] for r in conn.execute(
+        "SELECT mg.group_id FROM watch_item_groups mg "
+        "JOIN watch_groups g ON g.id = mg.group_id "
+        "WHERE mg.item_id=? ORDER BY g.sort_order, mg.sort_order, g.id", (iid,)).fetchall()]
+
+
+def add_to_group(conn: sqlite3.Connection, iid: int, gid: int) -> dict:
+    """单组追加（幂等）：已在组内不重复插；仅当该标原本无任何组时同步主组。"""
+    row = conn.execute("SELECT id FROM watch_items WHERE id=?", (iid,)).fetchone()
+    if not row:
+        return {"ok": False, "error": "标的不存在"}
+    g = conn.execute("SELECT id FROM watch_groups WHERE id=?", (gid,)).fetchone()
+    if not g:
+        return {"ok": False, "error": "分组不存在"}
+    ex = conn.execute("SELECT 1 FROM watch_item_groups WHERE item_id=? AND group_id=?", (iid, gid)).fetchone()
+    if ex:
+        return {"ok": True, "id": iid, "group_id": gid, "existed": True}
+    had_groups = bool(conn.execute(
+        "SELECT 1 FROM watch_item_groups WHERE item_id=? LIMIT 1", (iid,)).fetchone())
+    order = (conn.execute(
+        "SELECT COALESCE(MAX(sort_order),0)+10 FROM watch_item_groups WHERE group_id=?", (gid,)).fetchone()[0]) or 10
+    conn.execute(
+        "INSERT INTO watch_item_groups(item_id, group_id, sort_order, added_at) VALUES(?,?,?,?)",
+        (iid, gid, order, _now()))
+    if not had_groups:
+        conn.execute("UPDATE watch_items SET group_id=? WHERE id=?", (gid, iid))
+    conn.commit()
+    return {"ok": True, "id": iid, "group_id": gid, "existed": False}
+
+
+def set_groups(conn: sqlite3.Connection, iid: int, gids) -> dict:
+    """全量设置关联组（编辑弹窗用）。已有组保留原 sort_order；新组 sort_order=该组 max+10。
+    gids 为空 → 回退默认组（不允许变无组）。同步主组 = 剩余第一组（按组 sort_order）。"""
+    row = conn.execute("SELECT id FROM watch_items WHERE id=?", (iid,)).fetchone()
+    if not row:
+        return {"ok": False, "error": "标的不存在"}
+    want: list = []
+    for g in (gids or []):
+        try:
+            g = int(g)
+        except Exception:  # noqa: BLE001
+            continue
+        if g not in want:
+            want.append(g)
+    if not want:
+        d = _default_group_id(conn)
+        want = [d] if d else []
+    ok_ids = {r[0] for r in conn.execute("SELECT id FROM watch_groups").fetchall()}
+    want = [g for g in want if g in ok_ids]
+    if not want:
+        return {"ok": False, "error": "目标分组不存在"}
+    have = {r[0]: r[1] for r in conn.execute(
+        "SELECT group_id, sort_order FROM watch_item_groups WHERE item_id=?", (iid,)).fetchall()}
+    for g in want:
+        if g in have:
+            continue
+        order = (conn.execute(
+            "SELECT COALESCE(MAX(sort_order),0)+10 FROM watch_item_groups WHERE group_id=?", (g,)).fetchone()[0]) or 10
+        conn.execute(
+            "INSERT INTO watch_item_groups(item_id, group_id, sort_order, added_at) VALUES(?,?,?,?)",
+            (iid, g, order, _now()))
+    for g in list(have):
+        if g not in want:
+            conn.execute("DELETE FROM watch_item_groups WHERE item_id=? AND group_id=?", (iid, g))
+    _sync_primary_group(conn, iid)
+    conn.commit()
+    return {"ok": True, "id": iid, "groups": item_group_ids(conn, iid)}
+
+
+def remove_from_group(conn: sqlite3.Connection, iid: int, gid: int) -> dict:
+    """移出单个组。剩其他组 → 主组若被移则改挂剩余第一组；无剩余组 → 回退默认组。返回剩余组数。"""
+    row = conn.execute("SELECT id FROM watch_items WHERE id=?", (iid,)).fetchone()
+    if not row:
+        return {"ok": False, "error": "标的不存在"}
+    conn.execute("DELETE FROM watch_item_groups WHERE item_id=? AND group_id=?", (iid, gid))
+    if item_group_ids(conn, iid):
+        _sync_primary_group(conn, iid)
+    else:
+        # 不允许变无组：回退默认组（保持「标的不删、永在池中」的老行为）
+        d = _default_group_id(conn)
+        if d:
+            order = (conn.execute(
+                "SELECT COALESCE(MAX(sort_order),0)+10 FROM watch_item_groups WHERE group_id=?", (d,)).fetchone()[0]) or 10
+            conn.execute(
+                "INSERT OR IGNORE INTO watch_item_groups(item_id, group_id, sort_order, added_at)"
+                " VALUES(?,?,?,?)", (iid, d, order, _now()))
+        conn.execute("UPDATE watch_items SET group_id=? WHERE id=?", (d, iid))
+    conn.commit()
+    return {"ok": True, "id": iid, "left": len(item_group_ids(conn, iid))}
+
+
+def reorder_in_group(conn: sqlite3.Connection, gid: int, ordered_ids) -> dict:
+    """按给定顺序把该组 sort_order 重写为 10,20,30…；不在表里的 id 忽略。"""
+    n = 0
+    for i, iid in enumerate(ordered_ids or []):
+        try:
+            iid = int(iid)
+        except Exception:  # noqa: BLE001
+            continue
+        cur = conn.execute(
+            "UPDATE watch_item_groups SET sort_order=? WHERE group_id=? AND item_id=?",
+            ((i + 1) * 10, gid, iid))
+        if cur.rowcount and cur.rowcount > 0:
+            n += 1
+    conn.commit()
+    return {"ok": True, "group_id": gid, "moved": n}
+
+
 def add_item(conn: sqlite3.Connection, symbol: str, name: str = "", kind: str = "stock",
              group_id: int | None = None, sector: str = "", note: str = "",
              attention: int = 3, target_price=None, alert_dir: str = "",
-             alert_on: int = 1, price_at_add=None) -> dict:
+             alert_on: int = 1, price_at_add=None, groups=None) -> dict:
+    """加入自选池。
+
+    多对多（2026-10-14）：同代码已在池**不再报错**——若 payload 带 group_id/groups
+    且该票不在目标组，则追加到目标组并返回 existed + hint；已在目标组同样返回
+    existed + 提示。全新插入逻辑不变（同时写关联表）。
+    """
     sym = _norm_symbol(symbol)
     if not sym:
         return {"ok": False, "error": "缺少股票 / 基金代码"}
-    # 同池同标的去重（同代码只留一条；已存在则提示改用编辑）
     dup = conn.execute("SELECT id FROM watch_items WHERE symbol=?", (sym,)).fetchone()
     if dup:
-        return {"ok": False, "error": "该标的已在池中（%s），请直接编辑" % sym, "id": dup[0]}
+        iid = dup[0]
+        target: list = []
+        if isinstance(groups, (list, tuple)):
+            target = [g for g in groups if str(g).lstrip("-").isdigit()]
+        elif group_id is not None and str(group_id).lstrip("-").isdigit():
+            target = [int(group_id)]
+        have = item_group_ids(conn, iid)
+        to_add = [int(g) for g in target if int(g) not in have]
+        if to_add:
+            for g in to_add:
+                add_to_group(conn, iid, g)
+            names = "、".join(_group_name(conn, g) for g in to_add)
+            return {"ok": True, "id": iid, "existed": True, "symbol": sym,
+                    "hint": "该标的已在池中，已追加到分组「%s」" % names}
+        if target:
+            names = "、".join(_group_name(conn, g) for g in target)
+            return {"ok": True, "id": iid, "existed": True, "symbol": sym,
+                    "hint": "该标的已在池中，且已在分组「%s」" % names}
+        return {"ok": True, "id": iid, "existed": True, "symbol": sym,
+                "hint": "该标的已在池中"}
     if group_id is None:
         r = conn.execute("SELECT id FROM watch_groups ORDER BY sort_order, id LIMIT 1").fetchone()
         group_id = r[0] if r else None
@@ -257,8 +508,21 @@ def add_item(conn: sqlite3.Connection, symbol: str, name: str = "", kind: str = 
         (sym, (name or "").strip(), kind, group_id, (sector or "").strip(), (note or "").strip(),
          att, _to_float(target_price), ad, 1 if alert_on else 0, _to_float(price_at_add), _now()),
     )
+    iid = cur.lastrowid
+    # 关联表：groups 优先，其次 group_id；sort_order 追加到组尾（max+10）
+    tg: list = []
+    if isinstance(groups, (list, tuple)):
+        tg = [int(g) for g in groups if str(g).lstrip("-").isdigit()]
+    elif group_id is not None:
+        tg = [int(group_id)]
+    for g in tg:
+        order = (conn.execute(
+            "SELECT COALESCE(MAX(sort_order),0)+10 FROM watch_item_groups WHERE group_id=?", (g,)).fetchone()[0]) or 10
+        conn.execute(
+            "INSERT OR IGNORE INTO watch_item_groups(item_id, group_id, sort_order, added_at)"
+            " VALUES(?,?,?,?)", (iid, g, order, _now()))
     conn.commit()
-    return {"ok": True, "id": cur.lastrowid, "symbol": sym}
+    return {"ok": True, "id": iid, "symbol": sym}
 
 
 def update_item(conn: sqlite3.Connection, iid: int, **fields) -> dict:
@@ -297,6 +561,7 @@ def remove_item(conn: sqlite3.Connection, iid: int) -> dict:
     if not n:
         return {"ok": False, "error": "标的不存在"}
     conn.execute("DELETE FROM watch_items WHERE id=?", (iid,))
+    conn.execute("DELETE FROM watch_item_groups WHERE item_id=?", (iid,))
     conn.execute("DELETE FROM watch_alerts WHERE item_id=?", (iid,))
     conn.commit()
     return {"ok": True}
@@ -307,10 +572,10 @@ def check_alerts(conn: sqlite3.Connection, prices: dict, now: str | None = None)
     """按注入的 prices={code: price} 判定到价。
 
     规则：alert_on=1 且 target_price 非空 且 alert_dir∈{above,below} 且 有价 →
-         above: price >= target  触发
-         below: price <= target  触发
+        above: price >= target  触发
+        below: price <= target  触发
     去重：同一标的 + 同一方向 + 同一目标价，若已有**未读**告警则不重复生成
-         （用户标记已读、或改了目标价后可再次触发）。
+        （用户标记已读、或改了目标价后可再次触发）。
     会顺带刷新每个标的的 last_price / last_pct（若有）/ last_checked_at。
     """
     now = now or _now()
@@ -412,8 +677,10 @@ if __name__ == "__main__":
     print("add:", r1, r2)
     assert r1["ok"] and r2["ok"]
 
-    # 重复加入去重
-    print("dup:", add_item(c, "sh600519"))
+    # 重复加入：不再报错——同票已在池，返回 existed + 提示
+    dup = add_item(c, "sh600519")
+    print("dup:", dup)
+    assert dup["ok"] and dup.get("existed")
 
     # 到价：茅台 1495（未破1500）、平安 12.2（破12.5 下穿）
     res = check_alerts(c, {"600519": 1495.0, "000001": 12.2})
@@ -442,4 +709,55 @@ if __name__ == "__main__":
     print("items after group remove:", [(i["symbol"], i["group_name"]) for i in list_items(c)])
 
     print("unread:", count_unread(c), "| alerts:", len(list_alerts(c)))
+
+    # —— 多对多分组自检（2026-10-14）——
+    c2 = sqlite3.connect(":memory:")
+    c2.row_factory = sqlite3.Row
+    ensure_schema(c2)
+    seed_default_groups(c2)
+    gs2 = list_groups(c2)
+    gA, gB, gC = gs2[0]["id"], gs2[1]["id"], gs2[2]["id"]
+
+    # 1) 同票加两个组：第二次带 groups=[gB] → 不再报错，追加到 B
+    ra = add_item(c2, "600519", "贵州茅台", group_id=gA)
+    rb = add_item(c2, "600519", "贵州茅台", groups=[gB])
+    print("multi add:", ra, "|", rb)
+    assert rb["ok"] and rb.get("existed") and "已追加" in (rb.get("hint") or "")
+    assert sorted(item_group_ids(c2, ra["id"])) == sorted([gA, gB])
+
+    # 2) n_items 去重计数：A=1 / B=1 / C=0（不是 2）
+    cnt = {g["id"]: g["n_items"] for g in list_groups(c2)}
+    print("n_items dedup:", cnt)
+    assert cnt[gA] == 1 and cnt[gB] == 1 and cnt[gC] == 0
+
+    # 3) list_items 带 groups / n_groups；按组视图能查到
+    byB = list_items(c2, group_id=gB)
+    print("list by gB:", [(i["symbol"], i["n_groups"], [g["name"] for g in i["groups"]]) for i in byB])
+    assert len(byB) == 1 and byB[0]["n_groups"] == 2 and len(byB[0]["groups"]) == 2
+
+    # 4) set_groups 全量改 → 仅剩 [gC, gA]；主组按组 sort_order = gA
+    sg = set_groups(c2, ra["id"], [gC, gA])
+    print("set_groups:", sg)
+    assert sg["ok"] and sorted(item_group_ids(c2, ra["id"])) == sorted([gC, gA])
+    assert get_item(c2, ra["id"])["group_id"] == gA
+
+    # 5) reorder_in_group：组内顺序保持
+    r2b = add_item(c2, "000001", "平安银行", group_id=gB)
+    r3b = add_item(c2, "300750", "宁德时代", group_id=gB)
+    reorder_in_group(c2, gB, [r3b["id"], r2b["id"]])
+    order = [i["id"] for i in list_items(c2, group_id=gB)]
+    print("reorder order:", order, "expect:", [r3b["id"], r2b["id"]])
+    assert order == [r3b["id"], r2b["id"]]
+
+    # 6) remove_from_group 移出单组：其他组仍在；主组被移则改挂剩余第一组
+    left = remove_from_group(c2, ra["id"], gA)
+    print("remove_from_group left:", left, "groups:", item_group_ids(c2, ra["id"]))
+    assert left["ok"] and left["left"] == 1 and item_group_ids(c2, ra["id"]) == [gC]
+    assert get_item(c2, ra["id"])["group_id"] == gC
+
+    # 7) 移到只剩兜底：回退默认组（不允许变无组）
+    left2 = remove_from_group(c2, ra["id"], gC)
+    print("fallback left:", left2, "groups:", item_group_ids(c2, ra["id"]))
+    assert item_group_ids(c2, ra["id"]) == [gA]
+
     print("SELFTEST_OK")
