@@ -14,12 +14,20 @@ backups/
 *.sqlite
 *.sqlite3
 *.log
+
+# ── 运行时生成配置 / 令牌（不入库；config.py 源码本身须入库）──
+config/user_config.json
+config/viewer_token.txt
+*.token
+viewer/backups/
 kline_cache.json
 *_cache.json
 cache/
 
 # ── 凭证 / 个人资料 / 浏览器 profile ──
 cookies.txt
+eastmoney_cookie.txt
+jisilu_cookie.txt
 credentials*.yaml
 credentials*.yml
 个人凭证/
@@ -49,6 +57,8 @@ build/
 # 说明：根目录与 tools/ 下 `_*` 均为调试期一次性产物（探针脚本、中间 json/txt、截图），
 #       活代码不引用它们；如以后确要保留某个脚本，请去掉 `_` 前缀正式命名。
 _*
+# 例外：Python 包的 __init__.py 以 `_` 开头（双下划线），属于活代码，须入库。
+!__init__.py
 _*.png
 _*.json
 _*.txt

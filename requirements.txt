@@ -4,6 +4,8 @@ lxml>=5.0
 pyyaml>=6.0
 cryptography>=42.0
 pywebview>=6.0
+tzdata>=2024.1   # 跨平台 zoneinfo 时区库（infra/cal.py 的 now_cst 依赖；Windows 自带 tz 数据不全）
 
 # 开发/门禁依赖（规格书 A7：pytest -q 一键回归）
 pytest>=8
+pytest-timeout>=2.1   # P2-37：单测硬超时，防挂死（pytest.ini 已设 timeout=120）
