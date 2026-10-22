@@ -120,6 +120,7 @@ def _ensure_tables(con: sqlite3.Connection) -> None:
         hold_change TEXT DEFAULT '',     -- 增加/减少/不变/新进
         change_ratio REAL,
         scope TEXT DEFAULT 'free',       -- free=十大流通股东, total=十大股东
+        disclose_at TEXT DEFAULT '',       -- P1-09 披露时点（盘后/次交易日口径）
         UNIQUE(symbol, end_date, holder_rank, scope)
     );
     CREATE INDEX IF NOT EXISTS idx_sh_symbol ON stock_holders(symbol);

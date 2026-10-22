@@ -72,7 +72,13 @@ class RateLimitedSession:
             rp = urllib.robotparser.RobotFileParser()
             try:
                 rp.set_url(base + "/robots.txt")
-                rp.read()
+                import socket as _sock
+                _prev_to = _sock.getdefaulttimeout()
+                _sock.setdefaulttimeout(5)  # P2-10：robots.txt 抓取硬超时 5s，避免被卡死
+                try:
+                    rp.read()
+                finally:
+                    _sock.setdefaulttimeout(_prev_to)
             except Exception as e:  # noqa: BLE001
                 logger.warning("robots.txt 读取失败(%s)，默认放行: %s", base, e)
                 rp = None

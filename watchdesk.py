@@ -110,7 +110,8 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             cat            TEXT,
             tone           TEXT,
             is_new         INTEGER DEFAULT 0,
-            first_seen_at  TEXT
+            first_seen_at  TEXT,
+            disclose_at   TEXT DEFAULT ''
         );
         CREATE INDEX IF NOT EXISTS ix_ann_code_date ON stock_ann(code, notice_date);
         CREATE INDEX IF NOT EXISTS ix_ann_isnew ON stock_ann(is_new);
@@ -368,9 +369,10 @@ def scan(conn: sqlite3.Connection, window: int = _WINDOW_DAYS, log=None) -> dict
                     continue
                 is_new = 0 if baseline == 0 else 1
                 conn.execute(
-                    "INSERT INTO stock_ann(code,name,title,url,notice_date,cat,tone,is_new,first_seen_at)"
-                    " VALUES(?,?,?,?,?,?,?,?,?)",
-                    (code, name, title, url, nd, lab, tone, is_new, first_seen))
+                    "INSERT INTO stock_ann(code,name,title,url,notice_date,cat,tone,is_new,first_seen_at,disclose_at)"
+                    " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (code, name, title, url, nd, lab, tone, is_new, first_seen,
+                     (nd + " 15:00:00") if nd else ""))
                 added += 1
         except Exception:  # noqa: BLE001 —— 单票失败（限流/解析）不拖垮整轮
             failed += 1
@@ -405,7 +407,7 @@ def scan(conn: sqlite3.Connection, window: int = _WINDOW_DAYS, log=None) -> dict
         try:
             rows = conn.execute(
                 "SELECT title, notice_date FROM stock_ann WHERE code=? "
-                "AND notice_date>=date('now','-%d day')" % window, (code,)).fetchall()
+                "AND notice_date>=date('now','localtime','-%d day')" % window, (code,)).fetchall()
             fin = fin_use.get(code)
             try:
                 # 净额 = SUM(net_amt)（此前只累加正值，等于把净卖出算成了 0，是个静默的口径错误）
@@ -532,7 +534,7 @@ def detail(conn: sqlite3.Connection, code: str, window: int = _WINDOW_DAYS) -> d
     try:
         for r in conn.execute(
                 "SELECT title,url,notice_date,cat,is_new FROM stock_ann WHERE code=? "
-                "AND notice_date>=date('now','-%d day') ORDER BY notice_date DESC" % window, (code,)):
+                "AND notice_date>=date('now','localtime','-%d day') ORDER BY notice_date DESC" % window, (code,)):
             anns.append({"title": r[0], "url": r[1] or "", "date": r[2] or "",
                          "cat": r[3] or "", "is_new": r[4] or 0})
     except sqlite3.Error:

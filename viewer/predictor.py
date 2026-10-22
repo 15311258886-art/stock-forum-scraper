@@ -370,15 +370,21 @@ def _migrate(con: sqlite3.Connection) -> None:
         if col not in existing:
             try:
                 con.execute("ALTER TABLE prediction_item ADD COLUMN %s %s" % (col, typ))
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as e:  # noqa: BLE001 —— P2-02：精确吞「列已存在」，其余异常照常抛出
+                if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                    pass
+                else:
+                    raise
     existing = {r["name"] for r in con.execute("PRAGMA table_info(predictor_score)").fetchall()}
     for col in ("n_t10", "n_hit_t10", "sum_ret_t10"):
         if col not in existing:
             try:
                 con.execute("ALTER TABLE predictor_score ADD COLUMN %s REAL" % col)
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as e:  # noqa: BLE001 —— P2-02：精确吞「列已存在」，其余异常照常抛出
+                if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                    pass
+                else:
+                    raise
     con.commit()
 
 

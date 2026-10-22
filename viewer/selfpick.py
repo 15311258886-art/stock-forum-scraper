@@ -107,8 +107,11 @@ def ensure_tables(con: sqlite3.Connection) -> None:
         if col not in cols:
             try:
                 con.execute("ALTER TABLE self_pick ADD COLUMN %s %s" % (col, ddl))
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as e:  # noqa: BLE001 —— P2-02：精确吞「列已存在」，其余异常照常抛出
+                if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                    pass
+                else:
+                    raise
     con.commit()
 
 

@@ -129,6 +129,19 @@ class Database:
             pass
         return c
 
+    def get_conn(self, *, read_only: bool = False) -> sqlite3.Connection:
+        """连接工厂（P2-30）：默认返回可写连接；read_only=True 以 file:...?mode=ro 打开只读连接。
+
+        只读连接不写 WAL（journal_mode 仅对可写库生效），但仍设 busy_timeout 防并发读锁等待。
+        """
+        if read_only:
+            uri = "file:%s?mode=ro" % self.path
+            c = sqlite3.connect(uri, uri=True, check_same_thread=False, timeout=15)
+            c.row_factory = sqlite3.Row
+            c.execute("PRAGMA busy_timeout=15000")
+            return c
+        return self._connect()
+
     @property
     def conn(self) -> sqlite3.Connection:
         c = getattr(self._local, "conn", None)
@@ -533,6 +546,28 @@ class Database:
                        VALUES (?,?,?,?,?,?,?)""",
                     ("__all__", "", lf["value"], lf["value"], "ok", 0, ""),
                 )
+            c.commit()
+
+        # 兼容旧库：披露时点 disclose_at（P1-09）
+        # 说明：stock_holders / stock_ann / lhb_stocks 三张表的「披露时点」原先没落库，
+        #       前端无法诚实区分「盘后披露 vs T+1 盘前可用」，容易把旧披露当成新数据。
+        #       这里统一补列，并对存量空值回填（公告/股东取 notice_date，龙虎榜取 trade_date，
+        #       统一标 " 15:00:00" 口径——数据于披露日盘后 / 次交易日口径可用）。
+        for _t, _src in (("stock_holders", "notice_date"), ("stock_ann", "notice_date"),
+                         ("lhb_stocks", "trade_date")):
+            try:
+                _cols = [r["name"] for r in c.execute(f"PRAGMA table_info({_t})").fetchall()]
+            except sqlite3.OperationalError:
+                continue  # 表可能尚未由对应采集脚本建出，跳过不阻塞迁移
+            if "disclose_at" not in _cols:
+                c.execute(f"ALTER TABLE {_t} ADD COLUMN disclose_at TEXT DEFAULT ''")
+                c.commit()
+            # 存量空值回填（幂等：只补 disclose_at 为空的行，且源字段非空）
+            c.execute(
+                f"UPDATE {_t} SET disclose_at = {_src} || ' 15:00:00' "
+                f"WHERE (disclose_at IS NULL OR disclose_at = '') "
+                f"AND {_src} IS NOT NULL AND {_src} <> ''"
+            )
             c.commit()
 
     # ---------------- 实盘选手（含渠道标注） ----------------

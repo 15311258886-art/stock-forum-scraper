@@ -249,7 +249,7 @@ def pillar_policy_funnel(con, td, bars_map, names, codes) -> dict:
     # fundamentals 闸（L5）：读本地表，缺覆盖不罚分，只标注
     fund = {}
     try:
-        for r in con.execute("SELECT * FROM fundamentals"):
+        for r in con.execute("SELECT * FROM fundamentals LIMIT 5000"):
             fund[str(r["symbol"])] = dict(zip(r.keys(), r))
     except Exception:  # noqa: BLE001
         pass

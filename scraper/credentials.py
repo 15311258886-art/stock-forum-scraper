@@ -35,7 +35,8 @@ def _get_fernet() -> Fernet:
     if not KEY_FILE.exists():
         KEY_FILE.write_bytes(Fernet.generate_key())
         try:
-            KEY_FILE.chmod(0o600)
+            if os.name != "nt":  # P2-22：Windows(NT) 无 Unix 权限位，chmod 无意义，跳过
+                KEY_FILE.chmod(0o600)
         except OSError:
             pass
     return Fernet(KEY_FILE.read_bytes())
@@ -53,7 +54,8 @@ def _load_all(f: Fernet) -> dict:
 def _save_all(f: Fernet, data: dict) -> None:
     CRED_FILE.write_bytes(f.encrypt(json.dumps(data, ensure_ascii=False).encode("utf-8")))
     try:
-        CRED_FILE.chmod(0o600)
+        if os.name != "nt":  # P2-22：Windows(NT) 无 Unix 权限位，chmod 无意义，跳过
+            CRED_FILE.chmod(0o600)
     except OSError:
         pass
 

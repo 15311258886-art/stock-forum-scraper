@@ -121,7 +121,7 @@ def digest(cat: str = "sentiment", days: int = 30) -> dict:
     try:
         rows = con.execute(
             "SELECT blogger, title, vdate, url FROM bili_pile "
-            "WHERE cat = ? AND vdate >= date('now', ?) AND vdate <= date('now') "
+            "WHERE cat = ? AND vdate >= date('now', 'localtime', ?) AND vdate <= date('now', 'localtime') "
             "ORDER BY vdate DESC",
             (cat, "-%d day" % days),
         ).fetchall()

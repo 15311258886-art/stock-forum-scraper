@@ -93,7 +93,7 @@ const puppeteer = require('puppeteer-core');
     try { await page.setViewport({ width: 1920, height: 1080 }); } catch (e) {}
     // 0) 注入雪球登录 cookie（若提供），否则维持匿名
     try {
-      const cookies = JSON.parse(process.env.XQ_COOKIES_JSON || '[]');
+      const cookies = (function(){ try { if (process.env.XQ_COOKIES_PATH) return JSON.parse(require('fs').readFileSync(process.env.XQ_COOKIES_PATH,'utf8')); } catch(e){} try { if (process.env.XQ_COOKIES_JSON) return JSON.parse(process.env.XQ_COOKIES_JSON); } catch(e){} return []; })();  // P2-23
       if (cookies && cookies.length) await page.setCookie(...cookies);
     } catch (e) { /* cookie 注入失败不致命 */ }
     // 1) 预热首页，过 WAF 拿匿名 token
@@ -152,7 +152,7 @@ const server = http.createServer(async (req, res) => {
       try { await page.setViewport({ width: 1920, height: 1080 }); } catch (e) {}
       // 0) 注入雪球登录 cookie（若提供）
       try {
-        const cookies = JSON.parse(process.env.XQ_COOKIES_JSON || '[]');
+        const cookies = (function(){ try { if (process.env.XQ_COOKIES_PATH) return JSON.parse(require('fs').readFileSync(process.env.XQ_COOKIES_PATH,'utf8')); } catch(e){} try { if (process.env.XQ_COOKIES_JSON) return JSON.parse(process.env.XQ_COOKIES_JSON); } catch(e){} return []; })();  // P2-23
         if (cookies && cookies.length) await page.setCookie(...cookies);
       } catch (e) { /* 注入失败不致命 */ }
       // 首请求做一次预热（拿匿名 token），之后复用浏览器上下文里的 cookie
@@ -373,7 +373,10 @@ def _ensure_browser_server() -> bool:
         env["XQ_PROXY"] = PROXY if _USE_PROXY else ""
         env["NODE_PATH"] = NODE_PATH
         env["XQ_BROWSER_PORT"] = str(BS_PORT)
-        env["XQ_COOKIES_JSON"] = json.dumps(_load_cookies(), ensure_ascii=False)
+        _ck_fd, _ck_sp = tempfile.mkstemp(suffix=".json", prefix="_xq_ck_")
+        os.close(_ck_fd)
+        Path(_ck_sp).write_text(json.dumps(_load_cookies(), ensure_ascii=False), encoding="utf-8")  # P2-23：cookie 落临时文件，避免塞进 env（体积 / 进程列表泄漏）
+        env["XQ_COOKIES_PATH"] = _ck_sp
         try:
             _bs_proc = subprocess.Popen(
                 [NODE_EXE, sp], env=env,
@@ -452,7 +455,10 @@ def _browser_get_oneshot(url: str, timeout: int) -> "SimpleNamespace":
         env["XQ_CHROME_EXE"] = CHROME_EXE
         env["XQ_PROXY"] = PROXY if _USE_PROXY else ""
         env["NODE_PATH"] = NODE_PATH
-        env["XQ_COOKIES_JSON"] = json.dumps(_load_cookies(), ensure_ascii=False)
+        _ck_fd, _ck_sp = tempfile.mkstemp(suffix=".json", prefix="_xq_ck_")
+        os.close(_ck_fd)
+        Path(_ck_sp).write_text(json.dumps(_load_cookies(), ensure_ascii=False), encoding="utf-8")  # P2-23：cookie 落临时文件，避免塞进 env（体积 / 进程列表泄漏）
+        env["XQ_COOKIES_PATH"] = _ck_sp
         proc = subprocess.run(
             [NODE_EXE, script_path, url],
             capture_output=True, timeout=timeout, env=env,

@@ -1226,8 +1226,11 @@ def save(docs, meta, con):
     for col in ('market TEXT', 'ret_120d REAL'):
         try:
             cur.execute('ALTER TABLE fund_strategy_signal ADD COLUMN ' + col)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as e:  # noqa: BLE001 —— P2-02：精确吞「列已存在」，其余异常照常抛出
+            if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                pass
+            else:
+                raise
     cur.execute('DELETE FROM fund_strategy_signal')
     cur.executemany(
         'INSERT OR REPLACE INTO fund_strategy_signal (strategy_key,fund_code,fund_name,fund_type,'

@@ -16,6 +16,7 @@ import socket
 import subprocess
 import sys
 import threading
+import sqlite3  # P2-02：ALTER 精确异常判定（OperationalError）
 import time
 import urllib.parse
 import urllib.request
@@ -3679,7 +3680,13 @@ def _blogger_ensure_columns() -> None:
                     DB.conn.execute(ddl)
             DB.conn.commit()
         _BLOGGER_COLS_READY = True
-    except Exception:  # noqa: BLE001 —— 迁移失败不阻塞读接口，按旧列集继续
+    except sqlite3.OperationalError as e:  # P2-02：仅「列已存在」类错误可忽略，其余照抛
+        msg = str(e).lower()
+        if "duplicate column" in msg or "already exists" in msg:
+            pass
+        else:
+            raise
+    except Exception:  # noqa: BLE001 —— 其它异常不阻塞读接口，按旧列集继续
         logging.exception("[blogger迁移] source/horizon/bvid 列检查失败")
 
 
@@ -5493,10 +5500,10 @@ def _bottom_names() -> dict:
         pass
     out = {}
     try:
-        for r in DB.conn.execute("SELECT code, name FROM stock_names"):
+        for r in DB.conn.execute("SELECT code, name FROM stock_names LIMIT 8000"):
             out[str(r[0])] = str(r[1] or "")
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志，不再静默吞
+        logging.warning("stock_names 读取失败（接口将退化为空表）：%s", e)
     return out
 
 
@@ -6357,6 +6364,15 @@ _DESK_LOCK = threading.Lock()
 _DESK_RUNNING = {"on": False}
 
 
+def _meta_put(key: str, value, *, _log: bool = True) -> None:
+    """统一的 meta 写入封装（P2-01）：单条失败只记日志、绝不拖垮调用方。"""
+    try:
+        DB.set_meta(key, value)
+    except Exception:  # noqa: BLE001
+        if _log:
+            logging.exception("meta 写入失败 key=%s", key)
+
+
 def _desk_state() -> dict:
     try:
         s = json.loads(DB.get_meta(_DESK_STATE_KEY, "{}") or "{}")
@@ -6368,10 +6384,7 @@ def _desk_state() -> dict:
 def _desk_state_update(**kw) -> None:
     cur = _desk_state()
     cur.update(kw)
-    try:
-        DB.set_meta(_DESK_STATE_KEY, json.dumps(cur, ensure_ascii=False))
-    except Exception:  # noqa: BLE001
-        pass
+    _meta_put(_DESK_STATE_KEY, json.dumps(cur, ensure_ascii=False))
 
 
 def _desk_stale_seconds() -> float:
@@ -7829,8 +7842,11 @@ def _em_secid(symbol: str) -> tuple[str, str, str]:
     return market, code, f"{market}.{code}"
 
 
+_REQ_DEADLINE = threading.local()  # P2-09：请求级处理时限（monotonic 秒），do_GET/do_POST 写入
+
+
 def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
-              encoding: str = "utf-8-sig"):
+              encoding: str = "utf-8-sig", deadline=None):
     """通用取文本：直连优先 → 回退系统代理；偶发 RemoteDisconnected/超时自动重试。
     实测某些行情主机（push2/push2his）在连续请求后会直接掐连接（RemoteDisconnected），
     故重试是必需项，而不是可选项。"""
@@ -7840,7 +7856,11 @@ def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
         for opener in (_EM_DIRECT, urllib.request.build_opener()):
             try:
                 req = urllib.request.Request(url, headers=headers)
-                with opener.open(req, timeout=timeout) as resp:
+                eff_timeout = timeout
+                _dl = deadline if deadline is not None else getattr(_REQ_DEADLINE, "value", None)
+                if _dl is not None:
+                    eff_timeout = max(1, int(min(timeout, _dl - time.monotonic())))
+                with opener.open(req, timeout=eff_timeout) as resp:
                     return resp.read().decode(encoding, "ignore")
             except Exception as e:  # noqa: BLE001 —— 网络类异常统一重试
                 last_err = e
@@ -9671,7 +9691,7 @@ def _hotspots_prewarm() -> None:
                 with open(fp, "r", encoding="utf-8") as f:
                     obj = json.load(f)
                 if isinstance(obj, dict) and obj.get("payload"):
-                    _TTL_CACHE[key] = (time.time(), obj["payload"])
+                    _TTL_CACHE[key] = (time.monotonic(), obj["payload"])
                     logging.info("hotspots 预热心智：已从落盘缓存加载（生成于 %s）", obj.get("at"))
                     return
         except Exception:  # noqa: BLE001
@@ -9787,7 +9807,7 @@ class Handler(BaseHTTPRequestHandler):
         _ck = getattr(self, "_ttl_key", None)
         if _ck is not None:
             if code == 200:
-                _TTL_CACHE[_ck] = (time.time(), obj)
+                _TTL_CACHE[_ck] = (time.monotonic(), obj)
             self._ttl_key = None
         # 2026-10-12：先清洗 NaN/Infinity（见 _json_safe），再以标准 JSON 输出。
         body = json.dumps(_json_safe(obj), ensure_ascii=False,
@@ -9971,6 +9991,7 @@ class Handler(BaseHTTPRequestHandler):
             logging.exception("共识快照存档失败（非致命，跳过）")
 
     def do_GET(self):
+        _REQ_DEADLINE.value = time.monotonic() + 8  # P2-09 处理时限 8s
         """GET 统一异常兜底：任何未预期异常都回 500 JSON，绝不把 traceback / 文件路径给客户端。"""
         try:
             self._do_GET()
@@ -10008,7 +10029,7 @@ class Handler(BaseHTTPRequestHandler):
             if ("t=" not in _qs) and ("force=" not in _qs):
                 _key = route + "?" + _qs
                 _hit = _TTL_CACHE.get(_key)
-                if _hit is not None and (time.time() - _hit[0]) < _TTL_ROUTES[route]:
+                if _hit is not None and (time.monotonic() - _hit[0]) < _TTL_ROUTES[route]:
                     return self._send_json(_hit[1])
                 self._ttl_key = _key
         if route == "/" or route == "/index.html":
@@ -10016,7 +10037,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if route.startswith("/static/"):
             rel = route[len("/static/"):]
-            self._archive_fm_snapshot(rel)  # 2026-10-20：共识周快照「读取即存档」
+            self._archive_fm_snapshot(rel)  # 2026-10-20：共识周快照「读取即存档」（P2-24：已知 GET 带写副作用，已异常隔离）
             ctype = "text/css; charset=utf-8" if rel.endswith(".css") else (
                 "application/javascript; charset=utf-8" if rel.endswith(".js") else "text/html; charset=utf-8")
             self._send_file(STATIC_DIR / rel, ctype)
@@ -10702,6 +10723,7 @@ class Handler(BaseHTTPRequestHandler):
         threading.Thread(target=_stop, name="shutdown", daemon=True).start()
 
     def do_POST(self):
+        _REQ_DEADLINE.value = time.monotonic() + 8  # P2-09 处理时限 8s
         route = urllib.parse.urlparse(self.path).path
         use_lock = route not in self.HEAVY_POSTS
         ctx = _WRITE_LOCK if use_lock else _nullcontext()

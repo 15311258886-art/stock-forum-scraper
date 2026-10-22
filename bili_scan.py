@@ -669,9 +669,11 @@ def maybe_daily() -> bool:
         cached = _result_cache_load()
         if cached and cached.get("date") == target:
             return False
-        if _THREAD and _THREAD.is_alive():
-            return False
-        threading.Thread(target=_run_scan, args=(False,), daemon=True).start()
+        with _LOCK:  # P2-08：与 run() 共用同一把锁，杜绝 maybe_daily 与 run/预热 并发起扫
+            if _THREAD and _THREAD.is_alive():
+                return False
+            _THREAD = threading.Thread(target=_run_scan, args=(False,), daemon=True)
+            _THREAD.start()
         return True
     except Exception:  # noqa: BLE001
         return False
@@ -689,7 +691,11 @@ def maybe_prewarm() -> None:
             st = _get_state()
             if st["status"] in ("warming",):
                 return
-            _run_scan(False)
+            with _LOCK:  # P2-08：预热同样走单锁，避免与收盘刷新并发起扫
+                if _THREAD and _THREAD.is_alive():
+                    return
+                _THREAD = threading.Thread(target=_run_scan, args=(False,), daemon=True)
+                _THREAD.start()
         except Exception:  # noqa: BLE001
             pass
     threading.Thread(target=_go, daemon=True).start()

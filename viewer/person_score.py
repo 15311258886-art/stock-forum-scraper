@@ -579,8 +579,11 @@ def build(allow_net: bool = True) -> dict:
         # 幂等：列已存在时 ALTER 抛错，吞掉即可。
         try:
             con.execute("ALTER TABLE person_scores ADD COLUMN in_ranking INTEGER")
-        except sqlite3.OperationalError:
-            pass
+        except sqlite3.OperationalError as e:  # P2-02：精确吞「列已存在」，其余 OperationalError 照常抛出
+            if "duplicate column" in str(e).lower() or "already exists" in str(e).lower():
+                pass
+            else:
+                raise
         con.execute("DELETE FROM person_scores")
 
         tier_counts = {"A": 0, "B": 0, "C": 0}

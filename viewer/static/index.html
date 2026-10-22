@@ -244,5 +244,17 @@
   <!-- 版本号串：改 app.js/app.css 后必须跟着加，否则王总桌面页面走缓存看不到新文案（2026-10-01 踩过）。
        另外页面每 60s 会跟 /api/version 比一次版本：不一致就在顶部弹「界面已更新，点此刷新」提示条，
        解决「后端改了、旧窗口里的旧 JS 还在跑、王总说看不到新功能」这一类问题。 -->
+
+  <!-- C 移交（2026-10-22）：pywebview 暴露的桥函数挂在 window.pywebview.api.*，
+       但 app.js 统一走 window._js_restart_service。此处做一次桥接：
+       桌面窗口（pywebviewready 触发）下把桥函数映射到 window._js_restart_service；
+       浏览器直接打开（非桌面窗口）时 pywebview 不存在，保持 undefined，
+       app.js 会据此降级为「请双击桌面快捷方式」提示。 -->
+  <script>
+    window.addEventListener('pywebviewready', function () {
+      window._js_restart_service = (window.pywebview && window.pywebview.api)
+        ? window.pywebview.api._js_restart_service : undefined;
+    });
+  </script>
 </body>
 </html>
