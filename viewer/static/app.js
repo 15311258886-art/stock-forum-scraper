@@ -27,9 +27,24 @@ const $$ = (s, root) => (root || document).querySelectorAll(s);
    于是用户反复点、界面纹丝不动。现在文案说清「服务进程已退出、刷新无用」，
    并把可执行的动作放到横幅上（见 netDropBanner / restartLocalService）。 */
 const _API_NET_HINT = "与本地服务连接中断：本地服务进程已退出。此处点「刷新」只会重开页面、不会让服务回来。";
+const _API_TIMEOUT = 15000;   // 2026-10-23：单 api 调用（含网络重试）的总超时，杜绝「连上了但慢响应/卡住」永久转圈
 function api(path, opts) {
   const isNetErr = (e) => !!e && e.name === "TypeError";   // fetch 未拿到响应时的唯一表现
-  const attempt = (n) => fetch(path, opts).then(async (r) => {
+  const isAbort = (e) => !!e && e.name === "AbortError";
+  // ① 超时控制：用 AbortController 主动中断「连上了但迟迟不响应」的请求。
+  //    这是「整个 api 调用（含下面的网络重试）」的总预算，不是单次 fetch 的预算。
+  const ctrl = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, _API_TIMEOUT);
+  const merged = Object.assign({}, opts);
+  if (merged.signal) {
+    // 调用方自带 signal（如抽屉关闭时主动取消）：任意一方 abort 都中断本请求
+    const ext = merged.signal;
+    if (ext.addEventListener) ext.addEventListener("abort", () => ctrl.abort(), { once: true });
+  } else {
+    merged.signal = ctrl.signal;
+  }
+  const attempt = (n) => fetch(path, merged).then(async (r) => {
     if (!r.ok) {
       let body = "";
       try { body = await r.text(); } catch (e) { /* 读响应体失败时忽略 */ }
@@ -39,13 +54,20 @@ function api(path, opts) {
     markServiceHealthy();   // D2：只要有一个请求成功，就说明后端已恢复 → 撤横幅并提示
     return data;
   }, (e) => {
+    // 超时（我们主动 abort）：标记 TIMEOUT 后 reject，让调用方 .catch 能清除「加载中…」
+    if (isAbort(e) && timedOut) {
+      const te = new Error(`请求超时（${_API_TIMEOUT / 1000} 秒未响应）`);
+      te.code = "TIMEOUT"; te.isTimeout = true;
+      throw te;
+    }
     if (isNetErr(e) && n < 2) {
       return new Promise((res) => setTimeout(res, n === 0 ? 400 : 1200)).then(() => attempt(n + 1));
     }
     if (isNetErr(e)) { netDropBanner(); throw new Error(_API_NET_HINT); }
+    // 其余（含调用方主动取消的外部 AbortError）：原样抛出，交给调用方处理
     throw e;
   });
-  return attempt(0);
+  return attempt(0).finally(() => clearTimeout(timer));
 }
 /* ---- 本地服务断连横幅（2026-10-06，王总：「点了刷新也没反应」） -------------
    背景：桌面版是 pywebview 原生窗口，服务跑在本地。**服务进程阵亡后窗口还开着**，
@@ -174,6 +196,9 @@ function toggleDensity() { applyDensity(localStorage.getItem("viewer-density") =
 let DRAWER_SYMBOL = "";
 /* P3-13：记录打开抽屉前的焦点元素，关闭时回焦。 */
 let DRAWER_LAST_FOCUS = null;
+/* 2026-10-23：个股抽屉的「请求取消器」。打开个股时新建，关闭（或再次打开另一只）时 abort，
+   让仍在进行中的分区请求立刻终止，减少与首屏/轮询对连接池的争用（仍保留 api() 内部 15s 超时兜底）。 */
+let _stockAbort = null;
 
 /* P2-12：统一「catch 不应静默吞错」工具。
    reportCatch 把错误计入顶栏 apiErrorBar（与 reportLoadError 同通道），并返回友好提示串。
@@ -827,6 +852,29 @@ new MutationObserver(() => foldLongHints()).observe(document.documentElement, {
 const loadErrors = [];
 function apiErrText(e) {
   return ((e && e.message) ? e.message : String(e)).replace(/\s+/g, " ").trim().slice(0, 200);
+}
+/* 2026-10-23：分区加载兜底 —— 把「加载中…」改写为可见的失败/超时 + 重试按钮，
+   彻底消除「十几分钟不回来」的永久转圈。retryFn 传入则渲染「点此重试」。 */
+function stockZoneFail(hostOrHosts, label, err, retryFn) {
+  let list;
+  if (hostOrHosts == null) return;
+  if (typeof hostOrHosts.forEach === "function") list = hostOrHosts;   // NodeList / Array
+  else list = [hostOrHosts];
+  const aborted = !!(err && err.name === "AbortError");   // 抽屉关闭等主动取消：静默收尾，不渲染失败态
+  const timedOut = !!(err && err.isTimeout);
+  const msg = timedOut ? `加载超时（${_API_TIMEOUT / 1000} 秒未响应）` : "加载失败";
+  const detail = (!timedOut && err) ? `：${esc(apiErrText(err))}` : "";
+  list.forEach((h) => {
+    if (!h) return;
+    if (aborted) { h.innerHTML = `<div class="s">—</div>`; return; }   // 主动取消：不污染已关闭的抽屉
+    h.dataset.rendered = "";   // 允许后续重试重新进入加载态
+    h.innerHTML = `<div class="s stk-zone-fail">${esc(label)}${msg}${detail}` +
+      (retryFn ? ` <button type="button" class="retry-btn">点此重试</button>` : "") + `</div>`;
+    if (retryFn) {
+      const b = h.querySelector(".retry-btn");
+      if (b) b.onclick = () => { h.dataset.rendered = ""; retryFn(); };
+    }
+  });
 }
 function errorBarHost() {
   let host = document.getElementById("apiErrorBar");
@@ -1495,6 +1543,9 @@ function holdDaysNote(basis) {
 function openStock(symbol, anchorEl, extraHtml) {
   // 2026-10-22 全量整改 P2-28：记录打开的个股代码供抽屉跳转 chip 使用
   DRAWER_SYMBOL = (symbol || "").toString().trim();
+  // 2026-10-23：为本抽屉建立独立的请求取消器；若上一只个股的请求还在飞，先取消它，再建新的
+  if (_stockAbort) { try { _stockAbort.abort(); } catch (e) {} }
+  _stockAbort = new AbortController();
   // 2026-10-02：刚点开过的票记成「下一个要诊断的票」，
   // 这样从汇总页/任何列表点完代码，再切到「个股诊断」页时是**上一只那张票自动跑出来**，
   // 不用用户重新输一遍代码再点「开始诊断」。
@@ -1567,7 +1618,7 @@ function openStock(symbol, anchorEl, extraHtml) {
     };
   }
   // ③ 唯一依赖 /api/stock 的部分：标题 / 简称 / 公司 / 持仓选手表（到了再填，不挡开抽屉）
-  api(`/api/stock?symbol=${encodeURIComponent(symbol)}`).then((d) => {
+  api(`/api/stock?symbol=${encodeURIComponent(symbol)}`, { signal: _stockAbort ? _stockAbort.signal : undefined }).then((d) => {
     // 防串台：期间用户若又点了别的票（klineWrap 已换成新票），这轮就不要回填了
     const wrapEl = $("#klineWrap");
     if (!wrapEl || wrapEl.dataset.sym !== String(symbol)) return;
@@ -1610,9 +1661,9 @@ function openStock(symbol, anchorEl, extraHtml) {
     host.innerHTML = stillHolding.length
       ? `<table><thead><tr><th>选手</th><th>渠道</th><th>持仓比例</th><th>持仓起始日期</th><th>买入价</th><th>当前股价</th></tr></thead><tbody>${posRows}</tbody></table>`
       : "<span class='s'>暂无持仓记录</span>";
-  }).catch(() => {
-    const h0 = $("#stkPositions");
-    if (h0) h0.innerHTML = "<span class='s'>持仓记录加载失败（本地服务可能刚重启），可返回后重新点开</span>";
+  }).catch((e) => {
+    if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
+    stockZoneFail($("#stkPositions"), "持仓记录", e, () => openStock(symbol, anchorEl));
   });
 }
 
@@ -1646,7 +1697,7 @@ function btSparkSvg(series) {
 function initStockBloggerPerf(symbol) {
   const host = $("#stkBloggerPerf");
   if (!host) return;
-  api(`/api/blogger/perf?code=${encodeURIComponent(symbol)}`).then((d) => {
+  api(`/api/blogger/perf?code=${encodeURIComponent(symbol)}`, { signal: _stockAbort ? _stockAbort.signal : undefined }).then((d) => {
     const rows = (d && d.rows) || [];
     if (!rows.length) {
       host.innerHTML = `<div class="s">该票不在博主荐股池内，暂无荐股收益节奏</div>`;
@@ -1682,7 +1733,8 @@ function initStockBloggerPerf(symbol) {
       <div class="s" style="margin-top:6px">口径：以该次推荐的<b>推荐日收盘价</b>为基准，往后数 N 个交易日收盘价算持有收益；
       不足 N 个交易日显示「—」（不是 0）。走势曲线为荐股后逐日累计涨跌（悬停看逐日数值）。本票共被推荐 <b>${rows.length}</b> 次。</div>`;
   }).catch((e) => {
-    host.innerHTML = `<div class="s">收益节奏暂不可用：${esc((e && e.message) || e)}</div>`;
+    if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
+    stockZoneFail(host, "收益节奏", e, () => initStockBloggerPerf(symbol));
   });
 }
 
@@ -1691,7 +1743,7 @@ function initStockBloggerPerf(symbol) {
 function initStockTurnover(symbol) {
   const host = $("#stkTurnover");
   if (!host) return;
-  api(`/api/stock_turnover?symbol=${encodeURIComponent(symbol)}`)
+  api(`/api/stock_turnover?symbol=${encodeURIComponent(symbol)}`, { signal: _stockAbort ? _stockAbort.signal : undefined })
     .then((d) => {
       if (!d || d.ok === false) {
         host.innerHTML = `<div class="s">换手率实战评分暂不可用：${esc((d && d.reason) || "未知原因")}</div>`;
@@ -1715,7 +1767,10 @@ function initStockTurnover(symbol) {
           <span class="s">五维：${esc(dimTxt) || "—"}</span>
         </div>`;
     })
-    .catch((e) => { host.innerHTML = `<div class="s">换手率实战评分加载失败：${esc(apiErrText(e) || e)}</div>`; });
+    .catch((e) => {
+      if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
+      stockZoneFail(host, "换手率实战评分", e, () => initStockTurnover(symbol));
+    });
 }
 
 /* 2026-09-29 A1：板块详情页下钻 —— 解决王总"点到板块、再想往下点了解不了"的痛点。
@@ -1844,7 +1899,7 @@ function initStockF10(symbol) {
   if (!profHosts.length && !holdHosts.length) return;
   profHosts.forEach((h) => { if (!h.dataset.rendered) h.innerHTML = `<div class="s">公司简介加载中…</div>`; });
   holdHosts.forEach((h) => { if (!h.dataset.rendered) h.innerHTML = `<div class="s">持股结构加载中…</div>`; });
-  api(`/api/stock_f10?symbol=${encodeURIComponent(symbol)}`)
+  api(`/api/stock_f10?symbol=${encodeURIComponent(symbol)}`, { signal: _stockAbort ? _stockAbort.signal : undefined })
     .then((d) => {
       if (!d || d.ok === false) {
         const msg = `<div class="s">F10 数据暂不可用：${esc((d && d.reason) || "未知原因")}</div>`;
@@ -1858,9 +1913,9 @@ function initStockF10(symbol) {
       holdHosts.forEach((h) => { h.innerHTML = hold; h.dataset.rendered = "1"; });
     })
     .catch((e) => {
-      const msg = `<div class="s">公司简介/持股结构加载失败：${esc(apiErrText(e) || e)}</div>`;
-      profHosts.forEach((h) => { h.innerHTML = msg; h.dataset.rendered = "1"; });
-      holdHosts.forEach((h) => { h.innerHTML = msg; h.dataset.rendered = "1"; });
+      if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
+      stockZoneFail(profHosts, "公司简介", e, () => initStockF10(symbol));
+      stockZoneFail(holdHosts, "持股结构", e, () => initStockF10(symbol));
     });
 }
 
@@ -1958,13 +2013,14 @@ function loadStockQuote(symbol, force) {
   const box = $("#stkQuote");
   if (!box) return;
   if (!box.dataset.rendered) box.innerHTML = `<div class="s">重要信息加载中…</div>`;
-  api(`/api/quote?symbol=${encodeURIComponent(symbol)}` + (force ? "&force=1" : ""))
+  api(`/api/quote?symbol=${encodeURIComponent(symbol)}` + (force ? "&force=1" : ""), { signal: _stockAbort ? _stockAbort.signal : undefined })
     .then((d) => {
       if (d.error) { box.innerHTML = `<div class="s" style="color:var(--bear)">${esc(d.error)}</div>`; return; }
       renderStockQuote(d);
     })
     .catch((e) => {
-      box.innerHTML = `<div class="s" style="color:var(--bear)">重要信息获取失败：${esc(apiErrText(e))}</div>`;
+      if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
+      stockZoneFail(box, "重要信息", e, () => loadStockQuote(symbol, true));
     });
 }
 
@@ -2265,7 +2321,7 @@ function loadKline(symbol, period, force, opts) {
   const wantAll = !!o.all || !!(_kv && _kv.all);
   const lim = wantAll ? 0 : (o.limit != null ? o.limit : KLINE_DEFAULT_LIMIT);
   if (snap) snap.innerHTML = `<span class="s">${wantAll ? "正在拉取全部历史 K 线…" : "行情加载中…"}</span>`;
-  api(`/api/kline?symbol=${encodeURIComponent(symbol)}&period=${encodeURIComponent(period)}&limit=${lim}` + (force ? "&_=" + Date.now() : ""))
+  api(`/api/kline?symbol=${encodeURIComponent(symbol)}&period=${encodeURIComponent(period)}&limit=${lim}` + (force ? "&_=" + Date.now() : ""), { signal: _stockAbort ? _stockAbort.signal : undefined })
     .then((d) => {
       if (d.error) {
         if (snap) snap.innerHTML = `<span class="s" style="color:var(--bear)">${esc(d.error)}</span>`;
@@ -2304,7 +2360,8 @@ function loadKline(symbol, period, force, opts) {
     })
     .catch((e) => {
       if (_kv) _kv.loading = false;   // 失败必须复位，否则"缩到底自动加载"再也不会触发
-      if (snap) snap.innerHTML = `<span class="s" style="color:var(--bear)">行情获取失败：${esc(apiErrText(e))}</span>`;
+      if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不清为失败态
+      stockZoneFail(snap, "行情", e, () => loadKline(symbol, period, false));
     });
 }
 
@@ -7104,6 +7161,8 @@ function openDrawer(title, html, anchorEl) {
 /** 关闭：叉号 / 底部按钮 / Esc / 点击面板外 共用同一入口 */
 function closeDrawer() {
   if (!isDrawerOpen()) return;
+  // 2026-10-23：关闭抽屉时取消仍未完成的个股请求，避免与首屏/轮询抢连接池
+  if (_stockAbort) { try { _stockAbort.abort(); } catch (e) {} _stockAbort = null; }
   const d = $("#drawer");
   d.classList.remove("show", "ghost", "maxed");
   d.setAttribute("aria-hidden", "true");
