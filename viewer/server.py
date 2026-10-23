@@ -58,6 +58,12 @@ try:
     import dragon as dragon_mod  # noqa: E402
 except Exception:  # noqa: BLE001
     dragon_mod = None
+# 2026-10-23 性能修复：磁盘 TTL 缓存 + 并发请求合并(single-flight) + 东财全局令牌桶/限流抑制。
+# 仅换缓存层，不动上游抓取与回退逻辑（详见 viewer/cacheutil.py）。
+try:
+    import cacheutil as cu  # noqa: E402
+except Exception:  # noqa: BLE001
+    cu = None
 
 
 def _setup_logging() -> None:
@@ -5893,10 +5899,8 @@ def _sina_stock_moneyflow(code: str, market: str) -> dict | None:
     }
 
 
-def _stock_moneyflow_any(symbol: str, force: bool = False) -> dict:
-    """个股资金流：东财主源（moneyflow.stock，带明细四档）→ 失败切新浪兜底（三档省略）。
-    两路都失败时返回东财的失败原因（描述更完整）。
-    2026-10-01：force 透传给 moneyflow.stock，跳过其 30 分钟失败负缓存（强制重试用）。"""
+def _stock_moneyflow_fetch(symbol: str, force: bool = False) -> dict:
+    """个股资金流上游抓取（不含磁盘缓存层）：东财主源 → 新浪兜底。"""
     r = moneyflow.stock(symbol, force=force)
     if r.get("ok"):
         return r
@@ -5915,6 +5919,23 @@ def _stock_moneyflow_any(symbol: str, force: bool = False) -> dict:
     if isinstance(s, dict) and s.get("ok"):
         return s
     return r
+
+
+def _stock_moneyflow_any(symbol: str, force: bool = False) -> dict:
+    """个股资金流：东财主源（moneyflow.stock，带明细四档）→ 失败切新浪兜底（三档省略）。
+    两路都失败时返回东财的失败原因（描述更完整）。
+    2026-10-01：force 透传给 moneyflow.stock，跳过其 30 分钟失败负缓存（强制重试用）。
+    2026-10-23 性能修复：非 force 路径加「磁盘 30min TTL 缓存 + 并发合并(single-flight)」，
+    同 symbol 并发首开只打一次上游，30min 内重复开直接命中磁盘（东财调用=0）。"""
+    if cu and not force:
+        code = re.sub(r"\D", "", symbol or "")
+        if code:
+            return cu.disk_cache(
+                "moneyflow", code, 1800,
+                lambda: cu.coalesce(f"moneyflow:{symbol}",
+                                    lambda: _stock_moneyflow_fetch(symbol, force=False),
+                                    label="moneyflow"))
+    return _stock_moneyflow_fetch(symbol, force=force)
 
 
 def _announcements_cached(symbol: str, num: int = 8) -> dict:
@@ -6351,7 +6372,8 @@ def _stock_news_verdict(symbol: str, rows: list[dict]) -> dict:
             "coverage": f"公告 {n_rows} 条（财务指向暂缺，行情源未命中）"}
 
 
-def api_news_stock(symbol: str, num: int = 30) -> dict:
+def _news_stock_fetch(symbol: str, num: int = 30) -> dict:
+    """个股快讯上游抓取 + 本地研判（不含磁盘缓存层）。"""
     d = newsfeed.stock(symbol, num=num)
     if d.get("ok") and symbol:
         try:
@@ -6359,6 +6381,21 @@ def api_news_stock(symbol: str, num: int = 30) -> dict:
         except Exception as e:  # noqa: BLE001
             d["verdict"] = {"stance": "暂缺", "reasons": [], "name": "", "coverage": f"研判生成失败：{e}"}
     return d
+
+
+def api_news_stock(symbol: str, num: int = 30) -> dict:
+    """个股快讯：东财公告/快讯（newsfeed.stock）+ 本地情绪研判。
+    2026-10-23 性能修复：加「磁盘 30min TTL 缓存 + 并发合并(single-flight)」，
+    同 symbol 并发首开只打一次上游，30min 内重复开直接命中磁盘（东财调用=0）。"""
+    if cu and symbol:
+        code = re.sub(r"\D", "", symbol or "")
+        if code:
+            return cu.disk_cache(
+                "news", code, 1800,
+                lambda: cu.coalesce(f"news:{symbol}",
+                                    lambda: _news_stock_fetch(symbol, num=num),
+                                    label="news"))
+    return _news_stock_fetch(symbol, num=num)
 
 def api_news_market(num: int = 30) -> dict:
     return newsfeed.market(num=num)
@@ -7729,12 +7766,40 @@ def _slice_kline(payload: dict, limit: int, offset: int) -> dict:
     return out
 
 
+def _kline_upstream(symbol: str, period: str) -> dict | None:
+    """K 线上游抓取（东财→新浪→腾讯），返回**未切片**的原始 payload。
+
+    抽成独立函数以便「磁盘 TTL 缓存 + 并发合并(single-flight)」复用：同一 (symbol, period)
+    的并发首开请求只打一次上游（根治此前单只股票首开瞬间打东财约 11 次触发限流的卡死问题）。
+    本函数只换缓存层，三源竞速 / 回退逻辑与原来完全一致。
+    """
+    # 2026-10-09：K 线三源字段**不等价**——东财独有的「真实成交额 amount（新浪/腾讯只有估算值，
+    # amount_est=True）」与「name」，且东财/腾讯为前复权、新浪为不复权。故用「东财优先 + 限时」：
+    # 东财 2s 内回就用东财（字段最全）；否则立刻用先回的新浪/腾讯，绝不干等（上限 4.5s）。
+    payload = emapi.race_priority(
+        lambda: _eastmoney_kline(symbol, period, timeout=4),
+        [lambda: _sina_kline_result(symbol, period, timeout=4, retries=0),
+         lambda: _tencent_kline_result(symbol, period, timeout=4, retries=0)],
+        grace=2.0, timeout=4.5)
+    if payload is None:
+        return None
+    # 东财 push2his（beg=0 全量）/ 新浪（全历史）本就是真·全历史 → 打标记，前端据此才准标「上市至今」
+    src = payload.get("source", "")
+    is_full = src.startswith("东方财富") or src.startswith("新浪")
+    if is_full:
+        payload["full_history"] = True
+    return payload
+
+
 def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 0) -> dict:
     """单只股票 K 线：东财（前复权·全历史）→ 新浪（不复权·全历史）→ 腾讯（前复权·兜底）。
     返回 OHLCV + 最新价/涨跌幅 + 首末日期（供前端判断能否拖到上市首日）。
 
     **默认只回最近 250 根**（limit 默认 250）：几千根全历史推过去既慢又没人看；
     前端要「拖到上市首日 / 点全历史 / 缩到底」时传 limit=0 拉全量，缓存按 (symbol, period) 复用。
+
+    2026-10-23 性能修复：冷路径走「磁盘 TTL 缓存(1h) + 并发合并(single-flight)」——
+    首开只打一次上游，1h 内重复开直接命中磁盘（东财调用=0），避免被限流卡死。
 
     2026-10-13（进哥）：limit=0 要的是「上市至今」**真·全历史**。若竞速只拿到腾讯单页兜底
     （~120 根，full_history=False），必须改用「新浪全量 → 腾讯分段」认真拉全历史重试，
@@ -7749,31 +7814,27 @@ def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 
     cached = _KLINE_CACHE.get(key)
     if cached and now - cached[0] < 90:
         cp = cached[1]
-        # 要全历史但缓存里只有单页兜底 → 不命中缓存，走下面的「认真拉全历史」重试
+        # 要全历史但缓存里只有单页兜底 → 不命中内存缓存，走下面的「认真拉全历史」重试
         if limit == 0 and not cp.get("full_history"):
             pass
         else:
             return _slice_kline(cp, limit, offset)
-    # 2026-10-09：K 线三源字段**不等价**——东财独有的「真实成交额 amount（新浪/腾讯只有估算值，
-    # amount_est=True）」与「name」，且东财/腾讯为前复权、新浪为不复权。故用「东财优先 + 限时」：
-    # 东财 2s 内回就用东财（字段最全）；否则立刻用先回的新浪/腾讯，绝不干等（上限 4.5s）。
-    payload = emapi.race_priority(
-        lambda: _eastmoney_kline(symbol, period, timeout=4),
-        [lambda: _sina_kline_result(symbol, period, timeout=4, retries=0),
-         lambda: _tencent_kline_result(symbol, period, timeout=4, retries=0)],
-        grace=2.0, timeout=4.5)
+    # 冷路径：磁盘 1h TTL 缓存（L2） + 并发合并（同 (symbol,period) 只打一次上游，L1 内存 90s 之上）。
+    if cu:
+        payload = cu.disk_cache(
+            "kline", f"{symbol}|{period}", 3600,
+            lambda: cu.coalesce(f"kline:{symbol}:{period}",
+                                lambda: _kline_upstream(symbol, period),
+                                label="kline"))
+    else:
+        payload = _kline_upstream(symbol, period)
     if payload is None:
         return {"error": "行情获取失败：代码可能无效，或本地网络无法访问行情源"
                          "（东方财富 / 新浪 / 腾讯均不可用）。",
                 "symbol": symbol}
-    # 东财 push2his（beg=0 全量）/ 新浪（全历史）本就是真·全历史 → 打标记，前端据此才准标「上市至今」
-    src = payload.get("source", "")
-    is_full = src.startswith("东方财富") or src.startswith("新浪")
-    if is_full:
-        payload["full_history"] = True
     # limit=0（要上市至今）但竞速只拿到腾讯单页兜底 → 认真拉全历史重试：新浪全量优先，
     # 腾讯分段（full_history=True）兜底。二者任一中即可拿到真·全历史。
-    if limit == 0 and not is_full:
+    if limit == 0 and not payload.get("full_history"):
         full = emapi.race_priority(
             lambda: _sina_kline_result(symbol, period, timeout=10, retries=2),
             [lambda: _tencent_kline_result(symbol, period, timeout=10, retries=2,
@@ -7887,11 +7948,18 @@ def _is_write_get_route(route: str) -> bool:
 def _ro_conn() -> "sqlite3.Connection":
     """P2-24：返回当前 GET 请求的只读连接（read_only 路由），否则回退全局可写连接。
 
-    仅被声明 read_only 的取数助手调用（_bottom_names / fund_strategy_signal 查询 / _holders_payload）；
-    写路由或 POST 下均回退 DB.conn，绝不意外挡住写逻辑。
+    2026-10-23 清理：改为**懒开**——只读连接只在首次被只读取数助手调用时才创建（且只开一次、
+    缓存复用），去掉原先 do_GET 每请求无条件预开只读连接的 ~4ms 抖动浪费（弹窗热路径处理器
+    根本不用 _ro_conn()，纯属浪费）。
+    约定：_REQ_RO_CONN.value 为 True 表示本路由是只读路由（待懒开）；为连接对象表示已开；
+    为 False/None 表示写路由/POST/未分类 → 回退全局可写连接。
     """
     rc = getattr(_REQ_RO_CONN, "value", None)
-    return rc if rc is not None else DB.conn
+    if rc is True:
+        conn = DB.get_conn(read_only=True)
+        _REQ_RO_CONN.value = conn
+        return conn
+    return DB.conn
 
 
 def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
@@ -7925,7 +7993,20 @@ def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
 
 
 def _em_get_json(url: str, referer: str, timeout: int = 12, retries: int = 2):
+    if cu is not None:
+        # 全局令牌桶：约束对东财的调用频率（~4 次/秒），避免单只股票首开瞬间打爆触发限流；
+        # 限流抑制：东财已连续失败（≥6 次/30s）→ 直接放弃本次东财请求，上层自动走新浪/腾讯兜底，
+        # 避免重试风暴把限流窗口彻底堵死（根治弹窗「永久加载中」）。
+        cu.eastmoney_acquire()
+        if cu.eastmoney_suppressed():
+            logging.debug("东财限流抑制中，跳过 %s", url[:90])
+            return None
     txt = _get_text(url, referer, timeout=timeout, retries=retries)
+    if cu is not None:
+        if txt:
+            cu.mark_eastmoney_success()
+        else:
+            cu.mark_eastmoney_failure()
     if not txt:
         return None
     try:
@@ -8540,16 +8621,13 @@ def _holders_payload(code: str) -> dict | None:
     }
 
 
-def api_quote(symbol: str, force: bool = False) -> dict:
-    """单只股票「重要信息」：行情 + 估值 + 财务（含报告期）。默认 60s 内存缓存。
-    行情/估值：东财 push2，失败自动兜底腾讯行情；财务：东财 F10 具名字段。"""
-    if not symbol:
-        return {"error": "symbol required"}
-    key = (symbol or "").strip()
-    if not force:
-        hit = _QUOTE_CACHE.get(key)
-        if hit and time.time() - hit[0] < 60:
-            return hit[1]
+def _quote_upstream(key: str, force: bool = False) -> dict:
+    """个股「重要信息」上游抓取 + 组装：行情(东财push2/腾讯兜底) + 财务(F10) + 分红 + 概况 + 股东。
+
+    抽成独立函数以便「磁盘 TTL 缓存 + 并发合并(single-flight)」复用：同一 symbol 的并发
+    首开请求只打一次上游（东财 push2 + 3 路 F10 并行），5min 内重复开直接命中磁盘。
+    三源竞速 / 并行取数逻辑与原来完全一致，只换缓存层。
+    """
     market, code, secid = _em_secid(key)
     # 2026-10-09（收尾修正）：改为「东财优先 + 限时」的并发竞速（emapi.race_priority）——
     # 东财在 grace（1.8s）内回就用东财（字段最全，含 valuation.bps）；没回则立刻用先回的腾讯，
@@ -8592,7 +8670,7 @@ def api_quote(symbol: str, force: bool = False) -> dict:
         fin = f_fin.result() or {}
         dv = f_dv.result()
         org = f_org.result()
-    payload = {
+    return {
         "symbol": code,
         "name": name or fin.get("SECURITY_NAME_ABBR") or "",
         "source": f"{src_quote} + 东方财富 F10 财务指标"
@@ -8621,6 +8699,31 @@ def api_quote(symbol: str, force: bool = False) -> dict:
         },
         "holders": _holders_payload(code),
     }
+
+
+def api_quote(symbol: str, force: bool = False) -> dict:
+    """单只股票「重要信息」：行情 + 估值 + 财务（含报告期）。默认 60s 内存缓存(L1) + 5min 磁盘缓存(L2)。
+    行情/估值：东财 push2，失败自动兜底腾讯行情；财务：东财 F10 具名字段。
+    2026-10-23 性能修复：冷路径走「磁盘 TTL 缓存(5min) + 并发合并」，单只首开只打一次上游，
+    5min 内重复开直接命中磁盘（东财调用=0），避免被限流卡死。"""
+    if not symbol:
+        return {"error": "symbol required"}
+    key = (symbol or "").strip()
+    if not force:
+        hit = _QUOTE_CACHE.get(key)
+        if hit and time.time() - hit[0] < 60:
+            return hit[1]
+    if cu and not force:
+        # L2 磁盘 5min：同 symbol 并发首开合并为一次上游调用（single-flight）。
+        payload = cu.disk_cache(
+            "quote", key, 300,
+            lambda: cu.coalesce(f"quote:{key}",
+                                lambda: _quote_upstream(key),
+                                label="quote"))
+    else:
+        payload = _quote_upstream(key, force=force)
+    if isinstance(payload, dict) and payload.get("error"):
+        return payload
     _QUOTE_CACHE[key] = (time.time(), payload)
     return payload
 
@@ -10058,14 +10161,15 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:  # noqa: BLE001 —— 响应已发出/连接已断，无力回天
                 pass
         finally:
-            # P2-24：关闭本请求可能持有的只读连接，避免连接泄漏
+            # P2-24（2026-10-23 清理）：关闭本请求可能懒开的只读连接，避免连接泄漏。
+            # _REQ_RO_CONN.value 可能是 True/False/None（非连接），仅在持真实连接对象时关闭。
             _rc = getattr(_REQ_RO_CONN, "value", None)
-            if _rc is not None:
+            if isinstance(_rc, sqlite3.Connection):
                 try:
                     _rc.close()
                 except Exception:  # noqa: BLE001
                     pass
-                _REQ_RO_CONN.value = None
+            _REQ_RO_CONN.value = None
 
     def _do_GET(self):
         # 2026-10-12：读接口也做回环 Host 校验（防 DNS rebinding——外部域名解析到 127.0.0.1 时
@@ -10077,8 +10181,9 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         route = parsed.path
 
-        # P2-24：GET 副作用分类 → 声明 read_only 的路由持有只读连接（仅被 read_only 取数助手消费）
-        _REQ_RO_CONN.value = None if _is_write_get_route(route) else DB.get_conn(read_only=True)
+        # P2-24（2026-10-23 清理）：不再每请求预开只读连接——改为 _ro_conn() 懒开。
+        # 仅记录本路由是否为只读路由（True=只读待懒开 / False=写路由），保留分类能力。
+        _REQ_RO_CONN.value = False if _is_write_get_route(route) else True
 
         # ── 2026-10-22 配置读取端点（设置面板读写）──
         if route == "/api/config/get":
