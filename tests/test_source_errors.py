@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """P2-03 最小单测：请求级数据源错误采集（不 import viewer.server）。
 
-直接验证 viewer._source_errors 的 record / reset / attach 行为——这是后端在 4 个静默
+直接验证 viewer.source_errors 的 record / reset / attach 行为——这是后端在 4 个静默
 except 分支上抛 source_errors、并在 _send_json 注入响应体的同一套逻辑。
 被测模块不依赖 server，故本测试绝不 import viewer.server（符合基线约束）。
 """

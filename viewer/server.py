@@ -7854,7 +7854,7 @@ def _em_secid(symbol: str) -> tuple[str, str, str]:
 
 _REQ_DEADLINE = threading.local()  # P2-09：请求级处理时限（monotonic 秒），do_GET/do_POST 写入
 
-# P2-03：请求级数据源错误列表（与 _REQ_DEADLINE 同范式；定义见 viewer/_source_errors，此处导入）。
+# P2-03：请求级数据源错误列表（与 _REQ_DEADLINE 同范式；定义见 viewer/source_errors，此处导入）。
 # P2-24：请求级只读连接（read_only GET 路由持有；写路由/POST 为 None → 回退全局可写连接）。
 _REQ_RO_CONN = threading.local()
 
