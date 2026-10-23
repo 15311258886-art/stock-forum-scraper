@@ -15087,7 +15087,7 @@ function renderBacktestBody() {
       // 2026-10-23 进哥要求的三色口径：涨跌方向与命中方向相反（涨但跑输 / 跌但跑赢）→ 浅黄底+黄框，
       // 文字颜色仍由 .bt-up / .bt-dn 决定（涨=红字、跌=绿字）。黄 ≠ 命中的替代语义，别混。
       const _up = c.ret > 0, _dn = c.ret < 0;
-      const _mix = (_up && !c.hit) || (_dn && c.hit);
+      const _mix = (c.bench !== null && c.bench !== undefined) && ((_up && !c.hit) || (_dn && c.hit));
       const cls = _up ? "bt-up" : (_dn ? "bt-dn" : "bt-fl");
       const mixCls = _mix ? " bt-mix" : "";
       const tip = `收益 ${btPct(c.ret)}｜池子同期 ${btPct(c.bench)}｜超额 ${btPct(c.alpha)}｜` +
