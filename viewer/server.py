@@ -95,6 +95,11 @@ _setup_logging()
 from scraper.config import get_site, load_config  # noqa: E402
 
 from viewer.db import Database  # noqa: E402
+from viewer.source_errors import (  # noqa: E402  —— P2-03：请求级数据源错误采集（独立于 server，可单测）
+    record_source_error,
+    attach_source_errors,
+    reset_source_errors,
+)
 from viewer.hotspots import build_hotspots  # noqa: E402
 from viewer.ingest import Ingestor  # noqa: E402
 from viewer import kb  # noqa: E402  —— 「跟我学习」知识库解析/重吸取
@@ -2266,7 +2271,7 @@ def api_fund_strategies(key: str | None) -> dict:
     # 3) 该策略命中基金（按 距今天数↑、信号日至今收益↓ 排序，避免 SQL 方言差异）
     funds: list = []
     try:
-        rows = DB.conn.execute(
+        rows = _ro_conn().execute(
             "SELECT fund_code,fund_name,fund_type,market,signal_date,days_ago,ret_since,ret_20d,"
             "ret_120d,ret_1y,nav_latest,nav_date,bars,caliber,caliber_note,source,computed_at "
             "FROM fund_strategy_signal WHERE strategy_key=?", (key,)
@@ -2275,7 +2280,9 @@ def api_fund_strategies(key: str | None) -> dict:
             funds.append(dict(r))
         funds.sort(key=lambda d: (d.get("days_ago") is None, d.get("days_ago") or 0,
                                   -(d.get("ret_since") or -1e9)))
-    except Exception:  # noqa: BLE001
+    except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志 + 上抛前端，不再静默吞
+        logging.exception("fund_strategy_signal 查询失败（退化为空列表）")
+        record_source_error("fund_strategy_signal", e)
         funds = []
 
     # 4) 可判定性 / 口径
@@ -4665,7 +4672,9 @@ def _decline_pool() -> dict:
                 c = str(row.get("code") or "")
                 if _is_sh_sz_a(c):
                     pool.setdefault(c, row.get("name") or "")
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志 + 上抛前端（保持可写连接，screener.run 语义未明）
+            logging.exception("阴跌扫描池策略 %s 计算失败（跳过）", key)
+            record_source_error("screener:%s" % key, e)
             continue
     try:
         for r in DB.conn.execute("SELECT symbol, name FROM watch_items WHERE kind='stock'"):
@@ -5500,10 +5509,11 @@ def _bottom_names() -> dict:
         pass
     out = {}
     try:
-        for r in DB.conn.execute("SELECT code, name FROM stock_names LIMIT 8000"):
+        for r in _ro_conn().execute("SELECT code, name FROM stock_names LIMIT 8000"):
             out[str(r[0])] = str(r[1] or "")
-    except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志，不再静默吞
-        logging.warning("stock_names 读取失败（接口将退化为空表）：%s", e)
+    except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志 + 上抛前端，不再静默吞
+        logging.exception("stock_names 读取失败（接口将退化为空表）")
+        record_source_error("stock_names", e)
     return out
 
 
@@ -7844,6 +7854,45 @@ def _em_secid(symbol: str) -> tuple[str, str, str]:
 
 _REQ_DEADLINE = threading.local()  # P2-09：请求级处理时限（monotonic 秒），do_GET/do_POST 写入
 
+# P2-03：请求级数据源错误列表（与 _REQ_DEADLINE 同范式；定义见 viewer/_source_errors，此处导入）。
+# P2-24：请求级只读连接（read_only GET 路由持有；写路由/POST 为 None → 回退全局可写连接）。
+_REQ_RO_CONN = threading.local()
+
+
+# P2-24：GET 路由副作用分类。
+#   write     —— 处理器内部会回写 DB（建表/生成/存档/回填），必须走可写连接；
+#   read_only —— 纯 SELECT（或等价只读），可走 get_conn(read_only=True)。
+# 约定：以 "/" 结尾的条目按前缀匹配（如 "/static/" 覆盖所有静态资源）；
+#       未列入本表的 GET 一律按 write 处理（拿不准就保持可写，绝不意外挡写）。
+_GET_WRITE_ROUTES = (
+    "/", "/index.html",          # 静态页
+    "/static/",                  # /static/* 含 _archive_fm_snapshot 读即存档（写副作用，:10040）
+    "/api/market_cache/",        # ensure_schema 可能惰性建表（写）
+    "/api/pillars/generate",     # 生成并回写四支柱
+    "/api/auction/backfill",      # 回填写库
+)
+
+
+def _is_write_get_route(route: str) -> bool:
+    """判断 GET 路由是否带写副作用（见 _GET_WRITE_ROUTES）。"""
+    for w in _GET_WRITE_ROUTES:
+        if w.endswith("/"):
+            if route.startswith(w):
+                return True
+        elif route == w:
+            return True
+    return False
+
+
+def _ro_conn() -> "sqlite3.Connection":
+    """P2-24：返回当前 GET 请求的只读连接（read_only 路由），否则回退全局可写连接。
+
+    仅被声明 read_only 的取数助手调用（_bottom_names / fund_strategy_signal 查询 / _holders_payload）；
+    写路由或 POST 下均回退 DB.conn，绝不意外挡住写逻辑。
+    """
+    rc = getattr(_REQ_RO_CONN, "value", None)
+    return rc if rc is not None else DB.conn
+
 
 def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
               encoding: str = "utf-8-sig", deadline=None):
@@ -8441,12 +8490,14 @@ def _holders_payload(code: str) -> dict | None:
     无数据返回 None（前端显示"暂无"，不编造）。
     数据由 holders_fetch.py 抓取入库（stock_holders / stock_holder_num）。"""
     try:
-        rows = DB.conn.execute(
+        rows = _ro_conn().execute(
             """SELECT end_date, notice_date, holder_rank, holder_name, holder_type,
                       hold_num, hold_ratio, free_ratio, hold_change, change_ratio, scope
                FROM stock_holders WHERE symbol=?
                ORDER BY end_date DESC, scope, holder_rank""", (code,)).fetchall()
-    except Exception:  # noqa: BLE001 —— 表不存在时静默降级
+    except Exception as e:  # noqa: BLE001 —— 表不存在时静默降级（P2-03：源错误记录日志 + 上抛前端）
+        logging.exception("stock_holders 读取失败（退化为暂无）")
+        record_source_error("stock_holders", e)
         return None
     if not rows:
         return None
@@ -8462,15 +8513,16 @@ def _holders_payload(code: str) -> dict | None:
     # 股东户数趋势（最近 6 期）
     nums: list[dict] = []
     try:
-        for r in DB.conn.execute(
+        for r in _ro_conn().execute(
             """SELECT end_date, holder_total_num, total_num_ratio, avg_hold_amt, hold_focus
                FROM stock_holder_num WHERE symbol=? ORDER BY end_date DESC LIMIT 6""",
                 (code,)).fetchall():
             nums.append({"end_date": r["end_date"], "num": r["holder_total_num"],
                          "chg_pct": r["total_num_ratio"], "avg_amt": r["avg_hold_amt"],
                          "focus": r["hold_focus"] or ""})
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as e:  # noqa: BLE001 —— P2-03：源错误记录日志 + 上抛前端
+        logging.exception("stock_holder_num 读取失败（趋势留空）")
+        record_source_error("stock_holder_num", e)
     return {
         "report_date": latest,
         "scope": "free" if free else "total",
@@ -9802,6 +9854,7 @@ class Handler(BaseHTTPRequestHandler):
         return self.server_version
 
     def _send_json(self, obj, code=200):
+        obj = attach_source_errors(obj)  # P2-03：注入请求级数据源错误（非空才加键）
         # 2026-10-15（性能缓存）：本请求若命中 TTL 白名单 route，写出前把结果存进缓存（只存 200）。
         # 消费后立即清空 self._ttl_key，避免同请求的其它 _send_json（如 400 回包）误写同一 key。
         _ck = getattr(self, "_ttl_key", None)
@@ -9992,6 +10045,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         _REQ_DEADLINE.value = time.monotonic() + 8  # P2-09 处理时限 8s
+        reset_source_errors()  # P2-03：清空请求级错误列表
         """GET 统一异常兜底：任何未预期异常都回 500 JSON，绝不把 traceback / 文件路径给客户端。"""
         try:
             self._do_GET()
@@ -10003,6 +10057,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "internal error"}, code=500)
             except Exception:  # noqa: BLE001 —— 响应已发出/连接已断，无力回天
                 pass
+        finally:
+            # P2-24：关闭本请求可能持有的只读连接，避免连接泄漏
+            _rc = getattr(_REQ_RO_CONN, "value", None)
+            if _rc is not None:
+                try:
+                    _rc.close()
+                except Exception:  # noqa: BLE001
+                    pass
+                _REQ_RO_CONN.value = None
 
     def _do_GET(self):
         # 2026-10-12：读接口也做回环 Host 校验（防 DNS rebinding——外部域名解析到 127.0.0.1 时
@@ -10013,6 +10076,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         parsed = urllib.parse.urlparse(self.path)
         route = parsed.path
+
+        # P2-24：GET 副作用分类 → 声明 read_only 的路由持有只读连接（仅被 read_only 取数助手消费）
+        _REQ_RO_CONN.value = None if _is_write_get_route(route) else DB.get_conn(read_only=True)
 
         # ── 2026-10-22 配置读取端点（设置面板读写）──
         if route == "/api/config/get":
@@ -10724,6 +10790,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         _REQ_DEADLINE.value = time.monotonic() + 8  # P2-09 处理时限 8s
+        reset_source_errors()  # P2-03：清空请求级错误列表（POST 一般无 source_errors，但保持一致）
         route = urllib.parse.urlparse(self.path).path
         use_lock = route not in self.HEAVY_POSTS
         ctx = _WRITE_LOCK if use_lock else _nullcontext()

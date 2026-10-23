@@ -256,5 +256,48 @@
         ? window.pywebview.api._js_restart_service : undefined;
     });
   </script>
+  <!-- P2-03：数据源查询失败的前端错误态（轻量，不侵入 app.js）。
+       后端在任意 GET/JSON 响应体注入 "source_errors":[{"source","error"}]（仅当本请求有数据源失败）。
+       此处全局包裹 window.fetch，统一检测并弹顶部提示条；各面板据此区分「空态」与「错误态」。 -->
+  <div id="src-err-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+       background:#b3261e;color:#fff;font:13px/1.6 -apple-system,'Microsoft YaHei',sans-serif;
+       padding:8px 14px;box-shadow:0 2px 6px rgba(0,0,0,.25)">
+    <span id="src-err-text"></span>
+    <span style="float:right;cursor:pointer;opacity:.85" onclick="this.parentNode.style.display='none'">✕</span>
+  </div>
+  <script>
+    (function () {
+      var banner = document.getElementById('src-err-banner');
+      var txt = document.getElementById('src-err-text');
+      function showSourceErrors(errs) {
+        if (!banner || !txt || !errs || !errs.length) return;
+        var names = errs.map(function (e) { return e.source || '未知数据源'; });
+        txt.textContent = '⚠ 部分数据源查询失败（' + names.join('、') +
+          '），相关面板可能显示为空或旧数据。详见服务端日志。';
+        banner.style.display = 'block';
+      }
+      window.__showSourceErrors = showSourceErrors;
+      var _origFetch = window.fetch;
+      if (typeof _origFetch === 'function') {
+        window.fetch = function () {
+          var args = arguments;
+          return _origFetch.apply(this, args).then(function (resp) {
+            try {
+              var ct = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
+              if (ct.indexOf('application/json') !== -1) {
+                resp.clone().json().then(function (data) {
+                  if (data && Array.isArray(data.source_errors) && data.source_errors.length) {
+                    showSourceErrors(data.source_errors);
+                  }
+                }).catch(function () {});
+              }
+            } catch (e) {}
+            return resp;
+          }, function (e) { return Promise.reject(e); });
+        };
+      }
+    })();
+  </script>
+
 </body>
 </html>
