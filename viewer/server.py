@@ -586,7 +586,7 @@ def api_version() -> dict:
         mt = p.stat().st_mtime
         if _api_ver_cache["mtime"] != mt:
             html = p.read_text(encoding="utf-8")
-            m = re.search(r'<meta\s+name=["\']app-version["\']\s+content=["\']([^"\']+)["\']>', html)
+            m = re.search(r'<meta\s+name=["\']app-version["\']\s+content=["\']([^"\']+)["\']\s*/?>', html)
             _api_ver_cache["mtime"] = mt
             _api_ver_cache["version"] = m.group(1) if m else None
     except (OSError, UnicodeDecodeError):
