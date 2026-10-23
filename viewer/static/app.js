@@ -15055,7 +15055,8 @@ function renderBacktestBody() {
       <div class="bt-cl-h">当日预测 · ${esc(d.date)} · ${rows.length} 只
         <span class="s">${esc(d.source_label)}</span></div>
       <div class="bt-cr-h">回测结果
-        <span class="s">收益（命中＝跑赢池子）</span></div>
+        <span class="s">收益（命中＝跑赢池子）</span>
+        <span class="bt-legend"><i class="lg lg-up"></i>涨·跑赢<i class="lg lg-dn"></i>跌·跑输<i class="lg lg-mix"></i>方向相反</span></div>
     </div>`;
   const body = rows.map((r, i) => {
     const tag = r.bucket_label
@@ -15083,10 +15084,15 @@ function renderBacktestBody() {
         return `<span class="bt-c bt-none${on}" title="该票缺 K 线（停牌/新股），无法回测">` +
           `<em>T+${x}</em><b>—</b></span>`;
       }
-      const cls = c.ret > 0 ? "bt-up" : (c.ret < 0 ? "bt-dn" : "bt-fl");
+      // 2026-10-23 进哥要求的三色口径：涨跌方向与命中方向相反（涨但跑输 / 跌但跑赢）→ 浅黄底+黄框，
+      // 文字颜色仍由 .bt-up / .bt-dn 决定（涨=红字、跌=绿字）。黄 ≠ 命中的替代语义，别混。
+      const _up = c.ret > 0, _dn = c.ret < 0;
+      const _mix = (_up && !c.hit) || (_dn && c.hit);
+      const cls = _up ? "bt-up" : (_dn ? "bt-dn" : "bt-fl");
+      const mixCls = _mix ? " bt-mix" : "";
       const tip = `收益 ${btPct(c.ret)}｜池子同期 ${btPct(c.bench)}｜超额 ${btPct(c.alpha)}｜` +
-        `${c.hit ? "跑赢池子 ✓" : "跑输池子 ✕"}`;
-      return `<span class="bt-c ${cls}${on}" title="${escAttr(tip)}"><em>T+${x}</em>` +
+        `${c.hit ? "跑赢池子 ✓" : "跑输池子 ✕"}` + (_mix ? "｜方向与命中相反（黄框）" : "");
+      return `<span class="bt-c ${cls}${mixCls}${on}" title="${escAttr(tip)}"><em>T+${x}</em>` +
         `<b>${btPct(c.ret, 1)}</b><i class="${c.hit ? "hit" : "miss"}">${c.hit ? "✓" : "✕"}</i></span>`;
     }).join("") + `</div>`;
     return `<div class="bt-row">${left}${right}</div>`;

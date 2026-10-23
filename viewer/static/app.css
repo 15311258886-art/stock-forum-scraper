@@ -4026,10 +4026,29 @@ span.miss{
 .bt-fl b { color: var(--muted); }
 .bt-up { background: color-mix(in srgb, var(--bull, #c81e1e) 8%, transparent); }
 .bt-dn { background: color-mix(in srgb, var(--bear, #15803d) 8%, transparent); }
+/* 2026-10-23 进哥要求的三色口径：涨但跑输 / 跌但跑赢（方向与命中相反）＝浅黄底 + 黄框，
+   字色不动（仍由 .bt-up/.bt-dn 决定：涨=红字、跌=绿字）。
+   框用 inset 阴影画，避免和"当前选中周期"的 .bt-c.on 边框打架。 */
+.bt-c.bt-mix { background: color-mix(in srgb, #e8a33d 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #e8a33d 62%, transparent); }
+/* 表头图例：让三色口径一眼看懂 */
+.bt-legend { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px;
+  font-size: 11px; color: var(--muted); white-space: nowrap; }
+.bt-legend .lg { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-left: 5px; }
+.bt-legend .lg-up { background: color-mix(in srgb, var(--bull, #c81e1e) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bull, #c81e1e) 55%, transparent); }
+.bt-legend .lg-dn { background: color-mix(in srgb, var(--bear, #15803d) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bear, #15803d) 55%, transparent); }
+.bt-legend .lg-mix { background: color-mix(in srgb, #e8a33d 30%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #e8a33d 70%, transparent); }
 .bt-pend b, .bt-none b { color: var(--muted); font-weight: 500; font-size: 11px; }
 .bt-none { opacity: .55; }
 .bt-c.on { border-color: var(--accent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+/* 选中周期也要保住黄框（.bt-c.on 的 box-shadow 会覆盖上面的 .bt-mix，所以这里补一条更靠后的规则） */
+.bt-c.bt-mix.on { border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #e8a33d 62%, transparent),
+              0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
 
 /* 下方总结区（压缩内边距：同样是"让日期行留在视口内"的一环） */
 .bt-sum { margin-top: 10px; padding: 10px 13px; border-radius: 10px;
