@@ -36,6 +36,7 @@ from datetime import datetime
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, "viewer", "app.db")
+KLINE_DB = os.path.join(BASE, "data", "kline_daily.db")   # 本地日线全库（1700 万行，后复权）
 OUT = os.path.join(BASE, "strategy_sim_result.json")
 KCACHE = os.path.join(BASE, "kline_cache.json")
 
@@ -1464,61 +1465,143 @@ def ensure_tables(con: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------- 主流程
-def universe(limit: int):
-    """标的池（P1-05：近 60 日全 A 流动性抽样 + 回退兜底）。
+def _liquid_from_kline(limit: int) -> list:
+    """从本地日线全库（data/kline_daily.db）算近 60 交易日平均成交额，流动性降序返回。
 
-    主路径：若存在流动性采样表（stock_liquidity：近 60 日成交额/换手），取流动性靠前的
-    limit 只，覆盖更全、缓解只盯持仓池的幸存者偏差。
-    回退兜底：流动性表缺失/为空时，退回旧口径 positions ∪ lhb_stocks（保证永远有池子可回测）。
-    返回 (codes, names, boards)：附每只标的的名称与板块（供 limit_pct 用）。
+    2026-10-30 新增。背景（BUG-20261030）：旧 universe() 的主路径依赖
+    stock_liquidity 表，而该表在本机**从未建过**；异常被 except 吞掉后走
+    「positions ∪ lhb_stocks」兜底。positions 清理后为 0 行，lhb_stocks 只剩
+    703 只「历史上过龙虎榜」的票 —— 于是预测候选池永久卡在 594~734 只
+    （prediction_run.pool_n 铁证：13 天恒为 157，其后 594/658/687/734），
+    POOL_LIMIT 从 160 调到 2000 完全没生效。现改为读本地 1700 万行日线，
+    覆盖全市场 5500+ 只，且不依赖网络。
     """
-    con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-    codes: set = set()
-    # 主路径：近 60 日全 A 流动性抽样（表/列缺失时异常 → 走兜底，绝不崩溃）。
+    if not os.path.exists(KLINE_DB):
+        return []
     try:
-        rows = con.execute(
-            "SELECT code FROM stock_liquidity "
-            "WHERE trade_date >= date('now','-60 day') "
-            "GROUP BY code ORDER BY AVG(amount) DESC LIMIT ?", (limit,)).fetchall()
-        for (x,) in rows:
-            s = str(x or "").strip()
-            if len(s) == 6 and s.isdigit() and s[0] in "03648":
-                codes.add(s)
-    except Exception:  # noqa: BLE001 —— 流动性表不存在/字段不符，留空走兜底
-        codes = set()
-    # 兜底：流动性抽样为空 → 旧口径（持仓 + 龙虎榜）。
-    if not codes:
-        for sql in ("SELECT DISTINCT symbol FROM positions WHERE symbol IS NOT NULL",
-                    "SELECT DISTINCT security_code FROM lhb_stocks WHERE security_code IS NOT NULL"):
-            try:
-                for (x,) in con.execute(sql):
-                    s = str(x or "").strip()
-                    if len(s) == 6 and s.isdigit() and s[0] in "03648":
-                        codes.add(s)
-            except Exception:  # noqa: BLE001
-                pass
+        con = sqlite3.connect("file:%s?mode=ro" % KLINE_DB, uri=True)
+        try:
+            last = con.execute("SELECT MAX(d) FROM kline").fetchone()[0]
+            if not last:
+                return []
+            start = con.execute(
+                "SELECT MIN(d) FROM (SELECT DISTINCT d FROM kline "
+                "WHERE d<=? ORDER BY d DESC LIMIT 60)", (last,)).fetchone()[0]
+            rows = con.execute(
+                "SELECT code, AVG(c*v) AS amt FROM kline "
+                "WHERE d>=? AND d<=? AND c>0 AND v>0 "
+                "GROUP BY code ORDER BY amt DESC LIMIT ?",
+                (start, last, int(limit))).fetchall()
+        finally:
+            con.close()
+    except Exception:  # noqa: BLE001 —— 日线库缺失/损坏，交给上层继续降级
+        return []
+    out = []
+    for c, _amt in rows:
+        s = str(c or "").strip()
+        # 与 selection._bad_code 同口径：剔北交所（4/8/9 开头，含 920xxx）
+        if len(s) == 6 and s.isdigit() and s[0] in "036":
+            out.append(s)
+    return out
+
+
+def universe(limit: int):
+    """标的池（2026-10-30 重写：全市场流动性排序，不再卡在几百只）。
+
+    来源优先级（前一级失败才降级，降级会打日志，绝不静默）：
+      ① stock_liquidity 表（近 60 自然日成交额，若存在）
+      ② 本地日线全库算近 60 交易日平均成交额  ← 当前实际主路径
+      ③ 干净宇宙全量（all_ashares − ST/无K线）
+      ④ lhb_stocks 龙虎榜历史（仅在①~③全空时兜底，会打印告警）
+    返回 (codes, names, boards)；codes 保持流动性降序，剔除 ST 后再截 limit。
+    """
     names = {}
     try:
-        for c, n in con.execute("SELECT code, name FROM stock_names"):
-            names[str(c)] = n
+        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+        try:
+            for c, n in con.execute("SELECT code, name FROM stock_names"):
+                names[str(c)] = n
+        except Exception:  # noqa: BLE001
+            pass
+        con.close()
     except Exception:  # noqa: BLE001
         pass
-    con.close()
-    # P2（2026-10-26）：与干净宇宙求差，剔除 ST / 博主噪声 / 无K线；
-    # 流动性抽样为空（沙箱缺 stock_liquidity）→ 回退干净宇宙全量，而不是空池。
+
     try:
         from viewer.universe_filter import get_exclusion_pool, all_ashares
-        excluded, _, _ = get_exclusion_pool()
     except Exception:  # noqa: BLE001
-        excluded = set()
+        get_exclusion_pool = all_ashares = None
+    excluded: set = set()
+    if get_exclusion_pool is not None:
+        try:
+            excluded, _, _ = get_exclusion_pool()
+        except Exception:  # noqa: BLE001
+            excluded = set()
+
+    def _keep(cands):
+        return [c for c in cands if len(c) == 6 and c.isdigit() and c[0] in "036"]
+
+    codes: list = []
+    src = "none"
+
+    # ① 流动性采样表
+    try:
+        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+        try:
+            rows = con.execute(
+                "SELECT code FROM stock_liquidity "
+                "WHERE trade_date >= date('now','-60 day') "
+                "GROUP BY code ORDER BY AVG(amount) DESC LIMIT ?",
+                (limit,)).fetchall()
+        finally:
+            con.close()
+        cand = _keep([str(x[0] or "").strip() for x in rows])
+        if cand:
+            codes, src = cand, "stock_liquidity"
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ② 本地日线全库流动性（取足候选再剔 ST，避免剔除后不足 limit）
+    if not codes:
+        cand = _liquid_from_kline(max(int(limit), 6000))
+        if cand:
+            codes, src = cand, "kline_liquidity"
+
+    # ③ 干净宇宙全量
+    if not codes and all_ashares is not None:
+        try:
+            cand = _keep(sorted(set(all_ashares())))
+            if cand:
+                codes, src = cand, "clean_universe"
+        except Exception:  # noqa: BLE001
+            pass
+
+    # ④ 最后兜底：龙虎榜历史（旧口径，覆盖极窄，仅保证不空池）
     if not codes:
         try:
-            codes = set(all_ashares()) - excluded
+            con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+            try:
+                for (x,) in con.execute(
+                        "SELECT DISTINCT security_code FROM lhb_stocks "
+                        "WHERE security_code IS NOT NULL"):
+                    s = str(x or "").strip()
+                    if len(s) == 6 and s.isdigit() and s[0] in "036":
+                        codes.append(s)
+            finally:
+                con.close()
+            if codes:
+                src = "lhb_fallback"
+                print("[universe] 警告：流动性源全部不可用，退回龙虎榜历史 %d 只"
+                      % len(codes), flush=True)
         except Exception:  # noqa: BLE001
-            codes = set()
-    else:
-        codes -= excluded
-    ordered = sorted(codes)[:limit]
+            codes = []
+
+    if excluded:
+        codes = [c for c in codes if c not in excluded]
+    ordered = codes[:limit] if limit and limit > 0 else codes
+    if len(ordered) < 200:
+        print("[universe] 警告：候选池仅 %d 只（来源=%s），覆盖严重不足"
+              % (len(ordered), src), flush=True)
     boards = {c: board_of(c) for c in ordered}
     return ordered, names, boards
 

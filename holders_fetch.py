@@ -241,7 +241,35 @@ def fetch_one(con: sqlite3.Connection, code: str) -> tuple[int, int]:
 
 
 def collect_codes(con: sqlite3.Connection) -> list[str]:
+    """待抓代码（2026-10-30 重写）。
+
+    BUG-20261030：原实现只取 positions ∪ lhb_stocks。positions 清理后为 0 行、
+    lhb_stocks 只剩 703 只历史龙虎榜票 —— 股东数据永久停在 568 只，全市场
+    4400+ 只永远没有股东户数/十大股东。这与 strategy_sim.universe() 是同一类
+    bug：主路径依赖了已废弃的表，兜底又太窄。
+
+    新口径：**先补干净宇宙里还没有股东户数记录的票**（覆盖优先），
+    再用原口径兜底（保证老票的增量更新不被丢掉）。
+    """
     codes: list[str] = []
+    # ① 覆盖优先：干净宇宙里缺 stock_holder_num 记录的
+    try:
+        from viewer.universe_filter import all_ashares, get_exclusion_pool
+        ex, _, _ = get_exclusion_pool()
+        have = {str(r[0]).strip() for r in
+                con.execute("SELECT DISTINCT symbol FROM stock_holder_num")}
+        for c in all_ashares():
+            c = str(c or "").strip()
+            if len(c) != 6 or not c.isdigit():
+                continue
+            if c[0] not in "036":        # 剔北交所（与 selection._bad_code 同口径）
+                continue
+            if c in ex or c in have:
+                continue
+            codes.append(c)
+    except Exception:  # noqa: BLE001 —— universe_filter 不可用时退回旧口径
+        pass
+    # ② 兜底：原口径（持仓 + 龙虎榜），保证老票继续增量更新
     for sql in ("SELECT DISTINCT symbol FROM positions WHERE symbol IS NOT NULL AND TRIM(symbol)<>''",
                 "SELECT DISTINCT security_code FROM lhb_stocks WHERE security_code IS NOT NULL"):
         try:
@@ -258,6 +286,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbols", default="", help="逗号分隔的 6 位代码；留空=自动取库内持仓+龙虎榜")
     ap.add_argument("--limit", type=int, default=0, help="只抓前 N 只（试跑）")
+    # 2026-10-30：全宇宙 4400+ 只按 GAP=0.35 串行要 2.6 小时，一次跑完不现实。
+    # 默认每轮最多 800 只（约 25 分钟），每天推进一点，约一周补齐；要全量跑用 --max-per-run 0。
+    ap.add_argument("--max-per-run", type=int, default=800,
+                    help="单轮最多抓多少只（0=不限，全量约 2.6 小时）")
     args = ap.parse_args()
 
     if not os.path.exists(DB):
@@ -274,6 +306,10 @@ def main() -> int:
         codes = collect_codes(con)
     if args.limit:
         codes = codes[:args.limit]
+    if args.max_per_run and len(codes) > args.max_per_run:
+        print(f"[holders] 单轮上限 {args.max_per_run} 只，本轮抓前 {args.max_per_run} 只，"
+              f"剩余 {len(codes) - args.max_per_run} 只留待下一轮", flush=True)
+        codes = codes[:args.max_per_run]
 
     print(f"[holders] 待抓 {len(codes)} 只（预计 ~{len(codes)*(GAP*3+0.8):.0f}s）", flush=True)
 

@@ -82,7 +82,11 @@ TIER_C = 0.45
 # 反例对照：「曾活跃(>90%)后沉寂(≤45%)」2 年 −0.6%、胜率 35.0%，是最差的一组。
 MIN_AMT = 1.0e7          # 最新成交额低于 1000 万剔掉（买不进卖不出）
 MIN_BARS = 520           # 需要 250+250 两段窗口
-POOL_MAX = 300           # 池子上限
+# 池子上限（2026-10-30 由 300 提到 1200）：
+# 原 300 会截断 —— 实测满足条件的 609 只只入库 300 只，漏掉 51%（且丢的全是
+# C 级，等效于偷偷收紧了入池标准）。SQLite 存 1000 行毫无压力，故放到 1200，
+# 正常行情下不再截断；真被截断时 payload.capped=True 会被前端显式标出。
+POOL_MAX = 1200
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS sel_pool (
@@ -256,6 +260,7 @@ def refresh_pool(conn: sqlite3.Connection, keep_days: int = 60) -> dict:
     kc.close()
 
     pool.sort(key=lambda r: (r[12], r[5]))
+    n_candidates = len(pool)          # 截断前（审计用：POOL_MAX 是否在漏股）
     pool = pool[:POOL_MAX]
 
     cur = conn.cursor()
@@ -271,8 +276,38 @@ def refresh_pool(conn: sqlite3.Connection, keep_days: int = 60) -> dict:
     cnt = defaultdict(int)
     for r in pool:
         cnt[r[12]] += 1
-    return {"ok": True, "asof": last, "n": len(pool), "tier": dict(cnt),
+    # 审计留痕：截断前候选数 vs 实际入库数（2026-10-30 覆盖度排查新增）
+    try:
+        conn.executemany(
+            "INSERT INTO meta(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            [("selection_pool_candidates", str(n_candidates)),
+             ("selection_pool_saved", str(len(pool))),
+             ("selection_pool_capped", "1" if n_candidates > len(pool) else "0")])
+        conn.commit()
+    except Exception:  # noqa: BLE001 —— meta 结构异常不影响主流程
+        pass
+    return {"ok": True, "asof": last, "n": len(pool), "candidates": n_candidates,
+            "capped": n_candidates > len(pool), "tier": dict(cnt),
             "elapsed": round(time.time() - t0, 1)}
+
+
+def count_pool_candidates(conn) -> dict:
+    """读取最近一次入池统计（截断前后只数），供 tools/audit_coverage.py 审计。
+
+    返回 {"n": 满足条件只数, "saved": 实际入库只数}；无记录时返回 0。
+    注意这只反映「上一次 refresh_pool」的结果，不做实时重算（重算要 10~15s）。
+    """
+    out = {"n": 0, "saved": 0}
+    try:
+        for k, key in (("selection_pool_candidates", "n"),
+                       ("selection_pool_saved", "saved")):
+            r = conn.execute("SELECT value FROM meta WHERE key=?", (k,)).fetchone()
+            if r and r[0]:
+                out[key] = int(r[0])
+    except Exception:  # noqa: BLE001
+        pass
+    return out
 
 
 # ------------------------------------------------------------------ 证据回测
@@ -563,6 +598,7 @@ def payload(conn: sqlite3.Connection) -> dict:
                        "CASE tier WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END, amp250",
                  (asof,)) if asof else []
     meta = {m["k"]: m["v"] for m in _rows(conn, "SELECT k,v FROM sel_meta")}
+    cand = count_pool_candidates(conn)
 
     short = [e for e in ev if e["kind"] in ("超跌", "动量")]
     short.sort(key=lambda e: (e["excess"] if e["excess"] is not None else 0))
@@ -579,6 +615,8 @@ def payload(conn: sqlite3.Connection) -> dict:
         "asof": asof,
         "tested_at": meta.get("tested_at"),
         "stats": {"pool": len(pool), "A": cnt["A"], "B": cnt["B"], "C": cnt["C"],
+                  "candidates": cand.get("n") or len(pool),
+                  "capped": bool(cand.get("n") and cand["n"] > len(pool)),
                   "short_cases": len(short)},
         "short": short,
         "hold": hold,

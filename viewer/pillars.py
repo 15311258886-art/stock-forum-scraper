@@ -1367,9 +1367,23 @@ def payload(con: sqlite3.Connection, date: str | None = None) -> dict:
         fund_n = con.execute("SELECT COUNT(*) AS n FROM fundamentals").fetchone()["n"]
     except Exception:  # noqa: BLE001
         pass
+    # 覆盖度披露（2026-10-30 新增）：进哥多次问「5000 多只怎么老从几百只里选」。
+    # pool_n = 本期**深度分析**（四支柱全跑）的候选池；scan_n = 全市场**轻扫描**覆盖。
+    # 两者相加才是完整覆盖，界面上必须同时给出，否则「只分析 1974 只」会被误读成漏股。
+    pool_n = 0
+    try:
+        pool_n = int(((ms or {}).get("breadth") or {}).get("pool_n") or 0)
+    except (TypeError, ValueError):
+        pool_n = 0
+    scan_n = 0
+    try:
+        scan_n = con.execute("SELECT COUNT(*) AS n FROM stock_universe_scan").fetchone()["n"]
+    except Exception:  # noqa: BLE001
+        pass
     return {"ok": True, "run_date": td, "engine_ver": ENGINE_VER,
             "market_state": ms, "pillars": pillars, "calibration": cal,
             "fundamentals_n": fund_n, "count_spec": COUNT_SPEC,
+            "pool_n": pool_n, "scan_n": scan_n,
             "note": "展示层只读本表；生成由后端 16:00 定时任务完成（架构：引擎层/展示层分离）"}
 
 

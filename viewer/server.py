@@ -5548,7 +5548,18 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
                     universe.append(c)
         except Exception:  # noqa: BLE001
             pass
-    universe = universe[:80]   # 首跑全历史抓取成本约束，封顶 80 只
+    # 2026-10-30：封顶改为可配置，并如实披露「池子只数 + 是否被截断」。
+    # 默认仍 80：实测 200 只跑 3 分钟仍未算完（估值/实控人/分红是逐只外部接口，
+    # 成本线性），而 80 只稳定在 30~60s。覆盖度问题用「披露」解决而不是硬扛耗时 ——
+    # 这个模块的池子定义本就是「关注池 ∪ 板块Top30」，不是全市场选股。
+    # 想扩大用环境变量 LOWBOX_POOL_MAX（如 150），代价是首跑变慢。
+    try:
+        _pool_max = max(5, min(int(os.environ.get("LOWBOX_POOL_MAX", "80")), 3000))
+    except (TypeError, ValueError):
+        _pool_max = 80
+    _pool_before = len(universe)
+    universe = universe[:_pool_max]
+    _pool_capped = _pool_before > len(universe)
     if not universe:
         return {"ok": False, "reason": "股票池为空（关注池为空且自定义代码为空）",
                 "rows": [], "universe_size": 0, "scanned": 0, "elapsed": 0, "params": {}}
@@ -5675,6 +5686,8 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
     out_rows = out_rows[:limit]
     return {"ok": True, "rows": out_rows, "universe_size": len(universe),
             "scanned": scanned, "elapsed": round(_t.time() - _t0, 1),
+            "pool_candidates": _pool_before, "pool_capped": _pool_capped,
+            "pool_max": _pool_max,
             "params": {"limit": limit, "box_window": box_window, "low_pct": low_pct,
                        "quality": quality,
                        "w_shape": w_shape, "w_fund": w_fund, "w_worth": w_worth,

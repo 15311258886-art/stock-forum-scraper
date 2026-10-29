@@ -506,18 +506,91 @@ def save_kcache(d: dict) -> None:
         print("[predictor] kcache meta 写入失败:", str(e)[:100], flush=True)
 
 
+_LB_CACHE: dict = {"key": None, "data": {}}
+
+
+def _local_bars(codes: list, want: int = BARS) -> dict:
+    """从本地日线全库（data/kline_daily.db，1707 万行、后复权）读最近 want 根 K 线。
+
+    2026-10-30 新增（BUG-20261030 修复配套）。原 fetch_bars 对每只票都走新浪
+    网络（datalen=660）；候选池被锁在 610 只时勉强够用，候选池修正为全市场
+    5000+ 只后网络抓取必然限流。本地库与新浪 hfq 逐字段一致（000001/600519/
+    300750 三票核对，且本地多当天一根），故历史统一走本地，网络只补缺的根数。
+    """
+    out: dict = {}
+    want_codes = set(codes or [])
+    if not want_codes:
+        return out
+    db = getattr(SS, "KLINE_DB", None)
+    if not db or not os.path.exists(db):
+        return out
+    try:
+        con = sqlite3.connect("file:%s?mode=ro" % db, uri=True)
+        try:
+            last = con.execute("SELECT MAX(d) FROM kline").fetchone()[0]
+            if not last:
+                return out
+            ck = (str(last), frozenset(want_codes), int(want))
+            if _LB_CACHE.get("key") == ck and _LB_CACHE.get("data"):
+                return _LB_CACHE["data"]
+            start = con.execute(
+                "SELECT MIN(d) FROM (SELECT DISTINCT d FROM kline "
+                "WHERE d<=? ORDER BY d DESC LIMIT ?)",
+                (last, int(want))).fetchone()[0]
+            cur = con.execute(
+                "SELECT code,d,o,h,l,c,v FROM kline "
+                "WHERE d>=? AND d<=? AND c>0 ORDER BY code,d", (start, last))
+            cc, buf = None, []
+            for code, d, o, h, l, c, v in cur:
+                code = str(code)
+                if code not in want_codes:
+                    continue
+                if code != cc:
+                    if buf:
+                        out[cc] = buf
+                    cc, buf = code, []
+                ds = str(d)
+                buf.append({"d": "%s-%s-%s" % (ds[:4], ds[4:6], ds[6:8]),
+                            "o": float(o or 0), "h": float(h or 0),
+                            "l": float(l or 0), "c": float(c or 0),
+                            "v": float(v or 0)})
+            if buf:
+                out[cc] = buf
+        finally:
+            con.close()
+    except Exception as e:  # noqa: BLE001
+        print("[predictor] 本地 K 线读取失败（降级走网络）：%s" % str(e)[:120], flush=True)
+        return {}
+    _LB_CACHE["key"] = (str(last), frozenset(want_codes), int(want))
+    _LB_CACHE["data"] = out
+    return out
+
+
 def fetch_bars(codes: list, kc: dict, force: bool = False,
                progress=None) -> dict:
-    """按需抓取 K 线：缓存里最后一根日期 >= 今天的（或最近交易日）就不再抓。
+    """按需抓取 K 线：本地日线全库打底，网络只补本地缺的那几根。
 
     返回 {code: [bar, ...]}；bar = {d,o,h,l,c,v}。
     """
     bars = kc.setdefault("bars", {})
     today = _today()
+    # 2026-10-30：新鲜度判断改锚点为「最近已收盘交易日」。
+    # 原用裸 today()：非交易日早上（如周六/节假日/开盘前）全池都会被判成
+    # "缺当天" → 5000 只全量重抓，既慢又撞限流。锚点由交易日历给出，天然正确。
+    try:
+        anchor = _latest_trade_date_anchor() or today
+    except Exception:  # noqa: BLE001
+        anchor = today
     out, need = {}, []
+    local = _local_bars(list(codes))
     for c in codes:
-        v = bars.get(c) or []
-        if not force and v and str(v[-1].get("d", ""))[:10] >= today:
+        # 本地优先：本地命中就完全不碰 kc。
+        # ⚠️ 不能写成 bars.get(c) first —— kc 是 kbase 包装，get() 是逐只查库，
+        # 5000 只 × 查库会把整轮预测拖到分钟级甚至超时（2026-10-30 实测）。
+        lv = local.get(c)
+        v = lv if lv else (bars.get(c) or [])
+        # ⚠️ 不写回 kc：__setitem__ 会落库（set_bars），只读打开的 kbase.db 直接抛错。
+        if v and str(v[-1].get("d", ""))[:10] >= anchor:
             out[c] = v
         elif (not force and v and kc.get("updated") == today
               and datetime.now().hour < 15):
@@ -536,7 +609,19 @@ def fetch_bars(codes: list, kc: dict, force: bool = False,
 
         def one(code):
             try:
-                v = SS.fetch_kline(code, BARS)
+                base = local.get(code) or bars.get(code) or []
+                # 本地已有足够历史 → 只补缺的几根。2026-10-30：原全量 660 根
+                # × 5000 只必然被新浪限流；本地已覆盖 99%+ 历史。
+                # 只补 2 根（anchor 当天 + 前一日），把单请求体积压到最小。
+                want = BARS if len(base) < 130 else 2
+                v2 = SS.fetch_kline(code, want)
+                if v2 and base:
+                    byd = {str(b.get("d", ""))[:10]: b for b in base}
+                    for b in v2:
+                        byd[str(b.get("d", ""))[:10]] = b
+                    v = [byd[k] for k in sorted(byd)][-BARS:]
+                else:
+                    v = v2
             except Exception:  # noqa: BLE001
                 v = []
             with lock:
@@ -547,10 +632,18 @@ def fetch_bars(codes: list, kc: dict, force: bool = False,
                     progress(done[0], len(need))
             return code, v
 
-        with __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=8) as ex:
+        # 并发 8 → 16（2026-10-30）：候选池从 610 扩到 5000+ 后，缺当天数据的日子
+        # 要补的票数涨了 8 倍。实测 200 只：8 并发 1.6s / 16 并发 0.74s，16 是拐点，
+        # 再往上收益递减且更容易触发新浪限流，故取 16。
+        with __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=16) as ex:
             for code, v in ex.map(one, need):
                 if v:
-                    bars[code] = v
+                    # kbase 可能以只读方式打开（set_bars 会 DELETE+INSERT）→ 落库失败
+                    # 不得阻断预测本身，本轮数据已在 out 里。
+                    try:
+                        bars[code] = v
+                    except Exception:  # noqa: BLE001
+                        pass
                     out[code] = v
         # ⚠️ 只有"确实抓到了数据"才把 updated 标成今天。
         # 旧版无条件写 updated=today → 全部抓失败的那天（如新浪限流）会被当成
@@ -561,6 +654,23 @@ def fetch_bars(codes: list, kc: dict, force: bool = False,
         else:
             print("[predictor] fetch_bars: 本轮抓取成功率过低（%d/%d），不更新缓存标记，下次重试"
                   % (ok_cnt[0], len(need)), flush=True)
+        # 覆盖度留痕（2026-10-30）：本地命中 / 需网络补 / 补成功，供审计与前端判断
+        # 「这一天到底是全市场数据还是残缺数据」。写 meta 失败不影响主流程。
+        _cov = {"local_hit": len(codes) - len(need), "net_need": len(need),
+                "net_ok": ok_cnt[0], "anchor": str(anchor)}
+        try:
+            con = sqlite3.connect(DB_PATH, timeout=15)
+            con.executemany(
+                "INSERT INTO meta(key, value) VALUES(?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                [("predictor_bars_" + k, str(v)) for k, v in _cov.items()])
+            con.commit()
+            con.close()
+        except Exception:  # noqa: BLE001
+            pass
+        print("[predictor] fetch_bars 覆盖：本地 %d / 网络补 %d（成功 %d）· 锚点 %s"
+              % (_cov["local_hit"], _cov["net_need"], _cov["net_ok"], _cov["anchor"]),
+              flush=True)
     return out
 
 

@@ -10,11 +10,11 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" />
   <!-- 前端版本号唯一真源：/api/version 从这里解析；改 app.js/app.css 必须跟着加（见文件末尾脚注） -->
-  <meta name="app-version" content="20261030-sel4" />
+  <meta name="app-version" content="20261030-cov3" />
   <title>股票讨论实时查看器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
   <link id="theme-link" rel="stylesheet" href="static/themes/dark-dashboard.css" />
-  <link rel="stylesheet" href="static/app.css?v=20261030-sel4" />
+  <link rel="stylesheet" href="static/app.css?v=20261030-cov3" />
   <link rel="stylesheet" href="static/etf.css?v=20261017-etf-2" />
   <link rel="stylesheet" href="static/visual-upgrade.css" />
   <link rel="stylesheet" href="static/bili_methods.css?v=20261012-biliconsensus" />
@@ -261,13 +261,13 @@
 
   <!-- 新闻/公告分类规则：由 viewer/newsclass.py（唯一真源）在服务启动时重写出这份文件；改词表只改 py 再重启 -->
   <script src="static/news_rules.js?v=20261007-fast"></script>
-  <script src="static/app.js?v=20261030-sel4"></script>
+  <script src="static/app.js?v=20261030-cov3"></script>
   <script src="static/screener_extra.js?v=20261007-b125"></script>
   <script src="static/industry_leaders.js?v=20261008-il1"></script>
   <script src="static/bottleneck.js?v=20261024-bn1"></script>
   <!-- 抖音博主语料（2026-10-20）：必须在 app.js 之后加载（app.js 的 renderSentiment 会调 DOUYIN） -->
-  <script src="static/douyin_corpus.js?v=20261030-sel4"></script>
-  <script src="static/funnel.js?v=20261030-sel4"></script>
+  <script src="static/douyin_corpus.js?v=20261030-cov3"></script>
+  <script src="static/funnel.js?v=20261030-cov3"></script>
   <!-- 版本号串：改 app.js/app.css 后必须跟着加，否则王总桌面页面走缓存看不到新文案（2026-10-01 踩过）。
        另外页面每 60s 会跟 /api/version 比一次版本：不一致就在顶部弹「界面已更新，点此刷新」提示条，
        解决「后端改了、旧窗口里的旧 JS 还在跑、王总说看不到新功能」这一类问题。 -->

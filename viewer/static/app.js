@@ -9199,7 +9199,7 @@ const HARVEST = { data: null, busy: false };
 // 深链 #overview/oss 会走同一条 TDZ 路径。
 const OSS = { data: null, busy: false };
 // 2026-10-30：选股方向（短线证伪 + 低波池）。同样必须在 NAV 之前声明。
-const SELECT = { data: null, busy: false };
+const SELECT = { data: null, busy: false, expandPool: false };
 
 const NAV = [
   // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
@@ -15426,6 +15426,8 @@ function renderPrediction() {
     <span class="badge ${msCls}">市场状态：${esc(msLabel)}</span>
     ${br.up_n != null ? `<span class="s">上涨 ${br.up_n}/${br.pool_n}（${((br.up_ratio || 0) * 100).toFixed(0)}%）</span>` : ""}
     ${br.median_pct != null ? `<span class="s">中位涨幅 ${br.median_pct >= 0 ? "+" : ""}${br.median_pct}%</span>` : ""}
+    ${d.pool_n ? `<span class="s" title="四支柱深度分析覆盖的候选池：按近60个交易日成交额从全市场排序取前 ${d.pool_n} 只（剔 ST/北交所/无K线）；全市场其余部分由「全市场快扫」逐日覆盖">深度分析 <b>${d.pool_n}</b> 只</span>` : ""}
+    ${d.scan_n ? `<span class="s" title="全市场快扫覆盖只数（stock_universe_scan，每日全量重算）">全市场快扫 <b>${d.scan_n}</b> 只</span>` : ""}
     ${(ms.rules || []).map((r) => `<span class="pil-rule">${esc(r)}</span>`).join("")}
   </div>`;
   const pillars = d.pillars || {};
@@ -15969,6 +15971,11 @@ function _selCard(label, text, color) {
     + 'color:var(--fg,#111)">' + _HE(text) + '</div></div>';
 }
 
+function selTogglePool() {
+  SELECT.expandPool = !SELECT.expandPool;
+  renderSelection();
+}
+
 function renderSelection() {
   const box = $("#p-selection");
   if (!box) return;
@@ -16076,11 +16083,19 @@ function renderSelection() {
   if (!pool.length) {
     H.push('<div class="empty">今日池子为空（可能今日日线尚未补齐）</div>');
   } else {
+    const _st = d.stats || {};
+    const _cand = _st.candidates || _st.pool || 0;
     H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
       + 'line-height:1.7;margin-bottom:8px">'
       + '入池条件：前 250 日与近 250 日振幅都 ≤45%（即「一直低波」），'
-      + '成交额 ≥1000 万，已剔 ST 与北交所。A 级 ≤25%、B 级 ≤32%、C 级 ≤45%。'
+      + '成交额 ≥1000 万，上市满 520 个交易日，已剔 ST 与北交所。A 级 ≤25%、B 级 ≤32%、C 级 ≤45%。'
       + '这是低回撤候选池，不是买入信号，也不预测时点。</div>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'line-height:1.7;margin-bottom:8px">'
+      + '覆盖范围：全市场 5500+ 只 → 剔 ST/北交所/新股后约 5000 只全量扫描 → '
+      + '满足条件 <b>' + _HE(_cand) + '</b> 只，下方表格可展开查看全部'
+      + (_st.capped ? '（注意：达到上限只存了 ' + _HE(_st.pool) + ' 只）' : '') + '。'
+      + '不是从几百只里挑的。</div>');
     H.push('<div style="font-size:var(--fs-2xs,10px);color:#a16207;'
       + 'line-height:1.7;margin-bottom:8px">'
       + '池子里会大量出现银行、公用事业、高速铁路——这不是筛选出错，'
@@ -16100,8 +16115,10 @@ function renderSelection() {
       + '<th style="padding:6px 8px;font-weight:500;text-align:right">近1年</th>'
       + '<th style="padding:6px 8px;font-weight:500;text-align:right">成交额</th>'
       + '<th style="padding:6px 8px;font-weight:500;text-align:right">ROE</th></tr>');
-    pool.slice(0, 40).forEach((x) => {
-      const tc = x.tier === "A" ? "#16a34a" : (x.tier === "B" ? "#2563eb" : "#94a3b8");
+    // 2026-10-30：原写死 slice(0,40)，但上面文案却写「本页全部列出」——虚假披露。
+    // 改为默认 60 行 + 「展开全部」，展开后如实渲染全部（600 行表格浏览器扛得住）。
+    const _shown = SELECT.expandPool ? pool : pool.slice(0, 60);
+    _shown.forEach((x) => {      const tc = x.tier === "A" ? "#16a34a" : (x.tier === "B" ? "#2563eb" : "#94a3b8");
       H.push('<tr style="border-bottom:1px solid var(--line,#e5e7eb)">'
         + '<td style="padding:6px 8px"><b>' + _HE(x.code) + '</b> '
         + '<span style="color:var(--muted,#6b7280)">' + _HE(x.name) + '</span></td>'
@@ -16119,13 +16136,19 @@ function renderSelection() {
         + (x.roe === null || x.roe === undefined ? "—" : _selN(x.roe, 1)) + '</td></tr>');
     });
     H.push('</table>');
-    if (pool.length > 40) {
-      H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
-        + 'margin-top:6px">仅显示前 40 只（按振幅由窄到宽），共 ' + pool.length + ' 只</div>');
+    if (pool.length > 60) {
+      H.push('<div style="margin-top:8px;font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280)">'
+        + (SELECT.expandPool
+          ? '已展开全部 ' + pool.length + ' 只　'
+            + '<a href="javascript:void(0)" onclick="selTogglePool()" style="color:#2563eb">收起</a>'
+          : '当前显示前 ' + _shown.length + ' 只（按振幅由窄到宽），共 ' + pool.length + ' 只　'
+            + '<a href="javascript:void(0)" onclick="selTogglePool()" style="color:#2563eb">展开全部 ' + pool.length + ' 只</a>')
+        + '</div>');
     }
     H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);margin-top:6px">'
       + '近1年涨跌幅按 A 股习惯：红=上涨、绿=下跌。'
-      + 'ROE 取自单期快照，覆盖不全，显示「—」表示该股没有数据，不是亏损。</div>');
+      + 'ROE 取自最新报告期快照（2026-10-30 已补齐全市场 5055 只），'
+      + '显示「—」表示该股无该期数据，不是亏损。</div>');
   }
 
   // ④ 口径边界
