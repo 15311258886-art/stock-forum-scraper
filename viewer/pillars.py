@@ -670,6 +670,53 @@ def generate(con: sqlite3.Connection, run_date: str | None = None,
         ensure_tables(con)
         _STATUS.update(stage="取候选池", detail="")
         codes, names, _boards = P.SS.universe(P.POOL_LIMIT)
+        # 2026-10-26 扩池：并入户「今日热板块」官方成员，避免流动性前 N 漏掉政策受益小票。
+        # 进哥关切「每日预测是否只扫一小撮票」——根因是 POOL_LIMIT 流动性筛 + 信号按 pool 过滤，
+        # 热板块里流动性靠后的成员股连被评估资格都没有。这里在取 K 线前把成员并入候选，
+        # 下游 pillar_policy_funnel 的信号过滤（sigs 按 pool 过滤）自然带上它们。
+        # 数据源双保险：优先 plate_members（东财官方成分股，fetch_plate_members.py 落库，最全），
+        # 回退 _industry_index（stock_org 行业映射，本环境仅 394 只，稀疏）。
+        # 优雅降级：任一环节异常/空表 → 退回纯流动性池，不影响主流程。
+        try:
+            _hb, _sb = P._hot_sectors(con, asof=None)
+            _words = [w for w, _ in (_hb or [])[:12]]
+            _extra: set = set()
+            if _words:
+                # 源1：stock_org 行业反查（始终可用，但覆盖稀疏）
+                try:
+                    _idx = P._industry_index(con)
+                    _extra |= set(P._expand_sector_words(_idx, _words))
+                except Exception:  # noqa: BLE001
+                    pass
+                # 源2：东财官方成分股（最全，需先跑 fetch_plate_members.py）
+                try:
+                    _pm = con.execute(
+                        "SELECT code, board FROM plate_members").fetchall()
+                    for _c, _b in _pm:
+                        _b = str(_b or "")
+                        if any((_w in _b) or (_b in _w) for _w in _words):
+                            _extra.add(str(_c))
+                except Exception:  # noqa: BLE001
+                    pass
+            _extra = [c for c in _extra
+                      if isinstance(c, str) and c.isdigit() and len(c) == 6
+                      and c[0] in "03648"]
+            if _extra:
+                codes = sorted(set(codes) | set(_extra))
+                _STATUS.update(stage="取候选池", detail="扩池+%d热板块成员" % len(_extra))
+        except Exception:  # noqa: BLE001
+            pass
+        # 2026-10-26 干净宇宙：剔除博主噪声/ST/无K线（进哥：不在垃圾堆里挑垃圾）
+        # 四支柱候选池同样禁止从博主噪声/退市/无K线票里选。
+        try:
+            from universe_filter import clean_codes
+            _before = len(codes)
+            codes = clean_codes(codes)
+            if len(codes) != _before:
+                _STATUS.update(stage="取候选池",
+                               detail="剔除池-=%d" % (_before - len(codes)))
+        except Exception:  # noqa: BLE001
+            pass
         if not codes:
             return {"ok": False, "error": "候选池为空"}
         kc = P.load_kcache()

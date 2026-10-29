@@ -1504,6 +1504,20 @@ def universe(limit: int):
     except Exception:  # noqa: BLE001
         pass
     con.close()
+    # P2（2026-10-26）：与干净宇宙求差，剔除 ST / 博主噪声 / 无K线；
+    # 流动性抽样为空（沙箱缺 stock_liquidity）→ 回退干净宇宙全量，而不是空池。
+    try:
+        from viewer.universe_filter import get_exclusion_pool, all_ashares
+        excluded, _, _ = get_exclusion_pool()
+    except Exception:  # noqa: BLE001
+        excluded = set()
+    if not codes:
+        try:
+            codes = set(all_ashares()) - excluded
+        except Exception:  # noqa: BLE001
+            codes = set()
+    else:
+        codes -= excluded
     ordered = sorted(codes)[:limit]
     boards = {c: board_of(c) for c in ordered}
     return ordered, names, boards

@@ -31,6 +31,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import threading
+from bisect import bisect_left
 from datetime import datetime
 
 import predictor as P
@@ -45,8 +46,56 @@ PILLAR_LABEL = {"policy_funnel": "政策漏斗", "t1_surf": "竞价冲浪",
                 "self_learn": "引擎自加权"}      # 2026-10-16 新增第 5 根支柱
 
 _LOCK = threading.Lock()
-_CTX: dict = {"mtime": None, "bars": None, "pool_curves": None, "asof": None,
-              "cal": None, "elapsed": {}}
+_CTX: dict = {"mtime": None, "bars": None, "pool_curves": None, "series": None,
+              "asof": None, "cal": None, "elapsed": {}}
+
+# 2026-10-29：回测只需要「预测日之后若干个交易日」的收盘价，不需要全历史。
+# 取最近 SERIES_TAIL 个交易日做窗口（四支柱首期 2026-10-14 起，实测远在窗口内）；
+# 若某次请求的日期早于窗口起点，_pillar_rows 会自动退回逐只全量读取，绝不静默丢数据。
+SERIES_TAIL = 560
+
+
+class _CloseSeq:
+    """把 (dates, closes) 两个数组包成「像 bars 列表」的只读序列。
+
+    为什么要它：下游 `_cells()` / `P._window_ret()` 的入参是 `k[i]["c"]` 形式的 bars 列表。
+    为了**一个字都不改口径公式**，这里提供一个只暴露 `d`/`c` 的轻量视图 ——
+    `k[idx]["c"]` 依然取到同一个收盘价，但不用为全池 745 只票各建 4400 个 dict
+    （那是原实现 73s 与 ~800MB 内存的来源）。
+    """
+
+    __slots__ = ("_d", "_c")
+
+    def __init__(self, dates, closes):
+        self._d = dates
+        self._c = closes
+
+    def __len__(self):
+        return len(self._c)
+
+    def __getitem__(self, i):
+        if i < 0:
+            i += len(self._c)
+        if i < 0 or i >= len(self._c):
+            raise IndexError(i)
+        return {"d": self._d[i], "c": self._c[i]}
+
+    def __iter__(self):
+        for i in range(len(self._c)):
+            yield {"d": self._d[i], "c": self._c[i]}
+
+    def __bool__(self):
+        return bool(self._c)
+
+
+def _idx_at(dates, rd: str):
+    """rd 在升序日期数组里的下标；该日无 K 线（停牌/未上市）返回 None。"""
+    if not dates:
+        return None
+    i = bisect_left(dates, rd)
+    if i < len(dates) and dates[i] == rd:
+        return i
+    return None
 
 
 def _now() -> str:
@@ -64,48 +113,95 @@ def _f(v):
 
 # ---------------------------------------------------------------- 上下文（离线+记忆化）
 def _context() -> dict:
-    """加载 K 线缓存与候选池。按缓存文件 mtime 记忆化，避免每次请求重解析大 JSON。
+    """加载 K 线序列与候选池。按 kbase 文件 mtime 记忆化，避免每次请求重读大盘。
 
     只读本地文件，**不触发任何网络抓取**（这是它敢于直接挂 HTTP 接口的前提）。
+
+    2026-10-29 性能重构（real fix，不是打补丁）：
+      旧实现 `pool_curves = {c: _bars_index(bars[c]) for c in codes}` ——
+      对候选池 745 只票**逐只** `bars_of()`：745 次开 SQLite 连接 + 360 万条 dict 构造，
+      实测单次 /api/backtest **73s**（前端 15s 预算早就放弃 → 面板永远"加载失败"、
+      自动重试 3 次越堆越堵）。现改为：
+        ① kbase 一次批量取 (date, close)（`close_series_bulk`），只要回测用得到的两个字段；
+        ② 只取最近 SERIES_TAIL 个交易日（预测日之后最多 20 根就够）；
+        ③ 池索引改为「日期数组 + 二分查找」，不再为每只票建 4400 项 date→idx 字典。
+      口径零改动：收益/基准/命中仍走 `P._window_ret` 原函数（见模块头 100% 复用声明）。
     """
     try:
-        mtime = os.path.getmtime(P.KCACHE)
-    except OSError:
-        mtime = None
+        from viewer import kbase as _kb
+        base = _kb.get_base()
+        mtime = os.path.getmtime(_kb.DB)
+    except Exception:  # noqa: BLE001
+        base, mtime = None, None
     with _LOCK:
         if _CTX["bars"] is not None and _CTX["mtime"] == mtime:
             return _CTX
-        bars = (P.load_kcache().get("bars") or {})
+        bars = (P.load_kcache().get("bars") or {})     # KBaseBars 惰性代理，此处零读盘
         try:
             codes, _names, _b = P.SS.universe(P.POOL_LIMIT)
-        except Exception:  # noqa: BLE001  候选池拿不到就退化为缓存内全部票，不阻断页面
-            codes = list(bars.keys())
-        # 口径对齐：基准池严格限定为 SS.universe(POOL_LIMIT) ∩ 本地缓存，
-        # 与 predictor.review() 的 pool_curves 完全同源（实测 bench 32/32 一致）
-        pool_bars = {c: bars[c] for c in codes if c in bars}
-        pool_curves = {c: P._bars_index(v) for c, v in pool_bars.items() if len(v) >= 30}
-        asof = P._trade_date_of(pool_bars) or P._trade_date_of(bars)
-        # 交易日历只建一次（全票 bar 日期并集），供 _elapsed 二分；否则每行都要重扫 13 万个 bar
-        calset = set()
-        for v in bars.values():
-            for b in v:
-                d = str(b.get("d", ""))[:10]
-                if d:
-                    calset.add(d)
-        _CTX.update({"mtime": mtime, "bars": bars, "pool_curves": pool_curves, "asof": asof,
-                     "cal": sorted(calset), "elapsed": {}})
+        except Exception:  # noqa: BLE001  候选池拿不到就退化为缓存内前 POOL_LIMIT 只，不阻断页面
+            codes = list(bars.keys())[:P.POOL_LIMIT]
+        # 交易日历：单条 SQL 取 DISTINCT date（已按 mtime 记忆化），供 _elapsed 与窗口起点用
+        try:
+            cal = base.distinct_dates() if base is not None else []
+        except Exception:  # noqa: BLE001
+            cal = []
+        min_date = cal[-SERIES_TAIL] if len(cal) > SERIES_TAIL else ""
+        series: dict = {}
+        if base is not None:
+            try:
+                skey = (mtime, min_date, len(codes))
+                cached = getattr(base, "_series_cache", None) or {}
+                if cached.get("key") == skey:
+                    series = cached.get("series") or {}
+                else:
+                    series = base.close_series_bulk(codes, min_date=min_date)
+                    base._series_cache = {"key": skey, "series": series}
+            except Exception:  # noqa: BLE001  批量失败 → 退化为逐只惰性读（慢但不出错）
+                series = {}
+        if not series:      # 兜底：kbase 批量不可用时，仍按老路读取（保证功能不挂）
+            pool_bars = {c: bars[c] for c in codes if c in bars}
+            series = {c: ([str(b.get("d", ""))[:10] for b in v],
+                          [b.get("c") for b in v]) for c, v in pool_bars.items()}
+        # 口径对齐：基准池严格限定为 SS.universe(POOL_LIMIT) ∩ 本地缓存，且至少 30 根 K 线
+        pool_curves = {c: s[0] for c, s in series.items() if len(s[0]) >= 30}
+        # asof = 交易日历的最后一天。
+        # 2026-10-29：原先取「候选池最后一根 K 线的众数日期」，实测出现自相矛盾——
+        # 补齐脚本按代码顺序跑，池内 745 只先拿到 10-28，而全市场日历（覆盖率过滤后）
+        # 还是 10-27，于是面板同时显示「K 线截至 2026-10-28」和「已走完 1 个交易日」。
+        # 统一取 cal[-1]：与 _elapsed / _bench_at / _window_ret 全部同源，不再打架。
+        asof = cal[-1] if cal else None
+        _CTX.update({"mtime": mtime, "bars": bars, "pool_curves": pool_curves,
+                     "series": series, "asof": asof, "cal": cal, "elapsed": {},
+                     "bench_cache": {}})
         return _CTX
 
 
 def _bench_at(rd: str) -> dict:
-    """某预测日的基准：全池同期 ret 均值（与引擎同口径）。未到期该周期为 None。"""
+    """某预测日的基准：全池同期 ret 均值（与引擎同口径）。未到期该周期为 None。
+
+    2026-10-29：改为在 `_context()` 预取的 (dates, closes) 序列上做二分定位，
+    不再逐只 `bars[c]` 惰性读盘（原实现 745×5≈3725 次读盘 ≈14s，叠加冷启动可达 73s）。
+    另按预测日记忆化 —— 跨期累计统计要对全部 10 期各算一次基准，不缓存就是 10 倍重复劳动。
+    """
     ctx = _context()
-    bars, pool = ctx["bars"], ctx["pool_curves"]
+    cache = ctx.setdefault("bench_cache", {})
+    if rd in cache:
+        return cache[rd]
+    series, pool = ctx["series"], ctx["pool_curves"]
     out = {}
     for p in PERIODS:
-        rets = [x for c, idx in pool.items()
-                if (x := P._window_ret(bars[c], idx.get(rd), p)) is not None]
+        rets = []
+        for c, dates in pool.items():
+            idx = _idx_at(dates, rd)
+            if idx is None:
+                continue
+            d_, c_ = series[c]
+            x = P._window_ret(_CloseSeq(d_, c_), idx, p)
+            if x is not None:
+                rets.append(x)
         out[p] = (sum(rets) / len(rets)) if rets else None
+    cache[rd] = out
     return out
 
 
@@ -186,15 +282,27 @@ def dates(con: sqlite3.Connection) -> list:
 # ---------------------------------------------------------------- 行装配
 def _pillar_rows(con, rd: str, bench: dict) -> list:
     ctx = _context()
-    bars = ctx["bars"]
+    bars, series = ctx["bars"], ctx["series"]
     titles = {r["pillar"]: (r["title"] or r["pillar"])
               for r in con.execute("SELECT pillar,title FROM pillar_run WHERE run_date=?", (rd,))}
     rows = []
     for r in con.execute(
             "SELECT symbol,name,pillar,rank,score,reason FROM pillar_item "
             "WHERE run_date=? ORDER BY pillar, rank", (rd,)):
-        k = bars.get(r["symbol"]) or []
-        idx = P._bars_index(k).get(rd)
+        sym = r["symbol"]
+        ser = series.get(sym)
+        if ser is not None:
+            dates, closes = ser
+            k = _CloseSeq(dates, closes)
+            idx = _idx_at(dates, rd)
+            if idx is None and dates and rd < dates[0]:
+                # 该预测日早于预热窗口起点 → 退回逐只全量读取（慢一点，但绝不把
+                # 「窗口外」错报成"停牌无数据"，那是口径错误，比慢更难接受）
+                k = bars.get(sym) or []
+                idx = P._bars_index(k).get(rd)
+        else:
+            k = bars.get(sym) or []
+            idx = P._bars_index(k).get(rd)
         entry = None
         if idx is not None and 0 <= idx < len(k):
             entry = _f(k[idx].get("c"))
@@ -272,6 +380,80 @@ def _summarize(rows: list, period: int) -> dict:
             "best": best, "worst": worst, "verdict": verdict}
 
 
+# ---------------------------------------------------------------- 跨期累计
+def pooled(con: sqlite3.Connection, pillar: str = "") -> dict:
+    """跨期累计统计：把所有期次的入选票摊平，按周期汇总成一张总表。
+
+    为什么必须有（2026-10-29 复查新增）：
+      单期样本只有 20~30 只票，命中率 33% 还是 60% 完全在噪声区间内，拿它判断
+      「四支柱行不行」等于抛硬币。四支柱每天产出一期，把 10 期摊平后样本 200+，
+      T+1/T+3/T+5 各都有大样本，这时命中率与平均超额才有统计意义。
+
+    口径：与单期完全一致（同一个 `_cells` / `_window_ret` / `_bench_at`），**不另算公式**，
+      只是把「按日期分组」换成「按周期分桶」。同一只票在不同期重复入选会各计一次
+      （每期独立开仓，这是策略回测的常规口径，不是重复计数错误）。
+
+    诚实约束不变：未到期计 pending、缺 K 线计 nodata，两者都不进分母。
+    """
+    ds = dates(con)
+    pl = pillar if pillar in PILLAR_LABEL else ""
+    acc = {p: {"n": 0, "hit": 0, "rets": [], "alphas": [], "benches": [],
+               "pend": 0, "nodata": 0} for p in PERIODS}
+    used = []
+    for d in ds:
+        rd = d["date"]
+        if pl and (d.get("n_by_pillar") or {}).get(pl, 0) <= 0:
+            continue
+        rows = _pillar_rows(con, rd, _bench_at(rd))
+        if pl:
+            rows = [r for r in rows if (r.get("bucket") or "") == pl]
+        if not rows:
+            continue
+        used.append(rd)
+        for r in rows:
+            for c in r["cells"]:
+                a = acc[c["p"]]
+                if c["status"] == "pending":
+                    a["pend"] += 1
+                elif c["status"] != "ok":
+                    a["nodata"] += 1
+                else:
+                    a["n"] += 1
+                    a["hit"] += c["hit"] or 0
+                    a["rets"].append(c["ret"])
+                    if c["alpha"] is not None:
+                        a["alphas"].append(c["alpha"])
+                    if c["bench"] is not None:
+                        a["benches"].append(c["bench"])
+    out = {}
+    for p in PERIODS:
+        a = acc[p]
+        n = a["n"]
+        out[str(p)] = {
+            "period": p, "n": n, "n_pending": a["pend"], "n_nodata": a["nodata"],
+            "hit_n": a["hit"],
+            "hit_rate": (round(a["hit"] / n, 4) if n else None),
+            "avg_ret": (round(sum(a["rets"]) / n, 6) if n else None),
+            "avg_bench": (round(sum(a["benches"]) / len(a["benches"]), 6) if a["benches"] else None),
+            "avg_alpha": (round(sum(a["alphas"]) / len(a["alphas"]), 6) if a["alphas"] else None),
+        }
+    # 一句话结论：只在样本足够时下判断，样本不足就如实说不够
+    best_p = max((p for p in PERIODS if (out[str(p)]["n"] or 0) >= 20),
+                 key=lambda p: out[str(p)]["avg_alpha"] or -9, default=None)
+    if best_p is None:
+        verdict = "跨期累计样本还不足（各周期已到期样本均少于 20 个），暂不下结论。"
+    else:
+        b = out[str(best_p)]
+        tone = "正" if (b["avg_alpha"] or 0) > 0 else "负"
+        verdict = ("跨期累计 %d 期明细、T+%d 已到期 %d 个样本：跑赢池子 %.1f%%，平均收益 %s、"
+                   "平均超额 %s（%s alpha），相对池子整体%s。" % (
+                       len(used), best_p, b["n"], (b["hit_rate"] or 0) * 100,
+                       "%+.2f%%" % (b["avg_ret"] * 100), "%+.2f%%" % (b["avg_alpha"] * 100),
+                       tone, "占优" if tone == "正" else "落后"))
+    return {"periods": out, "dates_used": used, "n_dates": len(used),
+            "pillar": pl, "pillar_label": PILLAR_LABEL.get(pl, ""), "verdict": verdict}
+
+
 # ---------------------------------------------------------------- 对外主接口
 def payload(con: sqlite3.Connection, source: str = "pillars",
             date: str = "", period: int = 0, pillar: str = "") -> dict:
@@ -296,16 +478,17 @@ def payload(con: sqlite3.Connection, source: str = "pillars",
     auto_date = not date
     auto_period = p_req not in PERIODS
     if auto_date:
-        # 默认落在「回测数据最全」的一期（走完交易日最多，并列取较新）。
-        # 不能默认取最新一期 —— 最新一期必然全部未到期，打开就是空面板，
-        # 那就违背了"让我直观看到回测数据"的目的（2026-10-15 实测踩到）。
-        # ⚠️ 且必须**限定在该数据源有数据的日期里**选，否则切到"四支柱"时会挑到
-        #    只有主引擎数据的那天，随后 pick() 又回落成主引擎，表现为"点了没换过去"
-        #    （2026-10-15 verify_backtest 实测踩到）。
-        # 选定支柱时还必须限定在「该支柱有票」的日期里挑，否则打开就是空面板
+        # 2026-10-29 复查修正：原先默认取 `max(elapsed)`，也就是**最老那一期**——
+        # 打开回测看到的是两周前的 10-14，用户第一反应是「回测根本不更新」。
+        # 改为「最新一期且已有到期数据」：既跟得上日更，又不会因为最新一期还没走完而整屏 pending。
+        # 若连一期到期数据都没有（如刚收盘、K 线未补），退回样本最全的一期，至少不是空面板。
         cand = [d for d in ds if src in d["sources"]
                 and (not pl or (d.get("n_by_pillar") or {}).get(pl, 0) > 0)] or ds
-        best = max(cand, key=lambda x: (x["elapsed"], x["date"]))
+        ready = [d for d in cand if d.get("elapsed", 0) >= 1]
+        if ready:
+            best = max(ready, key=lambda x: x["date"])
+        else:
+            best = max(cand, key=lambda x: (x["elapsed"], x["date"]))
         rd = best["date"]
     else:
         hit = next((d for d in ds if d["date"] == date), None)
@@ -364,6 +547,7 @@ def payload(con: sqlite3.Connection, source: str = "pillars",
         "periods": list(PERIODS), "sources": SOURCE_LABEL, "source_stats": src_stats,
         "dates": ds, "rows": rows,
         "period_stats": per_stats, "summary": summary,
+        "pooled": pooled(con, pl),
         "asof": ctx["asof"], "elapsed": elapsed,
         "n_nobars": n_nobars,
         "auto": {"date": auto_date, "period": auto_period},
@@ -395,5 +579,18 @@ def warm() -> None:
         ctx = _context()
         print("[backtest] 预热完成：K 线 %d 只 / 候选池 %d 只 / 截至 %s" % (
             len(ctx["bars"] or {}), len(ctx["pool_curves"] or {}), ctx.get("asof")), flush=True)
+        # 2026-10-25 补强：仅建上下文不够。全市场底座（5237 只）下，首个 /api/backtest 还要
+        # 逐票惰性加载 K 线 + 算 cells（约 264 条），冷态实测 ~14s，浏览器可能掐断（WinError 10053）
+        # 表现为「回测加载失败」。这里再真正算一版 payload，把 per-symbol 缓存与计算结果一并预热。
+        try:
+            con = sqlite3.connect(f"file:{P.DB_PATH}?mode=ro", uri=True)
+            con.row_factory = sqlite3.Row   # 2026-10-29：与 server.DB.conn 一致，否则 r["col"] 抛 TypeError 被静默吞掉，预热名存实亡
+            try:
+                payload(con)  # 默认 source=pillars，触发全部历史票 K 线惰性加载 + cells 计算
+            finally:
+                con.close()
+            print("[backtest] payload 预热完成（首点即秒出）", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print("[backtest] payload 预热跳过（不影响功能）：%s" % str(e)[:120], flush=True)
     except Exception as e:  # noqa: BLE001
         print("[backtest] 预热失败（不影响功能，首个请求会自行加载）：%s" % str(e)[:140], flush=True)

@@ -10,17 +10,20 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" />
   <!-- 前端版本号唯一真源：/api/version 从这里解析；改 app.js/app.css 必须跟着加（见文件末尾脚注） -->
-  <meta name="app-version" content="20261023-btcolor1" />
+  <meta name="app-version" content="20261031-acc2" />
   <title>股票讨论实时查看器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
   <link id="theme-link" rel="stylesheet" href="static/themes/dark-dashboard.css" />
-  <link rel="stylesheet" href="static/app.css?v=20261023-btcolor1" />
+  <link rel="stylesheet" href="static/app.css?v=20261031-acc2" />
   <link rel="stylesheet" href="static/etf.css?v=20261017-etf-2" />
   <link rel="stylesheet" href="static/visual-upgrade.css" />
   <link rel="stylesheet" href="static/bili_methods.css?v=20261012-biliconsensus" />
   <!-- 抖音博主语料（2026-10-20）：独立样式层，颜色走主题变量，暗/浅自适应 -->
-  <link rel="stylesheet" href="static/douyin_corpus.css?v=20261021-dy11c" />
+  <link rel="stylesheet" href="static/douyin_corpus.css?v=20261025-dyinteg2" />
+  <link rel="stylesheet" href="static/funnel.css?v=20261029-aireview5" />
   <link rel="stylesheet" href="static/industry_leaders.css?v=20260922-il1" />
+  <!-- AI 复盘面板（2026-10-29）：独立样式层，颜色全走主题变量，暗/浅自适应 -->
+  <link rel="stylesheet" href="static/ai_review.css?v=20261031-airscore1" />
 </head>
 <body>
   <!-- 全局操作栏（2026-09-23 合并）：原先「顶栏 64px + 独立刷新状态条 43px」两行共占首屏 107px，
@@ -89,14 +92,20 @@
       <!-- 今日决策（2026-10-12 体验审计 P0-A）：新的默认落地页 —— 一屏四卡（方向/机会/风险/我的票）
            + 一句话结论，数据来自 /api/today_decision（复用既有口径，不新造引擎）。 -->
       <div class="panel" id="p-today"></div>
+      <!-- AI 复盘（2026-10-29 进哥需求）：与「今日决策」并列，但是完全不同的路 ——
+           今日决策是本地规则引擎（固定权重公式），本面板是**真调大模型**（DeepSeek/混元/千问），
+           把当日信息包 + 用户自己沉淀的 9 份知识库准则交给模型，输出带理由的判断，
+           并显式列出「我和规则引擎分歧在哪」「上一份判断今天兑现没有」。
+           每次调用用了什么模型、多少 token、喂了哪些数据，全部落库可审计。 -->
+      <div class="panel" id="p-ai_review"></div>
       <!-- 三个「结论页」（2026-10-12 体验审计 P0-D/E/F）：各自大类下的首个置顶子页 -->
       <div class="panel" id="p-info_brief"></div>
       <div class="panel" id="p-smart_money"></div>
       <div class="panel" id="p-watch_brief"></div>
       <div class="panel active" id="p-summary"></div>
       <div class="panel" id="p-dashboard"></div>
-      <!-- 博主共振（2026-10-15 进哥需求）：紧跟「每日预测」之后的子板块，面板内三支柱
-           个股共振（票为中心）/ 战法体系（战法为中心）/ 信源画像（人为中心）。
+      <!-- 多源共振（原「博主共振」，2026-10-30 博主维度下线后改名）：紧跟「每日预测」之后的子板块，
+           面板内四支柱 个股共振（票为中心）/ 战法体系（战法为中心）/ 信源画像（人为中心）/ 自我进化。
            数据来自 /api/resonance（后端 resonance.py 产出，查看器只读）。 -->
       <div class="panel" id="p-resonance"></div>
       <!-- 避雷名单（2026-10-21 进哥拍板）：低分卡的显式归因面板。
@@ -113,6 +122,11 @@
            数据来自 /api/etf（后端 etf.py 产出，查看器只读）。 -->
       <div class="panel" id="p-etf"></div>
       <div class="panel" id="p-stocks"></div>
+      <!-- 板块热度（2026-10-29 进哥拍板）：荐股一律降级为「注意力」——
+           不再看谁推了哪只票、也不再看看多看空，只看哪个板块被讨论得最多。
+           数据来自 /api/plate_heat（后端 plate_heat.py，滚动 5 交易日窗口）。
+           刻意不含方向/收益字段：一旦混进去，就退化成荐股了。 -->
+      <div class="panel" id="p-plate_heat"></div>
       <div class="panel" id="p-operating"></div>
       <div class="panel" id="p-players"></div>
       <!-- 游资龙虎榜（2026-09-25 补）：原先漏了这个静态面板，
@@ -132,11 +146,12 @@
       <div class="panel" id="p-overseas_sentiment"></div>
       <div class="panel" id="p-global_market"></div>
       <div class="panel" id="p-geo_events"></div>
-      <div class="panel" id="p-extref_soft"></div>
       <!-- 自选池（2026-09-27 新增）：关注池（可分组/改名/标目标价）+ 到价提醒。
            数据来自独立模块 watchlib.py（表 watch_*，零 JOIN 既有业务表）。 -->
       <div class="panel" id="p-watch"></div>
       <div class="panel" id="p-watch_alerts"></div>
+      <!-- 信号实证（P4 · 2026-10-27 收尾）：信号 alpha 回测实证可视化。容器静态预置，渲染由 app.js renderBacktest 懒加载。 -->
+      <div class="panel" id="p-backtest"></div>
       <!-- 增强功能（2026-09-27 新增，隔离增量）：智能选股/资金流向/估值诊股/研报评级/多资产/资讯公告。
            数据来自独立模块（emapi + moneyflow/screener/valuation/research/multiquote/newsfeed），
            零 JOIN 既有业务表，渲染层零改动。 -->
@@ -150,8 +165,6 @@
       <div class="panel" id="p-diag"></div>
       <div class="panel" id="p-research"></div>
       <!-- 博主荐股 / 当红参赛股（2026-10-01 新增）：别人怎么看 下的两个子板块 -->
-      <div class="panel" id="p-blogger"></div>
-      <div class="panel" id="p-contest"></div>
       <div class="panel" id="p-multiquote"></div>
       <div class="panel" id="p-news"></div>
       <!-- 抓取管道：数据源 / 原始存档 / 抓取与登录记录。
@@ -169,6 +182,7 @@
            后端 industry_leaders.py（真实市值驱动，沙箱 akshare 被代理拦则 available:False 诚实提示），
            前端 industry_leaders.js（window.loadIndustryLeaders），进入即懒加载（app.js selectNav 末尾）。 -->
       <div class="panel" id="p-industry-leaders"></div>
+      <div class="panel" id="p-bottleneck"></div>
       <!-- 2026-10-11 王总第三回合：B站视频级分堆三大面板容器 -->
       <!-- ① 市场情绪：挂在「消息与外围」下，cat=sentiment（3865 条） -->
       <div class="panel" id="p-bili_sentiment"></div>
@@ -184,6 +198,7 @@
       <div class="panel" id="p-tech"></div>
     <div class="panel" id="p-integrate"></div>
     <div class="panel" id="p-dy_reso"></div>
+    <div class="panel" id="p-funnel"></div>
     </div>
   </div>
 
@@ -236,11 +251,13 @@
 
   <!-- 新闻/公告分类规则：由 viewer/newsclass.py（唯一真源）在服务启动时重写出这份文件；改词表只改 py 再重启 -->
   <script src="static/news_rules.js?v=20261007-fast"></script>
-  <script src="static/app.js?v=20261023-btcolor1"></script>
+  <script src="static/app.js?v=20261031-acc2"></script>
   <script src="static/screener_extra.js?v=20261007-b125"></script>
   <script src="static/industry_leaders.js?v=20261008-il1"></script>
+  <script src="static/bottleneck.js?v=20261024-bn1"></script>
   <!-- 抖音博主语料（2026-10-20）：必须在 app.js 之后加载（app.js 的 renderSentiment 会调 DOUYIN） -->
-  <script src="static/douyin_corpus.js?v=20261021-dy11c"></script>
+  <script src="static/douyin_corpus.js?v=20261031-acc2"></script>
+  <script src="static/funnel.js?v=20261031-acc2"></script>
   <!-- 版本号串：改 app.js/app.css 后必须跟着加，否则王总桌面页面走缓存看不到新文案（2026-10-01 踩过）。
        另外页面每 60s 会跟 /api/version 比一次版本：不一致就在顶部弹「界面已更新，点此刷新」提示条，
        解决「后端改了、旧窗口里的旧 JS 还在跑、王总说看不到新功能」这一类问题。 -->

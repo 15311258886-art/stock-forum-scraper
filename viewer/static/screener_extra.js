@@ -233,20 +233,34 @@
       api("/api/screener/themes").then((d) => {
         if (!d.ok) { hint(this.host, d.error); return; }
         const list = d.data || [];
-        const chips = list.map((t) => `<button class="sc-chip" data-theme="${esc(t.theme)}">${esc(t.theme)} <span class="muted">${t.count}</span></button>`).join("");
+        // 2026-10-29：后端改为「本地板块快照出列表、成分股按需拉」——
+        // 打开弹窗不再一次性请求 89 个板块的成分（那是 18 秒卡死的根源）。
+        const chips = list.map((t) => `<button class="sc-chip" data-theme="${esc(t.theme)}">${esc(t.theme)} <span class="muted">${t.count == null ? "" : t.count}</span></button>`).join("");
         modal("题材 / 概念（点选查看成分）",
           `<div class="sc-themes">${chips}</div><div id="scThemeMembers" class="sc-theme-members"></div>
-           <div class="muted" style="margin-top:8px">题材/概念映射（仅真实数据）。若提示「未能获取真实概念板块数据」，请在本机执行 pip install akshare 后重启 server。</div>`);
+           <div class="muted" style="margin-top:8px">题材/概念映射（仅真实数据）。点开某个题材时按需拉取成分股，不再一次性请求全部板块。</div>`);
         document.querySelectorAll("#scModal [data-theme]").forEach((b) => {
           b.onclick = () => {
             const t = b.dataset.theme;
-            const item = list.find((x) => x.theme === t);
-            const mem = (item ? item.members : []).map((m) => `<span class="sc-mem" data-code="${esc(m.code)}">${esc(m.name)}</span>`).join("");
+            const item = list.find((x) => x.theme === t) || {};
             const box2 = document.getElementById("scThemeMembers");
-            if (box2) box2.innerHTML = mem;
-            document.querySelectorAll("#scModal .sc-mem").forEach((s) => {
-              s.onclick = () => { if (window.openStock) window.openStock(s.dataset.code, s); document.getElementById("scModal").style.display = "none"; };
-            });
+            const paint = (mem) => {
+              if (!box2) return;
+              box2.innerHTML = mem.length ? mem.map((m) => `<span class="sc-mem" data-code="${esc(m.code)}">${esc(m.name)}</span>`).join("")
+                : `<span class="muted">该题材暂无成分数据。</span>`;
+              document.querySelectorAll("#scModal .sc-mem").forEach((s) => {
+                s.onclick = () => { if (window.openStock) window.openStock(s.dataset.code, s); document.getElementById("scModal").style.display = "none"; };
+              });
+            };
+            if (item.members && item.members.length) { paint(item.members); return; }
+            if (!item.code) { paint([]); return; }
+            if (box2) box2.innerHTML = `<span class="muted">加载成分股…</span>`;
+            api(`/api/screener_board_members?code=${encodeURIComponent(item.code)}&num=100`)
+              .then((r) => {
+                const rows = (r && r.ok && (r.rows || r.items)) || [];
+                paint(rows.map((x) => ({ code: x.code || x.symbol, name: x.name || x.symbol_name || "" })));
+              })
+              .catch(() => paint([]));
           };
         });
       }).catch((e) => hint(this.host, "题材失败：" + ((e && e.message) || e)));

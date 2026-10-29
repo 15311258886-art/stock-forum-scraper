@@ -40,6 +40,7 @@ import json
 import math
 import os
 import sys
+import time
 import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -770,13 +771,37 @@ def _f(v):
 _THEME_CACHE = "themes"
 
 
-def themes_map():
-    """返回 [{theme, count, members:[{code,name}]}]。仅真实走 akshare 概念板；取不到则返 []（绝不伪造主题）。
+_THEME_FAIL_AT = [0.0]      # 上次 akshare 主题抓取失败的时刻（冷却用，见 themes_map）
+_THEME_FAIL_COOL = 600      # 失败后 10 分钟内不再尝试外网，直接回本地结果
 
-    注意：缓存只在「真实源可用」时读取与写入。本机未装 akshare 时直接返回 []，
-    绝不读取历史遗留缓存（可能是早期 mock 残留的假主题），避免演示数据混淆。
+
+def themes_map():
+    """返回 [{theme, code, count, members:[{code,name}]}]。**本地板块数据优先**，akshare 仅兜底。
+
+    2026-10-29 性能修复：原来只走 akshare 概念板，本机取不到时**在请求线程里干等约 18 秒**
+    才返回空 —— 这 18 秒占着 GIL，整站所有接口一起卡（用户看到「一堆面板加载失败」）。
+    本机 `board_flow` 已有 89 个概念板块的实时快照（50ms 级），先用它出列表；
+    成分股改为**点开某个题材时按需拉**（`/api/screener_board_members`，0.3s），
+    不再在打开弹窗时一次性请求 89 个板块的成分。
     """
-    if _HAS_AK:
+    # ① 本地优先：board_flow 的概念板块快照（纯本地/短 TTL 缓存，毫秒级）
+    try:
+        import board_flow as _bf
+        snap = _bf.snapshot(kind="concept", pz=90) or {}
+        out = []
+        for r in (snap.get("rows") or []):
+            code = r.get("board_code") or ""
+            name = r.get("board_name") or ""
+            if not code or not name:
+                continue
+            out.append({"theme": name, "code": code, "count": None, "members": []})
+        if out:
+            return out
+    except Exception:  # noqa: BLE001  本地板块不可用 → 继续走 akshare 兜底
+        pass
+
+    # ② 兜底：akshare 概念板（失败后冷却 10 分钟，绝不每点一次都卡 18 秒）
+    if _HAS_AK and (time.time() - _THEME_FAIL_AT[0] > _THEME_FAIL_COOL):
         cached = _load_cache(_THEME_CACHE)
         if cached and isinstance(cached, list):
             return cached
@@ -791,11 +816,12 @@ def themes_map():
                 by = {}
                 for it in out:
                     by.setdefault(it["theme"], []).append({"code": it["code"], "name": it["name"]})
-                res = [{"theme": t, "count": len(m), "members": m[:60]} for t, m in by.items()]
+                res = [{"theme": t, "code": "", "count": len(m), "members": m[:60]}
+                       for t, m in by.items()]
                 _save_cache(_THEME_CACHE, res)
                 return res
         except Exception:  # noqa: BLE001
-            pass
+            _THEME_FAIL_AT[0] = time.time()      # 记下失败时刻，冷却期内不再尝试
     # 未获取到真实概念板块数据：返回空，绝不伪造主题、绝不读历史缓存
     return []
 

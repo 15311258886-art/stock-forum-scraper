@@ -63,6 +63,9 @@ _OPP_RULES = [
 ]
 _COMPILED_RISK = [(re.compile(p), w, l, t) for p, w, l, t in _RISK_RULES]
 _COMPILED_OPP = [(re.compile(p), w, l, t) for p, w, l, t in _OPP_RULES]
+# 否定语义前置拦截（见 _classify docstring）：字面含「减持」但实际是承诺不卖/终止减持。
+# 只拦「减持」相关的否定，不要扩大 —— 否则「未按期还款」这类真风险会被误放行。
+_NEG_ANN = re.compile(r"不[^，。；]{0,4}减持|未[^，。；]{0,4}减持|终止[^，。；]{0,8}减持|放弃[^，。；]{0,4}减持")
 
 # 列集与 server._F10_COLS 同口径（roe 字段是 ROEJQ 不是 WEIGHTAVG_ROE，实测过）
 _FIN_COLS = ("REPORT_DATE,REPORT_DATE_NAME,EPSJB,EPSKCJB,BPS,TOTALOPERATEREVE,TOTALOPERATEREVETZ,"
@@ -205,8 +208,23 @@ def _fin_sentence(fin: dict | None) -> str:
 
 # ---------------------------------------------------------------- 分类
 def _classify(title: str) -> tuple[str, str]:
-    """标题 → (标签, 极性 good/bad/neutral)；与后端 _ANN_TITLE_RULES 同口径。"""
+    """标题 → (标签, 极性 good/bad/neutral)；与后端 _ANN_TITLE_RULES 同口径。
+
+    2026-10-30 修正：先过一遍**否定语义**。
+    规则表里「减持|清仓|解禁」是朴素关键词，字面含「减持」就标 bad，于是把下面这些
+    **利好/中性**公告误判成风险（全市场抓取后每天都有 10+ 条，实测样例）：
+
+      天岳先进：关于控股股东、实际控制人自愿承诺**不减持**公司股份的公告     ← 承诺不卖，利好
+      统联精密：董事、高管**未减持**公司股份并**提前终止**减持计划的公告      ← 终止减持，利好
+      今创集团：5%以上股东**提前终止**减持计划暨减持股份结果的公告            ← 中性
+
+    这些必须先拦掉，否则「避坑」会给刚承诺不减持的票标红 —— 逻辑上完全反了。
+    归为「其他事务/neutral」而不是「利好」：承诺不减持的方向虽偏正，但本项目没有
+    对应实证，按纪律不给权重。
+    """
     t = str(title or "")
+    if _NEG_ANN.search(t):
+        return "其他事务", "neutral"
     for rx, w, lab, tone in _COMPILED_RISK:
         if rx.search(t):
             return lab, tone

@@ -6,7 +6,7 @@ const THEMES = [
   { id: "card-warm", name: "D 卡片暖色", color: "#D97706" },
 ];
 /* 2026-10-15 P2-1 修：原实现只接受选择器、**静默忽略第二个 root 参数**，
-   于是 `$$(sel, root)` 退化成全文档查询 —— 海外舆情 / 外部荐股验证 两个子导航
+   于是 `$$(sel, root)` 退化成全文档查询 —— 海外舆情 等子导航
    各自把 onclick 绑到了「对方面板」的按钮上（后绑覆盖先绑），表现为
    「点自己子导航切不动 / 另一个面板的子视图被误隐藏（soft 被设成 display:none）」。
    现支持 root 限定；不传 root 时与旧行为完全一致（仍为全文档查询），故对既有调用零影响。 */
@@ -27,47 +27,349 @@ const $$ = (s, root) => (root || document).querySelectorAll(s);
    于是用户反复点、界面纹丝不动。现在文案说清「服务进程已退出、刷新无用」，
    并把可执行的动作放到横幅上（见 netDropBanner / restartLocalService）。 */
 const _API_NET_HINT = "与本地服务连接中断：本地服务进程已退出。此处点「刷新」只会重开页面、不会让服务回来。";
-const _API_TIMEOUT = 15000;   // 2026-10-23：单 api 调用（含网络重试）的总超时，杜绝「连上了但慢响应/卡住」永久转圈
+const _API_TIMEOUT = 15000;   // 单次尝试的总预算（含其内部的网络轻量重试）
+/* 2026-10-25（进哥：「加载失败之后就没下文了，不能就这么放着」）：
+   旧行为：15 秒没响应 → 抛 TIMEOUT → 顶栏写一条「部分数据加载失败」→ 到此为止，界面永远停在失败态。
+   新行为：失败不再是一次性的终点，而是一段**看得见时长的自动恢复过程**：
+     ① 自动重试 3 轮，间隔 4s / 10s / 25s（约 40 秒窗口），期间顶栏显示「N 秒后自动重试（第 i/3 次）」；
+     ② 重试成功 → 该条自动消失，并 toast「已恢复（第 i 次重试成功）」；
+     ③ 3 轮仍失败 → 才落到「加载失败」，由调用方给可执行建议，不再只丢一句「加载失败」；
+     ④ 任何时刻都能点「立即重试」跳过等待；写操作（POST 等非 GET）默认不自动重试，避免重复提交。
+   分级超时：重接口（要取行情 + 战法复算，正常就是秒级偏上）用 _API_TIMEOUT_HEAVY，
+   避免把「后端正常但慢」误报成故障——误报一次，用户就会开始不信这个界面。 */
+const _API_TIMEOUT_HEAVY = 60000;   // 2026-10-25：dashboard 冷缓存重算实测 32s（机器被占时更久），30s 会稳定误报；如今主路径已改 SWR 秒回，这个预算只兜冷启动那一次。
+const _API_RETRY_DELAYS = [4000, 10000, 25000];
+/* 2026-10-29：重接口默认长预算（60s）。原来只有调用方显式传 opts.timeout 才会用 _API_TIMEOUT_HEAVY，
+   实际全站没人传 → 所有接口一律 15s 就判超时；后端一旦被重活冻住（实测 auction 94.5s），
+   全部误报「响应超过 15 秒」。这里给重接口按路径自动放宽，配合下方「单飞去重」。 */
+const _API_HEAVY_PATHS = [
+  "/api/backtest", "/api/dashboard", "/api/resonance", "/api/evolve", "/api/selfpick",
+  "/api/quant", "/api/kronos", "/api/etf", "/api/pillars", "/api/pillars/status",
+  "/api/lhb_sectors", "/api/lhb", "/api/board_flow_snapshot", "/api/board_flow_intraday",
+  "/api/board_flow_range", "/api/board_flow_dates", "/api/bili/consensus", "/api/bili/pile",
+  // 2026-10-29：实测冷态 /api/stocks 6.4s（帖子情绪三态聚合）、/api/summary 0.5s~5s，
+  // 都超过 15s 就会误报「响应超过 15 秒」——给它们重接口预算，避免把"慢"判成"坏"。
+  "/api/stocks", "/api/summary", "/api/hotspots", "/api/watch_list",
+  // 2026-10-29：AI 复盘走重接口预算。原因不是"它慢"，而是它**首次入队时要拼信息包**
+  // （读市场横截面/主线/资金/政策/情绪/持仓/知识库十余张表）。实测本机在调度重活期间
+  // 拼一次包可能超过 15 秒 —— 那是"后端在干活"，不该被判成"坏了"并触发重试。
+  "/api/ai_review",
+];
+/* 2026-10-29：GET 单飞表（key → 在飞 Promise）。同一接口同一参数已有请求在飞时，直接复用，
+   不再另发——这才是「越刷越堵」的根治：实测重试风暴把后端队列撑到 17~25 分钟才回。 */
+const _apiInflight = new Map();
+const _API_LABELS = {
+  "/api/dashboard": "今日看板", "/api/summary": "汇总计数", "/api/stocks": "当前讨论股票",
+  "/api/watch_list": "自选池", "/api/watch_alerts": "到价提醒",
+  "/api/lhb": "游资龙虎榜", "/api/sentiment": "舆论情绪", "/api/brief": "今日决策",
+};
+function _apiLabel(path, opts) {
+  if (opts && opts.label) return opts.label;
+  const p = String(path || "").split("?")[0];
+  return _API_LABELS[p] || p.replace(/^\/api\//, "").split("/")[0] || "接口";
+}
+
+/* ---- 自动重试等待条（独立 DOM，不吃 setHint 的 textContent 覆盖）---- */
+const _retryWait = new Map();     // key → { name, why, round, at, timer, fire }
+let _retryTicker = null;
+
+function _retryBarHost() {
+  let host = document.getElementById("apiRetryBar");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "apiRetryBar";
+    host.className = "api-retry-bar";
+    host.setAttribute("role", "status");
+    const anchor = document.getElementById("statusHint");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(host, anchor.nextSibling);
+    else document.body.insertBefore(host, document.body.firstChild);
+  }
+  return host;
+}
+
+function _paintRetryWait() {
+  const host = _retryBarHost();
+  if (!_retryWait.size) { host.classList.remove("show"); host.innerHTML = ""; return; }
+  const now = Date.now();
+  const parts = [];
+  _retryWait.forEach((v, k) => {
+    const left = Math.max(0, Math.ceil((v.at - now) / 1000));
+    parts.push(
+      `<span class="arb-item"><span class="arb-ico">⏳</span>` +
+      `<b>${esc(v.name)}</b> ${esc(v.why)}，<em>${left}</em> 秒后自动重试（第 ${v.round + 1}/${_API_RETRY_DELAYS.length} 次）` +
+      ` <button type="button" class="arb-now" data-k="${esc(k)}">立即重试</button></span>`
+    );
+  });
+  host.classList.add("show");
+  host.innerHTML = `<span class="arb-lead">正在自动恢复</span>` + parts.join("");
+  host.querySelectorAll(".arb-now").forEach((b) => {
+    b.onclick = () => { const v = _retryWait.get(b.dataset.k); if (v) { clearTimeout(v.timer); v.fire(); } };
+  });
+}
+
+function _ensureRetryTicker() {
+  if (_retryTicker) return;
+  _retryTicker = setInterval(() => {
+    if (!_retryWait.size && !_computing.size) { clearInterval(_retryTicker); _retryTicker = null; }
+    _paintRetryWait();
+    if (_computing.size) _paintComputing();   // 计算中进度条每秒刷新「已等 N 秒」
+  }, 1000);
+}
+
+function _dropRetryWait(key) {
+  const v = _retryWait.get(key);
+  if (!v) return;
+  clearTimeout(v.timer);
+  _retryWait.delete(key);
+  _paintRetryWait();
+}
+
+/** 登记一次「等 delay 毫秒后自动重试」：到点或被点「立即重试」即 resolve。 */
+function _waitBeforeRetry(key, name, why, delay, round) {
+  return new Promise((resolve) => {
+    const entry = {
+      name, why, round, at: Date.now() + delay, timer: null,
+      fire: () => { _dropRetryWait(key); resolve(); },
+    };
+    entry.timer = setTimeout(() => { _dropRetryWait(key); resolve(); }, delay);
+    _retryWait.set(key, entry);
+    _ensureRetryTicker();
+    _paintRetryWait();
+  });
+}
+
+/* ---- 2026-10-29 多路回退（进哥要求：「先从 A 路走，A 路加载不上再走 B 路，B 路不行再走 C 路」）----
+   以前的做法是**同一条路重试 3 次**（4s/10s/25s）——路本身不通时，试 100 次也不通，只会把后端越堆越堵。
+   现在改成三层真实存在的通路，逐层降级，每层都有明确产出：
+     A 路 实时接口      —— /api/xxx 现算最新数据（正常走这条）
+     B 路 本地数据仓    —— /api/snapshot 读 viewer/data/warehouse 里最近一次成功加载的**完整数据**
+     C 路 占位 + 后台算 —— 接口回 computing，前端显示「后台计算中」并按 15s 轮询，确定会回来
+   命中 B 路时一律在顶栏挂「降级」提示并写明快照时间 —— 宁可让用户知道数据旧，也不能让他以为是实时行情。 */
+const _degraded = new Map();          // 面板名 → 快照时间串
+function _degradedCount() { return _degraded.size; }
+
+function _paintDegraded() {
+  let host = document.getElementById("apiDegradedBar");
+  if (!_degraded.size) {
+    if (host) { host.classList.remove("show"); host.innerHTML = ""; }
+    return;
+  }
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "apiDegradedBar";
+    host.className = "api-retry-bar";
+    host.setAttribute("role", "status");
+    const anchor = document.getElementById("statusHint");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(host, anchor.nextSibling);
+    else document.body.insertBefore(host, document.body.firstChild);
+  }
+  const items = [];
+  _degraded.forEach((at, nm) => {
+    items.push(`<span class="arb-item"><span class="arb-ico">🗄️</span><b>${esc(nm)}</b> ` +
+      `显示本地快照 <em>${esc(at || "时间未知")}</em>（非最新）</span>`);
+  });
+  host.classList.add("show");
+  host.innerHTML = `<span class="arb-lead">已切到本地数据仓</span>` + items.join("") +
+    ` <button type="button" class="arb-now" id="apiDegradedDismiss">知道了</button>`;
+  const btn = document.getElementById("apiDegradedDismiss");
+  if (btn) btn.onclick = () => { _degraded.clear(); _paintDegraded(); };
+}
+
+/* ---- C 路：接口回「计算中」占位时，前端自动轮询直到拿到真数据 ----------------------
+   为什么需要：量化/ETF/Kronos 这类面板是「全市场因子矩阵」，重算要几分钟。后端已改成
+   子进程算 + 落盘（绝不冻住请求线程），代价是**第一次打开时还没有结果**。
+   旧行为：面板显示空 → 用户以为坏了。新行为：明确显示「后台计算中，已等 N 秒」，
+   前端每 15 秒问一次，算完自动把数据填进去（最多等 10 分钟；超时也留着进度条，随时点刷新）。
+   这正对应进哥的要求：「加载时间长一点没关系，但你得确定它能回来」。 */
+const _computing = new Map();      // 面板名 → { path, since }
+const _COMPUTE_POLL_MS = 15000;
+const _COMPUTE_MAX_TRIES = 40;     // 40 × 15s = 10 分钟
+
+function _auxBarHost(id) {
+  let host = document.getElementById(id);
+  if (!host) {
+    host = document.createElement("div");
+    host.id = id;
+    host.className = "api-retry-bar";
+    host.setAttribute("role", "status");
+    const anchor = document.getElementById("statusHint");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(host, anchor.nextSibling);
+    else document.body.insertBefore(host, document.body.firstChild);
+  }
+  return host;
+}
+
+function _paintComputing() {
+  const host = _auxBarHost("apiComputingBar");
+  if (!_computing.size) { host.classList.remove("show"); host.innerHTML = ""; return; }
+  const now = Date.now();
+  const parts = [];
+  _computing.forEach((v, nm) => {
+    const sec = Math.max(0, Math.round((now - v.since) / 1000));
+    parts.push(`<span class="arb-item"><span class="arb-ico">⚙️</span><b>${esc(nm)}</b> ` +
+      `后台计算中（已等 <em>${sec}</em> 秒，算完自动出现）</span>`);
+  });
+  host.classList.add("show");
+  host.innerHTML = `<span class="arb-lead">本地计算中</span>` + parts.join("");
+}
+
+/* 收到 computing 占位后：挂进度条 + 轮询，直到拿到真数据（或到 10 分钟上限）。
+   2026-10-29：轮询节奏改为「前快后慢」—— 低位箱体/换手榜这类子进程任务通常 3~15 秒就算完，
+   原来固定 15 秒一问，算完了还要再干等最多 15 秒才显示，用户体感就是「慢」。
+   现在 2s → 3s → 5s → 之后 15s，首批快探几乎立刻拿到结果，长任务照样不放大请求量。 */
+const _COMPUTE_BACKOFF = [2000, 3000, 5000];
+function _pollComputing(first, path, name) {
+  _computing.set(name, { path: path, since: Date.now() });
+  _ensureRetryTicker();
+  _paintComputing();
+  let n = 0;
+  const step = () => {
+    if (n >= _COMPUTE_MAX_TRIES) {
+      _computing.delete(name);
+      _paintComputing();
+      showToast(`【${name}】仍在后台计算（已等约 10 分钟），可稍后点「刷新」查看。`);
+      return Promise.resolve(first);
+    }
+    const wait = _COMPUTE_BACKOFF[n] != null ? _COMPUTE_BACKOFF[n] : _COMPUTE_POLL_MS;
+    n += 1;
+    return new Promise((res) => setTimeout(res, wait))
+      .then(() => fetch(path, { cache: "no-store" }))
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((d) => {
+        if (d && !d.computing && d.ok !== false) {
+          _computing.delete(name);
+          _paintComputing();
+          showToast(`【${name}】已算完，自动加载完成。`);
+          return d;
+        }
+        return step();
+      });
+  };
+  return step();
+}
+
+/** B 路：取该接口最近一次成功加载的落盘快照。命中返回数据（带 _degraded 标记），否则 null。 */
+function _apiSnapshot(path, name) {
+  const s = String(path || "");
+  const i = s.indexOf("?");
+  const p = i < 0 ? s : s.slice(0, i);
+  const qs = i < 0 ? "" : s.slice(i + 1);
+  const url = "/api/snapshot?path=" + encodeURIComponent(p) + "&q=" + encodeURIComponent(qs);
+  return fetch(url, { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      if (!d || !d.ok || !d.data) return null;
+      const at = d._at || "";
+      _degraded.set(name, at);
+      _paintDegraded();
+      showToast(`【${name}】实时加载失败，已自动切到本地快照（${at}）—— 数据不是最新。`);
+      return Object.assign({}, d.data, { _degraded: true, _snapshot_at: at });
+    })
+    .catch(() => null);
+}
+
 function api(path, opts) {
   const isNetErr = (e) => !!e && e.name === "TypeError";   // fetch 未拿到响应时的唯一表现
   const isAbort = (e) => !!e && e.name === "AbortError";
-  // ① 超时控制：用 AbortController 主动中断「连上了但迟迟不响应」的请求。
-  //    这是「整个 api 调用（含下面的网络重试）」的总预算，不是单次 fetch 的预算。
-  const ctrl = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, _API_TIMEOUT);
-  const merged = Object.assign({}, opts);
-  if (merged.signal) {
-    // 调用方自带 signal（如抽屉关闭时主动取消）：任意一方 abort 都中断本请求
-    const ext = merged.signal;
-    if (ext.addEventListener) ext.addEventListener("abort", () => ctrl.abort(), { once: true });
-  } else {
-    merged.signal = ctrl.signal;
+  const o = Object.assign({}, opts);
+  const name = _apiLabel(path, opts);
+  const _basePath = String(path || "").split("?")[0];
+  const _isHeavy = _API_HEAVY_PATHS.indexOf(_basePath) >= 0;
+  const budget = (o.timeout && o.timeout > 0) ? o.timeout : (_isHeavy ? _API_TIMEOUT_HEAVY : _API_TIMEOUT);
+  const allowRetry = (o.retry !== false) && !(o.method && String(o.method).toUpperCase() !== "GET");
+  const key = name + "|" + String(path);
+  // 2026-10-29：GET 单飞——同 key 已有请求在飞 → 直接复用，避免并发/重试重复轰炸后端。
+  if (allowRetry) {
+    const _inflight = _apiInflight.get(key);
+    if (_inflight) return _inflight;
   }
-  const attempt = (n) => fetch(path, merged).then(async (r) => {
-    if (!r.ok) {
-      let body = "";
-      try { body = await r.text(); } catch (e) { /* 读响应体失败时忽略 */ }
-      throw new Error(`HTTP ${r.status} ${r.statusText || ""} ${path} — ${String(body).slice(0, 200)}`);
+  delete o.label; delete o.timeout; delete o.retry;
+
+  // 单次请求：超时控制 + 网络层轻量重试（保持 2026-09-28 既有行为）
+  function once() {
+    const ctrl = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, budget);
+    const merged = Object.assign({}, o);
+    if (merged.signal) {
+      // 调用方自带 signal（如抽屉关闭时主动取消）：任意一方 abort 都中断本请求
+      const ext = merged.signal;
+      if (ext.addEventListener) ext.addEventListener("abort", () => ctrl.abort(), { once: true });
+    } else {
+      merged.signal = ctrl.signal;
     }
-    const data = await r.json();
-    markServiceHealthy();   // D2：只要有一个请求成功，就说明后端已恢复 → 撤横幅并提示
-    return data;
-  }, (e) => {
-    // 超时（我们主动 abort）：标记 TIMEOUT 后 reject，让调用方 .catch 能清除「加载中…」
-    if (isAbort(e) && timedOut) {
-      const te = new Error(`请求超时（${_API_TIMEOUT / 1000} 秒未响应）`);
-      te.code = "TIMEOUT"; te.isTimeout = true;
-      throw te;
-    }
-    if (isNetErr(e) && n < 2) {
-      return new Promise((res) => setTimeout(res, n === 0 ? 400 : 1200)).then(() => attempt(n + 1));
-    }
-    if (isNetErr(e)) { netDropBanner(); throw new Error(_API_NET_HINT); }
-    // 其余（含调用方主动取消的外部 AbortError）：原样抛出，交给调用方处理
-    throw e;
-  });
-  return attempt(0).finally(() => clearTimeout(timer));
+    const attempt = (n) => fetch(path, merged).then(async (r) => {
+      if (!r.ok) {
+        let body = "";
+        try { body = await r.text(); } catch (e) { /* 读响应体失败时忽略 */ }
+        const he = new Error(`HTTP ${r.status} ${r.statusText || ""} ${path} — ${String(body).slice(0, 200)}`);
+        he.status = r.status;
+        throw he;
+      }
+      const data = await r.json();
+      markServiceHealthy();   // D2：只要有一个请求成功，就说明后端已恢复 → 撤横幅并提示
+      return data;
+    }, (e) => {
+      // 超时（我们主动 abort）：标记 TIMEOUT 后 reject，让调用方 .catch 能清除「加载中…」
+      if (isAbort(e) && timedOut) {
+        const te = new Error(`请求超时（${Math.round(budget / 1000)} 秒未响应）`);
+        te.code = "TIMEOUT"; te.isTimeout = true;
+        throw te;
+      }
+      if (isNetErr(e) && n < 2) {
+        return new Promise((res) => setTimeout(res, n === 0 ? 400 : 1200)).then(() => attempt(n + 1));
+      }
+      if (isNetErr(e)) { netDropBanner(); const ne = new Error(_API_NET_HINT); ne.code = "NET"; throw ne; }
+      // 其余（含调用方主动取消的外部 AbortError）：原样抛出，交给调用方处理
+      throw e;
+    });
+    return attempt(0).finally(() => clearTimeout(timer));
+  }
+
+  // 值不值得重试：超时 / 连不上 / 后端 5xx 值得；4xx、业务错误、主动取消不值得（重试无意义甚至有害）
+  const retriable = (e) => !!e && !isAbort(e) && (!!e.isTimeout || e.code === "NET" || (e.status >= 500));
+  const whyOf = (e) => e.isTimeout
+    ? `响应超过 ${Math.round(budget / 1000)} 秒`
+    : (e.code === "NET" ? "连不上本地服务" : `服务端 ${e.status || "异常"}`);
+
+  function round(i) {
+    return once().then(
+      (d) => {
+        // C 路：后端回「计算中」占位（重算面板首次打开）→ 挂进度条并自动轮询，算完自动填数据
+        if (d && d.computing) return _pollComputing(d, path, name);
+        if (i > 0) { _dropRetryWait(key); showToast(`【${name}】已恢复（第 ${i} 次重试成功）。`); }
+        if (_degraded.delete(name)) _paintDegraded();   // 拿到实时数据 → 撤掉降级提示
+        return d;
+      },
+      (e) => {
+        const canRetry = allowRetry && retriable(e) && i < _API_RETRY_DELAYS.length;
+        if (!canRetry) {
+          const gaveUp = allowRetry && retriable(e) && i >= _API_RETRY_DELAYS.length;
+          _dropRetryWait(key);
+          if (gaveUp) {
+            e.autoRetried = i;
+            // A 路（实时）彻底不通 → 换 B 路（本地数据仓快照）。拿到就用，绝不把面板留成空白转圈。
+            return _apiSnapshot(path, name).then((snap) => {
+              if (snap) return snap;
+              showToast(`【${name}】已自动重试 ${i} 次仍失败（${whyOf(e)}），本地也没有可用快照，可稍后点「刷新」重取。`);
+              throw e;
+            });
+          }
+          throw e;
+        }
+        return _waitBeforeRetry(key, name, whyOf(e), _API_RETRY_DELAYS[i], i).then(() => round(i + 1));
+      }
+    );
+  }
+  const _p = round(0);
+  // 2026-10-29：登记单飞（仅 GET）。请求结束（成功/失败）即清表，不影响下一次正常请求。
+  if (allowRetry) {
+    _apiInflight.set(key, _p);
+    const _cleanup = () => { if (_apiInflight.get(key) === _p) _apiInflight.delete(key); };
+    _p.then(_cleanup, _cleanup);
+  }
+  return _p;
 }
 /* ---- 本地服务断连横幅（2026-10-06，王总：「点了刷新也没反应」） -------------
    背景：桌面版是 pywebview 原生窗口，服务跑在本地。**服务进程阵亡后窗口还开着**，
@@ -230,7 +532,7 @@ function drawerJumpChips() {
       <span class="dchip-lbl">看 ${esc(DRAWER_SYMBOL)}：</span>
       ${chip("lhb", "money", "游资龙虎榜")}
       ${chip("moneyflow", "money", "资金流向")}
-      ${chip("resonance", "overview", "博主共振")}
+      ${chip("resonance", "overview", "多源共振")}
       ${chip("strategy_lab", "learn", "策略回测")}
       ${chip("lhb_sectors", "money", "板块动向")}
     </div>`;
@@ -286,8 +588,9 @@ function initEnhancements() {
   // 命令面板输入
   const ci = document.getElementById("cmdInput");
   if (ci) ci.oninput = (e) => renderCmdList(e.target.value);
-  // 首启引导
-  if (!localStorage.getItem("viewer-first-run-done")) {
+  // 首启引导。`?skipguide=1` 是排障/截图用的开关：无头浏览器没有 localStorage 上下文，
+  // 每次都会被首启弹窗盖住内容，看不清页面实际渲染成什么样。不影响正常使用（正常打开不带该参数）。
+  if (!localStorage.getItem("viewer-first-run-done") && !/[?&]skipguide=1/.test(location.search)) {
     try { showFirstRun(); } catch (_) {}
   }
 }
@@ -792,7 +1095,7 @@ function codeLink(code, opt) {
   const txt = opt.text == null ? c : String(opt.text);
   if (!/^\d{6}$/.test(c)) return esc(txt || "—");
   return `<button type="button" class="${escAttr(opt.cls || "wt-sym")}" data-code-open="${escAttr(c)}" `
-       + `title="点开「${escAttr(txt || c)}」的个股结果（重要信息 · 换手 · 持股结构 · K线 · 荐股后收益节奏 · 持仓选手），自动加载，不用再点任何按钮">${esc(txt)}</button>`;
+       + `title="点开「${escAttr(txt || c)}」的个股结果（重要信息 · 换手 · 持股结构 · K线 · 持仓选手），自动加载，不用再点任何按钮">${esc(txt)}</button>`;
   // 龙头徽章由 dragonDecorate() 统一装饰（见下方 MutationObserver），此处不拼字符串，
   // 否则与全局装饰重复挂两枚。
 }
@@ -1537,7 +1840,7 @@ function holdDaysNote(basis) {
    而是抽屉原先要**等 /api/stock 返回**才 openDrawer；该接口冷态或后台繁忙时可能卡十几秒，
    于是主观感受就是「点了半天不出东西」。现改两段式：
      ① 立刻用骨架开抽屉（点下去 0 延迟）；
-     ② 五段（重要信息 / K线 / 换手率 / 持股结构 / 荐股节奏）各自独立异步填充；
+     ② 四段（重要信息 / K线 / 换手率 / 持股结构）各自独立异步填充；
      ③ /api/stock 到货后只回填「标题 + 代码简称公司 + 持仓选手表」。
    这样无论后端多慢，抽屉都是点下去就出。 */
 function openStock(symbol, anchorEl, extraHtml) {
@@ -1555,8 +1858,6 @@ function openStock(symbol, anchorEl, extraHtml) {
         <div class="kv"><div class="k">股票代码</div><div><span class="stk-code">${esc(symbol)}</span> <span class="stk-board" id="stkBoard"></span><span id="stkDragon" class="stk-dragon"></span></div></div>
         <div class="kv"><div class="k">股票简称</div><div><b id="stkName">加载中…</b><span class="s" id="stkCompany"></span></div></div>
         <div id="stkProfile" class="stk-info stk-profile-card" data-sym="${escAttr(symbol)}"><div class="s">公司简介加载中…</div></div>
-        <div class="detail-sub" style="margin-top:14px">⓪ 荐股后收益节奏 —— 该票被推荐过的每一次（T+1 隔日 / T+3 / T+5 / T+10，<b>荐股日收盘价</b>为基准；「—」= 该周期交易日还没走完，不是 0）</div>
-        <div id="stkBloggerPerf" class="stk-info" data-sym="${escAttr(symbol)}"><div class="s">收益节奏加载中…</div></div>
         <div class="detail-sub" style="margin-top:14px">① 重要信息 —— 现价 · 估值 · 盈利 · 成长（直接铺开，不需要再点开）</div>
         <div id="stkQuote" class="stk-info" data-sym="${escAttr(symbol)}"><div class="s">重要信息加载中…</div></div>
         <div class="detail-sub">换手率实战 —— 四场景判读 · 入手值得率（0~100，技术面规则打分，不构成投资建议）</div>
@@ -1594,7 +1895,6 @@ function openStock(symbol, anchorEl, extraHtml) {
   initStockKline(symbol);
   initStockTurnover(symbol);
   initStockF10(symbol);
-  initStockBloggerPerf(symbol);   // 2026-10-01 王总：点开个股要看「荐股后 3/5/10 日」节奏
   // 抽屉头两个 CTA 立刻可用（名称到达后自动带上）
   const aw = $("#btnAddWatch");
   if (aw) {
@@ -1664,77 +1964,6 @@ function openStock(symbol, anchorEl, extraHtml) {
   }).catch((e) => {
     if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
     stockZoneFail($("#stkPositions"), "持仓记录", e, () => openStock(symbol, anchorEl));
-  });
-}
-
-/* 2026-10-01 王总要求：点开个股要能看「建股之后 3/5/10 日 + 隔日」的收益节奏。
-   /api/blogger/perf?code=xxx 返回该票所有被推荐记录 × 周期收益（本地毫秒级）。
-   刻意用「—」而不是 0 表示还没走完 —— 0 会被读成没赚没亏。 */
-/* 2026-10-10 王总要求：短线博主荐股后要把「3/5/10 日走势简单看一看」——
-   用 perf 行自带的 series（荐股后最多 10 个交易日逐日累计%，基准=荐股日收盘）画迷你曲线。
-   红=荐股后累计上涨 / 绿=下跌（中国习惯）；没有数据 → 返回空串，绝不画假线。 */
-function btSparkSvg(series) {
-  const s = Array.isArray(series) ? series.filter((x) => x && isFinite(Number(x.chg))) : [];
-  if (s.length < 2) return "";
-  const W = 168, H = 40, PAD = 3;
-  const chgs = s.map((x) => Number(x.chg));
-  const lo = Math.min(0, ...chgs), hi = Math.max(0, ...chgs);
-  const span = (hi - lo) || 1;
-  const xAt = (i) => PAD + (i / (s.length - 1)) * (W - PAD * 2);
-  const yAt = (v) => PAD + (hi - v) / span * (H - PAD * 2);
-  const pts = chgs.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ");
-  const y0 = yAt(0);
-  const last = chgs[chgs.length - 1];
-  const col = last > 0 ? "var(--bull,#e11d48)" : (last < 0 ? "var(--bear,#16a34a)" : "var(--muted,#94a3b8)");
-  const tip = s.map((x) => `${String(x.d).slice(5).replace("-", "/")} ${Number(x.chg) > 0 ? "+" : ""}${Number(x.chg).toFixed(2)}%`).join("，");
-  return `<svg class="bt-spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="荐股后走势">
-    <line x1="${PAD}" y1="${y0.toFixed(1)}" x2="${W - PAD}" y2="${y0.toFixed(1)}" stroke="var(--border,#e2e8f0)" stroke-dasharray="3 3" stroke-width="1"/>
-    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${xAt(s.length - 1).toFixed(1)}" cy="${yAt(last).toFixed(1)}" r="2.4" fill="${col}"/>
-    <title>荐股后逐日累计（基准=荐股日收盘）：${escAttr(tip)}</title></svg>`;
-}
-
-function initStockBloggerPerf(symbol) {
-  const host = $("#stkBloggerPerf");
-  if (!host) return;
-  api(`/api/blogger/perf?code=${encodeURIComponent(symbol)}`, { signal: _stockAbort ? _stockAbort.signal : undefined }).then((d) => {
-    const rows = (d && d.rows) || [];
-    if (!rows.length) {
-      host.innerHTML = `<div class="s">该票不在博主荐股池内，暂无荐股收益节奏</div>`;
-      return;
-    }
-    // 区间收益（ret_since 来自源表）按「博主+推荐日」对齐
-    const retMap = {};
-    BLOG.rows.forEach((r) => {
-      if (r.stock_code === symbol) {
-        retMap[`${r.blogger}|${String(r.rec_date).slice(0, 10)}`] = r.ret_since;
-      }
-    });
-    const cell = (v) => `<td class="${v.cls}">${v.txt}</td>`;
-    const body = rows.map((r) => {
-      let series = r.series_json;
-      if (typeof series === "string") { try { series = JSON.parse(series); } catch (_) { series = null; } }
-      const d8 = String(r.rec_date).slice(0, 10);
-      const rs = retMap[`${r.blogger}|${d8}`];
-      const base = (r.base_close == null || r.base_close === "")
-        ? "—" : Number(r.base_close).toFixed(2);
-      return `<tr>
-        <td>${esc(d8.slice(5).replace("-", "/"))}</td>
-        <td>${esc(r.blogger)}</td>
-        <td class="bt-date">${esc(base)}</td>
-        ${cell(btPct(r.r1))}${cell(btPct(r.r3))}${cell(btPct(r.r5))}${cell(btPct(r.r10))}
-        ${cell(rs == null || rs === "" ? btPct(null) : btPct(rs))}
-        <td class="bt-spark-cell">${btSparkSvg(series) || '<span class="s">—</span>'}</td></tr>`;
-    }).join("");
-    host.innerHTML = `<div class="bt-perf-tb"><table><thead><tr>
-        <th>推荐日</th><th>博主</th><th>荐股日<br>收盘价</th>
-        <th>隔日 T+1</th><th>T+3</th><th>T+5</th><th>T+10</th><th>区间收益</th><th>荐股后走势</th>
-      </tr></thead><tbody>${body}</tbody></table></div>
-      <div class="s" style="margin-top:6px">口径：以该次推荐的<b>推荐日收盘价</b>为基准，往后数 N 个交易日收盘价算持有收益；
-      不足 N 个交易日显示「—」（不是 0）。走势曲线为荐股后逐日累计涨跌（悬停看逐日数值）。本票共被推荐 <b>${rows.length}</b> 次。</div>`;
-  }).catch((e) => {
-    if (e && e.name === "AbortError") return;   // 抽屉关闭等主动取消：不渲染
-    stockZoneFail(host, "收益节奏", e, () => initStockBloggerPerf(symbol));
   });
 }
 
@@ -2389,7 +2618,7 @@ function renderKlineSnap(d) {
       <div><span>成交额</span><b>${amtTxt}</b></div>
       <div><span>数据日</span><b>${esc((c.date || "").slice(0, 10))}</b></div>
     </div>
-    <div class="ks-src">数据源：${esc(d.source || "—")}${d.adjust === "raw" ? " · <b>不复权</b>（长期图上的除权跳空属正常）" : " · 前复权"}${per ? ` · 当前为 <b>${per}K</b>` : ""}${d.amount_est ? " · 成交额按「收盘价 × 成交量」估算（≈）" : ""}${(d.has_more || !d.full_history) ? ` · 本次 ${d.count} 根${d.full_history ? " / 全历史 " + d.total + " 根" : "（仅最近 " + d.total + " 根）"} <a class="ks-more" id="klineLoadAll" href="javascript:void 0">拉全部历史</a>` : ""}</div>`;
+    <div class="ks-src">数据源：${esc(d.source || "—")}${d.adjust === "raw" ? " · <b>不复权</b>（长期图上的除权跳空属正常）" : " · 前复权"}${d.local_fallback ? ' · <b style="color:#d97706">⚠ 本地旧数据（非实时，详见说明）</b>' : ""}${per ? ` · 当前为 <b>${per}K</b>` : ""}${d.amount_est ? " · 成交额按「收盘价 × 成交量」估算（≈）" : ""}${(d.has_more || !d.full_history) ? ` · 本次 ${d.count} 根${d.full_history ? " / 全历史 " + d.total + " 根" : "（仅最近 " + d.total + " 根）"} <a class="ks-more" id="klineLoadAll" href="javascript:void 0">拉全部历史</a>` : ""}</div>`;
   // 上市日期兜底：部分行情源不提供该字段，用 K 线最早一根的日期补，并明确标注口径。
   // 注意用 earliest_date（全历史首日）——limit=250 时 first_date 只是「250 根之前的那天」，
   // 拿它当上市日会把 2000 年的票写成 2010 年上市（2026-10-05 建议8 的降采样坑）。
@@ -3528,7 +3757,17 @@ function loadLhbSectors(date) {
 const DASH = { data: null };
 
 function loadDashboard() {
-  return api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); });
+  // 2026-10-25：这里原来用默认 15s 预算，而 dashboard 冷算要 32s —— 首屏必超时。
+  // 现在后端过期即回快照（d._stale + d._cache_age），正常是毫秒级；长预算只兜冷启动。
+  return api("/api/dashboard", { label: "今日看板", timeout: _API_TIMEOUT_HEAVY })
+    .then((d) => {
+      DASH.data = d;
+      renderDashboard();
+      if (d && d._stale) {
+        const m = Math.max(1, Math.round((d._cache_age || 0) / 60));
+        showToast(`今日看板：先显示 ${m} 分钟前的快照，后台正在刷新，稍后自动更新。`);
+      }
+    });
 }
 
 /* ================= 今日决策首页（2026-10-12 体验审计 P0-A） =================
@@ -3693,6 +3932,476 @@ function tdRowMetaBadge(kind, x) {
   return trustBadge("model", "未验证");
 }
 
+/* ============================================================================
+ * AI 复盘（2026-10-29 进哥需求）
+ * ----------------------------------------------------------------------------
+ * 与「今日决策」并列，但走的是**完全不同的路**，界面上必须让这个区别一眼可见：
+ *   · 今日决策 = 本地规则引擎：固定权重公式（40×净流入比 + 30/20 涨停档 + 梯队数×1.2），
+ *     输出可复现、但没有推理过程，也不会告诉你它错在哪。
+ *   · AI 复盘 = 真调大模型：把当日信息包（市场横截面/主线/龙虎榜/政策/情绪/持仓）
+ *     + 用户自己沉淀的 9 份知识库准则 + 上一份复盘，交给 DeepSeek/混元/千问，
+ *     让它输出带理由的判断，并显式回答两件规则引擎答不了的事：
+ *       ① disagreements —— 我和规则打分哪里不一致、为什么
+ *       ② vs_last      —— 上一份判断今天兑现了没有
+ * 所以本面板把①放在显眼位置（不是塞在角落），这就是「用大脑算」的证据。
+ * 数据来自 /api/ai_review（后端 viewer/ai_review.py，每次调用落库可审计）。
+ * ============================================================================ */
+const AIR = { data: null, provider: "", polling: null, tries: 0, hist: null, sinceId: 0 };
+
+function airProviderName(key) {
+  const p = (AIR.data && AIR.data.providers || []).find((x) => x.key === key);
+  return p ? p.label : (key || "—");
+}
+function airPct(v) { return v == null || isNaN(v) ? "—" : Math.round(v) + "%"; }
+function airList(arr) { return Array.isArray(arr) ? arr : []; }
+function airToneCls(level) {
+  const s = String(level || "");
+  if (/高|清|退潮|普跌|减/.test(s)) return "air-tone-bad";
+  if (/低|加|加速|普涨/.test(s)) return "air-tone-good";
+  return "air-tone-mid";
+}
+
+function loadAiReview(opts) {
+  const o = opts || {};
+  const qs = [];
+  if (AIR.provider) qs.push("provider=" + encodeURIComponent(AIR.provider));
+  if (o.date) qs.push("date=" + encodeURIComponent(o.date));
+  if (o.force) qs.push("force=1");
+  // 结果水位线：点「重新分析」后后台要算 10s，这期间如果轮询只看「有没有缓存」，
+  // 会立刻拿到上一份旧结果并误判成已完成（真实踩到过：库里还是旧 id，页面显示旧判断）。
+  // 所以重算时记下当时的 MAX(id)，轮询带上它，只有出现更新的记录才算这一轮真出结果。
+  else if (AIR.sinceId) qs.push("since_id=" + AIR.sinceId);
+  const url = "/api/ai_review" + (qs.length ? "?" + qs.join("&") : "");
+  // 强制重算走 POST（会写库 + 花 token）。注意必须带 Content-Type 与 body：
+  // 服务端 POST 分支要求 JSON，缺 header 直接 415（本项目所有 POST 都是这个写法，见 cfgSet/serviceShutdown）。
+  const p = o.force
+    ? api("/api/ai_review/run?provider=" + encodeURIComponent(AIR.provider || ""),
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+    : api(url);
+  return p.then((d) => {
+    AIR.data = d || {};
+    if (d && d.since_id != null) AIR.sinceId = d.since_id || 0;
+    if (!AIR.provider && d && d.providers) {
+      const ready = d.providers.filter((x) => x.ready);
+      if (ready.length) AIR.provider = ready[0].key;
+    }
+    renderAiReview();
+    if (d && d.state === "computing") airStartPoll();
+    else airStopPoll();
+    return d;
+  }).catch((e) => {
+    // 2026-10-29（进哥截图：「一只在刷新不出来」）：
+    // 旧行为：请求失败 → 只往顶栏塞一条「部分数据加载失败」→ 面板里那句
+    // 「正在加载数据…」**永远不会被替换**，看起来就是死在转圈。
+    // 新行为：面板自己说清失败原因与下一步，绝不留一句假的"加载中"。
+    airRenderError(e);
+    throw e;
+  });
+}
+
+/* 面板内失败态：必须能回答「为什么」「我现在能做什么」，而不是留一句加载中。 */
+function airRenderError(e) {
+  const box = $("#p-ai_review");
+  if (!box) return;
+  // 已经有结果就别用错误覆盖掉（轮询失败不该抹掉上一次的可用结论）
+  if (AIR.data && AIR.data.data && AIR.data.data.verdict) return;
+  const msg = (e && (e.message || e.code)) || "未知错误";
+  const isTimeout = !!(e && e.isTimeout);
+  const isNet = !!(e && e.code === "NET");
+  const why = isTimeout
+    ? "后端在 15 秒内没有响应。通常是它正被别的重活占着（抓取/因子计算），不是这条链路坏了。"
+    : isNet
+      ? "连不上本地服务：服务进程可能已退出。刷新页面不会让它回来，需要用启动脚本重开。"
+      : "接口返回了错误，详情见顶栏。";
+  box.innerHTML = `
+    <div class="air-head">
+      <div class="air-hd-l"><b class="air-title">AI 复盘</b></div>
+      <div class="air-hd-r">${airProviderBar()}</div>
+    </div>
+    <div class="air-err">
+      <b>这一次没拿到结果</b>
+      <div>${esc(String(msg))}</div>
+      <div class="air-err-hint">${esc(why)}</div>
+      <button class="btn sm" onclick="airRerun(this)">重试</button>
+    </div>`;
+}
+
+function airStartPoll() {
+  if (AIR.polling) return;
+  AIR.tries = 0;
+  // 前快后慢：模型正常 10~60s 出结果，前 30s 每 3s 问一次，之后 8s 一次，最多约 4 分钟
+  const tick = () => {
+    AIR.tries += 1;
+    if (AIR.tries > 30) { airStopPoll(); return; }
+    const wait = AIR.tries <= 10 ? 3000 : 8000;
+    AIR.polling = setTimeout(() => {
+      AIR.polling = null;
+      loadAiReview().catch(() => { airStopPoll(); });
+    }, wait);
+  };
+  AIR.polling = setTimeout(() => { AIR.polling = null; tick(); }, 2500);
+}
+function airStopPoll() {
+  if (AIR.polling) { clearTimeout(AIR.polling); AIR.polling = null; }
+}
+
+function airProviderBar() {
+  const provs = airList(AIR.data && AIR.data.providers);
+  const used = (AIR.data && AIR.data.provider) || AIR.provider;
+  const btns = provs.map((p) => {
+    const on = p.key === used;
+    const dis = !p.ready;
+    return `<button class="air-prov${on ? " on" : ""}${dis ? " off" : ""}"
+      ${dis ? 'disabled title="未配置该模型的 API Key"' : ""}
+      onclick="airSwitch('${escAttr(p.key)}')">${esc(p.label)}${dis ? "（未配 Key）" : ""}</button>`;
+  }).join("");
+  return `<span class="air-provbar"><span class="air-provlab">用哪个大脑：</span>${btns}</span>`;
+}
+
+function airSwitch(key) {
+  if (!key || key === AIR.provider) return;
+  AIR.provider = key;
+  AIR.sinceId = 0;   // 换模型是全新一轮，旧水位线作废
+  AIR.data = null;
+  airStopPoll();
+  const box = $("#p-ai_review");
+  if (box) box.innerHTML = `<div class="panel-loading">正在用 ${esc(airProviderName(key))} 重新分析…</div>`;
+  loadAiReview({ force: true }).catch((e) => reportLoadError("AI 复盘", e));
+}
+
+function airRerun(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "分析中…"; }
+  loadAiReview({ force: true }).catch((e) => reportLoadError("AI 复盘", e));
+}
+
+/* ============================================================================
+ * AI 可信度卡片（2026-10-31）
+ *
+ * 为什么单独挂一块、不改下面的 5 个渲染分支：复盘面板的分支很多（计算中/无数据/
+ * WorkBuddy 待取/正常/历史），每处都插一次迟早漏。这里用「独立容器 + 每次重绘后
+ * 重新插回」的方式，零侵入。
+ *
+ * 它要回答的问题是：**这个 AI 说的话，到底准不准？**
+ * 数据全部来自系统回填（viewer/review_score.py），不是模型自评 —— 这正是之前缺的。
+ * 样本 <30 条时明确写「只是趋势」，不允许拿 6 天数据冒充准确率。
+ * ========================================================================== */
+let AIR_SCORE = "";
+let AIR_SCORE_BUSY = false;
+
+function buildAiScoreHtml(sc, hy, ev) {
+  const p = ['<div class="asc-card">',
+             '<div class="asc-hd">AI 可信度 <span class="asc-hd-sub">系统按收盘价回填，非模型自评</span></div>'];
+  if (!sc || !sc.ok) {
+    p.push('<div class="asc-note">成绩单暂不可用</div>');
+  } else if (!sc.n_scored) {
+    p.push('<div class="asc-note">还没有到期可回填的判断 —— 复盘后满 5 个交易日出第一批成绩。</div>');
+  } else {
+    if (!sc.min_sample_ok) {
+      p.push('<div class="asc-warn">有效样本 ' + sc.n_scored + ' 条（&lt;30）：命中率只代表趋势，不是结论</div>');
+    }
+    p.push('<div class="asc-grid">');
+    for (const g of (sc.groups || [])) {
+      if (g.kind === "mainline") continue;       // 弱代理，不计入合并
+      const ex = (g.ex5 == null) ? "—" : (g.ex5 > 0 ? "+" : "") + g.ex5.toFixed(2) + "%";
+      const hit = (g.hit5 == null) ? "—" : g.hit5.toFixed(0) + "%";
+      const cls = (g.ex5 == null) ? "" : (g.ex5 > 0 ? "up" : "down");
+      p.push('<div class="asc-item"><span class="asc-lb">' + g.label + '</span>'
+        + '<span class="asc-v ' + cls + '">' + ex + '</span>'
+        + '<span class="asc-sub">T+5 超额 · 命中 ' + hit + ' · n=' + g.n5 + '</span></div>');
+    }
+    p.push('</div>');
+  }
+  if (hy && hy.ok && hy.counts) {
+    const c = hy.counts;
+    p.push('<div class="asc-line">假说回测：成立 ' + (c.confirmed || 0)
+      + ' · 方向相反 ' + (c.opposite || 0)
+      + ' · 幅度不足(不可用) ' + (c.marginal || 0)
+      + ' · 未测出 ' + (c.unsupported || 0) + '</div>');
+  }
+  if (ev && ev.ok) {
+    const st = ev.by_status || {};
+    p.push('<div class="asc-line">实证账本 ' + (ev.asof || "") + '：可用 ' + (st.active || 0)
+      + ' 条 · 已推翻 ' + (st.refuted || 0) + ' 条 · 观察 ' + (st.watch || 0)
+      + ' 条 <span class="asc-dim">（每条都带 t 值与可复现脚本）</span></div>');
+  }
+  p.push('</div>');
+  return p.join("");
+}
+
+function loadAiScore() {
+  AIR_SCORE_BUSY = true;
+  Promise.all([
+    api("/api/review_score").catch(() => null),
+    api("/api/hypothesis").catch(() => null),
+    api("/api/evidence").catch(() => null),
+  ]).then(([sc, hy, ev]) => {
+    AIR_SCORE = buildAiScoreHtml(sc, hy, ev);
+    AIR_SCORE_BUSY = false;
+    paintAiScore();
+  }).catch(() => { AIR_SCORE_BUSY = false; });
+}
+
+function paintAiScore() {
+  const box = $("#p-ai_review");
+  if (!box) return;
+  if (!AIR_SCORE) {                 // 首次进入：拉一次；busy 期间不重复发
+    if (!AIR_SCORE_BUSY) loadAiScore();
+    return;
+  }
+  let el = box.querySelector(".air-score");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "air-score";
+    box.insertBefore(el, box.firstChild || null);
+  }
+  el.innerHTML = AIR_SCORE;
+}
+
+function renderAiReview() {
+  const box = $("#p-ai_review");
+  if (!box) return;
+  const d = AIR.data;
+  if (!d) { box.innerHTML = `<div class="panel-loading">正在加载 AI 复盘…</div>`; return; }
+
+  // 等本次 innerHTML 写完再插回成绩单（否则会被覆盖）。microtask 比 setTimeout 更快。
+  queueMicrotask(paintAiScore);
+
+  const provBar = airProviderBar();
+
+  // —— 还在算：必须给出明确进度，而不是白屏或死转圈
+  if (d.state === "computing") {
+    const sec = d.elapsed_sec || 0;
+    const isWB = (d.provider || AIR.provider) === "workbuddy";
+    // 2026-10-29：WorkBuddy 通道与"调外部 API"是两种等待，不能共用一套文案。
+    // 外部模型：本进程正在调 API，10~60 秒。
+    // WorkBuddy：任务已入队，等主代理来取包 —— 不可能是"自己在算"，必须说清怎么触发。
+    const body = isWB
+      ? `<b>已把 ${esc(d.review_date || "")} 的分析包放进队列（任务 #${esc(String(d.queue_id || "-"))}，${esc(String(d.brief_chars || 0))} 字）</b>
+         <span>已等待 ${esc(String(sec))} 秒。这是「用 WorkBuddy 的算力」通道：查看器不调用任何外部 API，
+         而是把信息包备好，由 WorkBuddy 取走后分析、再回填到这里。<br>
+         去 WorkBuddy 说一句 <code>分析今天的复盘</code> 即可，回来刷新就能看到结果。</span>`
+      : `<b>正在让 ${esc(airProviderName(d.provider || AIR.provider))} 读完 ${esc(d.review_date || "")} 的全部信息再判断…</b>
+         <span>已等待 ${esc(String(sec))} 秒。它在读：市场横截面 / 主线板块 / 龙虎榜 / 政策与公告 / 社区情绪 / 你的持仓 / 你自己的 9 份知识库准则。通常 10~60 秒完成，可以先去别的面板，回来即好。</span>`;
+    box.innerHTML = `
+      <div class="air-head">
+        <div class="air-hd-l"><b class="air-title">AI 复盘</b>
+          <span class="air-sub">${esc(d.review_date || "")} · ${esc(airProviderName(d.provider || AIR.provider))}</span></div>
+        <div class="air-hd-r">${provBar}</div>
+      </div>
+      <div class="air-computing">
+        <div class="air-spin"></div>
+        <div class="air-computing-txt">${body}</div>
+      </div>
+      ${d.partial ? `<div class="air-note">上一份可用结果（${esc(d.partial.review_date || "")}）：${esc((d.partial.data || {}).verdict || "—")}</div>` : ""}`;
+    return;
+  }
+
+  // —— 失败：说清原因，不要假装在算
+  if (d.state === "error" || d.ok === false) {
+    box.innerHTML = `
+      <div class="air-head">
+        <div class="air-hd-l"><b class="air-title">AI 复盘</b></div>
+        <div class="air-hd-r">${provBar}</div>
+      </div>
+      <div class="air-err"><b>这次没能出结果</b><div>${esc(d.error || d.err || "未知错误")}</div>
+        <div class="air-err-hint">常见原因：该模型未配 API Key、额度用尽、或网络不通。修好后点下面重试。</div>
+        <button class="btn sm" onclick="airRerun(this)">重试</button></div>`;
+    return;
+  }
+
+  // —— 还没有任何一份（首份没算过）：给一个明确入口
+  const o = (d && d.data) || {};
+  if (!o || !o.verdict) {
+    box.innerHTML = `
+      <div class="air-head">
+        <div class="air-hd-l"><b class="air-title">AI 复盘</b>
+          <span class="air-sub">${esc(d.review_date || "")}</span></div>
+        <div class="air-hd-r">${provBar}</div>
+      </div>
+      <div class="air-empty">
+        <b>还没有这一天的 AI 复盘</b>
+        <div>点下面按钮，让 ${esc(airProviderName(AIR.provider))} 把当天的市场数据、资金、消息、情绪和你自己的交易体系一起读完，给出一份带理由的判断。</div>
+        <button class="btn sm primary" onclick="airRerun(this)">开始分析</button>
+      </div>`;
+    return;
+  }
+
+  // —— 正常渲染
+  const mr = o.market_read || {};
+  const tk = d.tokens || {};
+  const metaLine = `${esc(d.model || "")} · 耗时 ${((d.elapsed_ms || 0) / 1000).toFixed(1)}s · 输入 ${tk.prompt || 0} + 输出 ${tk.completion || 0} tokens · 喂入 ${d.context_chars || 0} 字 · ${esc(String(d.created_at || "").slice(0, 16))}`;
+
+  // 「它到底读了多少东西」—— 直接把读了的量摆出来，不让"到底有没有在思考"停留在信仰层面
+  const cs = d.context_stats || {};
+  const readBar = (cs.docs || cs.policy || cs.mainlines) ? `
+    <div class="air-readbar">
+      <span class="air-readlab">这次 AI 实际读了：</span>
+      <span class="air-readitem"><b>${cs.sections || 0}</b> 类市场数据</span>
+      <span class="air-readitem"><b>${cs.mainlines || 0}</b> 条主线</span>
+      <span class="air-readitem"><b>${cs.lhb || 0}</b> 只龙虎榜个股</span>
+      <span class="air-readitem"><b>${cs.policy || 0}</b> 条政策要闻</span>
+      <span class="air-readitem"><b>${cs.hot_stocks || 0}</b> 只热议股</span>
+      <span class="air-readitem air-readhi"><b>${cs.docs || 0}</b> 份你自己的知识库</span>
+      <span class="air-readitem air-readhi"><b>${cs.rules || 0}</b> 条数据自生长规则</span>
+    </div>` : "";
+
+  const evHtml = airList(mr.key_evidence).length
+    ? `<ul class="air-ev">${airList(mr.key_evidence).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+
+  const lineRows = airList(o.mainlines).map((m) => `
+    <div class="air-line">
+      <div class="air-line-hd"><b>${esc(m.sector)}</b>
+        <span class="air-chip ${airToneCls(m.stage)}">${esc(m.stage || "—")}</span>
+        <span class="air-chip air-chip-dim">持续性 ${esc(m.sustainability || "—")}</span></div>
+      <div class="air-line-logic">${esc(m.logic || "")}</div>
+      ${m.risk ? `<div class="air-line-risk">⚠ ${esc(m.risk)}</div>` : ""}
+    </div>`).join("");
+
+  const oppRows = airList(o.opportunities).map((x) => `
+    <div class="air-opp">
+      <div class="air-opp-hd">${x.symbol ? codeLink(x.symbol, { text: x.name || x.symbol, cls: "air-sym" }) : `<b class="air-sym">${esc(x.name || "—")}</b>`}</div>
+      <div class="air-opp-body">
+        <div><span class="air-k">逻辑</span>${esc(x.thesis || "")}</div>
+        <div><span class="air-k">动手条件</span>${esc(x.trigger || "")}</div>
+        <div class="air-invalidate"><span class="air-k">证伪</span>${esc(x.invalidate || "")}</div>
+      </div>
+    </div>`).join("");
+
+  const riskRows = airList(o.risks).map((x) => `
+    <div class="air-risk">
+      <span class="air-chip ${airToneCls(x.level)}">${esc(x.level || "—")}</span>
+      <b>${esc(x.label || "")}</b><span class="air-risk-d">${esc(x.detail || "")}</span>
+    </div>`).join("");
+
+  const pfRows = airList(o.portfolio_advice).map((x) => `
+    <div class="air-pf">
+      <span class="air-chip ${airToneCls(x.advice)}">${esc(x.advice || "—")}</span>
+      <b>${esc(x.name || "")}</b><span class="air-risk-d">${esc(x.reason || "")}</span>
+    </div>`).join("");
+
+  // 分歧区 —— 本面板的重点，单独高亮。
+  // 排版取舍：初版把「规则引擎会认为 | 模型判断」做成同一行左右两段（inline），
+  // 实测两列被 1fr 1fr 拉得很开、中间大片空白，读的时候要左右横跳。
+  // 改成「标签在上、正文在下」的对照卡片，左弱右强，视线只需上下比。
+  const disRows = airList(o.disagreements).map((x) => `
+    <div class="air-dis">
+      <div class="air-dis-q">${esc(x.point || "")}</div>
+      <div class="air-dis-vs">
+        <div class="air-dis-rule"><span class="air-k">规则引擎</span><div class="air-dis-txt">${esc(x.rule_view || "")}</div></div>
+        <div class="air-dis-mine"><span class="air-k">模型判断</span><div class="air-dis-txt">${esc(x.my_view || "")}</div></div>
+      </div>
+      <div class="air-dis-why"><span class="air-k air-k-inline">为什么</span>${esc(x.why || "")}</div>
+    </div>`).join("");
+
+  const vl = o.vs_last || {};
+  const vlHtml = vl.available
+    ? `<div class="air-vs">
+        ${airList(vl.hit).length ? `<div class="air-vs-row air-vs-hit"><span class="air-k">兑现</span><ul>${airList(vl.hit).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+        ${airList(vl.miss).length ? `<div class="air-vs-row air-vs-miss"><span class="air-k">没兑现</span><ul>${airList(vl.miss).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      </div>`
+    : `<div class="air-vs-empty">${esc(airList(vl.miss)[0] || "首次复盘，暂无历史可对照。明天起这里会显示「昨天说的今天兑现没有」。")}</div>`;
+
+  const actHtml = airList(o.actions).map((x, i) => `<div class="air-act"><span class="air-act-n">${i + 1}</span>${esc(x)}</div>`).join("");
+
+  const conf = o.confidence;
+  const confBar = conf == null ? "" : `
+    <div class="air-conf"><span class="air-conf-lab">置信度</span>
+      <div class="air-conf-bar"><i style="width:${Math.max(2, Math.min(100, conf))}%"></i></div>
+      <b>${esc(String(conf))}</b><span class="air-conf-unit">/100</span></div>`;
+
+  box.innerHTML = `
+    <div class="air-head">
+      <div class="air-hd-l"><b class="air-title">AI 复盘</b>
+        <span class="air-sub">${esc(d.review_date || "")} · ${esc(airProviderName(d.provider))}</span></div>
+      <div class="air-hd-r">${provBar}<button class="btn sm" onclick="airRerun(this)" title="跳过缓存，重新让模型分析一次（会花 token）">重新分析</button></div>
+    </div>
+    <div class="air-meta">${metaLine}</div>
+    ${readBar}
+
+    <div class="air-verdict">
+      <div class="air-v-tag">核心判断</div>
+      <div class="air-v-text">${esc(o.verdict || "—")}</div>
+      ${confBar}
+    </div>
+
+    <div class="air-grid2">
+      <div class="air-card">
+        <div class="air-card-hd"><b>① 市场怎么读</b><span class="air-card-sub">${esc(mr.state || "")}</span></div>
+        <div class="air-card-bd">
+          <div class="air-logic">${esc(mr.logic || "")}</div>
+          ${evHtml}
+        </div>
+      </div>
+      <div class="air-card">
+        <div class="air-card-hd"><b>② 今天该做什么</b><span class="air-card-sub">最多 3 条</span></div>
+        <div class="air-card-bd">${actHtml || `<div class="air-empty-inline">无</div>`}</div>
+      </div>
+    </div>
+
+    <div class="air-card">
+      <div class="air-card-hd"><b>③ 主线与阶段</b><span class="air-card-sub">${airList(o.mainlines).length} 条</span></div>
+      <div class="air-card-bd air-lines">${lineRows || `<div class="air-empty-inline">无明确主线</div>`}</div>
+    </div>
+
+    <div class="air-card">
+      <div class="air-card-hd"><b>④ 机会（带动手条件与证伪条件）</b><span class="air-card-sub">不是"推荐"，是"什么条件下才算"</span></div>
+      <div class="air-card-bd air-opps">${oppRows || `<div class="air-empty-inline">模型认为当前没有值得动手的机会 —— 空仓也是一种判断</div>`}</div>
+    </div>
+
+    <div class="air-grid2">
+      <div class="air-card">
+        <div class="air-card-hd"><b>⑤ 风险</b></div>
+        <div class="air-card-bd">${riskRows || `<div class="air-empty-inline">无</div>`}</div>
+      </div>
+      <div class="air-card">
+        <div class="air-card-hd"><b>⑥ 你的持仓怎么办</b></div>
+        <div class="air-card-bd">${pfRows || `<div class="air-empty-inline">无持仓数据</div>`}</div>
+      </div>
+    </div>
+
+    <div class="air-card air-card-hl">
+      <div class="air-card-hd"><b>⑦ 模型与规则引擎的分歧</b><span class="air-card-sub">这一栏就是「有没有真在思考」的证据</span></div>
+      <div class="air-card-bd air-diss">${disRows || `<div class="air-empty-inline">这一次模型与规则打分没有分歧</div>`}</div>
+    </div>
+
+    <div class="air-card">
+      <div class="air-card-hd"><b>⑧ 上一份判断兑现了没有</b></div>
+      <div class="air-card-bd">${vlHtml}</div>
+    </div>
+
+    <div class="air-foot">
+      <span>本页判断由 ${esc(airProviderName(d.provider))} 基于上述数据自动生成，每次调用可审计（模型/耗时/token/喂入字数均落库）。仅供研究参考，不构成投资建议。</span>
+      <button class="btn sm" onclick="airLoadHist()" title="查看历史复盘">历史复盘</button>
+    </div>
+    <div id="air-hist"></div>`;
+
+  if (AIR.hist) airRenderHist();
+}
+
+function airLoadHist() {
+  return api("/api/ai_review/history?limit=30").then((d) => {
+    AIR.hist = d || { items: [] };
+    airRenderHist();
+  }).catch((e) => setHint("历史复盘加载失败：" + apiErrText(e)));
+}
+
+function airRenderHist() {
+  const box = $("#air-hist");
+  if (!box) return;
+  const items = airList((AIR.hist || {}).items);
+  if (!items.length) { box.innerHTML = `<div class="air-hist-empty">还没有历史记录。</div>`; return; }
+  const rows = items.map((x) => `
+    <div class="air-hist-row${x.status === "ok" ? "" : " bad"}">
+      <span class="air-hist-d">${esc(x.review_date || "")}</span>
+      <span class="air-hist-p">${esc(x.provider || "")}</span>
+      <span class="air-hist-v">${esc(x.verdict || (x.err ? "（失败：" + x.err + "）" : "—"))}</span>
+      <span class="air-hist-t">${x.elapsed_ms ? ((x.elapsed_ms / 1000).toFixed(1) + "s") : ""}</span>
+    </div>`).join("");
+  box.innerHTML = `<div class="air-card"><div class="air-card-hd"><b>历史复盘</b>
+    <span class="air-card-sub">每天一份，可回看当时的判断</span></div>
+    <div class="air-card-bd air-hist">${rows}</div></div>`;
+}
+
 function renderToday() {
   const box = $("#p-today");
   if (!box) return;
@@ -3821,7 +4530,7 @@ function quantRefHtml(d) {
 }
 
 /* M7（2026-10-17）：今日决策页「ETF 融合信号」证据流（与量化信号对称）。
- * 把 ETF 板块资金流 / 跨境风险传导 / 宽基仓位 regime / 博主共振环境态 / 信息面 Top
+ * 把 ETF 板块资金流 / 跨境风险传导 / 宽基仓位 regime / 多源共振环境态 / 信息面 Top
  * 聚合成一眼可扫的证据条。数据来自 TODAY.data.etf_overlay / resonance / info_brief。 */
 function renderEtfFusion() {
   const box = $("#td-etf-fusion");
@@ -3873,12 +4582,12 @@ function renderEtfFusion() {
       + `${bb.avg_pct != null ? " · " + pct(bb.avg_pct) : ""}</span></div>`);
   }
 
-  // 4) 博主共振环境态
+  // 4) 多源共振环境态
   const ms = res.market_state;
   if (ms) {
     const tops = toArr(res.top_sectors).slice(0, 5)
       .map((s) => `<span class="bf-chip">${esc(s[0])}<i>${s[1]}</i></span>`).join("");
-    rows.push(`<div class="q-ref-row"><span class="q-ref-tag">博主共振</span><span class="s">环境态 <b>${esc(ms)}</b>${tops ? " · 共振板块：" + tops : ""}</span></div>`);
+    rows.push(`<div class="q-ref-row"><span class="q-ref-tag">多源共振</span><span class="s">环境态 <b>${esc(ms)}</b>${tops ? " · 共振板块：" + tops : ""}</span></div>`);
   }
 
   // 5) 信息面 Top
@@ -3889,7 +4598,7 @@ function renderEtfFusion() {
   }
 
   if (!rows.length) {
-    box.innerHTML = `<div class="q-ref-row muted">ETF / 博主共振 / 信息面信号暂未就绪（详见对应独立页）</div>`;
+    box.innerHTML = `<div class="q-ref-row muted">ETF / 多源共振 / 信息面信号暂未就绪（详见对应独立页）</div>`;
     return;
   }
   const asof = ov.as_of ? `<span class="s muted" style="margin-left:8px">数据截至 ${esc(ov.as_of)}</span>` : "";
@@ -5714,1323 +6423,144 @@ function renderGeoPanel(panelKey, cid, label) {
     .catch((e) => { const h = document.querySelector(sel); if (h) h.innerHTML = `<div class="empty">${esc(label)}加载失败：${esc(apiErrText(e))}</div>`; });
 }
 
-/* ================= 外部参考（extref）· 第三方判断信号 =================
-   隔离声明（硬性）：本组面板只消费 /api/extref_*，DOM 类名统一 ex-* 前缀，
-   不复用「实盘选手」「行情研判」的渲染函数与样式——外部主体的判断与本项目自采数据
-   在可信度口径上不同，混在一处会相互稀释（用户明确要求隔离）。 */
-let EXTREF = { data: null };
+/* ================= 板块热度榜（2026-10-29 进哥拍板） =================
+   博主/论坛的荐股 —— 谁推了什么票、看多看空、事后涨没涨 —— 从此**不再展示、不进打分**，
+   只保留「注意力」这一个维度，并且在**板块**层面聚合：哪个板块被聊得多，哪个就热。
 
-function exChip(html, cls) {
-  return `<span class="ex-chip${cls ? " " + cls : ""}">${html}</span>`;
-}
-function exTierBadge(tier, label) {
-  return `<span class="ex-tier t-${escAttr(String(tier || "").toLowerCase())}">${esc(label || tier || "")}</span>`;
-}
-function exStatusBadge(status, label) {
-  return `<span class="ex-status s-${escAttr(String(status || ""))}">${esc(label || status || "")}</span>`;
-}
-function exDirBadge(dir) {
-  const m = { "看多": "bull", "看空": "bear", "中性": "neu" };
-  return `<span class="badge ${m[dir] || "neu"}">${esc(dir || "中性")}</span>`;
-}
-function exExtLink(url, text) {
-  return url
-    ? `<a class="ex-link" href="${escAttr(url)}" target="_blank" rel="noopener">${esc(text || "原文")}</a>`
-    : "";
-}
-/* 行内「＋导入」（2026-09-27 加）：
-   2026-10-02 王总反馈「让我导资料、我又没有数据可倒」→ 已从信源表行内撤掉（见 exSrcTable 调用处），
-   只保留函数兜底，手动补录入口改在软件荐股雷达底部的技术折叠里，不再当主操作。 */
-function exImportLink(s) {
-  const acc = String((s && s.access) || "");
-  if (acc !== "manual" && acc !== "mcp") return "";
-  return `<span class="ex-imp-row" data-ex-import="${escAttr((s && s.src_key) || "")}"
-    title="把该 App / 平台复制或导出的荐股名单粘进来，自动结构化入库并回测">＋导入</span>`;
-}
-function exSrcTable(list, title) {
-  if (!list.length) return "";
-  const rows = list.map((s) => `<tr class="ex-src-row" data-ex-src="${escAttr(s.src_key || "")}" tabindex="0"
-      title="点击查看该信源的作用 / 价值 / 接入路径">
-      <td class="ex-nm"><b>${esc(s.name)}</b>${s.licensed === 1
-        ? '<span class="ex-lic" title="持有证监会证券投资咨询牌照">持牌</span>' : ""}
-        <div class="ex-vendor">${esc(s.vendor || "")}</div></td>
-      <td>${exTierBadge(s.tier, s.tier_label)}</td>
-      <td class="ex-kd">${esc(s.kind_label || "")}</td>
-      <td class="ex-ac">${esc(s.access_label || "")}</td>
-      <td>${exStatusBadge(s.status, s.status_label)}</td>
-      <td class="ex-note">${esc(s.note || "")}${s.url ? " " + exExtLink(s.url, "入口") : ""}
-        <span class="ex-more">详情 ›</span></td>
-    </tr>`).join("");
-  return `<section class="ex-sec"><h3>${esc(title)}<span class="ex-h3-hint">点任意一行看 作用 / 价值 / 接入路径</span></h3>
-    <div class="ex-tw"><table class="ex-tb ex-tb-click">
-      <thead><tr><th>信源</th><th>分档</th><th>类型</th><th>取数通道</th><th>状态</th><th>说明</th></tr></thead>
-      <tbody>${rows}</tbody></table></div></section>`;
-}
-/* 2026-10-02 王总「这块功能设计我不知道你的用意 / 能给我带来什么，让我导资料乱七八糟」重做：
-   旧设计：信源表每行挂一个「＋导入」，点开是让你**手动粘贴 App 导出的名单**；状态永远是写死的「待接入」，
-   导不导都不变——对王总这种没有名单可导的人，这就是个死结（他自己说的「我又没有数据可倒」）。
-   新设计三原则：
-     ① 状态由**实际入库信号条数**反推（有信号才叫「在供数」），不再信那个写死的 status 字段；
-     ② 主界面只留「在供数」的活信源 + 未供数折叠清单，不铺 33 行全表；
-     ③ 只有能**点出结果**的按钮放主界面（采集 / 回测），「手动补录」塞进技术折叠。 */
+   所以这张表刻意没有方向、没有个股推荐、没有收益、没有博主名：
+     · 「代表股」只给**被提及次数**，不给涨跌、不给目标价、不给推荐人；
+     · 热度条用中性的金橙色，**不用红绿** —— 红绿在本站是涨跌语义，用在这儿会被读成涨跌；
+     · 环比用「占全站讨论的百分点变化」，不是涨跌幅，因为这不是价格。
+   后续迭代请勿把这些字段加回来 —— 加回来就等于把荐股换个皮重新上台面。 */
+const PH = { data: null, loading: false, err: "" };
 
-/* 2026-10-02 方案 C（王总选定「C」）：整页重排为「外部荐股验证报告」。
-   王总原话：「它不能对判断产生指导性/建议性的结论的情况下，那它连存在的意义都没有。
-   要么让它产生价值，要么删掉——现在这样放在这儿也多余。」
-   四条硬原则：
-     ① 顶部**一句真结论 + 三个数**，全部来自后端 report（只统计已回填真实行情，绝不写 0）；
-     ② 30 个没采集器的空源整块删掉，一句小字交代「对判断零贡献，已从本页剔除」；
-     ③ 明细里股票代码保持可点（与「社区共识信号」一致）；
-     ④ 底部只留「继续采集」一个动作，并说明「采集完自动回测、样本到 20 条自动升级结论」。 */
-function rdPct(v) {
-  if (v === null || v === undefined || v === "") return `<span class="ex-na">—</span>`;
-  const n = Number(v);
-  if (!isFinite(n)) return `<span class="ex-na">—</span>`;
-  const cls = n > 0 ? "bull" : (n < 0 ? "bear" : "");
-  return `<span class="${cls}">${(n > 0 ? "+" : "") + n.toFixed(2)}%</span>`;
+/* 热度分 → 条宽。0 分也留 2% 的一丝底边，让用户看得出「它在榜上但几乎没人聊」，
+   而不是渲染成空白看着像加载失败。 */
+function phBarW(v) {
+  const n = Number(v) || 0;
+  return Math.max(2, Math.min(100, n));
 }
-/* KPI 里的百分比：数字本身来自后端，只做着色与格式化（正=红 bull / 负=绿 bear，A 股口径）。 */
-function rdPctPlain(v) {
-  if (v === null || v === undefined || v === "" || !isFinite(Number(v))) return "—";
-  const n = Number(v);
-  const cls = n > 0 ? "bull" : (n < 0 ? "bear" : "");
-  return `<span class="${cls}">${(n > 0 ? "+" : "") + n.toFixed(2)}%</span>`;
-}
-function rdWin(x) {
-  const o = x || {};
-  if (!o.n) return `<span class="ex-na">无样本</span>`;
-  return `${rdPct(o.avg)}<div class="rd-win">胜率 ${Number(o.win_rate || 0).toFixed(1)}%</div>`;
-}
-function renderRadarSoft(data) {
-  const rp = (data && data.report) || {};
-  const doneN = Number(rp.done_n || 0);
-  const w = rp.windows || {};
-  const minN = Number(rp.min_sample || 20);
-  const gapN = Number(rp.gap || 0);
-  const lossN = Number(rp.loss_n || 0);
-  const usable = rp.grade === "usable";
-  const grade = usable
-    ? `<span class="rd-grade usable">可作依据 · 已达 ${minN} 条</span>`
-    : `<span class="rd-grade reference">参考 · 未达 ${minN} 条及格线${gapN ? `（还差 ${gapN} 条）` : ""}</span>`;
-  const worstAvg = Number((rp.worst && rp.worst.avg) || 0);
-  const tone = (!rp.best || worstAvg < 0) ? "bad" : "good";
-  const kpi = (num, label, sub) =>
-    `<div class="rd-kpi"><div class="rd-kpi-n">${num}</div>` +
-    `<div class="rd-kpi-l">${esc(label)}</div><div class="rd-kpi-s">${esc(sub || "")}</div></div>`;
-  const kpis = [
-    kpi(String(doneN), "已回填真实样本", doneN >= minN ? `已达 ${minN} 条及格线` : `还差 ${gapN} 条才可作依据`),
-    kpi(rdPctPlain(w.t5 && w.t5.avg), "T+5 平均收益", w.t5 && w.t5.n ? `胜率 ${Number(w.t5.win_rate || 0).toFixed(1)}% · ${w.t5.n} 条` : "暂无回填样本"),
-    kpi(`${lossN} / ${doneN || 0}`, "亏损条数", doneN ? `占 ${(((lossN / doneN) * 100) || 0).toFixed(0)}%` : "暂无回填样本"),
-  ].join("");
-  const srcRows = toArr(rp.by_source).map((s) => `<tr>
-      <td class="ex-nm"><b>${esc(s.src_name || "")}</b><div class="ex-vendor">已回填 ${esc(String(s.done_n || 0))} 条</div></td>
-      <td>${rdWin((s.windows || {}).t1)}</td>
-      <td>${rdWin((s.windows || {}).t5)}</td>
-      <td>${rdWin((s.windows || {}).t10)}</td></tr>`).join("");
-  const detailRows = toArr(rp.detail).map((d) => {
-    const code = String(d.symbol || "");
-    const sym = /^\d{6}$/.test(code)
-      ? `<span class="stk-mini" data-ex-sym="${escAttr(code)}" title="点击查看该股详情">${esc(code)}</span>`
-      : (code ? `<span class="ex-code">${esc(code)}</span>` : "");
-    return `<tr>
-      <td class="ex-date">${esc(d.pub_date || "")}</td>
-      <td class="ex-nm">${sym}<div class="ex-vendor">${esc(d.symbol_name || "")}</div></td>
-      <td class="ex-note">${esc(d.src_name || "")}</td>
-      <td>${esc(d.direction || "—")}</td>
-      <td>${rdPct(d.t1)}</td><td>${rdPct(d.t5)}</td><td>${rdPct(d.t10)}</td></tr>`;
-  }).join("");
-  const noneN = toArr(data && data.sources).filter((s) => Number(s.sig_n || 0) <= 0).length;
-  return `<section class="rd-top">
-      <div class="rd-hd"><h2>外部荐股验证报告</h2>${grade}</div>
-      <div class="rd-v ${tone}">${esc(rp.verdict || "暂无可验证样本。")}</div>
-      <div class="rd-kpis">${kpis}</div>
-      <div class="rd-gn">${esc(rp.grade_note || "")}</div>
-    </section>
-    ${srcRows ? `<section class="ex-sec"><h3>分信源对照（只列已回填的真实收益）</h3>
-      <div class="ex-tw"><table class="ex-tb">
-        <thead><tr><th>信源</th><th>T+1</th><th>T+5</th><th>T+10</th></tr></thead>
-        <tbody>${srcRows}</tbody></table></div></section>` : ""}
-    ${detailRows ? `<section class="ex-sec"><h3>逐条核对（${doneN} 条 · 代码可点 · 全部为已回填真实行情）</h3>
-      <div class="ex-tw"><table class="ex-tb">
-        <thead><tr><th>发布日</th><th>代码 / 名称</th><th>信源</th><th>方向</th><th>T+1</th><th>T+5</th><th>T+10</th></tr></thead>
-        <tbody>${detailRows}</tbody></table></div></section>` : `<div class="empty">还没有任何一条外部荐股的真实收益被回填——本页不编数，先跑下方「继续采集」。</div>`}
-    <section class="ex-sec"><h3>继续长样本</h3>
-      <div class="ex-ch-actions">
-        <button class="btn-s" data-ex-collect="em-guba-rank">继续采集（东财人气榜）</button>
-      </div>
-      <div class="ex-ch-note">采集入库后系统顺带回填 T+1 / 5 / 10 真实收益；样本满 ${minN} 条，上面这句结论会自动从「参考」升级为「可作依据」。</div>
-      ${noneN ? `<div class="ex-ch-note">另有 ${esc(String(noneN))} 个软件信源尚未接入（没有采集器），对当前判断零贡献，已从本页剔除。</div>` : ""}
-    </section>`;
-}
-function exSignalCard(s) {
-  const code = String(s.symbol || "");
-  const symHtml = code
-    ? (/^\d{6}$/.test(code)
-        ? `<span class="stk-mini" data-ex-sym="${escAttr(code)}" title="点击查看该股详情">${esc(code)}</span>`
-        : `<span class="ex-code">${esc(code)}</span>`)
-    : "";
-  return `<article class="ex-card ex-click" data-ex-sid="${escAttr(s.sid || "")}" tabindex="0"
-      title="点击查看信号详情（简介 / 收益 / 分析报告）">
-    <div class="ex-c-hd">
-      ${exDirBadge(s.direction)}
-      <b class="ex-c-nm">${esc(s.symbol_name || "")}</b>${symHtml}
-      <span class="ex-c-sec">${esc(s.sector || "")}</span>
-      <span class="ex-c-sp"></span>
-      <span class="ex-hd ${s.hardness === "hard" ? "hard" : "soft"}" title="${escAttr(s.hardness_label || "")}">${esc(s.hardness_label || "")}</span>
-      <span class="ex-date">${esc(s.pub_date || "")}</span>
-    </div>
-    <div class="ex-c-rs">${esc(s.reason || "")}</div>
-    <div class="ex-c-claim"><span class="ex-q">原始口径</span>${esc(s.claim || "")}</div>
-    <div class="ex-c-ft">
-      <span class="ex-src">${esc(s.src_name || "")}</span>
-      ${toArr(s.tags).map((t) => `<span class="ex-tag">${esc(t)}</span>`).join("")}
-      ${exExtLink(s.url, "查看来源")}
-      <span class="ex-more">详情 ›</span>
-    </div>
-  </article>`;
-}
-function exRankTable(rank) {
-  if (!rank.length) return "";
-  const rows = rank.map((r) => {
-    const wr = r.rankable
-      ? `<b class="${(r.win_rate_5 || 0) >= 50 ? "bull" : "bear"}">${r.win_rate_5}%</b>`
-      : `<span class="ex-na">样本不足</span>`;
-    const av = r.rankable ? esc((r.avg_ret_5 > 0 ? "+" : "") + r.avg_ret_5 + "%") : "—";
-    return `<tr class="ex-rank-row" data-ex-src="${escAttr(r.src_key || "")}" tabindex="0"
-      title="点击查看该信源的作用 / 价值 / 接入路径">
-      <td class="ex-nm"><b>${esc(r.src_name)}</b><span class="ex-more">详情 ›</span></td>
-      <td>${exTierBadge(r.src_tier, r.tier_label)}</td>
-      <td class="ex-kd">${esc(r.kind_label || "")}</td>
-      <td class="ex-num">${r.signals_n}</td>
-      <td class="ex-num">${r.done_n}</td>
-      <td class="ex-num">${wr}</td>
-      <td class="ex-num">${av}</td>
-      <td class="ex-note">${esc(r.sample_note || "")}</td>
-    </tr>`;
-  }).join("");
-  return `<section class="ex-sec"><h3>信源胜率榜（按 5 日胜率排序，样本不足置底 · 点任意一行看信源详情）</h3>
-    <div class="ex-tw"><table class="ex-tb ex-tb-click">
-      <thead><tr><th>信源</th><th>分档</th><th>类型</th><th>信号数</th><th>已回填</th><th>5日胜率</th><th>5日均收益</th><th>备注</th></tr></thead>
-      <tbody>${rows}</tbody></table></div></section>`;
-}
-function paintExtrefInto(cid, d, opts) {
-  const host = $(cid); if (!host) return;
-  const o = opts || {}, mode = o.mode || "soft";
-  const st = (d && d.stats) || {};
-  const sources = toArr(d && d.sources);
-  const signals = toArr(d && d.signals);
-  const rank = toArr(d && d.rank);
-  const meta = (d && d.meta) || {};
-  const red = meta.red_line || st.red_line || null;
-  const out = [];
 
-  out.push(`<div class="ex-head"><h2>${esc(o.label || "外部参考")}</h2>` +
-    `<button class="btn-s" data-ex-refresh>同步信号库</button></div>`);
-  /* 2026-10-02 王总「简单直接明了」：这组统计 chip（信源 33 家 / 持牌机构 21 家 / 已回填 8·待回填 41）
-     和 A/B/C/D 档位图例是三个面板共用的，在「软件荐股雷达」上属于噪音，还会和新的
-     「在供数 3 / 未供数 30」口径打架（「信源 33 家」读起来像 33 个都在干活）。
-     雷达页的顶部只留一句结论 + 三个数（见 renderRadarSoft 的 .rd-top）。 */
-  if (mode !== "soft") {
-    out.push(`<div class="ex-stats">` +
-      exChip("信源 <b>" + (st.sources_total || 0) + "</b> 家") +
-      exChip("信号 <b>" + (st.signals_total || 0) + "</b> 条") +
-      exChip("持牌机构 <b>" + (st.licensed_n || 0) + "</b> 家") +
-      exChip("已回填 <b>" + (st.pnl_done || 0) + "</b> · 待回填 <b>" + (st.pnl_pending || 0) + "</b>", "warn") +
-      `</div>`);
-    out.push(`<div class="ex-legend">` + toArr(st.tiers).map((t) =>
-      exTierBadge(t.key, t.label) + `<span class="ex-ld">${esc(t.desc)}</span>`).join("") + `</div>`);
+function phChg(v) {
+  if (v === null || v === undefined || v === "") {
+    return `<span class="ph-chg-na" title="前后窗口占比均需≥3% 才计算；样本太薄时一律显示「—」">—</span>`;
   }
-
-  if (mode === "rank") {
-    out.push(exRankTable(rank));
-    out.push(`<div class="ex-note-box">榜单只统计 <b>已回填</b>（pnl_status=done）的信号，样本 &lt;5 条不给胜率。` +
-      `当前 <b>${st.pnl_done || 0}</b> 条已回填、<b>${st.pnl_pending || 0}</b> 条待回填——事后收益要等对应交易日走完才能补，` +
-      `<b>未回填前一律不显示数字</b>（不写 0，避免被读成「零收益」）。</div>`);
-  } else if (mode === "soft") {
-    out.push(renderRadarSoft(d));
-    if (red && red.items) {
-      out.push(`<section class="ex-sec"><h3>${esc(red.title || "合规红线（不接入）")}</h3>` +
-        `<div class="ex-red"><ul>` + toArr(red.items).map((x) => `<li>${esc(x)}</li>`).join("") +
-        `</ul><div class="ex-red-note">${esc(red.note || "")}</div></div></section>`);
-    }
-  } else {
-    const sig = signals.filter((s) => s.src_kind === "rank" || s.src_kind === "community");
-    out.push(`<section class="ex-sec"><h3>社区共识信号（${sig.length} 条）</h3>` +
-      `<div class="ex-cards">` + (sig.length ? sig.map(exSignalCard).join("")
-        : `<div class="empty">暂无社区信号</div>`) + `</div></section>`);
-    out.push(exSrcTable(sources.filter((s) => s.tier === "C" || s.tier === "D"),
-      "信源清单 · 社区与公开榜单"));
-  }
-
-  out.push(`<details class="ex-src-d"><summary>口径与隔离说明</summary><ul>` +
-    `<li>${esc(meta.honesty || "")}</li><li>${esc(meta.isolation || "")}</li>` +
-    `<li>信号日期为各来源页面或快照的时点，不代表当前状态。</li></ul></details>`);
-
-  host.innerHTML = out.join("");
-  // 信源表整行 → 信源详情抽屉（键盘 Enter 也可）
-  $$(cid + " [data-ex-src]").forEach((el) => {
-    el.onclick = (e) => { if (e.target.closest("a")) return; openExtrefSource(el.dataset.exSrc, el); };
-    el.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); openExtrefSource(el.dataset.exSrc, el); } };
-  });
-  // 信号卡（及卡内 stk-mini 之外的区域）→ 信号详情抽屉
-  $$(cid + " [data-ex-sid]").forEach((el) => {
-    el.onclick = (e) => { if (e.target.closest("a")) return; openExtrefSignal(el.dataset.exSid, el); };
-    el.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); openExtrefSignal(el.dataset.exSid, el); } };
-  });
-  // 卡内股票小标签 → 完整个股抽屉；stopPropagation 避免同时触发信号卡
-  $$(cid + " [data-ex-sym]").forEach((el) => {
-    el.onclick = (e) => { e.stopPropagation(); openStock(el.dataset.exSym, el); };
-  });
-  // 取数通道动作按钮
-  $$(cid + " [data-ex-collect]").forEach((el) => { el.onclick = () => extrefCollect(el); });
-  const bb = $(cid + " [data-ex-backtest]");
-  if (bb) bb.onclick = () => extrefBacktest(bb);
-  const rb = $(cid + " [data-ex-refresh]");
-  if (rb) rb.onclick = extrefRefresh;
-  // 人工导入按钮（面板级 + 抽屉级共用同一弹窗；preset 为空则弹窗内用下拉默认选第一项）
-  $$(cid + " [data-ex-import]").forEach((el) => {
-    el.onclick = () => openExtrefImportModal(el.dataset.exImport || null);
-  });
-}
-
-/* P2-1：外部荐股验证面板子导航（验证报告 / 社区共识 / 信源榜）——合并原三个并列面板。
-   共用同一份 EXTREF.data，零额外请求；默认显示验证报告，点子导航切换另外两个子视图。 */
-function ensureExtrefShell() {
-  const root = $("#p-extref_soft");
-  if (!root || root.dataset.exShell) return;
-  root.dataset.exShell = "1";
-  root.innerHTML = `
-    <div class="panel-subnav ex-subnav">
-      <button type="button" class="subnav-btn active" data-ex="soft">验证报告</button>
-      <button type="button" class="subnav-btn" data-ex="comm">社区共识</button>
-      <button type="button" class="subnav-btn" data-ex="rank">信源榜</button>
-      <span class="subnav-slot"></span>
-    </div>
-    <div class="ex-sub" data-mode="soft"></div>
-    <div class="ex-sub" data-mode="comm" style="display:none"></div>
-    <div class="ex-sub" data-mode="rank" style="display:none"></div>`;
-  $$(".subnav-btn", root).forEach((b) => {
-    b.onclick = () => {
-      const which = b.dataset.ex;
-      $$(".subnav-btn", root).forEach((x) => x.classList.toggle("active", x === b));
-      $$(".ex-sub", root).forEach((el) => { el.style.display = el.getAttribute("data-mode") === which ? "" : "none"; });
-    };
-  });
-}
-
-function loadExtref() {
-  return api("/api/extref_signals").then((d) => {
-    EXTREF.data = d;
-    ensureExtrefShell();
-    paintExtrefInto("#p-extref_soft .ex-sub[data-mode='soft']", d, { mode: "soft", label: "荐股验证报告" });
-    paintExtrefInto("#p-extref_soft .ex-sub[data-mode='comm']", d, { mode: "comm", label: "社区共识" });
-    paintExtrefInto("#p-extref_soft .ex-sub[data-mode='rank']", d, { mode: "rank", label: "信源胜率榜" });
-    injectFreshChip("#p-extref_soft .subnav-slot", "extref");      // P0-3 保鲜角标
-    extrefAutoBackfill(d);
-  }).catch((e) => reportLoadError("外部参考", e));
-}
-
-/* ================= 博主荐股 / 当红参赛股（2026-10-01 新增）=================
-   同属「别人怎么看」，两个子板块（p-blogger / p-contest）。
-
-   口径诚实（硬性，不改写源数据）：
-     · blogger_reco 的「推荐以来涨跌幅」= **荐股发布后的区间收益**，来自人工维护的源表，
-       不是本项目的模型输出；界面上标注口径，不冒充自有算法。
-     · contest 最新一期常「刚发布、尚未结算」，此时 week_gain / points 为 null，
-       一律渲染成「—」，**绝不渲染成 0**——0 会被读成「没赚没亏」，与「还没算」是两回事。
-     · 涨跌配色按中国习惯：红涨绿跌；「空仓」等无标的参赛者如实保留排名，不剔除。
-
-   一次拉全量（明细 237 条 + 效果对比 + 重复推荐 + 参赛名单，合计 <300KB），
-   筛选 / 搜索 / 排序 / 切期全在前端内存做：交互零延迟，也不打爆后端。 */
-/* 2026-10-01 王总要求：237 条平铺太乱 → 按「建股日期」倒序分组（近日期在前）；
-   组内按收益排；卡片直显 T+3/T+5/T+10（荐股日收盘为基准）；点开抽屉看完整节奏。
-   perf 为 { key: row } 查表，key = `${blogger}|${rec_date}|${code}`。 */
-/* 2026-10-01 王总要求：28 组还是太长 → 加「只显示最近 N 天」档位（近3/7/30天、全部）。
-   超出该天数的分组**不删数据**，只默认收起成一行组头（点组头 / 点「全部展开」展开），
-   「打开就能扫完」。BLOG.days = 0 表示全部；BLOG.extra 是用户手动展开过的日期集合。 */
-/* 2026-10-09 王总两点要求：①博主 chip 要显示全部跟踪博主（含「待采集」）；
-   ②新增「共同推荐」筛选（同一票被多位博主同推）。
-   BLOG.mode = "all" | "overlap"：overlap 走独立视图（按同推人数降序），不吃博主/日期/排序筛选。 */
-const BLOG = { facets: null, rows: [], overlap: [], stats: [], blogger: "", q: "", sort: "date",
-               days: 7, extra: null, loaded: false, perf: {}, mode: "all" };
-const CONTEST = { rounds: [], detail: null, cur: null, loaded: false };
-
-/* 涨跌幅着色：红涨绿跌（中国习惯）。null/空 → 中性灰，绝不吞成 0 */
-function btPct(v) {
-  if (v === null || v === undefined || v === "") return { cls: "bt-num", txt: "—" };
   const n = Number(v);
-  if (!isFinite(n)) return { cls: "bt-num", txt: "—" };
-  if (n > 0) return { cls: "bt-num up", txt: "+" + n.toFixed(2) + "%" };
-  if (n < 0) return { cls: "bt-num dn", txt: n.toFixed(2) + "%" };
-  return { cls: "bt-num", txt: "0.00%" };
-}
-function btMd(s) { return String(s || "").slice(5); }
-
-/* 2026-10-10 王总要求：卡片必须直接给出「现价 vs 荐股日收盘」的至今涨跌，不能干等源表结算。
-   取值优先级：① 本模型 series 末点（last_chg，最新收盘 vs 荐股日收盘）；
-   ② 源表 ret_since 兜底（0 视为源表未结算，不贴 0.00% 误导）；都没有 → null（显示 —）。 */
-function btEffRet(r) {
-  const d = String(r.rec_date || "").slice(0, 10);
-  const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`];
-  if (pf && pf.last_chg !== null && pf.last_chg !== undefined && pf.last_chg !== "") {
-    const m = Number(pf.last_chg);
-    if (isFinite(m)) return m;
-  }
-  const v = r.ret_since;
-  if (v === null || v === undefined || v === "") return null;
-  const n = Number(v);
-  return (isFinite(n) && n !== 0) ? n : null;
-}
-/* 卡片上的「现价」：模型 series 末点收盘价；没有 → "" */
-function btLastClose(r) {
-  const d = String(r.rec_date || "").slice(0, 10);
-  const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`];
-  return (pf && pf.last_close !== null && pf.last_close !== undefined) ? pf.last_close : "";
+  if (!isFinite(n) || Math.abs(n) < 0.05) return `<span class="ph-chg-flat">持平</span>`;
+  // 升温用暖色实心、降温用冷色空心 —— 与「红涨绿跌」区分开：这里谈的是注意力，不是价格。
+  return n > 0
+    ? `<span class="ph-chg-up" title="本板块在本窗口的讨论占比，比上一窗口高 ${n.toFixed(1)} 个百分点">↑ ${n.toFixed(1)}pp</span>`
+    : `<span class="ph-chg-dn" title="本板块在本窗口的讨论占比，比上一窗口低 ${Math.abs(n).toFixed(1)} 个百分点">↓ ${Math.abs(n).toFixed(1)}pp</span>`;
 }
 
-/* 「最近 N 天」阈值：返回 YYYY-MM-DD 的**本地**日期字符串（不能用 toISOString，北京时间
-   早 8 小时会被算成前一天，导致当天建股被误收起）。days=0 → 返回 ""（不限）。 */
-function btCutoffDate(days) {
-  if (!days) return "";
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - Number(days));
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${dd}`;
-}
-/* 判断某分组是否该默认收起：越过 N 天阈值、且用户没手动展开过。 */
-function btIsFolded(dateStr) {
-  const cutoff = btCutoffDate(BLOG.days);
-  if (!cutoff) return false;
-  if (!BLOG.extra) BLOG.extra = new Set();
-  if (BLOG.extra.has(dateStr)) return false;
-  return String(dateStr).slice(0, 10) < cutoff;
-}
-
-/* 单张荐股卡片。2026-10-01：右侧挂 T+3/T+5/T+10 三个小指标（荐股日收盘为基准）。
-   2026-10-10 王总要求：右上角大字改为「至今涨跌」（现价 vs 荐股日收盘，模型值优先），
-   指标行加「现价」与「至今」——短线博主荐股后当天就得能看到方向，不能全等 3/5/10 走完。 */
-function btCardHtml(r) {
-  const eff = btEffRet(r);
-  const p = btPct(eff);
-  const lastClose = btLastClose(r);
-  const d = String(r.rec_date || "").slice(0, 10);
-  const pf = BLOG.perf[`${r.blogger}|${d}|${r.stock_code}`] || null;
-  const metrics = [
-    ["现价", lastClose === "" ? null : lastClose, "price"],
-    ["至今", (pf && pf.last_chg != null) ? pf.last_chg : null],
-    ["3日", pf && pf.r3], ["5日", pf && pf.r5], ["10日", pf && pf.r10],
-  ].map(([lbl, v, kind]) => {
-    if (v === null || v === undefined || v === "") {
-      return `<span class="bt-metric bt-metric-na" title="${lbl}：${kind === "price" ? "尚无已结算行情" : "该周期交易日尚未走完，非 0"}">${lbl}<b>—</b></span>`;
-    }
-    if (kind === "price") {
-      return `<span class="bt-metric" title="最新已结算交易日收盘价（${esc((pf && pf.last_date) || "")}）">${lbl}<b>${esc(v)}</b></span>`;
-    }
-    const m = btPct(v);
-    return `<span class="bt-metric" title="${lbl} 收益（荐股日 ${esc(d)} 收盘为基准）">${lbl}<b class="${m.cls}">${m.txt}</b></span>`;
-  }).join("");
-  return `<div class="bt-card" data-bt-sym="${escAttr(r.stock_code)}">
-    <div class="bt-card-l"><span class="bt-code">${esc(r.stock_code)}</span>
-      <span class="bt-name">${esc(r.stock_name)}</span>
-      <span class="bt-blog">${esc(r.blogger)}</span>${btSrcBadges(r)}</div>
-    <div class="bt-card-r"><span class="${p.cls}" title="至今涨跌 = 最新已结算收盘 vs 荐股日收盘（模型自动结算，不依赖源表）">${p.txt}</span>
-      <span class="bt-date">${esc(btMd(r.rec_date))}</span></div>
-    <div class="bt-metrics">${metrics}</div>
-    <div class="bt-note">${esc(r.note || r.video_title || "")}</div></div>`;
-}
-
-/* 来源/前瞻徽标（2026-10-11 王总要求）：source='B站' → 「B站」徽标（与存量来源区分）；
-   horizon='next_week' → 「推下周」徽标（对标当红参赛股「这周推下周」语义，但明确不混入节目板块）。 */
-function btSrcBadges(r) {
-  let h = "";
-  if (r && r.source === "B站") h += `<span class="bt-src-bili" title="来源：B站 UP 主（区别于独股九剑/抖音跟踪来源）">B站</span>`;
-  if (r && r.horizon === "next_week") h += `<span class="bt-src-nw" title="明确推荐下周走势（这周推下周），语义对标「当红参赛股」但来源为博主，不混入 BRTV 节目板块">推下周</span>`;
-  return h;
-}
-
-/* 列表：默认按建股日期倒序**分组**（王总 2026-10-01 要求 —— 237 条平铺看不清哪天建了哪些）；
-   切到「涨幅 高→低」时不分组（那本来就有一条明确主线）。组内按区间收益降序。 */
-function btListHtml(rows, groupByDate) {
-  if (!rows.length) return "";
-  if (!groupByDate) return rows.map(btCardHtml).join("");
-  const groups = [], idx = {};
-  rows.forEach((r) => {
-    const d = String(r.rec_date || "").slice(0, 10) || "未知日期";
-    if (!idx[d]) { idx[d] = { d, items: [] }; groups.push(idx[d]); }
-    idx[d].items.push(r);
-  });
-  return groups.map((g) => {
-    // 2026-10-10：组统计同改用 btEffRet（模型「至今」优先），源表未结算的日子也能看到真实涨跌
-    const effOf = (r) => { const v = btEffRet(r); return v === null ? null : Number(v); };
-    const withRet = g.items.filter((r) => effOf(r) !== null);
-    const avg = withRet.length
-      ? withRet.reduce((s, r) => s + effOf(r), 0) / withRet.length : null;
-    const p = btPct(avg);
-    const up = withRet.filter((r) => effOf(r) > 0).length;
-    // 超出「最近 N 天」且没手动展开 → 收起成一行组头（数据还在，点一下就展开）
-    const folded = btIsFolded(g.d);
-    if (folded) {
-      return `<div class="bt-dgrp bt-dgrp-fold" data-bt-dgrp="${escAttr(g.d)}">
-        <span class="bt-dgrp-d">${esc(g.d.slice(5).replace("-", "/"))}</span>
-        <span class="bt-dgrp-n">${g.d.slice(0, 4)} · 建股 <b>${g.items.length}</b> 只</span>
-        <span class="bt-dgrp-foldbtn" data-bt-fold="${escAttr(g.d)}">▸ 展开</span>
-        <span class="bt-dgrp-foldtip">已收起（${BLOG.days} 天以外）</span></div>`;
-    }
-    return `<div class="bt-dgrp"><span class="bt-dgrp-d">${esc(g.d.slice(5).replace("-", "/"))}</span>`
-      + `<span class="bt-dgrp-n">${g.d.slice(0, 4)} · 建股 <b>${g.items.length}</b> 只</span>`
-      + `<span class="bt-dgrp-up">上涨 ${up}/${withRet.length || g.items.length}</span>`
-      + `<span class="${p.cls}">${avg === null ? "—" : p.txt}</span></div>`
-      + g.items.map(btCardHtml).join("");
-  }).join("");
-}
-
-/* 「共同推荐」单卡：同一票被多位博主同推。
-   口径同源 —— 涨幅仍是「推荐以来区间收益」（源表值，非本模型输出），涨跌用 btPct 红涨绿跌。
-   整卡挂 data-bt-sym，沿用博主卡片既有「点卡片开个股抽屉」的机制（openStock）。 */
-function btOvlCardHtml(r) {
-  const p = btPct(r.ret_since);
-  const nb = (r.n_bloggers == null) ? "" : esc(r.n_bloggers);
-  return `<div class="bt-card bt-card-ovl" data-bt-sym="${escAttr(r.stock_code)}">
-    <div class="bt-card-l"><span class="bt-code">${esc(r.stock_code)}</span>
-      <span class="bt-name">${esc(r.stock_name)}</span>
-      <span class="bt-blog bt-blog-ovl">${nb} 位博主同推</span></div>
-    <div class="bt-card-r"><span class="${p.cls}">${p.txt}</span>
-      <span class="bt-date">推荐以来</span></div>
-    <div class="bt-note">同推：${esc(r.bloggers || "—")}</div>
-    ${r.note ? `<div class="bt-note bt-note-ovl">${esc(r.note)}</div>` : ""}</div>`;
-}
-/* 共同推荐列表：按 n_bloggers 降序、再按 ret_since 降序（同推人数越多的越靠前）。 */
-function btOvlListHtml(rows) {
-  if (!rows.length) return "";
-  const s = rows.slice().sort((a, b) =>
-    (Number(b.n_bloggers) || 0) - (Number(a.n_bloggers) || 0)
-    || ((b.ret_since == null ? -Infinity : b.ret_since) - (a.ret_since == null ? -Infinity : a.ret_since)));
-  return s.map(btOvlCardHtml).join("");
-}
-
-/* ---------- 博主荐股 ---------- */
-function renderBloggerPanel() {
-  const host = $("#p-blogger");
+function renderPlateHeat() {
+  const host = $("#p-plate_heat");
   if (!host) return;
-  const F = BLOG.facets || { bloggers: [], total: 0, updated: null };
-  const all = BLOG.rows;
-  const isOvl = BLOG.mode === "overlap";           // 「共同推荐」视图
-  const bloggers = toArr(F.bloggers);
-  const ovlRowsData = toArr(BLOG.overlap);
-
-  // 跟踪口径：优先用后端给的 tracked_total/tracked_with_data；字段缺失时按 bloggers 里 pending 计数自算（保证不崩）
-  const pendCount = bloggers.filter((b) => b && b.pending).length;
-  const trackedTotal = (F.tracked_total != null) ? Number(F.tracked_total) : bloggers.length;
-  const withDataCnt = (F.tracked_with_data != null) ? Number(F.tracked_with_data)
-                       : Math.max(0, bloggers.length - pendCount);
-  // 当前选中的博主是否为「待采集」（pending 且无数据）
-  const curB = bloggers.find((b) => b && b.name === BLOG.blogger);
-  const isPendingSel = !!(curB && curB.pending);
-
-  // 本地筛选：博主 + 关键词（名称/代码/来源视频）
-  let rows = all;
-  if (!isOvl && BLOG.blogger) rows = rows.filter((r) => r.blogger === BLOG.blogger);
-  if (BLOG.q) {
-    const k = BLOG.q.trim();
-    if (k) rows = rows.filter((r) => (r.stock_name || "").includes(k) || (r.stock_code || "").includes(k)
-                                     || (r.video_title || "").includes(k));
-  }
-  if (!isOvl) {
-    if (BLOG.sort === "ret") {
-      rows = rows.slice().sort((a, b) => (b.ret_since == null ? -Infinity : b.ret_since)
-                                       - (a.ret_since == null ? -Infinity : a.ret_since));
-    } else {
-      rows = rows.slice().sort((a, b) => String(b.rec_date).localeCompare(String(a.rec_date))
-                                       || ((a.seq || 0) - (b.seq || 0)));
-    }
-  } else {
-    // 共同推荐视图：只吃搜索关键词（名称/代码），排序固定按同推人数
-    rows = ovlRowsData.filter((r) => {
-      const k = (BLOG.q || "").trim();
-      if (!k) return true;
-      return (r.stock_name || "").includes(k) || (r.stock_code || "").includes(k);
-    });
-  }
-
-  // chip 行：全部 → ★ 共同推荐 → 各博主（含待采集）
-  const chipAll = `<a class="bt-chip${(!BLOG.blogger && !isOvl) ? " active" : ""}"
-      data-bt-blogger="">全部<i>${esc(F.total == null ? "" : F.total)}</i></a>`;
-  const ovlDisabled = ovlRowsData.length === 0;
-  const chipOvl = `<a class="bt-chip bt-chip-ovl${isOvl ? " active" : ""}${ovlDisabled ? " disabled" : ""}"
-      data-bt-ovl="1" title="${ovlDisabled ? "暂无共同推荐数据" : "同一只票被多位博主同荐"}">★ 共同推荐<i>${esc(ovlRowsData.length)}</i></a>`;
-  const chipBloggers = bloggers.map((c) => {
-    const pend = !!(c && c.pending);
-    const active = !isOvl && (BLOG.blogger || "") === c.name;
-    if (pend) {
-      return `<a class="bt-chip bt-chip-pending${active ? " active" : ""}"
-        data-bt-blogger="${escAttr(c.name)}" title="自动化跟踪中，暂无采到荐股记录">${esc(c.name)}<i>待采集</i></a>`;
-    }
-    return `<a class="bt-chip${active ? " active" : ""}"
-      data-bt-blogger="${escAttr(c.name)}">${esc(c.name)}${c.source === "B站" ? `<i class="bt-chip-bili" title="来源：B站 UP 主">B站</i>` : ""}<i>${esc(c.n)}</i></a>`;
-  }).join("");
-  const chipsHtml = chipAll + chipOvl + chipBloggers;
-
-  const statsRows = BLOG.stats.map((r) => {
-    const a = btPct(r.avg_ret), b = btPct(r.avg_ret_1w), u = btPct(r.up_ratio);
-    // 2026-10-09：「待核对」= 该博主尚无报价/未结算的记录数。null/缺失 → 「—」（NULL 不是 0）
-    const np = (r.n_pending === null || r.n_pending === undefined) ? "—" : esc(r.n_pending);
-    return `<tr class="${/合计/.test(r.blogger || "") ? "bt-tr-sum" : ""}">
-      <td>${esc(r.blogger)}</td><td class="bt-num">${esc(r.n_stock)}</td>
-      <td class="bt-num bt-pend">${np}</td>
-      <td class="${a.cls}">${a.txt}</td><td class="${b.cls}">${b.txt}</td>
-      <td class="${u.cls}">${u.txt}</td></tr>`;
-  }).join("");
-  const ovlRows = (BLOG.overlap || []).map((r) => {
-    const p = btPct(r.ret_since);
-    return `<tr><td>${codeLink(r.stock_code)}</td><td>${esc(r.stock_name)}</td>
-      <td class="bt-num">${esc(r.n_bloggers)}</td><td>${esc(r.bloggers)}</td>
-      <td class="${p.cls}">${p.txt}</td><td class="bt-note">${esc(r.note)}</td></tr>`;
-  }).join("") || `<tr><td colspan="6" class="empty">暂无重复推荐记录</td></tr>`;
-
-  /* 「最近 N 天」折叠统计 + 一键展开（只在日期分组模式下有意义；共同推荐视图不适用）。 */
-  let foldTip = "";
-  if (!isOvl && BLOG.sort === "date" && BLOG.days) {
-    const buckets = new Map();
-    rows.forEach((r) => {
-      const d = String(r.rec_date || "").slice(0, 10) || "未知日期";
-      buckets.set(d, (buckets.get(d) || 0) + 1);
-    });
-    let gN = 0, iN = 0;
-    buckets.forEach((n, d) => { if (btIsFolded(d)) { gN++; iN += n; } });
-    if (gN) {
-      foldTip = `<span class="bt-foldtip">已收起 ${gN} 组 / ${iN} 只（${BLOG.days} 天以外）</span>`
-        + `<a class="bt-unfold" data-bt-unfold="1" title="把 ${BLOG.days} 天以外的分组全部展开">全部展开</a>`;
-    }
-    if (BLOG.extra && BLOG.extra.size) {
-      foldTip += `<a class="bt-unfold" data-bt-foldall="1" title="回到「${BLOG.days} 天以外收起」的默认状态">全部收起</a>`;
-    }
-  }
-
-  // 主列表：共同推荐视图 / 待采集空态 / 常规荐股列表（三选一）
-  let listHtml;
-  if (isOvl) {
-    listHtml = btOvlListHtml(rows) || `<div class="empty">暂无共同推荐数据</div>`;
-  } else if (isPendingSel) {
-    listHtml = `<div class="empty empty-pending">「${esc(BLOG.blogger)}」暂无采到荐股记录（自动化跟踪中，通常 1-2 天内补齐）</div>`;
-  } else {
-    listHtml = btListHtml(rows, BLOG.sort === "date") || `<div class="empty">无匹配的荐股记录</div>`;
-  }
-  // 计数行文案：共同推荐视图说「共同推荐 N 只」，其余保持「x / y 条」
-  const cntHtml = isOvl
-    ? `共同推荐 ${rows.length} 只`
-    : `${rows.length} / ${all.length} 条${BLOG.blogger ? " · " + esc(BLOG.blogger) : ""}`
-      + `${BLOG.sort === "date" ? " · 按建股日期倒序分组（每组内按区间收益排）" : ""}`;
-
-  host.innerHTML = `
-    <div class="bt-head"><h2>博主荐股</h2>
-      <span class="pol-upd">${esc(F.updated || "")} 更新${BLOG.loaded ? "" : " · 加载中…"}</span>
-      <span class="bt-tracked">跟踪 <b>${trackedTotal}</b> 位博主 · 已采到 <b>${withDataCnt}</b> 位</span>
-      <span class="bt-tip">「涨跌幅」为荐股发布后的区间收益，来自人工维护的源表，非本模型输出</span></div>
-    <div class="bt-filter">
-      <div class="bt-chips">${chipsHtml}</div>
-      <input class="bt-search" id="btSearch" type="search" placeholder="搜索股票名称 / 代码"
-             value="${esc(BLOG.q)}" />
-      ${isOvl ? "" : `<div class="bt-sorts">
-        <a class="bt-sort${BLOG.sort === "date" ? " active" : ""}" data-bt-sort="date">推荐日期 新→旧</a>
-        <a class="bt-sort${BLOG.sort === "ret" ? " active" : ""}" data-bt-sort="ret">涨幅 高→低</a>
-      </div>
-      ${BLOG.sort === "date" ? `<div class="bt-days">
-        <span class="bt-days-lab">只显示最近</span>
-        ${[[3, "3天"], [7, "7天"], [30, "30天"], [0, "全部"]].map(([v, t]) =>
-          `<a class="bt-day${BLOG.days === v ? " active" : ""}" data-bt-days="${v}">${t}</a>`).join("")}
-      </div>` : ""}`}
-    </div>
-    <div class="bt-cnt">${cntHtml}
-      ${isOvl ? " · 按被同推人数降序（同推越多越靠前）" : ""}
-      ${foldTip}</div>
-    <div class="bt-list">${listHtml}</div>
-    <div class="bt-nextweek" id="btNextWeek"></div>
-    <details class="bt-detail"><summary>博主效果对比（${(BLOG.stats || []).length} 行）</summary>
-      <table class="bt-tb"><thead><tr><th>博主</th><th>推荐股票数</th><th>待核对</th><th>平均涨跌幅</th>
-        <th>平均一周涨幅</th><th>上涨比例</th></tr></thead><tbody>${statsRows}</tbody></table></details>
-    <details class="bt-detail"><summary>重复推荐明细（同一票被多位博主同荐，共 ${ovlRowsData.length} 只）</summary>
-      <table class="bt-tb"><thead><tr><th>代码</th><th>名称</th><th>博主数</th><th>博主</th>
-        <th>涨跌幅</th><th>分析</th></tr></thead><tbody>${ovlRows}</tbody></table></details>`;
-
-  // 2026-10-11 王总④：在「博主荐股」面板内并排展示 B站「下周当红」堆（weekly, 147 条），与 reco 同框。
-  (function renderNextWeek() {
-    const box = $("#btNextWeek");
-    if (!box) return;
-    api("/api/bili/pile?cat=weekly&limit=4000").then((d) => {
-      const rows = toArr(d && d.rows);
-      if (!rows.length) { box.innerHTML = `<div class="empty">暂无 B站「下周当红」记录</div>`; return; }
-      const byB = new Map();
-      rows.forEach((r) => {
-        const b = r.blogger || "未知";
-        if (!byB.has(b)) byB.set(b, []);
-        byB.get(b).push(r);
-      });
-      const parts = [];
-      byB.forEach((arr, b) => {
-        const items = arr.slice().sort((x, y) => String(y.vdate || "").localeCompare(String(x.vdate || "")))
-          .map((r) => `<li><a href="${escAttr(r.url || "#")}" target="_blank" rel="noopener">${esc(r.title || "")}</a>`
-            + `<span class="bt-nw-date">${esc(String(r.vdate || "").slice(0, 10))}</span></li>`).join("");
-        parts.push(`<div class="bt-nw-b"><div class="bt-nw-h">${esc(b)}<i>${arr.length}</i></div>`
-          + `<ul class="bt-nw-l">${items}</ul></div>`);
-      });
-      box.innerHTML = `<div class="bt-nw-head">下周当红（B站 UP 主 · 共 ${rows.length} 条）</div>` + parts.join("");
-    }).catch((e) => {
-      box.innerHTML = `<div class="empty">「下周当红」加载失败：${esc(String((e && e.message) || e))}</div>`;
-    });
-  })();
-
-  // 点「全部」或任一博主 chip → 退回普通列表（mode="all"）
-  $$("#p-blogger [data-bt-blogger]").forEach((a) => {
-    a.onclick = () => {
-      BLOG.mode = "all";
-      BLOG.blogger = a.dataset.btBlogger || "";
-      renderBloggerPanel();
-    };
-  });
-  // 「★ 共同推荐」chip → 切到共同推荐视图（空数据时不可点）
-  $$("#p-blogger [data-bt-ovl]").forEach((a) => {
-    a.onclick = () => {
-      if (a.classList.contains("disabled")) return;
-      BLOG.mode = "overlap";
-      BLOG.blogger = "";
-      BLOG.extra = null;
-      renderBloggerPanel();
-    };
-  });
-  $$("#p-blogger [data-bt-sort]").forEach((a) => {
-    a.onclick = () => { BLOG.mode = "all"; BLOG.sort = a.dataset.btSort; renderBloggerPanel(); };
-  });
-  // 「只显示最近 N 天」：切档时清掉手动展开集合（回到该档的默认折叠状态）
-  $$("#p-blogger [data-bt-days]").forEach((a) => {
-    a.onclick = () => {
-      BLOG.days = Number(a.dataset.btDays) || 0;
-      BLOG.extra = null;
-      renderBloggerPanel();
-    };
-  });
-  // 点收起的组头（含「▸ 展开」）→ 记入已展开集合，重绘后该组还原开
-  $$("#p-blogger [data-bt-fold]").forEach((el) => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      if (!BLOG.extra) BLOG.extra = new Set();
-      BLOG.extra.add(el.dataset.btFold);
-      renderBloggerPanel();
-    };
-  });
-  $$("#p-blogger [data-bt-dgrp]").forEach((el) => {
-    el.onclick = () => {
-      if (!BLOG.extra) BLOG.extra = new Set();
-      BLOG.extra.add(el.dataset.btDgrp);
-      renderBloggerPanel();
-    };
-  });
-  $$("#p-blogger [data-bt-foldall]").forEach((a) => {
-    a.onclick = () => { BLOG.extra = null; renderBloggerPanel(); };
-  });
-  $$("#p-blogger [data-bt-unfold]").forEach((a) => {
-    a.onclick = () => {
-      if (!BLOG.extra) BLOG.extra = new Set();
-      BLOG.extra = new Set();
-      // 把当前所有「会被收起」的日期一次性放行
-      rows.forEach((r) => { const d = String(r.rec_date || "").slice(0, 10); if (d) BLOG.extra.add(d); });
-      renderBloggerPanel();
-    };
-  });
-  const si = $("#btSearch");
-  if (si) {
-    si.oninput = () => { BLOG.q = si.value; renderBloggerPanel(); };
-    // 输入时每键重绘会重置焦点（innerHTML 整块替换），故只做防抖重绘、恢复焦点与光标
-    let tm = 0;
-    si.oninput = () => {
-      BLOG.q = si.value;
-      clearTimeout(tm);
-      tm = setTimeout(() => {
-        const el = $("#btSearch"), pos = el ? el.selectionStart : null;
-        renderBloggerPanel();
-        const el2 = $("#btSearch");
-        if (el2) { el2.focus(); try { if (pos != null) el2.setSelectionRange(pos, pos); } catch (_) {} }
-      }, 220);
-      // 即时更新条数，不等防抖
-      const cnt = $(".bt-cnt");
-      if (cnt) cnt.textContent = "输入中…";
-    };
-  }
-  // 点荐股卡片（普通卡 + 共同推荐卡）→ 开个股详情抽屉。
-  // 2026-10-10 加固：改容器级事件委托只绑一次 —— 内联 onclick 会随某次 innerHTML
-  // 重渲染 / 渲染中断而丢，表现为「点了没反应」；委托绑在 #p-blogger 上永不丢。
-  if (!host._btSymDelegBound) {
-    host._btSymDelegBound = true;
-    host.addEventListener("click", (ev) => {
-      const el = ev.target && ev.target.closest ? ev.target.closest("[data-bt-sym]") : null;
-      if (!el || !host.contains(el)) return;
-      openStock(el.dataset.btSym, el);
-    });
-  }
-}
-
-/* ---------- 当红参赛股 ---------- */
-/* 2026-10-06 王总反馈「点 09-19 那一期没反应」。
-   排查：接口两期都正常（后端 200、数据各异），无头浏览器真鼠标点击也正常 ——
-   真实根因是**点击那一刻本地服务已被回收**，fetch 直接网络失败，
-   而老实现只在 catch 里写了一条容易被忽略的顶部 hint，界面纹丝不动 → 主观「点了没反应」。
-   两处加固：① 期次切换改「事件委托」，绑在不会被替换的 #p-contest 上只绑一次，
-   任何一次 render 中断/被覆盖都不会丢绑定；② 点击立刻给视觉反馈（高亮 + 载入态），
-   失败再回滚并明说原因（localStorage 无 hint 时用户无从得知服务死了）。
-   loading=true 时跳过「无数据」判断，先渲染载入态占位（否则会闪成「暂无参赛记录」）。 */
-function renderContestPanel(loading) {
-  const host = $("#p-contest");
-  if (!host) return;
-  const D = CONTEST.detail;
-  const R = CONTEST.rounds || [];
-  if (!loading && (!D || !D.round)) {
-    host.innerHTML = `<div class="ct-head"><h2>当红参赛股</h2></div>
-      <div class="empty">暂无参赛记录${CONTEST.loaded ? "" : " · 加载中…"}</div>`;
+  if (PH.err) {
+    host.innerHTML = `<div class="card"><div class="empty">板块热度加载失败：${esc(PH.err)}</div></div>`;
     return;
   }
-  const rd = D.round, dates = D.dates || [];
-  const today = new Date().toISOString().slice(0, 10);
-  // 2026-10-01 王总：逐日追踪表里只有参赛者名，点不进个股诊断。
-  // 先从上表（参赛名单）把「参赛者 → 股票代码」映射出来，让追踪表的名字也能一键点开该股诊断。
-  // 本期空仓的人没有代码 → 映射不到就退回纯文本，绝不硬塞一个点不开的入口。
-  const ctCode = {};
-  (D.rows || []).forEach((r) => {
-    const pn = String(r.participant || "");
-    if (pn && /^\d{6}$/.test(String(r.code || "").trim()) && !ctCode[pn]) ctCode[pn] = r.code;
-  });
-  const rankRows = (D.rows || []).map((r) => {
-    const w = btPct(r.week_gain), p = btPct(r.points);
-    return `<tr><td class="bt-rank">${esc(r.rank_no)}</td><td>${esc(r.participant)}</td>
-      <td>${esc(r.stock)}</td><td>${codeLink(r.code)}</td>
-      <td class="${w.cls}">${w.txt}</td><td class="${p.cls}">${p.txt}</td></tr>`;
-  }).join("");
-  const trackRows = (D.rows || []).map((r) => {
-    const cells = (r.days || []).map((d) => {
-      if (d.change_pct === null || d.change_pct === undefined) {
-        const isFuture = String(d.date) > today;
-        return `<td class="ct-cell${isFuture ? " ct-fut" : " ct-na"}" title="${esc(d.date)} 暂无数据">—</td>`;
-      }
-      const n = Number(d.change_pct), cls = n > 0 ? " ct-up" : (n < 0 ? " ct-dn" : "");
-      return `<td class="ct-cell${cls}" title="${esc(d.date)} ${n > 0 ? "+" : ""}${n.toFixed(2)}%">${n > 0 ? "+" : ""}${n.toFixed(1)}</td>`;
-    }).join("");
-    const last = (r.days || []).filter((x) => x.change_pct !== null && x.change_pct !== undefined);
-    const tot = last.length ? btPct(last[last.length - 1].change_pct) : btPct(null);
-    // 参赛者名挂上该期他持票的代码（能挂才挂，挂不上就是纯文本）
-    return `<tr><td>${codeLink(ctCode[r.participant], { text: r.participant })}</td>${cells}<td class="${tot.cls}">${tot.txt}</td></tr>`;
-  }).join("");
-
-  host.innerHTML = `
-    <div class="ct-head"><h2>当红参赛股</h2>
-      <span class="pol-upd">${esc(rd.author || "")}「当红不让」· 参赛名单与逐日追踪</span>
-      ${D.updated ? `<span class="bt-tip">更新于 ${esc(D.updated)}</span>` : ""}</div>
-    <div class="ct-rounds">${R.map((x) => `<a class="ct-chip${(CONTEST.cur || "") === x.video_id ? " active" : ""}"
-        data-ct-round="${escAttr(x.video_id)}">${esc(x.publish_date)}<i>${esc(x.n_part)}人</i></a>`).join("")}</div>
-    <div class="ct-title">${esc(rd.title || "")} · 发布 ${esc(rd.publish_date || "")}
-      ${rd.video_url ? `<a class="ct-src" href="${escAttr(rd.video_url)}" target="_blank" rel="noopener">原视频</a>` : ""}
-      ${loading ? `<span class="ct-loading">载入中…</span>` : ""}</div>
-    ${loading
-      ? `<div class="ct-loading">正在读取该期数据…</div>`
-      : `<table class="bt-tb ct-tb"><thead><tr><th>#</th><th>参赛者</th><th>股票</th><th>代码</th>
-      <th>本周最高收益</th><th>积分</th></tr></thead><tbody>${rankRows}</tbody></table>
-    <details class="bt-detail" open><summary>逐日追踪（红=涨 / 绿=跌 / 灰=暂无数据，由定时任务逐日填充）</summary>
-      <div class="ct-tbw"><table class="bt-tb ct-tb2"><thead><tr><th>参赛者</th>
-        ${dates.map((d) => `<th class="ct-dh">${esc(String(d).slice(5).replace("-", "/"))}</th>`).join("")}
-        <th>最新</th></tr></thead><tbody>${trackRows}</tbody></table></div></details>`}`;
-
-  // 事件委托：绑在 host（#p-contest）上且只绑一次，innerHTML 怎么重建都不丢绑定。
-  if (!host._ctDelegBound) {
-    host._ctDelegBound = true;
-    host.addEventListener("click", (ev) => {
-      const a = ev.target && ev.target.closest ? ev.target.closest("[data-ct-round]") : null;
-      if (!a || !host.contains(a)) return;
-      ev.preventDefault();
-      const vid = a.dataset.ctRound;
-      if (vid && vid !== CONTEST.cur) loadContest(vid);
-    });
+  const d = PH.data;
+  if (!d) {
+    host.innerHTML = `<div class="card"><div class="empty">正在统计板块热度…</div></div>`;
+    return;
   }
-}
+  if (!d.ok || !toArr(d.rows).length) {
+    host.innerHTML = `<div class="card"><div class="empty">${esc(d.error || "暂无板块热度数据")}
+      <div class="s" style="margin-top:8px">热度需要有「能关联到帖子的股票提及」。若长期为空，
+      多半是帖子表被清理后 mention 成了孤儿记录 —— 详见本页底部口径说明。</div></div></div>`;
+    return;
+  }
+  const rows = toArr(d.rows);
+  const m = d.meta || {};
+  const top3 = rows.slice(0, 3);
 
-/* ---------- 数据加载 ---------- */
-function loadBloggerContest() {
-  if (BLOG.loaded && CONTEST.loaded) { renderBloggerPanel(); renderContestPanel(); return Promise.resolve(); }
-  return Promise.all([
-    api("/api/blogger/facets"),
-    api("/api/blogger/reco?sort=date&limit=2000"),
-    api("/api/blogger/stats"),
-    api("/api/blogger/overlap"),
-    api("/api/contest/rounds"),
-    api("/api/contest/detail"),
-    api("/api/blogger/perf"),
-  ]).then((rs) => {
-    BLOG.facets = rs[0] || null;
-    BLOG.rows = (rs[1] || {}).rows || [];
-    // 2026-10-01：周期收益 T+1/3/5/10（荐股日收盘为基准）→ 建 key 供卡片与抽屉直查
-    BLOG.perf = {};
-    ((rs[6] || {}).rows || []).forEach((p) => {
-      const k = `${p.blogger}|${String(p.rec_date).slice(0, 10)}|${p.stock_code}`;
-      BLOG.perf[k] = p;
-    });
-    BLOG.stats = (rs[2] || {}).rows || [];
-    BLOG.overlap = (rs[3] || {}).rows || [];
-    CONTEST.rounds = (rs[4] || {}).rows || [];
-    CONTEST.detail = rs[5] || null;
-    CONTEST.cur = CONTEST.detail && CONTEST.detail.round ? CONTEST.detail.round.video_id : null;
-    BLOG.loaded = true;
-    CONTEST.loaded = true;
-    renderBloggerPanel();
-    renderContestPanel();
-  }).catch((e) => reportLoadError("博主荐股 / 当红参赛股", e));
-}
+  const body = rows.map((r) => {
+    const ts = toArr(r.top_stocks);
+    const tsHtml = ts.length
+      ? ts.map((s) => `<span class="ph-stk" title="本窗口被提及 ${s.n} 次（只统计次数，不含涨跌与推荐人）">
+            ${esc(s.name || s.code)}<i>${esc(s.n)}</i></span>`).join("")
+      : `<span class="s">—</span>`;
+    const breadth = (r.breadth == null) ? null : Number(r.breadth) * 100;
+    return `<tr>
+      <td class="ph-rk">${esc(r.rank_no)}</td>
+      <td class="ph-plate">${esc(r.plate)}</td>
+      <td class="ph-heat">
+        <div class="ph-bar"><span style="width:${phBarW(r.heat)}%"></span></div>
+        <b>${Number(r.heat).toFixed(1)}</b>
+      </td>
+      <td class="ph-num">${r.share == null ? "—" : Number(r.share).toFixed(1) + "%"}</td>
+      <td class="ph-num">${r.n_posts == null ? "—" : esc(r.n_posts)}</td>
+      <td class="ph-num">${breadth == null ? "—" : breadth.toFixed(1) + "%"}
+        <span class="s">(${esc(r.n_stocks)}/${esc(r.members)})</span></td>
+      <td class="ph-ts">${tsHtml}</td>
+      <td class="ph-chg">${phChg(r.chg_pp)}</td></tr>`;
+  }).join("");
 
-function loadContest(videoId) {
-  const prev = CONTEST.cur;
-  const prevDetail = CONTEST.detail;
-  // 立刻给反馈：高亮先切过去 + 载入占位，不等请求。
-  // 否则本地服务一挂，就是「点了没反应」（此前就栽在这儿）。
-  CONTEST.cur = videoId;
-  renderContestPanel(true);
-  return api("/api/contest/detail?video_id=" + encodeURIComponent(videoId)).then((d) => {
-    CONTEST.detail = d;
-    renderContestPanel();
-  }).catch((e) => {
-    // 失败回滚，别把用户留在「以为切过去了其实没切」的状态
-    CONTEST.cur = prev;
-    if (prevDetail) renderContestPanel();
-    setHint("切换「当红参赛股」失败：" + apiErrText(e)
-      + " —— 多半是本地服务已停止（会话结束后后台进程会被回收），用桌面「股票论坛可视化查看器」重开一次即可。");
-  });
-}
+  const head = top3.map((r, i) => `<div class="ph-lead">
+      <span class="ph-lead-n">${i + 1}</span>
+      <div><div class="ph-lead-p">${esc(r.plate)}</div>
+        <div class="ph-lead-s">讨论占比 ${r.share == null ? "—" : Number(r.share).toFixed(1) + "%"}
+          · 板块内 ${esc(r.n_stocks)} 只被提到 · ${phChg(r.chg_pp)}</div></div>
+    </div>`).join("");
 
-/* 2026-09-28 新增：惰性自动回填 T+1/T+5/T+10 收益。
-   王总反馈「外部信号里看不到 T+1/T+5/T+10」——根因是回填原先**只能手动点按钮**：
-   「采集」与「回测」是两个独立动作，只点采集（或只等自动采集）就永远看不到收益。
-   这里在面板加载后，若仍有待回填信号、且距上次自动回填超过 6 小时，就静默跑一次回测；
-   真有新回填才重画一次（用 busy 标记防循环）。节流时间写进 localStorage，跨刷新依然有效，
-   避免每开一次页面就重算 21 只票的 K 线（浪费王总的时间与额度）。失败静默，不打扰。 */
-let _extrefAutoBusy = false;
-const LS_EXTREF_AUTO = "extref.autoBackfillAt";
-function extrefAutoBackfill(d) {
-  const st = (d && d.stats) || {};
-  if (_extrefAutoBusy || !(Number(st.pnl_pending) > 0)) return;
-  let last = 0;
-  try { last = Number(localStorage.getItem(LS_EXTREF_AUTO) || 0) || 0; } catch (e) { last = 0; }
-  const now = Date.now();
-  if (now - last < 6 * 3600 * 1000) return;
-  try { localStorage.setItem(LS_EXTREF_AUTO, String(now)); } catch (e) { /* 忽略：无 localStorage 时退化为不节流 */ }
-  _extrefAutoBusy = true;
-  api("/api/extref_backtest").then((r) => {
-    const bt = (r && r.backtest) || {};
-    if (bt.async) {
-      // 2026-09-29：回测改后台单飞后不再即时返回 done 数，延迟刷新一次拿结果
-      setHint("外部信号：后台回测已启动，稍后自动刷新结果");
-      setTimeout(() => { if (window.loadExtref) loadExtref(); }, 60000);
-      return null;
-    }
-    const done = bt.done || 0;
-    if (done > 0) {
-      setHint("外部信号：已自动回填 " + done + " 条到期收益（T+1 / T+5 / T+10）");
-      return loadExtref();
-    }
-  }).catch(() => { /* 静默：网络失败不打扰 */ })
-    .finally(() => { _extrefAutoBusy = false; });
-}
-
-function extrefRefresh() {
-  const b = document.querySelector("[data-ex-refresh]");
-  if (b) { b.disabled = true; b.textContent = "同步中…"; }
-  api("/api/extref_refresh").then((r) => {
-    setHint("外部参考同步完成：" + JSON.stringify((r && r.imported) || {}));
-    return loadExtref();
-  }).catch((e) => setHint("外部参考同步失败：" + apiErrText(e)))
-    .finally(() => { if (b) { b.disabled = false; b.textContent = "同步信号库"; } });
-}
-
-/* ---------- 外部信号详情抽屉（2026-09-27 依王总要求新增：点开能看简介/收益/分析报告） ---------- */
-function openExtrefSignal(sid, anchorEl) {
-  api(`/api/extref_signal_detail?sid=${encodeURIComponent(sid)}`).then((d) => {
-    let html;
-    if (d.error) {
-      html = `<p>${esc(d.error)}</p>`;
-    } else {
-      const sig = d.signal || {}, src = d.source || {}, sr = d.self_ref || null, meta = d.meta || {};
-      const code = String(sig.symbol || ""), isA = /^\d{6}$/.test(code);
-      // ② 事后收益（自动回测）
-      const pnlDef = [["T+1", sig.pnl_t1], ["T+5", sig.pnl_t5], ["T+10", sig.pnl_t10]];
-      const pnlHtml = pnlDef.map(([k, v]) => {
-        const c = (v == null) ? "" : (Number(v) >= 0 ? "bull" : "bear");
-        const txt = (v == null) ? "—" : fmtPct(v);
-        return `<div class="si-item"><span>${k} 收益</span><b class="${c}">${txt}</b></div>`;
-      }).join("");
-      const ps = sig.pnl_status || "pending";
-      // 部分回填（2026-09-30）：T+1 已到就先展示，其余窗口继续等 —— 状态仍是 pending，
-      // 所以文案要区分「已出部分」与「完全未到期」，避免有数字却标"未回填"造成误读。
-      const anyFilled = sig.pnl_t1 != null || sig.pnl_t5 != null || sig.pnl_t10 != null;
-      const psText = ps === "done" ? "已回填（窗口走完）"
-        : ps === "na" ? "不可回测（腾讯 / 新浪两个日 K 源都取不到行情，记为 na）"
-        : anyFilled ? "部分回填（已到期的先出，其余待交易日走完 · 不写 0）"
-        : "待回填（窗口未走完 · 不写 0）";
-      // ③ 信源档案
-      const srcLines = [
-        `<div class="kv"><div class="k">信源</div><div><b>${esc(src.name || sig.src_name || "")}</b>` +
-        (src.vendor ? ` <span class="s">${esc(src.vendor)}</span>` : "") + `</div></div>`,
-        src.role ? `<div class="kv"><div class="k">作用</div><div>${esc(src.role)}</div></div>` : "",
-        src.value ? `<div class="kv"><div class="k">价值 / 局限</div><div>${esc(src.value)}</div></div>` : "",
-        src.howto ? `<div class="kv"><div class="k">接入路径</div><div>${esc(src.howto)}</div></div>` : "",
-        src.url ? `<div class="kv"><div class="k">入口</div><div>${exExtLink(src.url, "打开信源")}</div></div>` : "",
-      ].filter(Boolean).join("");
-      const srcBadges = (src.tier_label ? exTierBadge(src.tier, src.tier_label) : "")
-        + (src.kind_label ? ` <span class="ex-kd">${esc(src.kind_label)}</span>` : "")
-        + (src.status_label ? ` ${exStatusBadge(src.status, src.status_label)}` : "")
-        + (src.licensed === 1 ? ` <span class="ex-lic">持牌</span>` : "");
-      // ④ 本项目自采参照（单独分区 · 不混入外部信号）
-      let srHtml;
-      if (sr && !sr.error) {
-        const posRows = toArr(sr.positions).map((p) =>
-          `<tr><td><b>${esc(p.player || "")}</b></td><td class="num">${p.ratio != null ? p.ratio + "%" : "未披露"}</td>` +
-          `<td>${esc((p.hold_since || "").slice(0, 10) || "未披露")}</td>` +
-          `<td class="num">${p.buy_price != null ? Number(p.buy_price).toFixed(2) : "—"}</td>` +
-          `<td class="num">${p.current_price != null ? Number(p.current_price).toFixed(2) + plTag(p.buy_price, p.current_price) : "—"}</td></tr>`).join("");
-        const menRows = toArr(sr.mentions).map((m) =>
-          `<div class="box" style="margin-bottom:6px"><div class="t">${esc(m.author || "匿名")}` +
-          `${m.site ? " · " + esc(m.site) : ""} · ${esc((m.post_time || "").slice(0, 16) || "时间未披露")}</div>` +
-          `<div class="meta">${esc(m.text || "")}</div></div>`).join("");
-        srHtml = `<div class="ex-self-summary">`
-          + exChip("本项目持仓 <b>" + (sr.position_count || 0) + "</b> 笔")
-          + exChip("提及 <b>" + (sr.mention_count || 0) + "</b> 次")
-          + exChip("实盘 <b>" + (sr.trade_count || 0) + "</b> 笔")
-          + exChip("持有人 <b>" + (sr.holders || 0) + "</b> 人") + `</div>`
-          + `<div class="ex-self-sub">持仓（当前）· 仅本项目自采，不与外部信号混排</div>`
-          + (posRows ? `<table><thead><tr><th>选手</th><th>持仓比例</th><th>起始日期</th><th>建仓价</th><th>当前价</th></tr></thead><tbody>${posRows}</tbody></table>` : "<span class='s'>本项目暂无该标的持仓</span>")
-          + `<div class="ex-self-sub">讨论提及（节选）</div>`
-          + (menRows ? menRows : "<span class='s'>本项目暂无该标的讨论提及</span>");
-      } else if (sr && sr.error) {
-        srHtml = `<div class="s" style="color:var(--bear)">自采参照读取失败：${esc(sr.error)}</div>`;
-      } else {
-        srHtml = `<div class="s" style="color:var(--muted)">该信号无对应 A 股代码，无法关联本项目自采数据。</div>`;
-      }
-      html = `
-        <div class="ex-d-head">
-          ${exDirBadge(sig.direction)}
-          <b class="ex-d-nm">${esc(sig.symbol_name || "—")}</b>
-          ${isA ? `<span class="stk-code">${esc(code)}</span>` : (code ? `<span class="ex-code">${esc(code)}</span>` : "")}
-          ${sig.sector ? `<span class="ex-c-sec">${esc(sig.sector)}</span>` : ""}
-          <span class="ex-c-sp"></span>
-          <span class="ex-d-src">${esc(sig.src_name || "")}</span>
-          <span class="ex-date">${esc(sig.pub_date || "")}</span>
-        </div>
-
-        <div class="detail-sub" style="margin-top:12px">① 信号逻辑（外部主体观点，非本项目判断）</div>
-        <div class="kv"><div class="k">推荐理由</div><div>${esc(sig.reason || "—")}</div></div>
-        <div class="kv"><div class="k">原始口径</div><div>${esc(sig.claim || "—")}</div></div>
-        ${sig.url ? `<div class="kv"><div class="k">来源</div><div>${exExtLink(sig.url, "查看原始来源")}</div></div>` : ""}
-
-        <div class="detail-sub">② 事后收益（自动回测 · ${esc(psText)}）</div>
-        <div class="si-grid">${pnlHtml}</div>
-        ${d.pnl_expect ? `<div class="ex-honest">${esc(d.pnl_expect)}</div>` : ""}
-        <div class="ex-honest">${esc(meta.honesty || "")}</div>
-
-        <div class="detail-sub">③ 信源档案 &nbsp;${srcBadges}</div>
-        ${srcLines}
-
-        <div class="ex-self-block">
-          <div class="detail-sub ex-self-title">④ 本项目自采参照（单独分区 · 不混入外部信号）</div>
-          <div class="ex-self-note">${esc(meta.isolation || "")}</div>
-          ${srHtml}
-        </div>
-
-        ${isA ? `<button class="btn sm" id="exOpenStock" style="margin-top:14px">查看该股行情 / K线 / 持仓选手 ›</button>` : ""}
-      `;
-    }
-    const nm = ((d.signal || {}).symbol_name || (d.signal || {}).symbol || "");
-    const cd = String((d.signal || {}).symbol || "");
-    openDrawer(`外部信号 · ${esc(nm)}${cd ? "（" + esc(cd) + "）" : ""}`, html, anchorEl);
-    if ((d.signal || {}).symbol && /^\d{6}$/.test(cd)) {
-      const bx = $("#exOpenStock");
-      if (bx) bx.onclick = () => openStock(cd, bx);
-    }
-  }).catch((e) => reportLoadError("外部信号详情", e));
-}
-
-/* ---------- 信源详情抽屉（作用 / 价值 / 接入路径 + 已入库信号） ---------- */
-function openExtrefSource(src_key, anchorEl) {
-  api(`/api/extref_source_detail?src_key=${encodeURIComponent(src_key)}`).then((d) => {
-    let html;
-    if (d.error) {
-      html = `<p>${esc(d.error)}</p>`;
-    } else {
-      const src = d.source || {}, sigs = toArr(d.signals);
-      const rows = sigs.map((s) => {
-        const code = String(s.symbol || "");
-        const pnl = (s.pnl_status === "done")
-          ? `<b class="${(s.pnl_t5 >= 0 ? "bull" : "bear")}">${s.pnl_t5 >= 0 ? "+" : ""}${Number(s.pnl_t5).toFixed(2)}%</b>`
-          : (s.pnl_status === "na" ? `<span class="ex-na">na</span>` : `<span class="ex-na">pending</span>`);
-        return `<tr>
-          <td>${exDirBadge(s.direction)}</td>
-          <td><b>${esc(s.symbol_name || "—")}</b>${/^\d{6}$/.test(code) ? ` <span class="stk-mini stk-click" data-open-sym="${escAttr(code)}" title="点击查看该股行情 / K线 / 持仓选手">${esc(code)}</span>` : ""}</td>
-          <td class="ex-note">${esc(s.reason || "")}</td>
-          <td class="ex-num">${esc(s.pub_date || "")}</td>
-          <td class="ex-num">${pnl}</td>
-        </tr>`;
-      }).join("");
-      const sBadges = (src.tier_label ? exTierBadge(src.tier, src.tier_label) : "")
-        + (src.kind_label ? ` <span class="ex-kd">${esc(src.kind_label)}</span>` : "")
-        + (src.status_label ? ` ${exStatusBadge(src.status, src.status_label)}` : "")
-        + (src.licensed === 1 ? ` <span class="ex-lic">持牌</span>` : "");
-      html = `
-        <div class="ex-d-head">
-          <b class="ex-d-nm">${esc(src.name || "")}</b>${src.vendor ? ` <span class="ex-vendor">${esc(src.vendor)}</span>` : ""}
-          <span class="ex-c-sp"></span>${sBadges}
-        </div>
-        <div class="detail-sub" style="margin-top:10px">作用 / 价值 / 接入路径</div>
-        ${src.role ? `<div class="kv"><div class="k">作用</div><div>${esc(src.role)}</div></div>` : ""}
-        ${src.value ? `<div class="kv"><div class="k">价值 / 局限</div><div>${esc(src.value)}</div></div>` : ""}
-        ${src.howto ? `<div class="kv"><div class="k">接入路径</div><div>${esc(src.howto)}</div></div>` : ""}
-        ${src.url ? `<div class="kv"><div class="k">入口</div><div>${exExtLink(src.url, "打开信源")}</div></div>` : ""}
-
-        <div class="detail-sub">已入库信号（${d.count || 0} 条 · 已回填 ${d.done_n || 0} · 待回填 ${d.pending_n || 0}）</div>
-        ${rows ? `<div class="ex-tw"><table class="ex-tb"><thead><tr><th>方向</th><th>标的</th><th>逻辑</th><th>发布日</th><th>T+5</th></tr></thead><tbody>${rows}</tbody></table></div>` : "<span class='s'>该信源暂无入库信号</span>"}
-
-        /* 2026-10-02 王总「让我导资料乱七八糟、我又没有数据可倒」：
-           原来是醒目的主按钮「＋ 导入该信源的荐股名单」（= 手动粘贴名单），是个伪需求入口。
-           降级成折叠里的一行小字，并说清楚它是什么、不是什么。 */
-        <details class="rd-fold rd-tech rd-imp">
-          <summary>手动补录名单（技术向，一般不用）</summary>
-          <div class="rd-tech-b">
-            <span class="s">把 App 里复制 / 导出的名单粘进来，按行解析后结构化入库并回测——
-              <b>不是自动抓取</b>，导完本信源状态也不会变成「在供数」（在供数看有没有真数据自动进来）。</span>
-            <button class="btn-s" data-ex-import="${escAttr(src_key)}">打开手动补录</button>
-          </div>
-        </details>
-      `;
-    }
-    openDrawer(`信源 · ${esc((d.source || {}).name || src_key)}`, html, anchorEl);
-    // 已入库信号表的股票代码 → 完整个股抽屉（与信号卡内 stk-mini 同口径，openStock 复用）
-    $$("#drawerBody [data-open-sym]").forEach((el) => {
-      el.onclick = (e) => { e.stopPropagation(); openStock(el.dataset.openSym, el); };
-      el.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); openStock(el.dataset.openSym, el); } };
-    });
-    // 抽屉内「导入该信源的荐股名单」按钮 → 打开导入弹窗（preset 为该信源）
-    const ib = $("#drawerBody [data-ex-import]");
-    if (ib) ib.onclick = () => openExtrefImportModal(ib.dataset.exImport || null);
-    // 抽屉内「连接该数据接口」按钮 → 打开 MCP 连接弹窗
-    const mb = $("#drawerBody [data-ex-mcp]");
-    if (mb) mb.onclick = () => openExtrefMcpModal(mb.dataset.exMcp || null);
-  }).catch((e) => reportLoadError("信源详情", e));
-}
-
-/* ---------- 取数通道动作：采集 / 回测 ---------- */
-function extrefCollect(btn) {
-  const srcKey = (btn && btn.dataset.exCollect) || null;
-  const orig = btn ? btn.textContent : "";
-  if (btn) { btn.disabled = true; btn.textContent = "采集中…"; }
-  api(`/api/extref_collect?src_key=${encodeURIComponent(srcKey || "")}`).then((r) => {
-    const res = (r && r.result) || {};
-    const one = res[srcKey] || (Object.values(res)[0]) || {};
-    const msg = one.error ? ("采集失败：" + one.error)
-      : `采集完成：取回 ${one.fetched || 0} 条、新增 ${one.inserted || 0}、更新 ${one.updated || 0}` +
-        (one.symbols && one.symbols.length ? `（${one.symbols.slice(0, 8).join("、")}…）` : "");
-    setHint(msg);
-    return loadExtref();
-  }).catch((e) => setHint("采集失败：" + apiErrText(e)))
-    .finally(() => { if (btn) { btn.disabled = false; btn.textContent = orig; } });
-}
-function extrefBacktest(btn) {
-  const orig = btn ? btn.textContent : "";
-  if (btn) { btn.disabled = true; btn.textContent = "回测中…"; }
-  const restore = () => { if (btn) { btn.disabled = false; btn.textContent = orig; } };
-  api(`/api/extref_backtest`).then((r) => {
-    const bt = (r && r.backtest) || {};
-    if (bt.async) {
-      setHint("回测已在后台执行（不阻塞页面），约 1–2 分钟后刷新「信源胜率榜」查看 t1/t5/t10");
-      setTimeout(() => { if (window.loadExtref) loadExtref(); restore(); }, 60000);
-      return;  // 按钮由延时回调恢复，finally 不再动它
-    }
-    btn._btDone = true;
-    setHint(`回测完成：窗口走完回填 ${bt.done || 0} 条、待走完 ${bt.skipped || 0}、不可测 ${bt.na || 0}`);
-    return loadExtref();
-  }).catch((e) => { btn._btDone = true; setHint("回测失败：" + apiErrText(e)); })
-    .finally(() => { if (!btn || btn._btDone) { if (btn) delete btn._btDone; restore(); } });
-}
-
-/* ---------- 人工导入荐股名单（Path A：App 复制/导出 → 结构化入库） ---------- */
-function openExtrefImportModal(presetKey) {
-  const data = (typeof EXTREF !== "undefined" && EXTREF.data) || null;
-  const sources = (data && data.sources) || [];
-  const opts = sources.map((s) =>
-    `<option value="${escAttr(s.src_key)}" ${s.src_key === presetKey ? "selected" : ""}>${esc(s.name)}（${esc(s.tier_label || s.tier || "")}）</option>`
-  ).join("");
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-  overlay.innerHTML = `
-    <div class="modal-card" role="dialog" aria-label="导入荐股名单" style="max-width:700px">
-      <h3 style="margin:0 0 6px">导入荐股名单（人工导出 → 结构化入库）</h3>
-      <div class="hint" style="margin-bottom:8px">
-        把 App 里复制 / 导出的荐股名单粘到下方。支持 <b>CSV（带/不带表头）</b> 与 <b>自由文本</b>（每行一条）。<br>
-        每行自动识别：<b>6 位代码</b>、<b>名称</b>、<b>日期</b>（YYYY-MM-DD 或 MM-DD）、<b>方向</b>（看多/看空/中性）、<b>理由</b>。<br>
-        缺失方向默认「中性」、缺失日期默认今天（结果中标注）；缺失名称尽力在线补全；入库按 sid 幂等，重导不重复增。
+  host.innerHTML = `<div class="card ph-wrap">
+    <div class="ph-head">
+      <div>
+        <h2>板块热度</h2>
+        <div class="s">窗口 ${esc(m.window || "—")}（最近 ${esc(d.window || 5)} 个有数据的交易日）
+          · 截至 ${esc(d.asof || m.asof || "—")}</div>
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-        <label>信源：<select id="exImpSrc" style="min-width:210px;padding:4px">${opts || '<option value="">（暂无可导入信源，请先同步信号库）</option>'}</select></label>
-        <label>默认日期：<input id="exImpDate" type="date" style="padding:4px"></label>
-        <label><input id="exImpCsv" type="checkbox"> 强制按 CSV 解析</label>
-      </div>
-      <textarea id="exImpText" placeholder="示例（自由文本，每行一条）：
-600802 福建水泥 2026-09-10 看多 平台突破放量
-000063 中兴通讯 2026-09-12 买入 5G 景气回升
-同花顺 300033 2026-09-18 增持 AI 应用落地
-
-或 CSV（带表头）：
-代码,名称,日期,方向,理由
-600519,贵州茅台,2026-08-01,看多,消费复苏
-000858,五粮液,2026-08-03,中性,"
-        style="width:100%;height:200px;font-family:Menlo,Consolas,monospace;font-size:12px;padding:8px;border:1px solid #ccc;border-radius:4px"></textarea>
-      <div id="exImpResult" style="margin-top:8px"></div>
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn" onclick="this.closest('.modal-overlay').remove()">取消</button>
-        <button class="btn primary" id="exImpBtn">解析并入库</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  const btn = overlay.querySelector("#exImpBtn");
-  btn.onclick = async () => {
-    const srcKey = overlay.querySelector("#exImpSrc").value;
-    const text = overlay.querySelector("#exImpText").value;
-    const date = overlay.querySelector("#exImpDate").value || "";
-    const forceCsv = overlay.querySelector("#exImpCsv").checked;
-    if (!srcKey) { setHint("请先选择信源"); return; }
-    if (!text.trim()) { setHint("请先粘贴荐股名单"); return; }
-    btn.disabled = true; btn.textContent = "入库中…";
-    try {
-      // 2026-09-29：加 60s 超时。后端回测已改后台单飞，正常应秒级返回；
-      // 超时说明后端忙，如实提示而不是永久转圈。
-      const ctl = new AbortController();
-      const tmr = setTimeout(() => ctl.abort(), 60000);
-      let r;
-      try {
-        r = await api("/api/extref_manual_import", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ src_key: srcKey, text, default_date: date || null,
-            is_csv: forceCsv ? true : null, run_backtest: true }),
-          signal: ctl.signal,
-        });
-      } finally { clearTimeout(tmr); }
-      const box = overlay.querySelector("#exImpResult");
-      if (!r.ok) { box.innerHTML = `<div class="ex-imp-err">导入失败：${esc(r.error || "未知错误")}</div>`; return; }
-      const rep = r.report || {};
-      const rows = (rep.rows || []).map((rw) => {
-        const stCls = rw.status === "inserted" ? "ins" : rw.status === "updated" ? "upd" : "skip";
-        const war = (rw.warnings || []).length
-          ? `<tr><td colspan="7" class="ex-imp-warn">⚠ 第 ${rw.line_no} 行：${esc((rw.warnings || []).join("；"))}</td></tr>` : "";
-        return `<tr class="ex-imp-${stCls}">
-          <td>${rw.line_no}</td><td>${codeLink(rw.code)}</td><td>${esc(rw.name || "")}</td>
-          <td>${esc(rw.date || "")}</td><td>${esc(rw.direction || "")}</td>
-          <td class="ex-imp-reason">${esc(rw.reason || "")}</td><td class="ex-imp-st">${rw.status}</td></tr>${war}`;
-      }).join("");
-      const bt = r.backtest || {};
-      const btTxt = bt.error ? `回测未执行：${esc(bt.error)}`
-        : bt.async ? `回测：${esc(bt.note || "已在后台执行，完成后在「信源胜率榜」查看 t1/t5/t10。")}`
-        : `回测：窗口走完回填 <b>${bt.done || 0}</b> 条 · 待走完 ${bt.skipped || 0} · 不可测 ${bt.na || 0}`;
-      box.innerHTML = `
-        <div class="ex-imp-summary">解析 <b>${rep.parsed_total || 0}</b> 行 · 新增 <b>${rep.inserted || 0}</b> · 更新 <b>${rep.updated || 0}</b> · 跳过 <b>${rep.skipped || 0}</b></div>
-        <div class="ex-imp-bt">${btTxt}</div>
-        <div class="ex-tw" style="margin-top:6px"><table class="ex-tb"><thead><tr><th>行</th><th>代码</th><th>名称</th><th>日期</th><th>方向</th><th>理由</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="hint" style="margin-top:6px">导入完成。关闭弹窗后刷新面板，新信号即出现在「信源胜率榜」与对应信源详情里。</div>`;
-      if (window.loadExtref) loadExtref();
-    } catch (e) {
-      overlay.querySelector("#exImpResult").innerHTML = `<div class="ex-imp-err">导入异常：${esc(apiErrText(e))}</div>`;
-    } finally {
-      btn.disabled = false; btn.textContent = "解析并入库";
-    }
-  };
+      <div class="ph-note-tag">只谈热度 · 不谈方向</div>
+    </div>
+    <div class="ph-lead-row">${head}</div>
+    <div class="ph-tw"><table class="ph-tb">
+      <thead><tr>
+        <th>#</th><th>板块</th><th>热度</th>
+        <th title="本板块帖数占全站帖数的百分比（取中位日）">讨论占比</th>
+        <th title="窗口内提到该板块的帖子数（同帖只算一次）">提及帖</th>
+        <th title="板块内被提到的不同股票数 / 该板块成员总数">板块广度</th>
+        <th>被提及最多的股票（次数）</th>
+        <th title="占全站讨论比例的百分点变化，不是涨跌幅">较上一窗口</th>
+      </tr></thead><tbody>${body}</tbody></table></div>
+    <div class="ph-foot">
+      <div class="ph-foot-t">口径与缺陷（照实说，不挑好看的显示）</div>
+      <ul>
+        <li><b>这张表不回答「该不该买」。</b>它只统计「哪个板块被讨论得多」——
+          没有方向、没有目标价、没有历史收益，也没有推荐人。热度高不等于会涨，
+          热度低也不等于会跌。<b>荐股内容本轮已全部下架</b>，此页是它们的替代口径。</li>
+        <li><b>讨论占比</b>＝本板块帖数 ÷ 当日全站帖数，取窗口内的中位日。
+          用占比而不用绝对帖数，是因为每日抓取量在 71~824 帖之间波动（覆盖不均），
+          绝对量比出来的「降温」全是抓取节奏，不是市场。</li>
+        <li><b>${esc(m.orphan_note || "论坛提及仅覆盖能关联到 posts 的部分")}</b>——
+          约 88% 的历史提及指向已清理的帖子，只能计入总量、无法定位到日期，
+          故本表实际只用了近两个月约 9.6 千帖。</li>
+        <li><b>板块归属来自本地标签库</b>（plate_members，17 个板块 / 3131 只股票）。
+          一只股票可以同时属于多个板块，所以「代表股」在不同板块里可能重复出现；
+          个别归属也可能有误（例如概念板块收得过宽）。这是数据源问题，未做人工修饰。</li>
+        <li><b>视频源当前${Number(m.video_weight) > 0 ? "已计入" : "未计入"}</b>：
+          豆包整理的博主视频板块标签最晚到 ${esc(m.video_asof || "—")}
+          （距今 ${esc(m.video_stale_days || "—")} 天）${Number(m.video_weight) > 0
+            ? "，权重 " + esc(m.video_weight) : "，已超 7 天或有效板块不足 3 个，按规则整源停用、权重并入论坛"}。</li>
+        <li><b>热度分是自定义口径</b>（论坛占比 ${(Number(d.weights && d.weights.forum) * 100 || 0).toFixed(0)}%
+          ＋广度 ${(Number(d.weights && d.weights.breadth) * 100 || 0).toFixed(0)}%，log 后归一 ×100），
+          不是交易所或任何机构的官方指标，只看相对排序、不宜跨日横向比较绝对值。</li>
+        <li>${esc(m.cmp_note || "")}</li>
+      </ul>
+    </div></div>`;
 }
 
-/* ---------- B 档数据接口（MCP / 合规 API）连接（桥接适配层） ---------- */
-function openExtrefMcpModal(presetKey) {
-  const data = (typeof EXTREF !== "undefined" && EXTREF.data) || null;
-  const sources = (data && data.sources) || [];
-  const mcpSources = sources.filter((s) => (s.access || "") === "mcp");
-  const opts = mcpSources.map((s) =>
-    `<option value="${escAttr(s.src_key)}" ${s.src_key === presetKey ? "selected" : ""}>${esc(s.name)}</option>`
-  ).join("");
-  const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
-  overlay.innerHTML = `
-    <div class="modal-card" role="dialog" aria-label="连接数据接口" style="max-width:720px">
-      <h3 style="margin:0 0 6px">连接数据接口（B 档 · 合规 MCP / API）</h3>
-      <div class="hint" style="margin-bottom:8px">
-        真正的 MCP 协议握手要在 MCP 客户端（<b>WorkBuddy / Trae / Cursor</b>）完成；本项目做「取数 → 入库」这一段。<br>
-        <b>做法</b>：在 MCP 客户端配好密钥取数后，把返回的 <b>荐股 JSON</b> 粘到下方 → 自动按字段映射解析入库并回测。<br>
-        对配置了 endpoint 的源（如妙想 Skills），也可在下方填密钥由本项目<b>主动拉取</b>。
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-        <label>数据接口：<select id="exMcpSrc" style="min-width:220px;padding:4px">${opts || '<option value="">（暂无可连接的 B 档接口，请先同步信号库）</option>'}</select></label>
-        <label>密钥（可选，主动拉取用）：<input id="exMcpKey" type="password" placeholder="留空则粘贴返回 JSON" style="min-width:200px;padding:4px"></label>
-      </div>
-      <textarea id="exMcpText" placeholder='把 MCP 客户端返回的结构化荐股 JSON 粘到这里，例如：
-[{"code":"600519","name":"贵州茅台","date":"2026-09-25","view":"看多","reason":"估值修复","conclusion":"维持推荐"},
- {"code":"000001","date":"2026-09-25","rating":"中性"}]
-支持对象数组 / {stocks:[...]} / {data:[...]} 等结构；自动识别代码/名称/日期/方向/理由/结论。"
-        style="width:100%;height:200px;font-family:Menlo,Consolas,monospace;font-size:12px;padding:8px;border:1px solid #ccc;border-radius:4px"></textarea>
-      <div id="exMcpResult" style="margin-top:8px"></div>
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn" onclick="this.closest('.modal-overlay').remove()">取消</button>
-        <button class="btn primary" id="exMcpBtn">解析并入库</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  const btn = overlay.querySelector("#exMcpBtn");
-  btn.onclick = async () => {
-    const srcKey = overlay.querySelector("#exMcpSrc").value;
-    const key = overlay.querySelector("#exMcpKey").value || "";
-    const text = overlay.querySelector("#exMcpText").value;
-    if (!srcKey) { setHint("请先选择数据接口"); return; }
-    let payload = null;
-    if (text.trim()) {
-      try { payload = JSON.parse(text.trim()); }
-      catch (e) { setHint("JSON 解析失败：" + e.message); return; }
-    } else if (!key) {
-      setHint("请粘贴 MCP 返回的 JSON，或在密钥框填入密钥"); return;
-    }
-    btn.disabled = true; btn.textContent = "入库中…";
-    try {
-      const body = { src_key: srcKey, payload: payload, run_backtest: true };
-      if (key) body.api_key = key;
-      const ctl = new AbortController();
-      const tmr = setTimeout(() => ctl.abort(), 60000);
-      let r;
-      try {
-        r = await api("/api/extref_mcp_connect", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body), signal: ctl.signal,
-        });
-      } finally { clearTimeout(tmr); }
-      const box = overlay.querySelector("#exMcpResult");
-      if (!r.ok) { box.innerHTML = `<div class="ex-imp-err">连接失败：${esc(r.error || "未知错误")}</div>`; return; }
-      const rep = r.report || {};
-      const rows = (rep.rows || []).map((rw) => {
-        const stCls = rw.status === "inserted" ? "ins" : rw.status === "updated" ? "upd" : "skip";
-        const detail = rw.sid ? `${esc(rw.symbol || "")} ${esc(rw.name || "")} · ${esc(rw.direction || "")}`
-          : (rw.reason || "");
-        return `<tr class="ex-imp-${stCls}"><td>${detail}</td><td class="ex-imp-st">${rw.status}</td></tr>`;
-      }).join("");
-      const bt = r.backtest || {};
-      const btTxt = bt.error ? `回测未执行：${esc(bt.error)}`
-        : bt.async ? `回测：${esc(bt.note || "已在后台执行，完成后在「信源胜率榜」查看 t1/t5/t10。")}`
-        : `回测：窗口走完回填 <b>${bt.done || 0}</b> 条 · 待走完 ${bt.skipped || 0} · 不可测 ${bt.na || 0}`;
-      box.innerHTML = `
-        <div class="ex-imp-summary">解析 <b>${rep.parsed_total || 0}</b> 条 · 新增 <b>${rep.inserted || 0}</b> · 更新 <b>${rep.updated || 0}</b> · 跳过 <b>${rep.skipped || 0}</b></div>
-        <div class="ex-imp-bt">${btTxt}</div>
-        <div class="ex-tw" style="margin-top:6px"><table class="ex-tb"><thead><tr><th>信号</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="hint" style="margin-top:6px">连接完成（hardness=hard，官方接口，可信度高于人工导入）。关闭弹窗后刷新面板即可看到。</div>`;
-      if (window.loadExtref) loadExtref();
-    } catch (e) {
-      overlay.querySelector("#exMcpResult").innerHTML = `<div class="ex-imp-err">连接异常：${esc(apiErrText(e))}</div>`;
-    } finally {
-      btn.disabled = false; btn.textContent = "解析并入库";
-    }
-  };
+function loadPlateHeat(force) {
+  const host = $("#p-plate_heat");
+  if (host && !PH.data) host.innerHTML = `<div class="card"><div class="empty">正在统计板块热度…</div></div>`;
+  if (PH.loading) return Promise.resolve();
+  PH.loading = true;
+  return api("/api/plate_heat" + (force ? "?rebuild=1" : ""))
+    .then((d) => { PH.data = d || {}; PH.err = ""; })
+    .catch((e) => { PH.err = apiErrText(e); })
+    .finally(() => { PH.loading = false; renderPlateHeat(); });
 }
+
 
 function geoRefresh() {
   const b = $("#btnGeoRefresh");
@@ -7573,7 +7103,8 @@ function loadAll() {
   // 与各面板并行拉取刷新状态；renderX 尾部会调用 applyFreshness() 兜底重算时效标记。
   loadRefreshStatus().then(refreshAcquirePanels);
   // 今日看板：决策入口，页面加载即拉（后端已做容错，单模块失败不拖垮整页）
-  api("/api/dashboard").then((d) => { DASH.data = d; renderDashboard(); })
+  api("/api/dashboard", { label: "今日看板", timeout: _API_TIMEOUT_HEAVY })
+    .then((d) => { DASH.data = d; renderDashboard(); })
     .catch((e) => reportLoadError("今日看板", e));
   api("/api/summary").then((s) => {
     if (!s || typeof s !== "object" || Array.isArray(s)) {
@@ -7614,8 +7145,6 @@ function loadAll() {
   api("/api/geo_events").then(renderGeoEvents).catch((e) => reportLoadError("国际局势", e));
   // 2026-10-15 P2-1：原「全球政策雷达 / 科技前沿突破」两独立面板已合并进「国际局势」单一面板，
   // 由 paintGeoInto 的 in-panel 分类筛选条（全部/政策/科技）切换，无需再按 panel 单独请求。
-  // 2026-09-27 新增一级分类「外部参考」：一次拉取，三个子面板各自渲染（数据量小，不必分开请求）
-  loadExtref();
   // 2026-09-27 新增一级分类「自选池」：关注池 + 到价提醒（一次拉取，两面板各自渲染）
   loadWatch();
   // 2026-09-27 新增一级分类「增强功能」：智能选股/资金流向/估值诊股/研报评级/多资产/资讯公告。
@@ -8980,10 +8509,11 @@ function wtGroupChecks(checkedIds) {
 let _watchLoadSeq = 0;
 function loadWatch(force) {
   const seq = ++_watchLoadSeq;
-  const p = api("/api/watch_list" + (force ? "?refresh=1" : ""))
+  const p = api("/api/watch_list" + (force ? "?refresh=1" : ""),
+    { label: "自选池", timeout: _API_TIMEOUT_HEAVY })
     .then((d) => { if (seq !== _watchLoadSeq) return; WATCH.data = d || {}; WATCH.signalDate = (d && d.signal_date) || null; renderWatch(); })
     .catch((e) => { if (seq === _watchLoadSeq) reportLoadError("自选池", e); });
-  const pa = api("/api/watch_alerts?limit=200")
+  const pa = api("/api/watch_alerts?limit=200", { label: "到价提醒", timeout: _API_TIMEOUT_HEAVY })
     .then((d) => { WATCH.alerts = d || {}; renderWatchAlerts(); })
     .catch((e) => reportLoadError("到价提醒", e));
   startWatchPoll();
@@ -9194,14 +8724,72 @@ function renderWatch() {
   });
 }
 
+/* 避坑徽标（2026-10-30）：替代已下线的「博主反向警示」。
+   数据来自接口里的 avoid 字段（viewer/avoid.py 实时算：当日量价 + 龙虎榜 + 近 20 日减持公告），
+   **不含任何博主数据，也不读沉淀快照** —— 旧的博主警示拿 6 月的推荐绑 11 月的票，
+   进哥判定「过期即失效」，故整体换源。
+   hover 逐条列出触发项与实证依据，避免只给一个分数让人猜。
+   2026-10-30 夜：满分 17→20（新增龙虎榜两条、删掉人事变动、减持降权），
+   分值上限改由接口的 max_score 提供，避免以后再改权重还要动前端。 */
+let AV_MAX = 20;
+function avoidTitle(av) {
+  const parts = [];
+  for (const f of (av.flags || [])) parts.push(`${f.key} · ${f.ev}`);
+  if (av.stale) parts.push("该票最新K线早于当日（停牌/退市），标记仅供参考");
+  if (av.trade_date) parts.push(`数据日 ${av.trade_date} · 风险分 ${av.score}/${AV_MAX}`);
+  return parts.join("\n");
+}
+function avoidBadge(av) {
+  if (!av || !av.level) return '<span class="muted">—</span>';
+  const high = av.level === "high";
+  return `<span class="av-badge ${high ? "av-high" : "av-mid"}" title="${escAttr(avoidTitle(av))}">⚠${av.score}</span>`;
+}
+
+/* 解禁徽标（2026-10-30，进哥需求）：股东临近释放期就会卖 → 提前提示。
+   数据来自接口里的 lift 字段（viewer/lift.py：东财解禁批次 × 当日交易日历现算）。
+
+   为什么三档而不是「有解禁就报警」——实证（1588 个解禁事件，2025-08~2026-10）：
+     解禁前 60~41 日  +0.44%（还在超额上涨）
+     解禁前 40~21 日  −0.94%（t=-1.16，不显著）
+     解禁前 20~11 日  −1.88%（t=-3.36）
+     解禁前 10~1 日   −1.39%（t=-2.81）
+     解禁后 1~5 日    +0.31%（靴子落地反弹）
+   所以「提前三个月就亮红灯」是错的，会让人在上涨段踏空。watch 档只用灰字标出日期，
+   让持仓的人心里有数，但不假装它是风险。 */
+function liftTitle(li) {
+  const parts = [];
+  const kind = li.type ? `（${li.type}）` : "";
+  parts.push(`${li.td} 个交易日后 ${li.free_date} 解禁${kind}`);
+  if (li.free_ratio != null) parts.push(`解禁量占流通 ${li.free_ratio}%`);
+  if (li.lift_cap != null) parts.push(`解禁金额约 ${li.lift_cap} 亿`);
+  if (li.n_holder) parts.push(`涉及股东 ${li.n_holder} 家`);
+  if (li.msg) parts.push(li.msg);
+  if (li.level === "high") {
+    parts.push("实证：首发原股东解禁且占流通≥3%的票，解禁前 20 个交易日跑输大盘 3.36%（t=-5.09）");
+  } else if (li.level === "mid") {
+    parts.push("实证：解禁占流通≥10% 的票，解禁前 20 个交易日跑输大盘 2.19%（t=-4.01）");
+  } else {
+    parts.push("提示：前 40 个交易日仍为超额上涨，尚未进入实证有效的风险窗口");
+  }
+  return parts.join("\n");
+}
+function liftBadge(li, opts) {
+  const showWatch = opts && opts.watch;
+  if (!li || !li.level) return '<span class="muted">—</span>';
+  if (li.level === "watch") {
+    if (!showWatch) return '<span class="muted">—</span>';
+    // watch 档刻意不带 🔓 —— emoji 是彩色的，CSS 改不动它的颜色，
+    // 带着同一个金色锁会让「仅供参考」和「要躲」看起来一样重。纯文字才排得下层级。
+    return `<span class="lift-watch" title="${escAttr(liftTitle(li))}">${li.td}日后</span>`;
+  }
+  const high = li.level === "high";
+  return `<span class="lift-badge ${high ? "lift-high" : "lift-mid"}" title="${escAttr(liftTitle(li))}">🔓${li.td}日</span>`;
+}
+
 function watchRow(it, idx, arr) {
-  // 第一格（代码/名称）附加标记：基金标记 + 博主提及徽标（🔥N）+ 多分组 ×N + 到价提醒标记（🔔）。
+  // 第一格（代码/名称）附加标记：基金标记+ 多分组 ×N + 到价提醒标记（🔔）。
   let c1Extra = "";
   if (it.kind === "fund") c1Extra += ' <span class="wt-kind">基</span>';
-  if (it.blogger_n && it.blogger_n > 0) {
-    const names = (it.blogger_list || []).join("、");
-    c1Extra += ` <span class="wt-blog" title="提过：${escAttr(names)}">🔥${it.blogger_n}</span>`;
-  }
   if (it.n_groups && it.n_groups > 1) {
     const gnames = (it.groups || []).map((g) => g.name).join("、");
     c1Extra += ` <span class="wt-multi" title="同时在 ${it.n_groups} 个分组：${escAttr(gnames)}">×${it.n_groups}</span>`;
@@ -9209,6 +8797,10 @@ function watchRow(it, idx, arr) {
   if (it.alert_on && it.target_price !== null && it.target_price !== undefined && it.target_price !== "") {
     c1Extra += ` <span class="wt-bell" title="已设到价提醒">🔔</span>`;
   }
+  // 避坑徽标：只在高/中档亮灯（低档不显示，否则半张表都在报警，等于没报）。
+  if (it.avoid && it.avoid.level) c1Extra += " " + avoidBadge(it.avoid);
+  // 解禁徽标：关注池是持仓/准备买的地方，watch 档（60 日内）也显示，让人提前安排。
+  if (it.lift && it.lift.level) c1Extra += " " + liftBadge(it.lift, { watch: true });
   // 入手值得率：数字按阈值配色（bull 红 / wt-warn 黄 / muted 灰），否则 «—»。
   const w = it.worth;
   const worthCell = (typeof w === "number" && !isNaN(w))
@@ -9592,12 +9184,15 @@ const NAV = [
     { group: "当日结论" },
     // 今日决策 为主项，今日看板/汇总/我的提示 归拢其下（视觉聚合，tab 仍平铺，深链接不变）
     { tab: "today", label: "今日决策", lead: true, mg: "decision" },
+    // 2026-10-29 进哥需求：AI 复盘 —— 紧挨今日决策放，一眼能对比
+    // 「规则引擎公式算的」vs「大模型读完信息包+我的知识库之后判断的」。
+    { tab: "ai_review", label: "AI 复盘", child: true, mg: "decision" },
     { tab: "dashboard", label: "今日看板", child: true, mg: "decision" },
     { tab: "summary", label: "今日汇总", child: true, mg: "decision" },
     { tab: "watch_brief", label: "我的提示", child: true, mg: "decision" },
     { group: "当日信号" },
     { tab: "prediction", label: "每日预测" },
-    { tab: "resonance", label: "博主共振" },
+    { tab: "resonance", label: "多源共振" },
     // 2026-10-21 dy9 进哥拍板：低分卡归因做成一级功能（只做排除，不做推荐）
     { tab: "avoid", label: "避雷名单" },
     { tab: "quant", label: "量化信号" },
@@ -9616,6 +9211,10 @@ const NAV = [
     { group: "人气" },
     // 当前讨论股票 改名「讨论热度」——它是注意力而非钱，与情绪同组更顺
     { tab: "stocks", label: "讨论热度" },
+    // 2026-10-29 进哥拍板：荐股（谁推了什么票、看多看空、事后涨没涨）全部抹除，
+    // 只保留「注意力」这一个维度并在**板块**层面聚合 —— 跟在「讨论热度」后面同组，
+    // 因为它回答的是同一类问题（大家在聊什么），只是颗粒度从个股换成了板块。
+    { tab: "plate_heat", label: "板块热度" },
     // 市场情绪/舆论情绪 从「消息与外围」迁入（情绪指标，原被腰斩在两个类里）
     { tab: "bili_sentiment", label: "市场情绪", lead: true, mg: "mood" },
     { tab: "sentiment", label: "舆论情绪", child: true, mg: "mood" }] },
@@ -9640,9 +9239,10 @@ const NAV = [
   // ⑤ 他人观点（原「别人怎么看」）：观点——机构/社区/研报怎么评价。改名为与「他人操作」对仗。
   { key: "opinion", label: "他人观点", icon: "◇", items: [
     { tab: "research", label: "研报评级" },
-    { tab: "blogger", label: "博主荐股" },
-    { tab: "extref_soft", label: "外部荐股验证" },
-    { tab: "contest", label: "当红参赛股" }] },
+    // 2026-10-29 进哥拍板：博主荐股 / 外部荐股验证 / 当红参赛股 三页已**物理删除**
+    // （不只是摘导航，代码也删了）。荐股口径降级为「资金动向 · 板块热度」，只谈板块不谈票。
+    // 本类下现仅存「研报评级」——机构研报是另一种信源，不属博主荐股，故保留。
+  ] },
   // 2026-09-27 新增一级分类「自选池」：自己的关注/自选池（股票 + 基金），可分组（**组名可自定义**）、
   // 标目标价、到价提醒。数据来自独立模块 watchlib.py（表 watch_*，零 JOIN、零外部关联）。
   // ⑥ 我的票：我自己的——自选、提醒、选股、诊股（原「自选池」+ 「增强功能」的选股/诊股/多资产）
@@ -9659,7 +9259,9 @@ const NAV = [
     { tab: "lowbox", label: "低位突破", lead: true, mg: "lowbox" },
     { tab: "lowbox_bottom", label: "长期底部埋伏", child: true, mg: "lowbox" },
     { tab: "lowbox_radar", label: "突破雷达", child: true, mg: "lowbox" },
-    { tab: "rate", label: "入手概率" }] },
+    { tab: "rate", label: "入手概率" },
+    { group: "产业链研究" },
+    { tab: "bottleneck", label: "瓶颈猎手", lead: true, mg: "chain" }] },
   // 2026-09-29：「增强功能」类已**解散**，六项按维度归位——资金流向→钱往哪走、资讯公告→消息与外围、
   // 研报评级→别人怎么看、智能选股/估值诊股/多资产→我的票。后端独立模块（emapi + moneyflow/screener/
   // valuation/research/multiquote/newsfeed）与面板容器原样保留，前端懒加载逻辑（selectNav 末尾）零改动。
@@ -9671,6 +9273,11 @@ const NAV = [
   // 需要复原时把这三项加回下面 items 即可，后端无需改动。
   // 2026-10-12 体验审计 P1（部分）：复盘/学习是**盘后**动作，盘中用不到却占一级导航 →
   // 打上 pinned 标记，renderNav 会把它沉到左栏最底部、并用「盘后」分隔线与盘中决策项隔开。
+  // 2026-10-27 P4 收尾：信号 alpha 回测实证可视化。独立一级「信号实证」最干净——
+  // 非盘中决策、也非知识库动态轨道（DYN_CATS），items 原样生效，不污染首屏与其他大类。
+  { key: "research", label: "信号实证", icon: "⚙", items: [
+    { tab: "backtest", label: "信号回测" },
+  ] },
   { key: "learn", label: "复盘成长", icon: "✎", pinned: true, items: [
     // ⚠️ 本类子项由两个来源动态生成（见 itemsOfCat 的 learn 分支），此处 items 仅为占位。
     { tab: "strategy_lab", label: "策略回测" },
@@ -10469,8 +10076,6 @@ function lowboxTable(d) {
   const rows = d.rows || [];
   if (!rows.length) return `<div class="muted wt-empty">没有符合条件的标的（试试放宽低位阈值、箱体时长或质量档）。</div>`;
   const trs = rows.map((r, i) => {
-    const blog = (r.blogger_n && r.blogger_n > 0)
-      ? `<span class="wt-chip" title="提过：${esc((r.blogger_list || []).join("、"))}">🔥${r.blogger_n}</span>` : "";
     // 国资系：十大股东背景(state_tag) + 实控人国资(holder_tag) 双标
     const stTag = r.state_tag ? `<span class="wt-chip on" title="十大流通股东含${esc(r.state_tag)}背景">${esc(r.state_tag)}</span>` : "";
     const hTag = r.holder_tag === "国资实控" ? `<span class="wt-chip hot" title="实际控制人系国资">国资实控</span>` : "";
@@ -10498,7 +10103,7 @@ function lowboxTable(d) {
     const scCls = r.score != null ? (r.score >= 70 ? "bull" : r.score >= 50 ? "" : "muted") : "";
     return `<tr>
       <td>${i + 1}</td>
-      <td><a class="wt-code" data-wt-open="${esc(r.code)}">${esc(r.code)}</a><br><span class="muted">${esc(r.name || "")}</span> ${blog}</td>
+      <td><a class="wt-code" data-wt-open="${esc(r.code)}">${esc(r.code)}</a><br><span class="muted">${esc(r.name || "")}</span>${r.avoid && r.avoid.level ? " " + avoidBadge(r.avoid) : ""}${r.lift && r.lift.level ? " " + liftBadge(r.lift, { watch: true }) : ""}</td>
       <td class="${scCls}"><b>${r.score != null ? r.score : "—"}</b>${(r.state_bonus ? `<br><span class="muted">+${r.state_bonus}国资</span>` : "")}</td>
       <td>${qf}</td>
       <td>${r.current != null ? r.current : "—"}</td>
@@ -13187,8 +12792,6 @@ const TAB_HINTS = {
   screener: "智能选股 = 按多条件（估值 / 持股 / 质量 / 值得率）在 5000+ 只里筛候选，再人工判断。",
   cohold: "近5日共同买入 = 看「最近谁同时动手了」（动作时点）；与「共同持仓共识」的「现在还有谁拿着」不是一回事。",
   consensus: "共同持仓共识 = 「现在还有多少人一起拿着」，按人数排序。",
-  extref_rank: "信源胜率榜 = 各荐股信源的历史命中率排行，用来判断谁说的话更值得听。",
-  extref_soft: "荐股验证报告 = 外部投顾/平台的荐股信号，逐条回测它们后来到底涨没涨。",
   smart_money: "把选手 / 牛散 / 共识 / 近5日共买等多个名单合成一条结论：多人同时买的方向与个股。",
   info_brief: "把政策 / 国际 / 海外 / 公告 / 快讯压成一屏：今日消息面 Top5 与影响板块。",
   today: "一屏四卡：今日方向 / 机会 / 风险 / 我的票提示 —— 打开软件第一眼就该看这个。",
@@ -13304,7 +12907,7 @@ function selectNav(catKey, tabKey, push) {
     panel.classList.add("active");
     // 2026-10-15 全站回测评测修复（体验 · 首屏白屏）：
     // 切到一个「还没渲染过」的面板时先给「加载中」占位。大数据面板首次拉数要 3–8 秒
-    // （博主荐股 reco 131KB + perf 415KB、相关人物 932KB、龙虎榜 218KB），此前这段是**纯白屏**、
+    // （相关人物 932KB、龙虎榜 218KB 等），此前这段是**纯白屏**、
     // 没有任何反馈，看着像「点进去坏了」。各渲染函数一律 `innerHTML =` 覆盖式写盘，
     // 占位会被数据到达后的重绘自然替换掉；已有内容的旧面板（innerHTML 非空）不注入，不闪。
     if (!panel.innerHTML.trim()) {
@@ -13324,6 +12927,17 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "today") {
     if (TODAY.data) renderToday();
     else loadToday().catch((e) => reportLoadError("今日决策", e));
+  }
+  // AI 复盘（2026-10-29 进哥需求）：真调大模型的判断，与今日决策（规则引擎）并列。
+  // 已有数据则纯重绘（零请求）；后台还在算的时候 renderAiReview 会自己续上轮询，
+  // 所以切走再切回来不会丢进度，也不会重复起线程。
+  if (tab === "ai_review") {
+    if (AIR.data) {
+      renderAiReview();
+      if (AIR.data.state === "computing") airStartPoll();
+    } else {
+      loadAiReview().catch((e) => reportLoadError("AI 复盘", e));
+    }
   }
   // 三个「结论页」（P0-D/E/F）：消息面汇总 / 聪明钱共识 / 我的票·今日提示
   if (tab === "info_brief" || tab === "smart_money" || tab === "watch_brief") {
@@ -13350,9 +12964,9 @@ function selectNav(catKey, tabKey, push) {
     if (HOTSPOTS.data) renderHotspots(HOTSPOTS.data);
     else loadHotspots().catch((e) => reportLoadError("近期热点", e));
   }
-  // 博主共振（2026-10-15 进哥需求）：今日总览第 5 个子板块，进入时按需（重）渲染
+  // 多源共振（2026-10-15 进哥需求）：今日总览第 5 个子板块，进入时按需（重）渲染
   if (tab === "resonance") {
-    loadResonance().catch((e) => reportLoadError("博主共振", e));
+    loadResonance().catch((e) => reportLoadError("多源共振", e));
   }
   // 避雷名单（2026-10-21 dy9）：低分卡归因显式面板，进入时按需加载
   if (tab === "avoid") {
@@ -13365,6 +12979,10 @@ function selectNav(catKey, tabKey, push) {
   // ETF 基金（2026-10-17 进哥需求，与量化/共振并列的顶层 NAV）：今日总览子板块，进入时按需（重）渲染（左右两栏）
   if (tab === "etf") {
     loadEtf().catch((e) => reportLoadError("ETF基金", e));
+  }
+  // Kronos K线基础模型预测（2026-10-24 进哥需求）：独立顶层 tab，进入时按需（重）渲染
+  if (tab === "kronos") {
+    loadKronos().catch((e) => reportLoadError("Kronos K线预测", e));
   }
   // 抓取管道三块（原「知识获取」的 数据源/原始存档/抓取与登录记录）：2026-09-26 已从导航撤下，
   // 故正常点选与改 hash 都到不了这里（未知 tab 会被纠回首项）。保留这段是配合上面 NAV 的注释——
@@ -13392,6 +13010,11 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "strategy_lab") {
     if (LAB.data) renderStrategyLab();
     else loadStrategyLab();
+  }
+  // 信号回测实证（P4 · 2026-10-27 收尾）：进入即懒加载，已加载则纯重绘（零请求）
+  if (tab === "backtest") {
+    if (BTK.data) renderBacktest();
+    else loadBacktest();
   }
   // 入手概率（2026-10-05 新板块，与「智能选股」并列）：进入即渲染，已拿过数据就只重绘
   if (tab === "rate") {
@@ -13426,18 +13049,16 @@ function selectNav(catKey, tabKey, push) {
   // 2026-09-29「个股诊断」：合并估值诊股 + 个股资金流 + 财务/公告/专家分析
   if (tab === "diag") dgEnsureAutoRun();   // 进页即自动诊断，不要求再点「开始诊断」
   if (tab === "research") loadResearch();
-  // 2026-10-01 新增：博主荐股 / 当红参赛股。
-  // 数据已在 loadAll 缓存 → 纯重绘（零请求）；未缓存则由 loadBloggerContest 内部补拉。
-  if (tab === "blogger" || tab === "contest") {
-    if (BLOG.loaded && CONTEST.loaded) { renderBloggerPanel(); renderContestPanel(); }
-    else loadBloggerContest();
-  }
   if (tab === "multiquote") loadMultiquote();
+  // 2026-10-29 进哥拍板：板块热度 —— 荐股降级为「注意力」后的替代页面，进入才拉
+  if (tab === "plate_heat") loadPlateHeat();
   if (tab === "fundmasters") loadFundMasters();
   if (tab === "news") loadNews();
   if (tab === "policy") loadPolicy();
   // 2026-09 行业龙头全景（王总拍板）：进入即拉真实市值排名；沙箱 available:False 时面板只提示
   if (tab === "industry-leaders") loadIndustryLeaders();
+  // 2026-10-24 供应链瓶颈猎手（进哥拍板）：进入才懒加载，纯标准库 KB 驱动
+  if (tab === "bottleneck") loadBottleneck();
   // 2026-10-11 王总第三回合：B站视频级分堆三处新面板
   // ① 市场情绪（info）；③ 技术·价值教学（learn）；② B站博主分组框（learn）
   if (tab === "bili_sentiment") renderBiliPile("sentiment", "#p-bili_sentiment", true);
@@ -13449,8 +13070,125 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "tech" && window.DOUYIN) window.DOUYIN.renderTech();
     if (tab === "integrate" && window.DOUYIN) window.DOUYIN.renderIntegration();
   if (tab === "dy_reso" && window.DOUYIN) window.DOUYIN.renderResonance();
+  if (tab === "funnel" && window.DOUYIN) window.DOUYIN.renderFunnel();
 }
 
+/* ================= 信号回测实证（P4 · 2026-10-27 收尾） =================
+   数据：/api/signal/backtest ← 后端 viewer/server.py api_signal_backtest()
+   （表 signal_backtest：17 信号 × 3 前向窗口 = 51 行；口径 = 触发信号后 N 日超额收益）。
+   界面打通「实证 → 当前消费权重」链路：表格按夏普降序展示各信号胜率/平均超额收益/夏普，
+   底部对照 config.SIGNAL_WEIGHTS 当前实际被评分消费的权重，标出"有实证 / 无实证对照"。 */
+const BTK = { data: null, loading: false, filter: "all" };
+function loadBacktest() {
+  const box = ensurePanel("backtest");
+  if (!box) return;
+  if (BTK.data) { renderBacktest(); return; }
+  if (BTK.loading) return;
+  BTK.loading = true;
+  box.innerHTML = `<div class="empty">正在读取信号回测实证…</div>`;
+  api("/api/signal/backtest")
+    .then((d) => { BTK.loading = false; BTK.data = d; renderBacktest(); })
+    .catch((e) => { BTK.loading = false; reportLoadError("信号回测", e); });
+}
+function btColor(x) {
+  const n = Number(x);
+  if (!isFinite(n) || n === 0) return "#888";
+  return n > 0 ? "#c0392b" : "#0a7d3b";   // A股约定：盈利=红、亏损=绿
+}
+function btNum(x, p) {
+  if (x == null || !isFinite(Number(x))) return "—";
+  return Number(x).toFixed(p == null ? 2 : p);
+}
+function renderBacktest() {
+  const box = ensurePanel("backtest");
+  if (!box) return;
+  const d = BTK.data;
+  if (!d || !d.ok) {
+    box.innerHTML = `<div class="empty">信号回测数据不可用：${esc(d && d.error ? d.error : "未知错误")}</div>`;
+    return;
+  }
+  const rows = (d.rows || []).slice();
+  const s = d.summary || {};
+  const w = d.weights || {};
+  const shown = BTK.filter === "all" ? rows : rows.filter((r) => String(r.fwd) === String(BTK.filter));
+  const best = s.best ? `<b style="color:#c0392b">${esc(String(s.best))}</b>` : "—";
+  const worst = s.worst ? `<b style="color:#0a7d3b">${esc(String(s.worst))}</b>` : "—";
+  const card = (k, v, sub, col) =>
+    `<div style="background:var(--panel,#111827);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;padding:10px 12px;min-width:0">
+       <div style="font-size:12px;color:#888;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k}</div>
+       <div style="font-size:20px;font-weight:700;color:${col || "#e6e6e6"};line-height:1.1">${v}</div>
+       <div style="font-size:11px;color:#777;margin-top:3px">${sub || ""}</div>
+     </div>`;
+  const cards = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+      ${card("实证样本", btNum(s.total, 0) + " 行", "17 信号 × 3 窗口")}
+      ${card("正α（盈利方向）", btNum(s.positive_alpha, 0), "平均超额收益 > 0", "#c0392b")}
+      ${card("负α（亏损方向）", btNum(s.negative_alpha, 0), "平均超额收益 < 0", "#0a7d3b")}
+      ${card("最佳 / 最差信号", best + "<br>" + worst, "按夏普排序", "#e6e6e6")}
+    </div>`;
+  const fwds = ["all", "5", "10", "20"];
+  const flab = { all: "全部", "5": "5日窗口", "10": "10日窗口", "20": "20日窗口" };
+  const fbar = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      ${fwds.map((f) => `<button class="bt-fbtn" data-f="${f}" style="cursor:pointer;border:1px solid var(--border,rgba(255,255,255,.2));background:${BTK.filter === f ? "var(--accent,#0E7490)" : "transparent"};color:${BTK.filter === f ? "#fff" : "var(--txt,#ddd)"};border-radius:6px;padding:4px 12px;font-size:12px">${flab[f]}</button>`).join("")}
+      <span style="margin-left:auto;font-size:12px;color:#777">更新于：${esc(String((rows[0] && rows[0].updated) || "—"))}</span>
+    </div>`;
+  const head = `<tr style="position:sticky;top:0;background:var(--panel,#111827)">
+      <th style="text-align:left;padding:6px 8px">信号</th>
+      <th style="text-align:left;padding:6px 8px">方向</th>
+      <th style="text-align:right;padding:6px 8px">前向(日)</th>
+      <th style="text-align:right;padding:6px 8px">样本数</th>
+      <th style="text-align:right;padding:6px 8px">胜率</th>
+      <th style="text-align:right;padding:6px 8px">平均超额收益</th>
+      <th style="text-align:right;padding:6px 8px">夏普</th>
+    </tr>`;
+  const body = shown.map((r) => {
+    const dir = r.direction === "sell"
+      ? `<span style="color:#0a7d3b">卖</span>` : `<span style="color:#c0392b">买</span>`;
+    const ret = Number(r.avg_ret), wr = Number(r.winrate), sh = Number(r.sharpe);
+    return `<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08))">
+        <td style="padding:6px 8px;white-space:nowrap">${esc(String(r.signal))}</td>
+        <td style="padding:6px 8px">${dir}</td>
+        <td style="padding:6px 8px;text-align:right">${btNum(r.fwd, 0)}</td>
+        <td style="padding:6px 8px;text-align:right">${btNum(r.n, 0)}</td>
+        <td style="padding:6px 8px;text-align:right">${(isFinite(wr) ? (wr * 100).toFixed(1) + "%" : "—")}</td>
+        <td style="padding:6px 8px;text-align:right;color:${btColor(ret)};font-weight:600">${(isFinite(ret) ? (ret * 100).toFixed(2) + "%" : "—")}</td>
+        <td style="padding:6px 8px;text-align:right;color:${btColor(sh)};font-weight:600">${btNum(sh, 2)}</td>
+      </tr>`;
+  }).join("");
+  const table = `<div style="overflow:auto;max-height:46vh;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;margin-bottom:16px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums">
+        <thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  const wkeys = Object.keys(w);
+  const wbody = wkeys.length ? wkeys.map((k) => {
+    const key = String(k).toLowerCase();
+    const has = rows.some((r) => r.signal && String(r.signal).toLowerCase().includes(key.slice(0, 6)));
+    return `<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08))">
+        <td style="padding:5px 8px">${esc(String(k))}</td>
+        <td style="padding:5px 8px;text-align:right">${btNum(w[k], 3)}</td>
+        <td style="padding:5px 8px">${has ? '<span style="color:#0a7d3b">✓ 有实证对照</span>' : '<span style="color:#b8860b">· 无实证对照</span>'}</td>
+      </tr>`;
+  }).join("") : `<tr><td colspan="3" class="empty">当前未配置 SIGNAL_WEIGHTS</td></tr>`;
+  const wsec = `<div style="background:var(--panel,#111827);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;padding:12px 14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#ddd">当前消费权重对照（config.SIGNAL_WEIGHTS）</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="color:#888">
+          <th style="text-align:left;padding:4px 8px">信号维度</th>
+          <th style="text-align:right;padding:4px 8px">权重</th>
+          <th style="text-align:left;padding:4px 8px">实证对照</th>
+        </tr></thead><tbody>${wbody}</tbody></table>
+    </div>`;
+  box.innerHTML = `
+    <div style="margin:0 0 4px;display:flex;align-items:baseline;gap:10px">
+      <h2 style="margin:0;font-size:18px">信号回测实证</h2>
+      <span style="font-size:11px;color:#fff;background:var(--accent,#0E7490);border-radius:4px;padding:1px 7px">P4</span>
+    </div>
+    <div style="color:#888;font-size:12px;margin-bottom:14px">触发信号后 N 日超额收益实测，表格按夏普降序。
+      <b style="color:#c0392b">红=盈利方向</b>、<b style="color:#0a7d3b">绿=亏损方向</b>（A股约定）。
+      底部对照当前评分实际消费的权重，验证「实证 → 权重」链路一致。</div>
+    ${cards}${fbar}${table}${wsec}`;
+  $$(".bt-fbtn", box).forEach((b) => {
+    b.onclick = () => { BTK.filter = b.dataset.f; renderBacktest(); };
+  });
+}
 
 /* ================= 全球大盘（消息与外围 · 2026-10-17 新增） =================
    数据：/api/global_market ← 后端 viewer/global_market.py（国内免费源：新浪 hq.sinajs.cn
@@ -13766,6 +13504,9 @@ function itemsOfCat(cat) {
     { tab: "integrate", label: "整合图谱" },
     { tab: "dy_reso", label: "豆包×主力共振" },
     { tab: "learn_tracks", label: "学习轨道管理" },
+    // 2026-10-24 进哥：Kronos K线基础模型预测（开源基础模型概率预测，独立顶层 tab，与上面并列）
+    { tab: "kronos", label: "Kronos K线预测", tag: "AI基础模型" },
+    { tab: "funnel", label: "方法共振" },
   ];
   // 固定子板块（策略回测 / 学习轨道管理）无论轨道是否加载回来都要在场：
   // 无轨道时直接用 fixed（其已是静态 cat.items 的超集）。
@@ -14851,7 +14592,7 @@ const PILLAR_TABS = [
   { key: "t1_surf",       label: "竞价冲浪" },
   { key: "dip_revert",   label: "超跌修复" },
   { key: "resonance",    label: "共振风控" },
-  // 2026-10-16 进哥要求：与「博主共振 → 自我提升」同理，但这里学的是**本引擎自己的实盘复盘**
+  // 2026-10-16 进哥要求：与「多源共振 → 自我提升」同理，但这里学的是**本引擎自己的实盘复盘**
   // （政策漏斗/竞价冲浪/超跌修复/共振风控 逐期逐支柱的命中率与超额），再用学出的权重给今日提名加权选票。
   { key: "self_learn",   label: "引擎自加权" },
 ];
@@ -14888,8 +14629,8 @@ if (typeof window !== "undefined") {
   else syncTopbarH();
 }
 
-/* ---------- 博主共振 RES 状态 + 三支柱页签（2026-10-15，与 PRED 同款前置声明防 TDZ） ----------
- * 板块位置：今日总览 → 「博主共振」（紧跟「每日预测」之后）。
+/* ---------- 多源共振 RES 状态 + 三支柱页签（2026-10-15，与 PRED 同款前置声明防 TDZ） ----------
+ * 板块位置：今日总览 → 「多源共振」（紧跟「每日预测」之后）。
  * 数据源 /api/resonance（后端 resonance.py 三支柱产出，查看器只读）。
  * 三支柱 = 以票为中心 / 以战法为中心 / 以人为中心 —— 对应进哥拍板的「三套都做」。
  * 必须在此处声明（initNav → selectNav 会同步访问 RES），否则深链接进入时命中 TDZ。
@@ -14996,6 +14737,244 @@ function loadBacktest(isRetry) {
   });
 }
 
+/* ===================== 信号战绩（2026-10-29）===========================
+   干什么：把 signal_backtest 的百万样本回测结论印到界面上，每条信号一行：
+     样本量 / 绝对胜率 / 相对基线的超额 / 夏普 / 裁决。
+
+   为什么非要印"超额"：全市场前向 5 日基线胜率只有 46.12%（n≈129 万）。
+   一个 48% 胜率的信号看着"过半"，实际跑输基线 —— 只印胜率就是在误导。
+   所以这里固定把基线写在副标题里，超额单独一列、带正负号。
+
+   裁决口径（与后端 kernel/evidence.py 完全一致，改一处必须改两处）：
+     effective 有效 / neutral 中性 / adverse 反向 / insufficient 样本不足（<500）
+   ==================================================================== */
+const SIGEV = { data: null, loading: false, err: "" };
+
+function loadSignalEvidence() {
+  if (SIGEV.loading) return;
+  SIGEV.loading = true;
+  api("/api/signal/evidence?fwd=5").then((d) => {
+    SIGEV.data = d || {};
+    SIGEV.loading = false;
+    const el = $("#sig-ev-body");
+    if (el) el.innerHTML = renderSigEvidenceBody();
+  }).catch((e) => {
+    SIGEV.loading = false;
+    SIGEV.err = String((e && e.message) || e || "加载失败");
+    const el = $("#sig-ev-body");
+    if (el) el.innerHTML = renderSigEvidenceBody();
+  });
+}
+
+function renderSigEvidenceSection() {
+  return `<div class="bt-sec">
+    <div class="bt-head">
+      <div class="bt-title">信号战绩<span class="bt-sub">全市场 250 日回测 · 超额 = 信号胜率 − 同期全样本基线</span></div>
+    </div>
+    <div id="sig-ev-body">${renderSigEvidenceBody()}</div>
+  </div>`;
+}
+
+function renderSigEvidenceBody() {
+  const d = SIGEV.data;
+  if (SIGEV.err) return `<div class="empty">信号战绩加载失败：${esc(SIGEV.err)}</div>`;
+  if (!d) return `<div class="empty">正在读取信号战绩…</div>`;
+  if (d.ok === false) return `<div class="empty">${esc(d.err || "证据层暂无数据，先跑一次信号回测")}</div>`;
+  const rows = toArr(d.signals);
+  if (!rows.length) return `<div class="empty">暂无回测结果（signal_backtest 为空）</div>`;
+
+  const b = (d.baseline || {})[String(d.fwd || 5)] || {};
+  const fee = Number(d.fee || 0);
+  /* 2026-10-29：界面口径统一为**税后**。
+     税前的 48%~61% 胜率会让人误判"过半"，但同期全样本基线本来就是 46%，
+     且双边成本 0.15% 足以把微幅正超额翻成负。税前值保留在 title 里做对照。 */
+  const g2 = (v) => (v == null ? null : v);
+  const bWrNet = g2(b.winrate_net) != null ? b.winrate_net : b.winrate;
+  const bRetNet = g2(b.avg_ret_net) != null ? b.avg_ret_net : b.avg_ret;
+  const bwr = bWrNet != null ? (bWrNet * 100).toFixed(2) : "—";
+  const bwrGross = b.winrate != null ? (b.winrate * 100).toFixed(2) : "—";
+  const color = { effective: "#1e7d5c", neutral: "#5b6470", adverse: "#c0392b", insufficient: "#9aa4b2" };
+  const bgc = { effective: "#eefaf4", neutral: "#f3f4f6", adverse: "#fdeeec", insufficient: "#f6f7f9" };
+  const GRID = "grid-template-columns:1.4fr .68fr .82fr .72fr .82fr .6fr .92fr;gap:6px;align-items:center;";
+
+  const head = `<div style="${GRID}padding:4px 8px 6px;font-size:11.5px;color:#8b95a3;border-bottom:1px solid #e7eaef">
+      <div>信号</div><div>样本</div><div title="已按双边成本扣费后的胜率">胜率</div>
+      <div title="税后胜率 − 税后基线胜率">超额</div>
+      <div title="已扣费的单次平均收益">税后收益</div><div>夏普</div><div>裁决</div></div>`;
+
+  const line = (r) => {
+    const wrn = r.winrate_net != null ? r.winrate_net : r.winrate;
+    const wrG = ((r.winrate || 0) * 100).toFixed(1);
+    const wr = ((wrn || 0) * 100).toFixed(1);
+    const ed = (r.edge_wr || 0) * 100;
+    const eds = (ed >= 0 ? "+" : "") + ed.toFixed(1);
+    const rn = ((r.avg_ret_net != null ? r.avg_ret_net : r.avg_ret) || 0) * 100;
+    const rns = (rn >= 0 ? "+" : "") + rn.toFixed(2);
+    const nn = r.n >= 10000 ? (r.n / 10000).toFixed(1) + "万" : String(r.n);
+    const c = color[r.verdict] || "#5b6470";
+    const g = bgc[r.verdict] || "#f6f7f9";
+    return `<div style="${GRID}padding:5px 8px;border-bottom:1px solid #f1f3f6;font-size:12.5px">
+      <div style="font-weight:600" title="${escAttr(r.reason)}">${esc(r.reason)}</div>
+      <div style="color:#8b95a3">${nn}</div>
+      <div title="税前胜率 ${wrG}%">${wr}%</div>
+      <div style="color:${ed >= 0 ? "#1e7d5c" : "#c0392b"};font-weight:600">${eds}pt</div>
+      <div style="color:${rn >= 0 ? "#1e7d5c" : "#c0392b"}">${rns}%</div>
+      <div style="color:#8b95a3">${r.sharpe_net != null ? r.sharpe_net : r.sharpe}</div>
+      <div><span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:11.5px;color:${c};background:${g}">${esc(r.label)}</span></div>
+    </div>`;
+  };
+
+  const buys = rows.filter((r) => r.direction === "buy");
+  const sells = rows.filter((r) => r.direction === "sell");
+  const block = (title, arr) => arr.length
+    ? `<div class="bt-hint" style="margin:8px 0 2px;font-weight:600;color:#4a5462">${esc(title)}</div>` +
+      head + arr.map(line).join("")
+    : "";
+
+  const t = d.tech || {};
+  const tf = d.tech_factor != null ? Number(d.tech_factor) : 1;
+  const tfTxt = Math.abs(tf - 1) < 0.005
+    ? "技术面整体证据不足，权重未作修正"
+    : `技术面证据已把技术类权重乘以 <b>${tf.toFixed(2)}</b>（历史整体${tf > 1 ? "有超额，升权" : "跑输基线，降权"}）`;
+  const feeTxt = fee > 0
+    ? `已扣双边成本 <b>${(fee * 100).toFixed(2)}%</b>（佣金+印花税+滑点），下表全部为税后口径`
+    : "未经扣费（税前口径，会高估）";
+  const bRetTxt = bRetNet != null ? (bRetNet * 100).toFixed(2) + "%" : "—";
+
+  return `${block("买入方向（选股用）", buys)}${block("卖出方向（判断该不该追）", sells)}
+    <div class="bt-hint" style="margin-top:9px;line-height:1.7">
+      ${feeTxt}<br>
+      基线：前向 ${esc(String(d.fwd || 5))} 日全样本胜率（税后）<b>${bwr}%</b>
+      <span style="color:#8b95a3">（税前 ${bwrGross}%）</span>、平均收益 <b>${bRetTxt}</b>
+      ｜ 技术面聚合超额 <b>${((t.edge_wr || 0) * 100).toFixed(1)}pt</b>、夏普 <b>${t.sharpe || 0}</b>
+      （样本 ${t.n_total ? (t.n_total / 10000).toFixed(1) + " 万" : "—"}）<br>
+      <b>失效条件：</b>样本 &lt; ${esc(String(500))} 记为"不足以判断"；税后超额转负即不再作为买入依据，
+      权重层已按此自动降权（未通过大样本验证的信号权重上限收紧至 25%）。
+    </div>`;
+}
+
+/* ====================================================================
+   信号战绩 · 分市况（2026-10-29）
+
+   为什么单独一块：上面的证据区块回答"这条信号整体有没有用"（全样本混算），
+   这一块回答"在**当前市况**里它历史上好还是差"（同状态内比较）。实测两者会
+   给出相反结论：混算时逆势类的正超额与追涨类的负超额互相抵消，看起来"都没用"；
+   分开看才见到追涨类在弱势市有 -7pt 量级的稳定负超额。
+
+   但分状态结论必须先过"前后半段"这一关，否则只是某一段行情的特征。所以每格
+   带 stab：都≥+1pt=稳健有效 / 都≤-1pt=稳健有害 / 其余=未通过检验（灰）。
+   没有 stab 的格子一律标"未检验"，不许让读者自行脑补成规律。
+   ==================================================================== */
+const SIGREG = { data: null, loading: false, err: "" };
+
+function loadSignalRegime() {
+  if (SIGREG.loading) return;
+  SIGREG.loading = true;
+  api("/api/signal/regime?fwd=10").then((d) => {
+    SIGREG.data = d || {};
+    SIGREG.loading = false;
+    const el = $("#sig-reg-body");
+    if (el) el.innerHTML = renderSigRegimeBody();
+  }).catch((e) => {
+    SIGREG.loading = false;
+    SIGREG.err = String((e && e.message) || e || "加载失败");
+    const el = $("#sig-reg-body");
+    if (el) el.innerHTML = renderSigRegimeBody();
+  });
+}
+
+function renderSigRegimeSection() {
+  return `<div class="bt-sec">
+    <div class="bt-head">
+      <div class="bt-title">信号战绩 · 分市况<span class="bt-sub">同一市况内的超额 = 信号 vs 当日全市场平均，已扣双边成本</span></div>
+    </div>
+    <div id="sig-reg-body">${renderSigRegimeBody()}</div>
+  </div>`;
+}
+
+function renderSigRegimeBody() {
+  const d = SIGREG.data;
+  if (SIGREG.err) return `<div class="empty">分市况数据加载失败：${esc(SIGREG.err)}</div>`;
+  if (!d) return `<div class="empty">正在读取分市况表现…</div>`;
+  if (d.ok === false) return `<div class="empty">${esc(d.err || "暂无分市况回测数据")}</div>`;
+
+  const cur = d.current || {};
+  const rows = toArr(d.signals).filter((r) => r.direction === "buy");
+  if (!rows.length) return `<div class="empty">暂无分市况结果（先跑一次带 --diagnose 的回测）</div>`;
+
+  const REGS = toArr(d.regimes);
+  const curKey = cur.regime || "range";
+  const byKey = {};
+  rows.forEach((r) => { (byKey[r.reason] = byKey[r.reason] || {})[r.regime] = r; });
+  const names = Object.keys(byKey).sort((a, b) => {
+    const ea = byKey[a][curKey] ? byKey[a][curKey].edge_wr : -9;
+    const eb = byKey[b][curKey] ? byKey[b][curKey].edge_wr : -9;
+    return (eb || -9) - (ea || -9);
+  });
+
+  /* 稳定性标签：只有做过前后半段检验（stab 非空）才给结论，其余如实标"未检验" */
+  const stabTag = (s) => {
+    if (s === "ok") return { t: "稳健有效", c: "#1e7d5c", b: "#eefaf4" };
+    if (s === "bad") return { t: "稳健有害", c: "#c0392b", b: "#fdeeec" };
+    if (s === "unstable") return { t: "前后不一致", c: "#8a6d1f", b: "#fdf6e3" };
+    return { t: "未检验", c: "#9aa4b2", b: "#f6f7f9" };
+  };
+  const pt = (v) => (v == null ? "—" : ((v * 100 >= 0 ? "+" : "") + (v * 100).toFixed(1)));
+  const pcol = (v) => (v == null ? "#b6bec9" : (v >= 0 ? "#1e7d5c" : "#c0392b"));
+  const GRID = "grid-template-columns:1.5fr .92fr .74fr .74fr .74fr .98fr;gap:6px;align-items:center;";
+
+  const head = `<div style="${GRID}padding:4px 8px 6px;font-size:11.5px;color:#8b95a3;border-bottom:1px solid #e7eaef">
+      <div>信号（买入）</div>
+      <div title="当前市况下的税后超额胜率">当前·${esc(cur.regime_cn || "—")}</div>
+      ${REGS.map((x) => `<div title="该市况下的税后超额胜率">${esc(x.cn)}</div>`).join("")}
+      <div title="前后半段是否都成立">稳定性</div></div>`;
+
+  const line = (nm) => {
+    const m = byKey[nm] || {};
+    const cr = m[curKey] || {};
+    const st = stabTag(cr.stab);
+    const cell = (k) => {
+      const r = m[k];
+      if (!r || r.edge_wr == null) return `<div style="color:#c3cad3">—</div>`;
+      return `<div style="color:${pcol(r.edge_wr)};font-weight:${k === curKey ? "700" : "500"}">${pt(r.edge_wr)}</div>`;
+    };
+    return `<div style="${GRID}padding:5px 8px;border-bottom:1px solid #f1f3f6;font-size:12.5px">
+      <div style="font-weight:600" title="${escAttr(nm)}">${esc(nm)}</div>
+      <div style="color:${pcol(cr.edge_wr)};font-weight:700">${pt(cr.edge_wr)}</div>
+      ${REGS.map((x) => cell(x.key)).join("")}
+      <div><span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:11.5px;color:${st.c};background:${st.b}">${st.t}</span></div>
+    </div>`;
+  };
+
+  const base = d.baseline || {};
+  const baseTxt = REGS.map((x) => {
+    const b = base[x.key];
+    if (!b) return "";
+    const v = (b.avg_ret_net || 0) * 100;
+    return `<b style="color:${pcol(b.avg_ret_net)}">${esc(x.cn)} ${(v >= 0 ? "+" : "") + v.toFixed(2)}%</b>`;
+  }).filter(Boolean).join(" ｜ ");
+
+  const eff = d.eff_windows != null ? Number(d.eff_windows) : null;
+  const gradeColor = d.grade === "可信" ? "#1e7d5c" : (d.grade === "仅供方向参考" ? "#8a6d1f" : "#c0392b");
+
+  return `<div class="bt-hint" style="margin:0 0 8px;line-height:1.7">
+      当前市况：<b>${esc(cur.regime_cn || "—")}</b>
+      · 20 日等权市场收益 <b>${cur.ret20 != null ? ((cur.ret20 * 100 >= 0 ? "+" : "") + (cur.ret20 * 100).toFixed(2) + "%") : "—"}</b>
+      · 当日上涨家数占比 <b>${cur.breadth != null ? Math.round(cur.breadth * 100) + "%" : "—"}</b>
+      <span style="color:#8b95a3">（分档＝相对过去 ${esc(String(cur.hist || 250))} 个交易日的强弱 33/67 分位，不是绝对涨跌）</span><br>
+      同市况全市场平均（税后，前向 ${esc(String(d.fwd || 10))} 日）：${baseTxt || "—"}<br>
+      <span style="color:${gradeColor}">样本诚实度：${eff != null ? eff.toFixed(1) : "—"} 个有效独立窗口 → ${esc(d.grade || "—")}</span>
+      <span style="color:#8b95a3">（相邻交易日前向窗口重叠，n 笔≠n 个独立观测，不能拿 n 当显著性）</span>
+    </div>
+    ${head}${names.map(line).join("")}
+    <div class="bt-hint" style="margin-top:9px;line-height:1.7">
+      <b>怎么读：</b>先看"稳定性"，标"稳健有害"的组合历史上两段都跑输同市况平均，不该作为买入依据；
+      标"未检验/前后不一致"的不要当规律用。真正可落地的用法是<b>风控而非选股</b>：
+      弱势市下行情的 T+5/T+10 平均收益前后两段一致为负，该做的是收仓位与收紧追涨，
+      而不是换一套信号权重（实测没有信号通过分市况稳健性检验）。
+    </div>`;
+}
+
 function renderBacktestSection() {
   const d = BT.data;
   const dates = (d && d.dates) || [];
@@ -15049,7 +15028,7 @@ function renderBacktestBody() {
   const d = BT.data;
   if (!d) return `<div class="empty">正在回测…</div>`;
   const rows = toArr(d.rows);
-  if (!rows.length) return `<div class="empty">该期没有可回测的标的</div>`;
+  if (!rows.length) return `<div class="empty">该期没有可回测的标的</div>` + btPooledHtml();
   const p = BT.period;
   const head = `<div class="bt-grid-h">
       <div class="bt-cl-h">当日预测 · ${esc(d.date)} · ${rows.length} 只
@@ -15097,7 +15076,46 @@ function renderBacktestBody() {
     }).join("") + `</div>`;
     return `<div class="bt-row">${left}${right}</div>`;
   }).join("");
-  return `<div class="bt-grid">${head}<div class="bt-grid-body">${body}</div></div>` + btSummaryHtml();
+  return `<div class="bt-grid">${head}<div class="bt-grid-body">${body}</div></div>` + btSummaryHtml() + btPooledHtml();
+}
+
+/* 跨期累计统计（2026-10-29 复查新增）
+ * 为什么要有：上面「当日总结」只看一期，一期只有二三十只票，命中率 33% 还是 60% 完全在
+ * 噪声区间内 —— 拿它判断「四支柱行不行」等于抛硬币。后端把全部 10 期摊平后，T+1/T+3/T+5
+ * 各有 180~290 个样本，那时命中率与平均超额才谈得上统计意义。这里把总表如实摆出来，
+ * 与单期结论并列，避免只看到某一期好看的数字就下判断。 */
+function btPooledHtml() {
+  const d = BT.data;
+  const pl = d && d.pooled;
+  if (!pl || !pl.periods) return "";
+  const ps = pl.periods;
+  const pct = (v, dd) => (v === null || v === undefined) ? "—" : (v * 100).toFixed(dd == null ? 2 : dd) + "%";
+  const body = toArr(d.periods).map((x) => {
+    const t = ps[String(x)] || {};
+    if (!t.n) return "";
+    const hr = t.hit_rate;
+    const hcol = (hr === null || hr === undefined) ? "" : (hr >= 0.5 ? "good" : "bad");
+    const rcol = t.avg_ret > 0 ? "bt-up" : (t.avg_ret < 0 ? "bt-dn" : "");
+    const acol = t.avg_alpha > 0 ? "bt-up" : (t.avg_alpha < 0 ? "bt-dn" : "");
+    return `<tr>
+      <td class="btp-p">T+${x}</td>
+      <td class="btp-n">${t.n}${t.n_pending ? `<i>＋${t.n_pending} 未到期</i>` : ""}${t.n_nodata ? `<i>＋${t.n_nodata} 缺K线</i>` : ""}</td>
+      <td class="btp-h ${hcol}">${pct(hr, 1)}</td>
+      <td class="${rcol}">${pct(t.avg_ret)}</td>
+      <td class="btp-b">${pct(t.avg_bench)}</td>
+      <td class="${acol}">${pct(t.avg_alpha)}</td>
+    </tr>`;
+  }).join("");
+  if (!body) return "";
+  return `<div class="btp">
+    <div class="btp-h2">跨期累计 · ${pl.n_dates} 期摊平
+      <span class="s">单期只有二三十只票，命中率全落在噪声里；把各期摊平后样本才够判断策略本身行不行</span></div>
+    <table class="btp-t">
+      <thead><tr><th>周期</th><th>已到期样本</th><th>命中率</th><th>平均收益</th><th>池子同期</th><th>平均超额</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+    <div class="btp-v">${esc(pl.verdict || "")}</div>
+  </div>`;
 }
 
 function btSummaryHtml() {
@@ -15119,13 +15137,23 @@ function btSummaryHtml() {
     ? `<span class="bt-bw"><em>${lab}</em>${esc(x.name || x.symbol)} <b>${btPct(x.ret, 1)}</b></span>`
     : "";
   // 2026-10-16 进哥优化 P0：样本薄 + 显著性提示（不改口径，只提示，防误读）
+  // 2026-10-29 复查修正：原本文案是**写死的**「T+3 及以上全部未到期」——数据早就不符合了
+  //   （T+3 已有 79 个到期样本、T+5 有 59 个），一条过时的警告比没有警告更误导。
+  //   现在按 pooled 的真实样本量动态生成，只说当前成立的话。
   const _ss = (d.source_stats || {})[d.source] || {};
-  const _pd = _ss.dates || 0, _rd = _ss.ready || 0;
+  const _pd = _ss.dates || 0;
   const _n = (st.n != null ? st.n : (d.summary ? d.summary.n : 0)) || 0;
-  const _weak = (_pd < 20) || (_n < 50);
-  const _sigWarn = _weak
-    ? `<div class="bt-sigwarn" style="margin:8px 0;padding:8px 12px;border-left:3px solid #e8a33d;background:rgba(232,163,61,.12);color:#e8c07a;font-size:13px;line-height:1.6;border-radius:4px">⚠ <b>弱统计·勿外推</b>：当前仅 <b>${_rd}/${_pd}</b> 个预测日到期（共 ${_pd} 期），样本 N=<b>${_n}</b> 几乎全来自单一普跌日的 T+1，T+3 及以上全部未到期。任何“某柱更强”的差异都落在噪声内，结论不可外推；赞够 ~20 个预测日且 T+10 出齐再正式评估。</div>`
-    : "";
+  const _pl = d.pooled || {};
+  const _pooledMax = Math.max(0, ...toArr(d.periods).map((x) => {
+    const t = (_pl.periods || {})[String(x)] || {};
+    return t.n || 0;
+  }));
+  let _sigWarn = "";
+  if (_pooledMax < 30) {
+    _sigWarn = `<div class="bt-sigwarn" style="margin:8px 0;padding:8px 12px;border-left:3px solid #e8a33d;background:rgba(232,163,61,.12);color:#e8c07a;font-size:13px;line-height:1.6;border-radius:4px">⚠ <b>样本不足·勿外推</b>：跨期累计最多的周期也才 <b>${_pooledMax}</b> 个到期样本（共 ${_pd} 期），命中率与超额全在噪声内，任何"某柱更强"的差异都不可采信。攒够 30 个以上再说。</div>`;
+  } else if (_n > 0 && _n < 50) {
+    _sigWarn = `<div class="bt-sigwarn" style="margin:8px 0;padding:8px 12px;border-left:3px solid #e8a33d;background:rgba(232,163,61,.12);color:#e8c07a;font-size:13px;line-height:1.6;border-radius:4px">⚠ <b>单期样本偏薄</b>：本页这一期只有 <b>${_n}</b> 个到期样本，单期命中率上下 10% 都属正常波动；判断策略本身行不行，请以下方<b>跨期累计</b>（最多 ${_pooledMax} 个样本）为准。</div>`;
+  }
   return `<div class="bt-sum">${_sigWarn}
     <div class="bt-sum-h">当日总结 · T+${p}<span class="s">${esc(d.date)} · ${esc(d.source_label)}</span></div>
     <div class="bt-kpis">
@@ -15285,7 +15313,7 @@ function pillarColumnCard(pkey, pdata) {
   const list = items.length ? items.map((it) => {
     const sc = Math.max(0, Math.min(100, Math.round(it.score || 0)));
     const topCls = (it.rank === 1 || it.rank === "1") ? " top" : "";
-    // 2026-10-16 重排（进哥要求）：一张票 = 一张**紧凑卡**，观感对齐「博主共振」的 .res-card
+    // 2026-10-16 重排（进哥要求）：一张票 = 一张**紧凑卡**，观感对齐「多源共振」的 .res-card
     // （名次 + 名称 + 代码 + 得分 → 得分条 → 理由行 → 明细行），外层 .pil-list 改两列网格。
     // 字段一个没少：original rank / score / reason / pillarDetailLine 全部保留。
     return `<div class="pil-item">
@@ -15346,8 +15374,12 @@ function renderPrediction() {
       <button class="btn primary" id="predRegen" onclick="predRun(true)">立即生成首期</button>
     </div>
     <div class="empty">${esc((d && d.note) || (d && d.error) || "四支柱引擎尚未生成任何一期")}</div>
+    ${renderSigEvidenceSection()}
+    ${renderSigRegimeSection()}
     <div id="bt-sec">${renderBacktestSection()}</div>`;
     if (!BT.data && !BT.loading) loadBacktest();
+    if (!SIGEV.data && !SIGEV.loading) loadSignalEvidence();
+    if (!SIGREG.data && !SIGREG.loading) loadSignalRegime();
     return;
   }
   const ms = d.market_state || {};
@@ -15387,17 +15419,21 @@ function renderPrediction() {
     ${msBar}
     ${tabRow}
     <div class="pil-stack">${pillarColumnCard(active, pillars[active])}</div>
+    ${renderSigEvidenceSection()}
+    ${renderSigRegimeSection()}
     <div id="bt-sec">${renderBacktestSection()}</div>
     ${foot}`;
   // 首次进入自动拉一次回测（已有数据/正在加载则不重复打接口）
   if (!BT.data && !BT.loading) loadBacktest();
+  if (!SIGEV.data && !SIGEV.loading) loadSignalEvidence();
+  if (!SIGREG.data && !SIGREG.loading) loadSignalRegime();
 }
 
-/* ===================== 博主共振（2026-10-15 进哥需求）=====================
-   面板位置：今日总览 → 「博主共振」（紧跟「每日预测」）。
+/* ===================== 多源共振（2026-10-15 进哥需求）=====================
+   面板位置：今日总览 → 「多源共振」（紧跟「每日预测」）。
    三支柱（面板内 .sub-tab 切换；对应进哥拍板的「以票/以战法/以人 三套都做」）：
-     A 个股共振 —— 票为中心：一只票被几路信号同时指向（博主信誉加权声量 × 战法命中 ×
-                    主引擎交叉 × 舆情），龙虎榜**只作印证加成**，附完整证据链
+     A 个股共振 —— 票为中心：一只票被几路信号同时指向（战法命中 ×
+                    主引擎交叉 × 舆情；博主维度 2026-10-30 已下线），龙虎榜**只作印证加成**，附完整证据链
      B 战法体系 —— 战法为中心：回测档案（年化/胜率/回撤/跑赢基准/评级/样本外）+ 当日命中 +
                     知识图谱互证（视频语 ↔ 回测结果，一致/存疑/无回测）
      C 信源画像 —— 人为中心：博主 / 龙虎榜席位 / 战法 的历史战绩与信誉分，按市场环境分档
@@ -15406,7 +15442,7 @@ function renderPrediction() {
 function loadResonance(force) {
   const box = $("#p-resonance");
   if (box && !RES.data) {
-    box.innerHTML = `<div class="pred-head"><div class="pred-title">博主共振</div></div>
+    box.innerHTML = `<div class="pred-head"><div class="pred-title">多源共振</div></div>
       <div class="empty">正在融合多源信号…</div>`;
   }
   RES.busy = true;
@@ -15449,7 +15485,7 @@ function resRun(force) {
     .catch((e) => {
       const b = $("#resRegen");
       if (b) { b.disabled = false; b.textContent = "重新融合"; }
-      reportLoadError("博主共振生成", e);
+      reportLoadError("多源共振生成", e);
     });
 }
 function resTierCls(t) {
@@ -15487,16 +15523,22 @@ function resStockCard(c) {
 function resCardsView(d) {
   const cards = toArr(d.cards);
   if (!cards.length) return `<div class="empty">本期无共振标的（后端引擎尚未产出，或当日无多源交叉）</div>`;
-  const W = (RES.evo && RES.evo.ok && (RES.evo.weight || {}).w)
-    || { blogger: 0.34, strategy: 0.34, senti: 0.14, engine: 0.18 };
-  const wSrc = (RES.evo && RES.evo.ok) ? "数据学出" : "默认";
+  /* 2026-10-30：权重改读接口下发的 d.weights —— 博主维度已永久下线，
+     后端已把它的份额按比例并入其余三项并重新归一化。
+     旧写法读 RES.evo.weight.w（自我进化那一份仍是四维、blogger=13.6%），
+     会在页面上显示「博主 13.6%」，等于删了又没删干净。 */
+  const W = (d.weights && d.weights.strategy != null)
+    ? d.weights
+    : { blogger: 0, strategy: 0.5152, senti: 0.2121, engine: 0.2727 };
+  const wSrc = (d.weights && d.weights.src === "learned") ? "数据学出" : "默认";
   const intro = `<div class="res-intro">
     <div class="res-intro-h">票为中心 · 一只票被几路信号同时指向</div>
-    <div class="res-intro-b">共振分 = 博主信誉加权声量 <b>${(W.blogger * 100).toFixed(1)}%</b> ＋ 战法命中
+    <div class="res-intro-b">共振分 = 战法命中
       <b>${(W.strategy * 100).toFixed(1)}%</b> ＋ 论坛舆情 <b>${(W.senti * 100).toFixed(1)}%</b>
       ＋ 主引擎交叉 <b>${(W.engine * 100).toFixed(1)}%</b>
       （权重<b>${wSrc}</b>，来历见「自我进化」支柱）；龙虎榜仅在 ±10 分内作<b>印证加成</b>，
-      不进主干（上榜是结果不是原因）。共 ${cards.length} 只，按共振分降序。</div>
+      不进主干（上榜是结果不是原因）。共 ${cards.length} 只，按共振分降序。<br>
+      <span class="s">博主荐股维度已于 2026-10-30 永久下线（实证为纯噪声），原份额已按比例并入以上三项。</span></div>
   </div>`;
   const div = toArr(d.divergence);
   const divHtml = div.length ? `<details class="res-div">
@@ -15900,13 +15942,13 @@ function renderResonance() {
   if (!box) return;
   const d = RES.data;
   if (!d) {
-    box.innerHTML = `<div class="pred-head"><div class="pred-title">博主共振</div></div>
+    box.innerHTML = `<div class="pred-head"><div class="pred-title">多源共振</div></div>
       <div class="empty">加载中…</div>`;
     return;
   }
   if (d.ok === false || d._err) {
     box.innerHTML = `<div class="pred-head">
-        <div class="pred-title">博主共振</div>
+        <div class="pred-title">多源共振</div>
         <button class="btn primary" id="resRegen" onclick="resRun(true)">重新融合</button></div>
       <div class="empty">${esc(d.note || d.error || "接口不可用")}</div>
       <div class="hint">若刚更新过界面：这是新板块，需要<b>关掉查看器窗口、重新双击桌面图标</b>（后端要重启，光刷新页面不够）。</div>`;
@@ -15916,7 +15958,7 @@ function renderResonance() {
   const msCls = { "结构": "bull", "震荡": "neu", "普跌": "bear" }[ms.state] || "neu";
   const s = d.stats || {};
   const head = `<div class="pred-head">
-      <div class="pred-title">博主共振</div>
+      <div class="pred-title">多源共振</div>
       <button class="btn primary" id="resRegen" onclick="resRun(true)">重新融合</button>
     </div>
     <div class="pil-ms">
@@ -15950,7 +15992,7 @@ function renderResonance() {
   box.innerHTML = head + tabRow + body + caliber + foot;
 }
 /* ---------- 量化信号 QUANT 状态 + 五子页签（2026-10-16，第三维信号源） ----------
- * 板块位置：今日总览 → 「量化信号」（紧跟「博主共振」之后）。
+ * 板块位置：今日总览 → 「量化信号」（紧跟「多源共振」之后）。
  * 数据源 /api/quant（后端 quant.py 产出：因子全景 / 多因子选股 / 因子回测 / 菜谱预设 /
  * 量化因子的自我学习与成长；查看器只读，权重学走 metalearn 共享引擎）。
  * 五子页签对应进哥拍板的「5 个子视图」。必须在此处声明（initNav → selectNav 会同步访问
@@ -15972,7 +16014,7 @@ const QUANT_TABS = [
 function quantTab(k) { QUANT.qtab = k; renderQuant(); }
 
 /* ================= ETF 基金（2026-10-17 进哥需求） =================
- * 今日总览与「博主共振」「量化信号」并列的顶层 NAV 子项；左-右对称两栏、A/B 分离、绝不混叠。
+ * 今日总览与「多源共振」「量化信号」并列的顶层 NAV 子项；左-右对称两栏、A/B 分离、绝不混叠。
  *   左栏 A = 量化多因子中的 ETF 候选（复用 quant 的 7 技术因子 + metalearn 权重；候选池空时诚实返回空）
  *   右栏 B = ETF 专属投顾 6 维（份额净申赎/资金流、跟踪指数与成分、溢价率/折溢价、规模、费率、跟踪误差），全部「待接入」
  * 数据源 /api/etf（后端 etf.py 产出：left=A 候选结果，right=B 6 维；查看器只读）。
@@ -16167,6 +16209,322 @@ function renderEtfRight(B) {
   return head + `<div class="etf-dims">${rows}</div>` + jlSec + snap;
 }
 
+/* ================= Kronos K线基础模型预测（2026-10-24 进哥需求） =================
+   数据：后端 kronos.py 离线推理（Kronos 开源基础模型）→ 落库 → 本页只读。
+   诚实纪律：展示的是概率预测 + 有限样本回测，非买卖信号。 */
+const KRONOS = { data: null, busy: false };
+
+function loadKronos(force) {
+  const box = $("#p-kronos");
+  if (box && !KRONOS.data) {
+    box.innerHTML = `<div class="pred-head"><div class="pred-title">Kronos K线预测</div></div>
+      <div class="empty">正在载入基础模型预测与回测…</div>`;
+  }
+  KRONOS.busy = true;
+  const qs = force ? "?t=" + Date.now() : "";
+  return api("/api/kronos" + qs).catch((e) => ({ ok: false, error: apiErrText(e), _err: true }))
+    .then((d) => { KRONOS.data = d; KRONOS.busy = false; renderKronos(); })
+    // 面板打开时若后台正在推理（可能上次提交完就关了页面），把进度条接上，别让用户对着旧数据发呆
+    .then(() => api("/api/kronos/status").catch(() => null))
+    .then((st) => { if (st && st.running) kronosTrack(); });
+}
+
+const K_SORT = [["score", "评分"], ["ret", "预测收益"], ["sharpe", "回测夏普"]];
+const K_PFX = [["", "全部"], ["0", "0开头"], ["3", "3开头"], ["6", "6开头"]];
+const K_DIRS = [["", "全部"], ["up", "看涨"], ["down", "看跌"]];
+const K_MINS = [[0, "全部"], [65, "65分+"], [80, "80分+"]];
+if (!KRONOS.f) KRONOS.f = { pfx: "", dir: "", min: 0, sort: "score" };
+if (!KRONOS.open) KRONOS.open = {};
+
+function kScoreCls(s) {
+  if (s == null) return "g5";
+  if (s >= 80) return "g1";
+  if (s >= 65) return "g2";
+  if (s >= 50) return "g3";
+  if (s >= 35) return "g4";
+  return "g5";
+}
+function kNum(v) { return v == null ? -9e9 : v; }
+function kFmtSec(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  if (sec < 60) return sec + " 秒";
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + " 分" + (s ? " " + s + " 秒" : "");
+}
+
+/* 客户端筛选：数据已在内存，点一下即时生效，不再等接口（进哥要的是「快速看条件→结果」）。 */
+function kronosRows() {
+  const f = KRONOS.f, d = KRONOS.data || {};
+  const out = toArr(d.items).filter((it) => {
+    const p = String(it.prefix || (it.code || "?")[0]);
+    if (f.pfx && p !== f.pfx) return false;
+    if (f.dir === "up" && !(it.pred_return > 0)) return false;
+    if (f.dir === "down" && !(it.pred_return < 0)) return false;
+    if (f.min && !(it.score >= f.min)) return false;
+    return true;
+  });
+  out.sort((a, b) => (f.sort === "ret" ? kNum(b.pred_return) - kNum(a.pred_return)
+    : f.sort === "sharpe" ? kNum(b.bt_sharpe) - kNum(a.bt_sharpe)
+      : kNum(b.score) - kNum(a.score)));
+  return out;
+}
+
+function kProgHtml(s) {
+  const pr = (s && s.progress) || {};
+  const pct = pr.pct == null ? 0 : pr.pct;
+  const eta = pr.eta_sec == null ? "估算中…" : "约剩 " + kFmtSec(pr.eta_sec);
+  return `<div class="kf-prog-h"><b>后台推理中</b> · ${esc(s.stage || "")}</div>
+    <div class="kf-prog-bar"><i style="width:${Math.max(2, Math.min(100, pct))}%"></i></div>
+    <div class="kf-prog-m">${pr.done != null
+      ? pr.done + " / " + pr.total + " 只 · " + pct.toFixed(0) + "% · " + eta
+      : "正在装载模型与 K 线底座，稍候…"}
+      <span class="muted">（可以关掉页面，回来还在跑）</span></div>`;
+}
+
+/* 后台推理的进度跟踪：面板打开时若正在跑，也要能看见，而不是一个死的「推理中」。 */
+function kronosTrack() {
+  if (KRONOS.track) return;
+  KRONOS.track = setInterval(() => {
+    api("/api/kronos/status").then((s) => {
+      const el = $("#kProg");
+      if (s && s.running) {
+        if (el) el.innerHTML = kProgHtml(s);
+        const b = $("#kronosRegen");
+        if (b) { b.disabled = true; b.textContent = "推理中…"; }
+      } else {
+        clearInterval(KRONOS.track); KRONOS.track = null;
+        const el2 = $("#kProg"); if (el2) el2.innerHTML = "";
+        const b = $("#kronosRegen");
+        if (b) { b.disabled = false; b.textContent = "重新生成"; }
+        loadKronos(true);
+      }
+    }).catch(() => { clearInterval(KRONOS.track); KRONOS.track = null; });
+  }, 3000);
+}
+
+function kronosRun() {
+  const btn = $("#kronosRegen");
+  const topN = Number(($("#kTopN") || {}).value || 60);
+  const scope = ($("#kPfxScope") || {}).value || "";
+  const fast = !!(($("#kFast") || {}).checked);
+  if (btn) { btn.disabled = true; btn.textContent = "已提交…"; }
+  const q = `force=1&top_n=${topN}&fast=${fast ? 1 : 0}` + (scope ? "&prefixes=" + scope : "");
+  api("/api/kronos/run?" + q, { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then((d) => {
+      if (d && d.ok === false) {
+        reportLoadError("Kronos 推理生成", new Error(d.error || "未知错误"));
+        if (btn) { btn.disabled = false; btn.textContent = "重新生成"; }
+        return;
+      }
+      // 已有一轮在跑：直接接上进度，不重复提交
+      const el = $("#kProg");
+      if (el) el.innerHTML = kProgHtml(d && d.already ? { stage: d.stage, progress: d.progress } : { stage: "启动中", progress: {} });
+      kronosTrack();
+    })
+    .catch((e) => {
+      if (btn) { btn.disabled = false; btn.textContent = "重新生成"; }
+      reportLoadError("Kronos 推理生成", e);
+    });
+}
+
+function kDetail(it) {
+  const parts = toArr(it.score_parts).map((p) => `<tr>
+      <td class="k-pt-k">${esc(p.k)}</td>
+      <td class="num ${p.got < 0 ? "bear" : ""}">${p.got == null ? "—" : (p.got > 0 ? "+" : "") + p.got.toFixed(1)}</td>
+      <td class="num muted">${p.max ? "/ " + p.max.toFixed(0) : "扣分"}</td>
+      <td class="k-why">${esc(p.why || "")}</td></tr>`).join("");
+  const flags = toArr(it.flags).map((x) => `<span class="k-flag">⚠ ${esc(x)}</span>`).join(" ");
+  return `<div class="k-detbox">
+    <div class="k-det-h">评分明细 · 总分 <b>${it.score == null ? "—" : it.score.toFixed(1)}</b>
+      （${esc(it.grade || "")}）${flags ? " " + flags : ""}</div>
+    <table class="k-pt"><tbody>${parts}</tbody></table>
+    <div class="k-det-note">${esc(it.grade_note || "")}${it.err ? "｜推理报错：" + esc(it.err) : ""}</div>
+  </div>`;
+}
+
+function kronosCtl() {
+  const d = KRONOS.data || {}, f = KRONOS.f;
+  const pc = d.prefix_counts || {}, tot = toArr(d.items).length;
+  const hit = kronosRows().length;
+  const bP = K_PFX.map(([v, l]) => {
+    const n = v ? (pc[v] != null ? pc[v] : 0) : tot;
+    return `<button class="btn xs${f.pfx === v ? " primary" : ""}" data-kf-pfx="${v}">${l} <span class="cnt">${n}</span></button>`;
+  }).join(" ");
+  const bD = K_DIRS.map(([v, l]) => `<button class="btn xs${f.dir === v ? " primary" : ""}" data-kf-dir="${v}">${l}</button>`).join(" ");
+  const bM = K_MINS.map(([v, l]) => `<button class="btn xs${Number(f.min) === v ? " primary" : ""}" data-kf-min="${v}">${l}</button>`).join(" ");
+  const bS = K_SORT.map(([v, l]) => `<button class="btn xs${f.sort === v ? " primary" : ""}" data-kf-sort="${v}">${l}</button>`).join(" ");
+  return `<div class="kf-ctl">
+      <span class="kf-cl">板块</span>${bP}
+      <span class="kf-cl">方向</span>${bD}
+      <span class="kf-cl">评分</span>${bM}
+      <span class="kf-cl">排序</span>${bS}
+      <span class="kf-hit">命中 <b>${hit}</b> / ${tot} 只</span>
+      <button class="btn xs" data-kf-reset="1">重置</button>
+    </div>`;
+}
+
+function kronosConcl() {
+  const d = KRONOS.data || {}, cc = d.conclusion || {};
+  const f = KRONOS.f;
+  const cond = [];
+  if (f.pfx) cond.push("板块 " + (f.pfx + "开头"));
+  if (f.dir) cond.push("方向 " + (f.dir === "up" ? "看涨" : "看跌"));
+  if (f.min) cond.push("评分 ≥" + f.min);
+  cond.push("排序 " + ((K_SORT.find((x) => x[0] === f.sort) || ["", "评分"])[1]));
+  const chips = cond.map((c) => `<span class="kf-chip">${esc(c)}</span>`).join("");
+  const br = (x) => {
+    const cls = kScoreCls(x.score);
+    const fl = toArr(x.flags);
+    return `<span class="kf-br">
+        <b>${esc(x.name || "")}</b> <span class="muted">${esc(x.code || "")}</span>
+        <i class="ksc ${cls}">${x.score == null ? "—" : x.score.toFixed(0)}</i>
+        <span class="muted">${esc(x.dir || "")}·${esc(x.grade || "")}</span>
+        ${fl.length ? `<em class="k-flag">⚠ ${esc(fl.join("/"))}</em>` : ""}
+      </span>`;
+  };
+  const best = toArr(cc.best).map((x) => `<li>${br(x)}</li>`).join("");
+  const warn = toArr(cc.warn).map((x) => `<li>${br(x)}</li>`).join("");
+  return `<div class="kf-concl">
+    <div class="kf-concl-h">参考结论<span class="kf-chips">${chips}</span></div>
+    <div class="kf-concl-s">${esc(cc.summary || "暂无结论，请先点「重新生成」跑一次。")}</div>
+    <div class="kf-two">
+      <div><div class="kf-two-h">最值得看（按评分）</div><ul>${best || '<li class="muted">无</li>'}</ul></div>
+      <div><div class="kf-two-h">需回避 / 有硬伤</div><ul>${warn || '<li class="muted">本轮没有触发硬伤标记的票</li>'}</ul></div>
+    </div>
+  </div>`;
+}
+
+function renderKronos() {
+  const box = $("#p-kronos");
+  if (!box) return;
+  const d = KRONOS.data;
+  if (!d) {
+    box.innerHTML = `<div class="pred-head"><div class="pred-title">Kronos K线预测</div></div>
+      <div class="empty">加载中…</div>`;
+    return;
+  }
+  if (d.ok === false || d._err) {
+    // 2026-10-25（进哥：加载失败不能就这么放着）：说清原因、给预计恢复、自动再试。
+    KRONOS.fail = (KRONOS.fail || 0) + 1;
+    const why = esc(d.error || d.note || "接口不可用");
+    const wait = KRONOS.fail <= 2 ? 8 * KRONOS.fail : 0;
+    box.innerHTML = `<div class="pred-head"><div class="pred-title">Kronos K线预测</div>
+        <button class="btn primary" onclick="loadKronos(true)">立即重试</button></div>
+      <div class="empty" style="padding:18px;line-height:2;text-align:left">
+        <b>这次没取到数据：</b>${why}<br>
+        ${wait
+          ? `<span class="hint">${wait} 秒后自动重试（第 ${KRONOS.fail}/2 次）。这个接口本身是毫秒级，通常是被「今日看板」等重接口占了连接，等它跑完就会自己回来。</span>`
+          : `<span class="hint">已连续失败 ${KRONOS.fail} 次。请点「立即重试」；仍不行说明本地服务没响应，可稍后刷新页面。</span>`}
+      </div>`;
+    if (wait) {
+      clearTimeout(KRONOS.timer);
+      KRONOS.timer = setTimeout(() => loadKronos(true), wait * 1000);
+    }
+    return;
+  }
+  KRONOS.fail = 0;
+  clearTimeout(KRONOS.timer);
+  const ready = d.ready && d.ready.ok;
+  const fl = d.filters || {};
+  const modeTxt = fl.fast ? "快速" : (fl.windows ? "完整·" + fl.windows + "窗" : "—");
+  const head = `<div class="pred-head">
+      <div class="pred-title">Kronos K线预测</div>
+      <div class="kf-run">
+        <span class="kf-cl">覆盖</span>
+        <select id="kTopN" class="kf-inp">
+          ${[30, 60, 120].map((n) => `<option value="${n}"${(fl.top_n || 30) === n ? " selected" : ""}>${n} 只</option>`).join("")}
+        </select>
+        <span class="kf-cl">板块</span>
+        <select id="kPfxScope" class="kf-inp">
+          <option value="">全部（均衡）</option>
+          <option value="0">仅 0 开头</option>
+          <option value="3">仅 3 开头</option>
+          <option value="6">仅 6 开头</option>
+        </select>
+        <label class="kf-cl" style="cursor:pointer"><input type="checkbox" id="kFast"${fl.fast === false ? "" : " checked"} style="margin-right:4px;vertical-align:-1px">快速模式</label>
+        <button class="btn primary" id="kronosRegen" onclick="kronosRun()">重新生成</button>
+      </div>
+    </div>
+    <div class="pil-ms">
+      <span class="s">引擎 ${esc(d.engine_ver || "")}</span>
+      <span class="s">模型 ${esc(d.model_ver || "—")}</span>
+      <span class="s">数据日 ${esc(d.data_date || "—")}</span>
+      <span class="s">覆盖 ${esc(d.n_stocks || 0)} 只</span>
+      <span class="s">本轮模式 ${esc(modeTxt)}</span>
+      <span class="s">${ready ? "推理链就绪" : "推理链未就绪"}</span>
+    </div>
+    <div class="kf-prog" id="kProg"></div>`;
+  let body;
+  if (!ready) {
+    body = `<div class="empty" style="padding:18px;line-height:1.9">
+        <b>推理引擎尚未就绪（页面不会崩，只是还没装）。</b><br>
+        ${esc((d.ready && d.ready.hint) || "请在查看器目录运行：python setup_kronos.py")}<br>
+        <span class="hint">该脚本会安装 PyTorch(CPU) + 下载 Kronos 权重（首次需联网，约数十 MB～百 MB），之后完全离线。</span>
+      </div>`;
+  } else {
+    const rows = kronosRows();
+    const trs = rows.map((it) => {
+      const cls = kScoreCls(it.score);
+      const pct = it.pred_return == null ? "—"
+        : (it.pred_return >= 0 ? "+" : "") + (it.pred_return * 100).toFixed(2) + "%";
+      const pc = it.pred_return == null ? "" : (it.pred_return >= 0 ? "bull" : "bear");
+      const open = !!KRONOS.open[it.code];
+      const flg = toArr(it.flags).length ? ` <span class="k-flag">⚠${toArr(it.flags).length}</span>` : "";
+      const main = `<tr class="k-row${open ? " open" : ""}" data-kopen="${esc(it.code)}" title="点这行看评分怎么算的">
+          <td><b>${esc(it.code)}</b> <span class="k-pfx">${esc(it.prefix || "")}</span></td>
+          <td>${esc(it.name || "")}</td>
+          <td class="${pc}"><b>${esc(it.dir_label || "—")}</b></td>
+          <td class="num"><div class="k-scwrap"><b class="ksc ${cls}">${it.score == null ? "—" : it.score.toFixed(0)}</b>
+            <div class="kbar"><i class="${cls}" style="width:${it.score == null ? 0 : Math.max(2, Math.min(100, it.score))}%"></i></div></div></td>
+          <td><span class="kg ${cls}">${esc(it.grade || "—")}</span>${flg}</td>
+          <td class="num">${it.last_close == null ? "—" : it.last_close.toFixed(2)}</td>
+          <td class="num ${pc}">${pct}</td>
+          <td class="num">${it.bt_sharpe == null ? "—" : it.bt_sharpe.toFixed(2)}</td>
+          <td class="num">${it.bt_winrate == null ? "—" : (it.bt_winrate * 100).toFixed(0) + "%"}</td>
+          <td class="num">${it.bt_maxdd == null ? "—" : (it.bt_maxdd * 100).toFixed(1) + "%"}</td>
+          <td class="k-verdict">${esc(it.verdict || "—")}</td>
+        </tr>`;
+      return main + (open ? `<tr class="k-det"><td colspan="11">${kDetail(it)}</td></tr>` : "");
+    }).join("");
+    const empty = rows.length
+      ? trs
+      : `<tr><td colspan="11" class="empty">当前筛选条件下 0 只。放宽「板块 / 方向 / 评分」任一条，或点「重新生成」扩覆盖面。</td></tr>`;
+    body = kronosCtl() + kronosConcl() + `<div class="tbl-wrap"><table class="dt k-table">
+        <thead><tr><th>代码</th><th>名称</th><th>方向</th><th class="num">评分</th><th>评级</th>
+          <th class="num">最新收</th><th class="num">预测收益</th><th class="num">回测夏普</th>
+          <th class="num">胜率</th><th class="num">回撤</th><th>结论</th></tr></thead>
+        <tbody>${empty}</tbody></table></div>
+      <div class="hint">点任意一行可展开「这分数是怎么算的」（四维分项 + 扣分）；评分衡量的是**这个判断值不值得参考**，
+        与涨跌方向分开看。预测收益 = 模型预测未来 60 交易日末收 / 最新收 - 1。</div>`;
+  }
+  // 表格里的行点击切换明细：先摘掉旧监听再重绑，避免多次渲染后一次点击触发多次
+  box.innerHTML = head + body + (() => {
+    const cal = toArr(d.caliber).map((c) => `<li>${esc(c)}</li>`).join("");
+    return `<div class="caliber"><b>口径与诚实声明</b><ul>${cal}</ul></div>`;
+  })();
+  $$("#p-kronos [data-kf-pfx]").forEach((el) => {
+    el.onclick = () => { KRONOS.f.pfx = el.dataset.kfPfx || ""; renderKronos(); };
+  });
+  $$("#p-kronos [data-kf-dir]").forEach((el) => {
+    el.onclick = () => { KRONOS.f.dir = el.dataset.kfDir || ""; renderKronos(); };
+  });
+  $$("#p-kronos [data-kf-min]").forEach((el) => {
+    el.onclick = () => { KRONOS.f.min = Number(el.dataset.kfMin) || 0; renderKronos(); };
+  });
+  $$("#p-kronos [data-kf-sort]").forEach((el) => {
+    el.onclick = () => { KRONOS.f.sort = el.dataset.kfSort || "score"; renderKronos(); };
+  });
+  const rs = $("#p-kronos [data-kf-reset]");
+  if (rs) rs.onclick = () => { KRONOS.f = { pfx: "", dir: "", min: 0, sort: "score" }; renderKronos(); };
+  $$("#p-kronos [data-kopen]").forEach((el) => {
+    el.onclick = () => {
+      const c = el.dataset.kopen;
+      KRONOS.open[c] = !KRONOS.open[c];
+      renderKronos();
+    };
+  });
+}
+
 function loadQuant(force) {
   const box = $("#p-quant");
   if (box && !QUANT.data) {
@@ -16176,7 +16534,20 @@ function loadQuant(force) {
   QUANT.busy = true;
   const qs = force ? "?t=" + Date.now() : "";
   return api("/api/quant" + qs).catch((e) => ({ ok: false, error: apiErrText(e), _err: true }))
-    .then((d) => { QUANT.data = d; QUANT.busy = false; renderQuant(); });
+    .then((d) => {
+      // 2026-10-29：全市场因子在子进程后台算（不再在请求线程现算拖死全站），这里轮询等它落盘。
+      if (d && d.computing) {
+        const box = $("#p-quant");
+        if (box) box.innerHTML = `<div class="pred-head"><div class="pred-title">量化信号</div></div>
+          <div class="empty">量化面板首次计算中（全市场因子矩阵，约 2–3 分钟）…算完自动出现；其间其它面板不受影响，可正常切换。</div>`;
+        QUANT.busy = false;
+        clearTimeout(loadQuant._poll);
+        loadQuant._poll = setTimeout(() => { try { loadQuant(); } catch (e) { /* 轮询失败忽略，下次再试 */ } }, 15000);
+        return;
+      }
+      clearTimeout(loadQuant._poll);
+      QUANT.data = d; QUANT.busy = false; renderQuant();
+    });
 }
 
 function quantRun() {

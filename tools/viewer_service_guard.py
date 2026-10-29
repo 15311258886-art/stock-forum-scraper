@@ -35,29 +35,124 @@ if ROOT not in sys.path:
 PORT = int(os.environ.get("VIEWER_PORT", "8765"))
 INTERVAL = int(os.environ.get("VIEWER_GUARD_INTERVAL", "30"))   # 秒
 
+# 2026-10-29 修复（「服务明明在跑，却被反复拉起新进程」的真凶）：
+#   旧实现只有**一次 0.6s 超时**的 connect 探测，失败即判定「服务掉线」并 detached 拉起新
+#   server。但后端是单进程多线程 + GIL：一旦某个面板在算重活（回测/K 线物化/量化因子），
+#   accept 线程可能几十毫秒到几秒拿不到 GIL，监听队列一满，connect 就在 0.6s 内超时 ——
+#   于是「服务很忙」被误判成「服务死了」。
+#   实测后果（server-20261029.log）：每分钟出现一次「已启动」，端口上出现跑着**不同 build**
+#   的新进程，旧进程被接管终止 → 用户正在看的请求被腰斩，表现就是「打开后一直抓取不到、
+#   刷新也没用」。更糟的是每次拉起的子进程都要 import 一个 1.3 万行的 server 模块（约 2s
+#   纯 CPU），全落在本已吃紧的 GIL 上，形成自我放大的雪崩。
+#   修法：① 单次探测超时 0.6s → 2.0s；② 必须**连续 3 次**探测失败（间隔 1s）才判死；
+#        ③ 拉起动作加**闸门文件**，常驻守护与「兜底 --once」不会同时拉起两个。
+PROBE_TIMEOUT = float(os.environ.get("VIEWER_GUARD_PROBE_TIMEOUT", "2.0"))
+PROBE_TRIES = int(os.environ.get("VIEWER_GUARD_PROBE_TRIES", "3"))
+SPAWN_GATE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          "viewer", "logs", ".guard_spawn_gate")
+SPAWN_GATE_TTL = 90.0        # 闸门有效期：超过这个时间没刷新，视为上一次拉起已结束
 
-def port_open(host: str = "127.0.0.1", port: int = PORT) -> bool:
+
+def port_open(host: str = "127.0.0.1", port: int = PORT,
+              timeout: float | None = None) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(0.6)
+        s.settimeout(PROBE_TIMEOUT if timeout is None else timeout)
         return s.connect_ex((host, port)) == 0
+
+
+def service_alive() -> bool:
+    """**连续 PROBE_TRIES 次都连不上**才算掉线（单次超时只说明它忙，不说明它死）。"""
+    for i in range(max(1, PROBE_TRIES)):
+        if port_open():
+            return True
+        if i + 1 < PROBE_TRIES:
+            time.sleep(1.0)
+    return False
+
+
+def _gate_held() -> bool:
+    """闸门是否被另一个 guard 占着（防止 30s 常驻 + 每分钟兜底 同时拉起两个 server）。"""
+    try:
+        st = os.stat(SPAWN_GATE)
+        if time.time() - st.st_mtime > SPAWN_GATE_TTL:
+            return False
+        try:
+            pid = int(open(SPAWN_GATE, encoding="utf-8").read().strip() or 0)
+        except (OSError, ValueError):
+            pid = 0
+        if pid and pid == os.getpid():
+            return True
+        # 对方进程还在（Windows 上 os.kill(pid,0) 不可用，用 OpenProcess 判定）
+        return bool(pid) and _pid_alive(pid)
+    except OSError:
+        return False
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(0x1000, False, pid)   # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            k32.GetExitCodeProcess(h, ctypes.byref(code))
+            return code.value == 259                 # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(h)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def ensure_service() -> bool:
     """服务不在就拉一个独立进程；返回是否真的拉起了。"""
-    if port_open():
+    if service_alive():
+        return False
+    if _gate_held():
         return False
     log_dir = os.path.join(ROOT, "viewer", "logs")
     os.makedirs(log_dir, exist_ok=True)
+    # 抢占闸门：**原子**创建（O_CREAT|O_EXCL），90s 内其它 guard 看到就不重复拉起。
+    # 2026-10-29 修（重复进程的根源）：原先是「先 open(...,"w") 再写 pid」，
+    # 检查(_gate_held) 与写入之间有明显竞态窗口 —— 两个 guard 在同一瞬间都探到服务掉线，
+    # 就**双双拉起后端**。实测一次启动出现两个 viewer.server 进程：一个抢到 8765，
+    # 另一个把模块导入、调度线程、启动预热全跑完才发现端口被占而退出 ——
+    # 白占一份内存、重复抢 GIL，用户感知就是「刚打开界面一堆面板加载失败」。
+    # 改用 O_EXCL 原子创建：同一时刻只有一个能建成，另一个立即让路。
+    try:
+        _fd = os.open(SPAWN_GATE, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(_fd, str(os.getpid()).encode())
+        os.close(_fd)
+    except FileExistsError:
+        if _gate_held():
+            return False                     # 对方正在拉起，让路
+        try:                                 # 僵尸闸门（持有者已死）→ 清掉重抢一次
+            os.remove(SPAWN_GATE)
+            _fd = os.open(SPAWN_GATE, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(_fd, str(os.getpid()).encode())
+            os.close(_fd)
+        except OSError:
+            return False
+    except OSError:
+        pass
     fh = open(os.path.join(log_dir, "guard-server.log"), "ab", buffering=0)  # 不随 with 关闭
     creation = 0x00000008 | 0x00000200 if os.name == "nt" else 0  # DETACHED | NEW_PROCESS_GROUP
+    print(f"[guard] {time.strftime('%H:%M:%S')} 连续 {PROBE_TRIES} 次探测失败，拉起后端…", flush=True)
     subprocess.Popen(
         [sys.executable, "-u", "-m", "viewer.server"],
         cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
         creationflags=creation, close_fds=True,
     )
-    for _ in range(40):        # 最多等 ~20s 看它能否就绪
+    # 冷启动实测 ~3s（解释器 0.3s + 模块导入 1.8s + 阶段 ~0.5s），首次会慢些；
+    # 给 30s，别在它还没 bind 完就放弃（旧值 20s 在磁盘被占时偏紧）。
+    for _ in range(60):
         time.sleep(0.5)
         if port_open():
+            try:
+                os.remove(SPAWN_GATE)    # 拉起来了，闸门立即释放，别挡住下一次真掉线
+            except OSError:
+                pass
             return True
     return False
 
@@ -76,11 +171,11 @@ def main() -> int:
         ensure_service()
         return 0
     started = ensure_service()
-    print(f"[guard] 启动：端口 {PORT} 初始状态={'已就绪' if port_open() else '未就绪(已发起拉起)'}", flush=True)
+    print(f"[guard] 启动：端口 {PORT} 初始状态={'已就绪' if service_alive() else '未就绪(已发起拉起)'}", flush=True)
     while True:
         time.sleep(INTERVAL)
         try:
-            if not port_open():
+            if not service_alive():
                 ok = ensure_service()
                 print(f"[guard] {time.strftime('%H:%M:%S')} 服务掉线，已{'拉起' if ok else '尝试拉起但未就绪'}", flush=True)
         except Exception as e:  # noqa: BLE001 —— 守护自己绝不能挂

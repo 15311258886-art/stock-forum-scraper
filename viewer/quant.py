@@ -42,6 +42,9 @@ ENGINE_VER = "quant-v1.0"
 MIN_BARS = P.MIN_BARS          # 复用 predictor 的 130 根下限（与共振/每日预测一致）
 LOOKBACK = 65                  # 因子计算需要的最长窗口（MA60 + KDJ/BOLL 余量）
 BT_DATES = 120                 # 回测/学习最多使用的历史交易日数（控成本）
+# 2026-10-29：因子取值所需的最短窗口 = 最长因子窗口 + 回测期 + 前向收益期 = 65+120+20 = 205。
+# 取 260 留余量；超过这个长度的历史对结果没有任何影响，却会把内存撑爆（见 _universe_bars）。
+_SERIES_TAIL = 260
 TOP_N_SELECT = 30              # 多因子选股默认出清单只数
 OOS_MIN = 5                    # 样本外验证最少可比期数（walk-forward 比较次数门槛）
 OOS_WIN = 0.60                 # 加权方相对等权方的胜率门槛
@@ -162,25 +165,44 @@ def _universe_bars(kc_updated=None):
 
     返回 (bars_map, updated)。bars_map 的 bar 元组与 resonance.load_bars 同构（date, close, high, low, vol 顺序），
     但这里额外保留 open 以便量能口径更准。
+
+    2026-10-29 修复（「量化面板永远算不出来」的真凶）：
+      旧实现把全市场 5239 只票的**全历史**逐只读出来常驻内存 —— 实测子进程内存冲到 16.7GB
+      被系统直接杀掉，于是 /api/quant 永远停在"计算中"、/api/etf 永远 >60s 超时。
+      但因子计算实际只需要「LOOKBACK(65) + BT_DATES(120) + 前向收益(20)」≈ 205 根，
+      故此处只取**最近 _SERIES_TAIL 根**（260，留足余量），并优先走 kbase 的批量 OHLCV
+      （一次 SQL 代替 5239 次开连接）。内存百 MB 级、耗时从分钟级降到几十秒。
+      ⚠️ 口径不变：窗口比最长因子窗口 + 回测期 + 前向期都长，任何因子取值与收益都不受影响。
     """
     kc = P.load_kcache()
     bars_in = (kc.get("bars") or {})
     updated = kc.get("updated") or kc_updated
+    sources = [c for c in bars_in.keys() if _is_ashare(c)]   # 只迭代代码（一次 SQL），不逐只读盘
+    rows_in = None
+    try:
+        from viewer import kbase as _kb
+        base = _kb.get_base()
+        cal = base.distinct_dates()
+        min_date = cal[-_SERIES_TAIL] if len(cal) > _SERIES_TAIL else ""
+        rows_in = base.ohlcv_bulk(sources, min_date=min_date) or None
+    except Exception:  # noqa: BLE001  批量不可用 → 退回逐只读取（慢，但结果一致）
+        rows_in = None
     out: dict = {}
-    for code, v in bars_in.items():
-        if not _is_ashare(code):
-            continue
-        rows = []
-        for b in v:
-            try:
-                rows.append((str(b.get("d"))[:10], _f(b.get("o")), _f(b.get("h")),
-                             _f(b.get("l")), _f(b.get("c")), _f(b.get("v"))))
-            except Exception:  # noqa: BLE001
-                continue
+    for code in sources:
+        if rows_in is not None:
+            rows = list(rows_in.get(code) or [])[-_SERIES_TAIL:]
+        else:
+            v = bars_in.get(code) or []
+            rows = []
+            for b in v[-_SERIES_TAIL:]:
+                try:
+                    rows.append((str(b.get("d"))[:10], _f(b.get("o")), _f(b.get("h")),
+                                 _f(b.get("l")), _f(b.get("c")), _f(b.get("v"))))
+                except Exception:  # noqa: BLE001
+                    continue
         rows = [r for r in rows if r[0] and r[4]]
         if len(rows) >= MIN_BARS:
-            rows.sort(key=lambda x: x[0])
-            out[code] = rows
+            out[code] = rows          # 批量路径已按 date 升序；逐只路径保持原 sort 语义
     return out, updated
 
 

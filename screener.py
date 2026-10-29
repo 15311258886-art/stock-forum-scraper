@@ -177,8 +177,55 @@ _VAL_CACHE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
                            "data", "screener_val_cache.json")
 
 
+def _val_snapshot_local() -> tuple:
+    """(rows, trade_date, err)：从本机 `stock_daily_snapshot` 读全市场估值快照（零网络）。
+
+    2026-10-29 新增（治「智能选股一点就说抓取失败、永远抓不到」）：
+      原来估值快照只走东财 datacenter，本机网络策略一拦就整个「价值/成长/低估值」
+      系列策略全部报「估值快照刚拉取失败（东财无响应），冷却中」——用户点了十次十次没有。
+      而 app.db 的 `stock_daily_snapshot` 本来就每天落一份全市场快照，
+      含 pe_ttm / pb / total_mv / float_mv / turnover / pct（5240 只），字段足够跑这些策略。
+      缺的 ps/peg/pcf 如实留 None（面板会诚实少几列，绝不编数）。
+    """
+    try:
+        import sqlite3
+        try:
+            from viewer.db import DB_PATH
+            path = DB_PATH
+        except Exception:  # noqa: BLE001
+            path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "viewer", "app.db")
+        con = sqlite3.connect("file:%s?mode=ro" % path, uri=True)
+        try:
+            d = con.execute("SELECT MAX(trade_date) FROM stock_daily_snapshot").fetchone()[0]
+            if not d:
+                return None, None, "本地日快照为空（等日更任务跑完）"
+            rows = []
+            for code, name, board, pe, pb, mv, pct in con.execute(
+                    "SELECT code,name,board,pe_ttm,pb,total_mv,pct FROM stock_daily_snapshot "
+                    "WHERE trade_date=?", (d,)):
+                if not code:
+                    continue
+                rows.append({
+                    "code": str(code), "name": name or "", "industry": board or "",
+                    "pe": pe, "pb": pb, "ps": None, "peg": None, "pcf": None,
+                    "mcap": mv, "pct": pct, "roe": None, "gm": None, "dr": None, "dy": None,
+                    "trade_date": str(d)[:10],
+                })
+        finally:
+            con.close()
+        if len(rows) < 100:
+            return None, None, "本地日快照行数不足（可能正在日更）"
+        return rows, str(d)[:10], None
+    except Exception as e:  # noqa: BLE001
+        return None, None, "本地日快照读取失败：%s" % str(e)[:80]
+
+
 def _val_snapshot() -> tuple:
     """(rows, trade_date, err)：当日全市场估值快照；失败返回 (None, None, 原因)。
+
+    2026-10-29：**本地优先**。先读本机 `stock_daily_snapshot`（零网络、毫秒级），
+    拿不到再走东财三级缓存。这样即使东财被网络策略拦掉，选股系列也照样能用 ——
+    以前这里一失败就是「抓取不到就一直抓取不到」，正是用户最在意的那个病。
 
     整体超时预算（默认 8s）：东财估值报表在本运行环境被网络策略拦截，
     若不做预算，latest_valuation_date 会逐日回退撞超时、datacenter 翻页也会拖挂死，
@@ -189,8 +236,13 @@ def _val_snapshot() -> tuple:
     with _VAL_LOCK:
         if _VAL_MEM is not None:
             return _VAL_MEM["rows"], _VAL_MEM["date"], None
+        # ① 本地日快照优先（零网络，秒回）
+        lrows, ldate, lerr = _val_snapshot_local()
+        if lrows:
+            _VAL_MEM = {"date": ldate, "rows": lrows}
+            return lrows, ldate, None
         if _time.time() < _VAL_NEG_UNTIL:
-            return None, None, "估值快照刚拉取失败（东财无响应），冷却中请稍后再试"
+            return None, None, "估值快照暂不可用（%s；东财冷却中），稍后再试" % (lerr or "本地无数据")
         today = _dt.date.today().isoformat()
         try:
             if _os.path.exists(_VAL_CACHE):
@@ -726,9 +778,37 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
     冷却到期后照常自动重试——不违反"失败不落缓存"纪律）。
     """
     target = _last_trade_date_local()
-    disk = dict(_DECLINE_MEM) if _DECLINE_MEM else _decline_cache_load()
-    bars_map, need = {}, []
+    # ── 2026-10-29 本地仓优先（根治「换手榜/阴跌榜/低位箱体一点就 45 秒不返回」）──
+    # 原来：全市场 ~5500 只**逐只**打腾讯/新浪，8 线程并发也要 45s+；
+    # 而这 45s 请求线程一直被占着 —— 服务是单进程多线程 + Python GIL，
+    # 于是整站所有接口一起冻住，用户看到的就是「打开一分钟，一堆面板同时加载失败」。
+    # 现在：先一次 SQL 读本机 kbase.db（5239 只全历史日线，1~3 秒拿完），
+    # 只有**本地确实没有**的票才落到磁盘缓存 → 网络补抓。抓一次存本地，
+    # 之后永远从本地读 —— 不受外网限次、不会封号，也不再有"调不出来"。
+    keep = max(int(days or 30) + 10, 120)
+    bars_map = {}
+    try:
+        from viewer import localfeed as _lf
+        bars_map = _lf.bars_map(list(pool.keys()), keep_bars=keep)
+    except Exception:  # noqa: BLE001  本地仓不可用 → 完整退回旧链路（不阻断功能）
+        bars_map = {}
+    n_local = len(bars_map)          # 直读本地仓的票数（网络零请求）
+    # 2026-10-29：本地仓覆盖率足够高时，**不再为少量缺口补网**。
+    # 实测教训：本地 5240 / 全市场 5590，只剩 350 只（多为北交所/新股，腾讯源本来就取不到）
+    # 去补网，冷态要 20s+，比本地全量读还贵 5 倍，而且这 20s 照样占 GIL 拖全站。
+    # 覆盖 >=80% 就认为本地仓足够权威：缺的那几只按「无数据」跳过（各面板本来就会跳过缺 K 线的票）。
+    _local_enough = bool(pool) and (n_local / max(1, len(pool))) >= 0.8
+    # 2026-10-29：本地仓够用时**完全不碰 data/decline_kcache.json**（实测 33MB，
+    # 每次 load 要解析 1~3 秒、每次扫描还要回写一遍 33MB）。这份缓存的唯一用途就是
+    # 「本地仓没数据时省网络请求」，本地仓已经有了它就是纯浪费。
+    if _local_enough:
+        disk = {}
+    else:
+        disk = dict(_DECLINE_MEM) if _DECLINE_MEM else _decline_cache_load()
+    need = []
     for code in pool:
+        if code in bars_map and bars_map[code]:
+            continue                      # 本地仓命中：直接可用，零网络
         ent = disk.get(code)
         if ent and _bars_fresh(ent, target, days):
             bars_map[code] = [(str(b[0]), float(b[1]),
@@ -736,6 +816,8 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
                                float(b[3]) if len(b) > 3 and b[3] is not None else None,
                                float(b[4]) if len(b) > 4 and b[4] is not None else None)
                               for b in ent["bars"][-_DECLINE_KEEP_BARS:]]
+        elif _local_enough:
+            continue                     # 本地仓覆盖足够 → 不为个别缺口补网（见上）
         elif _time.time() - _fail_table().get(code, 0) > _FAIL_COOLDOWN:
             need.append(code)
         # 冷却期内的失败票直接跳过（既不重试也不算成功）
@@ -770,10 +852,14 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
                     _fail_flush()
                     failures.append(c)
         _fail_flush()
-        _DECLINE_MEM.clear()
-        _DECLINE_MEM.update(disk)
-        _decline_cache_save(disk)
+        # 2026-10-29：本地仓够用时不回写 33MB 的 decline_kcache.json（原来每次扫描都写一遍，
+        # 纯磁盘浪费；那份缓存只在「本地仓没这只票、需要省网络请求」时才有意义）。
+        if not _local_enough:
+            _DECLINE_MEM.clear()
+            _DECLINE_MEM.update(disk)
+            _decline_cache_save(disk)
     meta = {"target": target, "n_pool": len(pool), "n_cached": n_cached,
+            "n_local": n_local,          # 直读本地仓的票数（网络零请求）
             "n_fetched": n_fetched, "n_fail": len(failures), "failures": failures[:20]}
     return bars_map, meta
 
@@ -819,13 +905,23 @@ def _float_map(codes: list, max_age_days: int = 7) -> dict:
         else:
             need.append(c)
     if need:
-        for i in range(0, len(need), 60):
-            batch = need[i:i + 60]
+        # 2026-10-29：93 批（5500 只 / 60）原来**串行**打腾讯 + 每批 sleep 0.15s，
+        # 首跑实测 20~25s，期间占着请求线程 → 换手榜/箱体面板一起转圈。
+        # 改并发（6 路）：同一批数，墙钟从 20s+ 降到 3~5s；失败批次照旧不写缓存、下次重试。
+        batches = [need[i:i + 60] for i in range(0, len(need), 60)]
+
+        def _fetch_batch(batch):
             syms = ",".join(_prefix(c) + c for c in batch)
             try:
-                txt = _http_text(_TX_QT + syms, "https://gu.qq.com/", timeout=8)
+                return _http_text(_TX_QT + syms, "https://gu.qq.com/", timeout=8)
             except Exception:  # noqa: BLE001
-                continue  # 失败不写缓存，下次重试
+                return ""            # 失败不写缓存，下次重试
+
+        with _TPE(max_workers=10) as _ex:
+            _texts = list(_ex.map(_fetch_batch, batches))
+        for txt in _texts:
+            if not txt:
+                continue
             for m in _re.finditer(r'v_(?:sh|sz|bj)(\d{6})="([^"]*)"', txt):
                 code, body = m.group(1), m.group(2)
                 f = body.split("~")
@@ -842,7 +938,6 @@ def _float_map(codes: list, max_age_days: int = 7) -> dict:
                 out[code] = (fs, fmv, to_rt, vol_rt)
                 disk[code] = {"fs": fs, "fmv": fmv, "to_rt": to_rt,
                               "vol_rt": vol_rt, "updated": now.strftime("%Y-%m-%d")}
-            _time.sleep(0.15)
         _FLOAT_MEM.clear()
         _FLOAT_MEM.update(disk)
         _float_cache_save(disk)
@@ -1259,6 +1354,17 @@ def _market_pool() -> dict:
     失败返回 {}（不落缓存，下次重试）。约 5600 只、56 页。
     """
     today = _dt.date.today().strftime("%Y-%m-%d")
+    # ── 2026-10-29 本地仓优先：本机 kbase.db + stock_names 就是全市场清单 ──
+    # 原来每次（缓存过期后）翻新浪 56 页，一次 8~60 秒，期间占着请求线程，
+    # 单进程 GIL 会把整站拖死。本地清单 5239 只、名称 5588 只，一次 SQL 秒出，
+    # 且**不受外网限次**。新浪只在本地清单异常偏小（<1000）时才当兜底。
+    try:
+        from viewer import localfeed as _lf
+        local_pool = _lf.pool()
+        if len(local_pool) >= 1000:
+            return local_pool
+    except Exception:  # noqa: BLE001  本地仓不可用 → 继续走旧链路
+        pass
     try:
         with open(_MARKET_POOL_CACHE, "r", encoding="utf-8") as f:
             ent = _json.load(f)

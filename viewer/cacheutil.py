@@ -74,16 +74,34 @@ def disk_cache(namespace: str, key: str, ttl_seconds: int, producer, is_cacheabl
         return None
     if result is None or not _is_cacheable(result) or (is_cacheable is not None and not is_cacheable(result)):
         return result  # 失败/空响应不落盘
+    tmp = None
     try:
         os.makedirs(_CACHE_DIR, exist_ok=True)
-        tmp = cache_file + ".tmp"
+        # 2026-10-29 修（WinError 32）：原先 tmp 名固定为 `<cache_file>.tmp`，两个线程
+        # （或多进程）同时刷新同一 key 时会落到同一个 tmp 文件——一方写完做 os.replace，
+        # 另一方正要写/正持句柄 → `PermissionError: [WinError 32] 另一个程序正在使用此文件`，
+        # 缓存落盘静默失败（日志只有一行 ERROR，面板表现为"刚刷过又不新鲜"）。
+        # 现在 tmp 名带 pid+线程号唯一化，并给 replace 加短重试（Windows 句柄释放有延迟）。
+        tmp = "%s.%d_%d.tmp" % (cache_file, os.getpid(), threading.get_ident())
         with open(tmp, "w", encoding="utf-8") as fh:
             json.dump({"ts": time.time(), "data": result}, fh, ensure_ascii=False)
-        os.replace(tmp, cache_file)
+        for _attempt in range(4):
+            try:
+                os.replace(tmp, cache_file)
+                break
+            except PermissionError:
+                if _attempt == 3:
+                    raise
+                time.sleep(0.05 * (_attempt + 1))
         with _lock:
             _store[(namespace, key)] = (time.time(), result)
     except Exception:  # noqa: BLE001
         _log.exception("disk_cache 落盘失败 ns=%s key=%s", namespace, key)
+        try:
+            if tmp and os.path.exists(tmp):
+                os.remove(tmp)
+        except OSError:
+            pass
     return result
 
 

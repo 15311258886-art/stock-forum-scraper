@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import re
 import sqlite3
 import sys
@@ -435,6 +436,35 @@ def _build_core(hours: int = 24, max_posts: int = 800) -> dict:
     return out
 
 
+_REBUILDING = set()          # 正在后台重建的 key（防同一 key 起多个线程）
+_REBUILD_LOCK = threading.Lock()
+
+
+def _spawn_rebuild(key, hours: int, max_posts: int) -> None:
+    """后台线程重算（过期时用，让请求线程立刻返回旧值）。失败只记日志，不影响任何返回。"""
+    with _REBUILD_LOCK:
+        if key in _REBUILDING:
+            return
+        _REBUILDING.add(key)
+
+    def _run():
+        try:
+            res = _build_core(hours, max_posts)
+            with _BUILD_CACHE_LOCK:
+                _BUILD_CACHE[key] = (time.time(), res)
+        except Exception:  # noqa: BLE001
+            logging.getLogger(__name__).exception("postdigest 后台重算失败（继续用旧值）")
+        finally:
+            with _REBUILD_LOCK:
+                _REBUILDING.discard(key)
+
+    try:
+        threading.Thread(target=_run, name="postdigest-rebuild", daemon=True).start()
+    except Exception:  # noqa: BLE001
+        with _REBUILD_LOCK:
+            _REBUILDING.discard(key)
+
+
 def build(hours: int = 24, max_posts: int = 800) -> dict:
     """最近 hours 小时内的帖子 → 情绪结论（带 120 秒 TTL 的进程级缓存）。
 
@@ -448,14 +478,22 @@ def build(hours: int = 24, max_posts: int = 800) -> dict:
     """
     key = (hours, max_posts)
     now_ts = time.time()
-    with _BUILD_CACHE_LOCK:  # 锁住整段「查→判过期→重算→写回」，杜绝并发穿透重算（惊群）
+    entry = _BUILD_CACHE.get(key)
+    # ── 2026-10-29 SWR（stale-while-revalidate）：过期**不阻塞请求** ────────────
+    # 原逻辑过期后在请求线程里现算 6~8s，而 /api/stocks、/api/summary、/api/today_decision
+    # 都要它 —— 每 2 分钟就有一个"倒霉的请求"替全站背这 6~8 秒，用户就是在这时候点开
+    # 面板看到转圈的。现在：只要曾经算过，就**立刻返回旧值**，同时在后台线程刷新一份，
+    # 下一个请求自然拿到新值。情绪速览本来就是 72 小时窗口的粗粒度结论，晚 1 分钟无差别。
+    if entry is not None:
+        stored_ts, result = entry
+        if (now_ts - stored_ts) < _BUILD_CACHE_TTL:
+            return copy.deepcopy(result)
+        _spawn_rebuild(key, hours, max_posts)   # 过期：先给旧值，后台补新值
+        return copy.deepcopy(result)
+    with _BUILD_CACHE_LOCK:  # 冷启动（从没算过）：锁内算一次，杜绝并发同时重算（惊群）
         entry = _BUILD_CACHE.get(key)
         if entry is not None:
-            stored_ts, result = entry
-            if (now_ts - stored_ts) < _BUILD_CACHE_TTL:
-                # 命中且未过期：秒回深拷贝，跳过 6~8 秒重算
-                return copy.deepcopy(result)
-        # 未命中或已过期：照常重算（锁内执行，保证同时只有一个线程在算）
+            return copy.deepcopy(entry[1])
         result = _build_core(hours, max_posts)
         _BUILD_CACHE[key] = (now_ts, result)
         # 写回的也是深拷贝给调用方；缓存里留原件，下次命中再拷贝

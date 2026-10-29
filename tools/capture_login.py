@@ -91,7 +91,8 @@ def _run_cdp(js_body: str, timeout: int = 30) -> str:
         "setTimeout(() => process.exit(1), " + str(timeout * 1000) + ");\n"
     )
     p = subprocess.run(
-        [NODE_PATH, "-e", node_script], capture_output=True, text=True, timeout=timeout + 10
+        [NODE_PATH, "-e", node_script], capture_output=True, text=True, timeout=timeout + 10,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),   # 2026-10-25：别弹控制台黑框
     )
     return p.stdout.strip()
 

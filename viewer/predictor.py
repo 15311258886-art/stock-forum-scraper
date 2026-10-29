@@ -44,6 +44,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 import strategy_sim as SS  # noqa: E402
+import kbase as _kbase  # noqa: E402  全市场 K 线沉淀库（2026-10-25 接入，替换 285 只 JSON 缓存）
 
 try:
     from strategy_data import STRATEGIES  # noqa: E402
@@ -55,9 +56,23 @@ DB_PATH = os.path.join(ROOT, "viewer", "app.db")
 KCACHE = os.path.join(ROOT, "predict_kcache.json")
 
 # ---- 可调参数 -------------------------------------------------------------
-CORE_N = 10                 # 核心池只数（多信号共振）
-WATCH_N = 10                # 观察池只数（单信号强）
-POOL_LIMIT = 160            # 候选池上限（= strategy_sim.universe 的 limit）
+# 2026-10-29：核心/观察池由「固定只数」改为「按当日全池分数分位带」自适应（见 _band_counts）。
+# CORE_N / WATCH_N 仅作为上限兼容旧引用，不再驱动切片。
+CORE_N = 10                 # [已弃用] 核心池只数，改用 CORE_MAX/CORE_MIN + 分位带
+WATCH_N = 10                # [已弃用] 观察池只数，改用 WATCH_MAX + 分位带
+CORE_MAX = 8                # 核心池上限（证据区间 4~7 的上沿再留 1 只余量，见 _band_counts）
+CORE_MIN = 3                # 核心池下限（候选池很小时保底，不再硬凑到 10）
+WATCH_MAX = 10              # 观察池上限
+CORE_PCT = 0.010            # 核心池分位带：当日全池 score 的前 1%
+WATCH_PCT = 0.030           # 观察池分位带：前 3%（扣掉核心池后）
+# 候选池上限（= strategy_sim.universe 的 limit）。
+# 2026-10-26 进哥关切「每日预测是否只扫一小撮票」：原 160 是流动性前 160，
+# 会系统性漏掉流动性靠后的政策受益小票。改为环境变量可配、默认 500（覆盖更全），
+# 并由 pillars.generate 进一步并入「今日热板块」官方成分股，双保险扩池。
+# P2（2026-10-26）：默认上限提到 2000，且 universe() 已与干净宇宙求差 —— 重的四支柱分析覆盖
+# 流动性头部 2000 只干净票；其余干净宇宙由 viewer/universe_scan 廉价全量扫描覆盖。可用
+# 环境变量 PILLARS_POOL_LIMIT 进一步调大（如 5268 即全宇宙重分析）。
+from viewer.config import PILLARS_POOL_LIMIT as POOL_LIMIT  # 集中配置（环境变量覆盖见 viewer/config.py）
 BARS = 660                  # 每只票取多少根日线（够「近两年 2×244」回放 + MA120 / 年线）
 MIN_BARS = 130              # 少于此根数的票不参与技术面判定
 WINDOWS = (1, 3, 5, 10)     # 复盘窗口（交易日）：1 日 / 3 日 / 5 日 / 10 日（2026-09-29 应王总加 T+1）
@@ -65,6 +80,11 @@ MAX_SERIES = 30             # 逐日曲线最多保留多少个交易日（历�
 PRIOR_HIT = 0.5             # 贝叶斯收缩先验命中率
 PRIOR_N = 20                # 先验等效样本量
 W_MIN, W_MAX = 0.02, 0.34   # 单信号权重上下限（防止一路信号独大；不再用 0.06 硬兜底）
+# 2026-10-29：十二路里只有技术面做过全市场因子回测（signal_backtest，单信号样本可达 76 万）。
+# 有实证支撑的维度沿用 W_MAX；其余维度虽经实盘结算，但样本仅几十到几百、标准误 ±3~5pt，
+# 不足以证明有效，上限收紧 —— 没被验证过的信号不该主导排序。
+VERIFIED_DIMS = {"tech"}
+W_MAX_UNVERIFIED = 0.25
 ADJUST_LOG_EPS = 0.02       # 权重变动超过此值才记日志（防刷屏）
 # 覆盖度校正（2026-10-01 新增）：命中票数少的信号说明它对候选池没代表性，
 # 一律给等量权重等于把噪声当信号。故权重再乘一个「覆盖置信度」因子。
@@ -457,25 +477,29 @@ def status_snapshot() -> dict:
 
 # ---------------------------------------------------------------- K 线缓存
 def load_kcache() -> dict:
-    if os.path.exists(KCACHE):
-        try:
-            with open(KCACHE, encoding="utf-8") as f:
-                d = json.load(f)
-            if isinstance(d, dict) and "bars" in d:
-                return d
-        except Exception:  # noqa: BLE001
-            pass
-    return {"updated": None, "bars": {}}
+    """返回 {updated, bars}。
+
+    2026-10-25 重构：原 predict_kcache.json（仅 285 只按需缓存）已升级为
+    viewer/kbase.db（全 A 股 ~5588 只日 K 沉淀，SQLite，lazy 读取）。
+    bars 现为 KBaseBars 惰性代理，对外用法与原 JSON dict 完全兼容
+    （.get / [] / items / values / len / 赋值），所有消费方无需改动。
+    """
+    base = _kbase.get_base()
+    return {"updated": base.updated(), "bars": _kbase.KBaseBars(base)}
 
 
 def save_kcache(d: dict) -> None:
+    """仅持久化 updated 标记到 kbase meta。
+
+    bars 已通过 KBaseBars 实时落库（SQLite），不再整体 dump 到 JSON——
+    避免全市场 5588 只一次性载入内存（内存最小）。
+    """
     try:
-        tmp = KCACHE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False)
-        os.replace(tmp, KCACHE)
+        base = _kbase.get_base()
+        if d and d.get("updated") is not None:
+            base.set_updated(d["updated"])
     except Exception as e:  # noqa: BLE001
-        print("[predictor] 缓存写入失败:", str(e)[:100], flush=True)
+        print("[predictor] kcache meta 写入失败:", str(e)[:100], flush=True)
 
 
 def fetch_bars(codes: list, kc: dict, force: bool = False,
@@ -1747,6 +1771,53 @@ def _replay_stats(con: sqlite3.Connection) -> dict:
     return out
 
 
+def _excess_ret(n1: int, sr1: float, n5: int, sr5: float):
+    """加权平均超额收益（T+1 权重 0.4 / T+5 权重 0.6）。样本不足返回 None。
+
+    2026-10-29 重写：入参 sr* 现在已经是「ret − 同期池子 bench」的累积
+    （见 `_aggregate`），所以这里**不再减任何基线**。
+
+    旧版的做法是 `sr/n - base`，base 取自 signal_baseline，有两个硬伤：
+      · 该表只有 fwd=5/10/20，`base1` 永远取默认值 0.0；
+      · 它的样本期是全市场 250 个交易日，而账本样本是最近 18 个交易日，
+        两个时段的市场环境完全不同（前者 T+5 基线 -0.05%，后者 -2.28%）。
+    减出来的数既不是绝对收益、也不是超额，是混合体 —— 实测 ann 因此出现
+    「命中率 60% 但超额 -2.37%」的矛盾读数。
+    """
+    parts = []
+    if n1 >= 20:
+        parts.append((sr1 / n1, 0.4))
+    if n5 >= 10:
+        parts.append((sr5 / n5, 0.6))
+    if not parts:
+        return None
+    tw = sum(w for _, w in parts)
+    return sum(v * w for v, w in parts) / tw
+
+
+def _ret_multiplier(n1: int, sr1: float, n5: int, sr5: float) -> float:
+    """命中率之外的第二个维度：平均**超额**收益（2026-10-29 修正口径）。
+
+    为什么必须有这一维：`_shrunk_hit` 只看"有没有跑赢池子"。一个 47% 跑赢、
+    但跑赢时小赚、跑输时大亏的信号，命中率看着还行，加进排序却持续失血。
+    实测（18 个交易日账本）就是这个形态：12 路信号 T+5 胜率全部 37~47%，
+    但超额从 +2.86%（inst）到 -1.98%（overseas）横跨 4.8 个百分点。
+
+    返回值 0.55 ~ 1.15。正负不对称：赚钱最多加 15%，亏钱最多减 45%
+    ——亏损不可逆，惩罚理应重于奖励。
+
+    斜率实测定：入参 ex 已是真超额（小数），实测跨度 ±0.03。取 12/15 倍后，
+    inst(+2.86%) 触上限、overseas(-1.98%) 落到 0.70，中间各档能拉开；
+    旧版吃的是「绝对收益减≈0 的伪基线」，量级大到十一路里有九路直接触底，
+    区分度归零 —— 这也是它名义生效、实际没在区分任何东西的原因。
+    """
+    ex = _excess_ret(n1, sr1, n5, sr5)
+    if ex is None:
+        return 1.0                      # 样本不足 → 不动，交给 hit_score 决定
+    z = ex * 12.0 if ex >= 0 else ex * 15.0
+    return 1.0 + max(-0.45, min(0.15, z))
+
+
 def _compute_weights(con: sqlite3.Connection) -> tuple:
     """按「先验系数 × 实盘命中率 × 覆盖置信度」算十二路权重，返回 (new_w, detail)。只算不写库。
 
@@ -1758,6 +1829,9 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
     cover = _history_coverage(con)
     rp = _replay_stats(con)          # 技术面实盘样本不足时兜底用（近两年回放）
     rows = con.execute("SELECT * FROM predictor_score WHERE kind='signal'").fetchall()
+    # 2026-10-29：不再读 signal_baseline。账本里的 sum_ret_* 已改为真超额
+    # （ret − 同期池子 bench，见 _aggregate），再减一次外部基线会重复扣除，
+    # 而且那份基线是全市场 250 日口径、样本期与账本对不上。
     raw, detail = {}, {}
     for r in rows:
         k = r["signal_key"]
@@ -1791,15 +1865,44 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
         hit_score = 1.0 + eff * (score - 0.5) * 2.0              # 中性=1.0
         cov_n = cover.get(k, 0)
         cov_conf = _cover_conf(cov_n)                            # 覆盖置信度 0→1
-        cov_blend = COVER_FLOOR + (1.0 - COVER_FLOOR) * cov_conf
+        # 2026-10-29：覆盖度再乘 eff —— 覆盖广只说明「触发得多」，不说明「触发得准」。
+        # 旧版让 extref（实盘样本 n=2）靠 cov_n 拿到 3.75% 权重，等于给噪声分配仓位。
+        cov_blend = COVER_FLOOR + (1.0 - COVER_FLOOR) * cov_conf * eff
         prior = SIGNAL_PRIOR.get(k, 1.0)
-        raw[k] = prior * hit_score * cov_blend
-        detail[k] = {"prior": prior, "hit_t1": s1, "hit_t3": s3, "hit_t5": s5, "hit_t10": s10,
+        # 2026-10-29：先验随样本量让位。prior 恒为乘数时，样本再多也压不过它 ——
+        # 实测 tech 有 1032 条实盘样本、超额 -0.88%，却因 prior=1.45 长期占权重第一；
+        # inst 超额 +2.86% 反而排第五。现在先验只在样本少时生效，数据多了退回 1.0。
+        prior_eff = 1.0 + (prior - 1.0) * (1.0 - eff)
+        # 收益维度修正：命中率高但超额为负的信号在这里被压下来（详见 _ret_multiplier）
+        _sr1, _sr5 = _f(r["sum_ret_t1"], 0.0), _f(r["sum_ret_t5"], 0.0)
+        ex_ret = _excess_ret(n1, _sr1, n5, _sr5)
+        rmul = _ret_multiplier(n1, _sr1, n5, _sr5)
+        raw[k] = prior_eff * hit_score * cov_blend * rmul
+        detail[k] = {"prior": prior, "prior_eff": round(prior_eff, 3),
+                     "hit_t1": s1, "hit_t3": s3, "hit_t5": s5, "hit_t10": s10,
                      "n1": n1, "n3": n3, "n5": n5, "n10": n10, "conf": eff,
                      "cov_n": cov_n, "cov_conf": cov_conf, "cov_blend": cov_blend,
+                     "ret_mul": round(rmul, 3),
+                     "excess_ret": (round(ex_ret, 5) if ex_ret is not None else None),
+                     "avg_ret_t1": round(_sr1 / n1, 4) if n1 else None,
+                     "avg_ret_t5": round(_sr5 / n5, 4) if n5 else None,
                      "src": src}
     if not raw:
         raw = {k: SIGNAL_PRIOR.get(k, 1.0) for k in SIGNAL_KEYS}
+
+    # ---- 大样本证据修正（2026-10-29）----------------------------------------
+    # 用全市场因子回测的结论修正技术面权重：历史上整体跑输基线 → 降权；有超额 → 升权。
+    # 其他十一路没有大样本依据，不参与修正，改为在下面收紧权重上限。
+    ev_factor = 1.0
+    try:
+        from viewer.kernel import evidence as _ev
+        ev_factor = _ev.tech_factor(con)
+    except Exception:  # noqa: BLE001  证据层缺失（未跑回测 / 导入失败）不该阻断权重计算
+        ev_factor = 1.0
+    if abs(ev_factor - 1.0) > 1e-6 and "tech" in raw:
+        raw["tech"] *= ev_factor
+        detail.setdefault("tech", {})["evidence_factor"] = round(ev_factor, 3)
+
     # 归一化 → 限幅 → **再归一化**。
     #   第一道限幅加在 raw 上会失效：raw 的量级是 prior×hit×cov（≈0.15~1.35），
     #   十二路全都 > W_MAX，一夹就全等于 W_MAX，归一化后又变回"伪等权"，
@@ -1807,7 +1910,8 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
     #   故限幅放到归一化之后：夹的是最终权重百分比，语义才是"单路不超过 34% / 不低于 2%"。
     tot = sum(raw.values()) or 1.0
     norm_w = {k: v / tot for k, v in raw.items()}
-    clipped = {k: max(W_MIN, min(W_MAX, v)) for k, v in norm_w.items()}
+    clipped = {k: max(W_MIN, min(W_MAX if k in VERIFIED_DIMS else W_MAX_UNVERIFIED, v))
+               for k, v in norm_w.items()}
     tot2 = sum(clipped.values()) or 1.0
     new_w = {k: v / tot2 for k, v in clipped.items()}
     return new_w, detail
@@ -1846,6 +1950,15 @@ def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
                 reason = ("近两年回放 " + base) if "回放" in str(d.get("src") or "") else base
             if d.get("cov_n"):
                 reason += "；覆盖 %d 只（置信度 %.2f）" % (d["cov_n"], d.get("cov_conf", 0))
+            # 2026-10-29：把「超额」和「先验衰减」写进理由。此前只写命中率，
+            # 而命中率与超额会背离（实测 ann 命中 60% 但超额 -0.99%），
+            # 只看日志根本不知道为什么降权，事后无法复核。
+            if d.get("excess_ret") is not None:
+                reason += "；超额 %+.2f%%（收益系数 %.3f）" % (
+                    d["excess_ret"] * 100, d.get("ret_mul", 1.0))
+            if abs((d.get("prior_eff") or 1.0) - (d.get("prior") or 1.0)) >= 0.05:
+                reason += "；先验 %.2f→%.2f（样本已足，先验让位）" % (
+                    d.get("prior", 1.0), d.get("prior_eff", 1.0))
             # 口径自述：让人一眼知道这批权重是拿哪段时间的涨跌算出来的（呼应窗口调整）
             _wsd = window_start()
             reason = ("[近 %.1f 年窗口%s] " % (
@@ -1882,8 +1995,50 @@ def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
         wf = _walk_forward_track(con)
     except Exception:  # noqa: BLE001
         wf = {"ok": False, "error": "walk-forward 重跑失败"}
-    return {"weights": new_w, "adjusted": len(changes), "detail": detail,
-            "walk_forward": wf}
+    # adjusted 的语义是「写了几条调权日志」（受 2% 阈值 + 当日幂等约束），不等于「改了几路权重」。
+    # 2026-10-29 实测被误读：技术面权重 0.1689→0.1499（-1.9%，未达 2% 阈值）明明变了，
+    # 接口却报 adjusted=0。故另给 changed（真实变动路数，阈值 1e-4），供界面与日志直接引用。
+    _changed = sum(1 for k in SIGNAL_KEYS if abs(new_w.get(k, 0) - old.get(k, 0)) >= 1e-4)
+    return {"weights": new_w, "adjusted": len(changes), "changed": _changed,
+            "detail": detail, "walk_forward": wf}
+
+
+def _band_counts(vals: list) -> tuple:
+    """按当日全池分数分位带定 core/watch 只数（2026-10-29 替代固定 10/10）。
+
+    背景：原来 CORE_N 写死 10，等于每天必须凑满 10 只。用 `prediction_item` 里 14 个
+    交易日、267 条已到期样本做「取前 k 只」的 T+5 超额曲线：
+
+        k     均值      中位      逐日胜率
+        1    -2.98%   -4.55%   16.7%
+        3    +3.40%   -0.25%   42.9%
+        5    +0.74%   +1.98%   57.1%   ← 中位/胜率双见顶
+        7    +0.17%   +0.95%   57.1%
+        10   -0.72%   +0.04%   50.0%
+
+    均值被右尾支配（k=2 的 +4.43% 几乎全来自单只暴涨），所以判据用**中位数与胜率**——
+    两个都不受右尾影响的指标一致指向 k∈[4,7]，k>=8 归零。原固定 10 只正好落在最差档。
+
+    设计取舍（刻意保守）：
+    - 取证据区间的**上沿**（8）而不是最优点（5）。14 个交易日 ≈ 2.8 个独立窗口，
+      取 argmax 就是曲线拟合；取区间上沿能拿到大部分改善，又不在单点上押注。
+    - 用「前 N%」而不是绝对只数，这样候选池从 157 只涨到 735 只时，选择性不漂移。
+    - 不引入「相邻分数断层」判据：实测当日头部落差 0.1119、σ=0.2400，任何合理的
+      断层阈值要么从不触发、要么在 k=2 处切断——而 k=2 的中位数是 -0.62%，是负的。
+      判据不加分却多一个参数，故弃用。
+    """
+    n = len([v for v in vals if v is not None])
+    if n <= 0:
+        return 0, 0
+    if n <= CORE_MIN:
+        return n, 0
+    core_k = int(round(n * CORE_PCT))
+    core_k = max(CORE_MIN, min(CORE_MAX, core_k))
+    core_k = min(core_k, n)
+    watch_k = int(round(n * WATCH_PCT)) - core_k
+    watch_k = max(0, min(WATCH_MAX, watch_k))
+    watch_k = min(watch_k, max(0, n - core_k))
+    return core_k, watch_k
 
 
 def _ensure_score_rows(con: sqlite3.Connection, items: list) -> None:
@@ -2195,11 +2350,13 @@ def _generate_inner(con, run_date, force, progress) -> dict:
                                     -int(norm.get("tech", {}).get(kv[0], 0) * 100)))
     hot_ranked = [s for s, _ in ranked if sym_board.get(s) and sym_board[s][0] in hot_words]
     cold_ranked = [s for s, _ in ranked if not (sym_board.get(s) and sym_board[s][0] in hot_words)]
-    core_syms = hot_ranked[:CORE_N]
-    if len(core_syms) < CORE_N:
-        core_syms += cold_ranked[:CORE_N - len(core_syms)]
-    remain = [s for s in (hot_ranked[CORE_N:] + cold_ranked) if s not in set(core_syms)]
-    watch_syms = remain[:WATCH_N]
+    # 2026-10-29：只数由分位带自适应决定（core 3~8、watch ≤10），不再固定 10/10。
+    core_k, watch_k = _band_counts([sc for _, sc in ranked])
+    core_syms = hot_ranked[:core_k]
+    if len(core_syms) < core_k:
+        core_syms += cold_ranked[:core_k - len(core_syms)]
+    remain = [s for s in (hot_ranked[core_k:] + cold_ranked) if s not in set(core_syms)]
+    watch_syms = remain[:watch_k]
     picked = [(s, scores[s]) for s in core_syms + watch_syms]
     if not picked:
         return {"ok": False, "error": "没有股票被任何信号命中，未生成预测"}
@@ -2227,7 +2384,7 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     con.execute("DELETE FROM prediction_run WHERE run_date=?", (td,))
     items = []
     for i, (sym, sc) in enumerate(picked):
-        tier = "core" if i < CORE_N else "watch"
+        tier = "core" if i < len(core_syms) else "watch"
         k = bars_map.get(sym) or []
         entry = _f(k[-1].get("c")) if k else None
         nxt = _f(k[-1].get("c")) if k else None      # 次日开盘需 T+1 才有，复盘时回填
@@ -2282,7 +2439,7 @@ def _generate_inner(con, run_date, force, progress) -> dict:
         "core_n,watch_n,market_view,style_view,breadth_json,bench_json,status,note) "
         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (td, _now(), ENGINE_VER, pool_n, len(SIGNAL_KEYS),
-         min(CORE_N, len(items)), max(0, len(items) - CORE_N),
+         len(core_syms), len(watch_syms),
          view, style, json.dumps(sig_stats, ensure_ascii=False), None, "ok", _note))
     con.commit()
     try:
@@ -2304,8 +2461,8 @@ def _generate_inner(con, run_date, force, progress) -> dict:
                     pass
     except Exception:  # noqa: BLE001
         pass
-    return {"ok": True, "run_date": td, "core": min(CORE_N, len(items)),
-            "watch": max(0, len(items) - CORE_N), "pool_n": pool_n,
+    return {"ok": True, "run_date": td, "core": len(core_syms),
+            "watch": len(watch_syms), "pool_n": pool_n,
             "elapsed": round(time.time() - t0, 2),
             "signals": sig_stats, "view": view, "style": style}
 
@@ -2536,7 +2693,13 @@ def _aggregate(con: sqlite3.Connection) -> dict:
     # 主参考窗口（王总 2026-10-06）：早于 window_start 的复盘样本不再参与权重统计 ——
     # 太早的样本对当前策略没参考价值，混进来只会把近期特征冲淡。样本本身不删，仍留库可查。
     _ws = window_start()
+    # 2026-10-29：把 bench_* 一并取出。此前只 SELECT 了 ret_*，导致下面只能累积
+    # 「绝对收益」。而 prediction_item 每行早就存了同期池子基准 bench_t*，等于把
+    # 手边的真超额浪费掉，后面 _excess_ret 只能拿 signal_baseline（全市场 250 日）
+    # 去减，样本期完全对不上 —— 实测 ann 出现「命中率 60% 但超额 -2.37%」这种
+    # 自相矛盾的读数，根因就在这里（base1 还因为基线表只有 5/10/20 而默认成 0）。
     _SQL = ("SELECT run_date,symbol,ret_t1,ret_t3,ret_t5,ret_t10,"
+            "bench_t1,bench_t3,bench_t5,bench_t10,"
             "hit_t1,hit_t3,hit_t5,hit_t10,hit_signals FROM prediction_item")
     rows = con.execute(_SQL + (" WHERE run_date >= ?" if _ws else ""),
                        ((_ws,) if _ws else ())).fetchall()
@@ -2569,7 +2732,12 @@ def _aggregate(con: sqlite3.Connection) -> dict:
                     continue
                 a[nf] += 1
                 a[hf] += int(hit)
-                a[sf] += float(ret)
+                # sum_ret_* 自 2026-10-29 起存的是**超额**（ret − 同期池子 bench），
+                # 不是绝对收益。bench 缺失（极早期行）时才退化用绝对收益，并在下方
+                # 的 detail 里能看出该路基线质量。改语义是安全的：本函数每次全量清零
+                # 重算，库里不会留下旧口径的累加值。
+                ben = r["bench_t%d" % w]
+                a[sf] += (float(ret) - float(ben)) if ben is not None else float(ret)
     _aggregate_window = {"start": _ws or "全部历史", "items": len(rows),
                          "years": LOOKBACK_YEARS}
     for kk, a in agg.items():
@@ -2774,15 +2942,25 @@ def _score_row(r) -> dict:
     def wr(n, h):
         n, h = int(n or 0), int(h or 0)
         return {"n": n, "hit": h, "rate": round(h / n, 4) if n else None}
+
+    def ex(n, s):
+        """平均**超额**收益（2026-10-29 起 sum_ret_* 已是 ret − 同期池子 bench）。
+
+        字段名保留 avg_ret_* 是为了不破坏既有调用方，但语义已从「平均收益」
+        改为「平均超额」。新增 avg_ex_* 别名，新代码请用它，避免与绝对收益混淆。
+        """
+        return round((s or 0) / n, 4) if n else None
     return {
         "key": r["signal_key"], "kind": r["kind"], "name": r["name"], "school": r["school"],
         "t1": wr(r["n_t1"], r["n_hit_t1"]),
         "t3": wr(r["n_t3"], r["n_hit_t3"]), "t5": wr(r["n_t5"], r["n_hit_t5"]),
         "t10": wr(r["n_t10"], r["n_hit_t10"]),
-        "avg_ret_t1": round((r["sum_ret_t1"] or 0) / r["n_t1"], 4) if r["n_t1"] else None,
-        "avg_ret_t3": round((r["sum_ret_t3"] or 0) / r["n_t3"], 4) if r["n_t3"] else None,
-        "avg_ret_t5": round((r["sum_ret_t5"] or 0) / r["n_t5"], 4) if r["n_t5"] else None,
-        "avg_ret_t10": round((r["sum_ret_t10"] or 0) / r["n_t10"], 4) if r["n_t10"] else None,
+        "avg_ret_t1": ex(r["n_t1"], r["sum_ret_t1"]),
+        "avg_ret_t3": ex(r["n_t3"], r["sum_ret_t3"]),
+        "avg_ret_t5": ex(r["n_t5"], r["sum_ret_t5"]),
+        "avg_ret_t10": ex(r["n_t10"], r["sum_ret_t10"]),
+        "avg_ex_t1": ex(r["n_t1"], r["sum_ret_t1"]),
+        "avg_ex_t5": ex(r["n_t5"], r["sum_ret_t5"]),
         "weight": r["weight"], "weight_prev": r["weight_prev"],
     }
 

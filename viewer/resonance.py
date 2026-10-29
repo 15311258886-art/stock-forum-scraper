@@ -52,10 +52,14 @@ BENCH_MODE = "equal_weight_median"
 BENCH_LABEL = "全市场等权中位数"
 
 # 共振分权重（透明可追溯；合计 1.0）
-W_BLOGGER = 0.34            # 博主维度（信誉加权声量）
-W_STRAT = 0.34              # 战法维度（命中数 × 战法评级权重）
-W_SENTI = 0.14              # 舆情维度
-W_ENGINE = 0.18             # 主引擎交叉
+# ★ 2026-10-30 进哥拍板：博主维度**永久下线**，W_BLOGGER 归 0。
+#   原值 0.34，其份额按比例并入战法/舆情/引擎三项（见 _NO_BLOGGER_FALLBACK）。
+#   依据：博主战绩 15 人/898 样本，最高 |t|=1.17、有效窗口 10.4，属纯噪声；
+#   且 evolve 自我进化早已把它从 34% 压到 13.6%，方向一致。
+W_BLOGGER = 0.0             # 博主维度（已下线，恒 0；保留常量只为兼容旧表列 evo_weight.w_blogger）
+W_STRAT = 0.5152            # 战法维度（命中数 × 战法评级权重）
+W_SENTI = 0.2121            # 舆情维度
+W_ENGINE = 0.2727           # 主引擎交叉
 # ★ dy8（2026-10-21）博主分档阈值：卡片口径 bw = Σstrength（单条 0.2~100）。
 # 训练集口径 bw = Σstrength/100，故训练集 1.5 ⇔ 卡片 150（实证：强提及仅 21/369 票）。
 BLOGGER_STRONG_BW = 150.0   # ≥ 此值为"强提及"（多位/高信誉）；以下为"弱提及"（负面标签）
@@ -329,7 +333,12 @@ def load_bars() -> dict:
         except Exception:  # noqa: BLE001
             pass
     if cross_adj:
-        print("[resonance] 警告(P0-02)：%d 只票存在跨 adj 混拼（腾讯qfq ↔ 新浪不复权），"
+        # 2026-10-29：原文用全角箭头 "↔"，该字符不在 Windows GBK 码页内，
+        # 子进程（sched_job，stdout 指向日志文件、默认 GBK）执行到这行就抛
+        # UnicodeEncodeError: 'gbk' codec can't encode character '\u2194'，
+        # 把 resonance_build / selfpick_build 整轮打断（连带四支柱停更两天）。
+        # 改 ASCII "<->"：只改展示字符，不动任何口径。
+        print("[resonance] 警告(P0-02)：%d 只票存在跨 adj 混拼（腾讯qfq <-> 新浪不复权），"
               "已统一保留 canonical(%s) 口径" % (len(cross_adj), CANONICAL_ADJ), flush=True)
     return {c: r[0] for c, r in out.items()}
 
@@ -452,12 +461,40 @@ def _latest_trade_date() -> str:
 
 
 def _blogger_credibility(con: sqlite3.Connection) -> dict:
-    """博主信誉系数（0.5~1.5）：用 blogger_perf 的历史 r5 均值相对全样本中位数定档。"""
+    """博主信誉系数（0.5~1.5）。
+
+    2026-10-29 重写。旧版直接用 `AVG(blogger_perf.r5)` 定档，有两个致命问题：
+      1) **没减基线**。样本期 2026-08~10 全市场是弱势（同期 T+5 基线为负），
+         所有博主的绝对 r5 一起变负，公式 1.0 + a5*0.03 + (win5-0.5)*1.5 把
+         全员压到 0.5~0.6 —— 把「大盘跌」错算成「博主无能」。
+      2) **没控独立样本**。同一博主单日最多推 56 只，同日所有票共享市场因子，
+         把「博主×股票」当独立样本，n 从几十被吹到上千，小样本博主也会被定档。
+    现在改读 `blogger_score`（viewer/blogger_score.py 算）：日度超额、向 0 收缩、
+    样本量门槛、前后半段检验都在那里完成，这里只取 cred。
+    D 级（独立观测不足）一律中性 1.0 —— 样本不足不等于差，不该被惩罚性降权。
+    """
+    stats = {}
+    try:
+        rows = con.execute(
+            "SELECT blogger, cred, grade, edge_shrunk, n_days, t_stat, stab,"
+            " med_per_day FROM blogger_score").fetchall()
+    except sqlite3.Error:
+        rows = []
+    if rows:
+        for r in rows:
+            stats[r["blogger"]] = {
+                "cred": float(r["cred"] or 1.0),
+                "note": "" if r["grade"] != "D" else "独立观测不足(%s 天)" % r["n_days"],
+                "a5": r["edge_shrunk"], "win5": None, "n": r["n_days"],
+                "grade": r["grade"], "t": r["t_stat"], "stab": r["stab"],
+                "per_day": r["med_per_day"],
+            }
+        return stats
+    # 兜底：blogger_score 尚未计算过时退回旧口径（仅保证不炸，数值不作结论）
     rows = con.execute("SELECT blogger, AVG(r5) a5, AVG(r1) a1,"
                        " SUM(CASE WHEN r5>0 THEN 1 ELSE 0 END) w5,"
                        " SUM(CASE WHEN r5 IS NOT NULL THEN 1 ELSE 0 END) n5,"
                        " COUNT(*) n FROM blogger_perf GROUP BY blogger").fetchall()
-    stats = {}
     for r in rows:
         n5 = r["n5"] or 0
         if n5 < MIN_N_SHOW:
@@ -475,25 +512,24 @@ def _blogger_credibility(con: sqlite3.Connection) -> dict:
 
 
 def _pull_blogger(con: sqlite3.Connection, cred: dict) -> list:
-    """博主荐股 → 信号（direction 一律 多，强度按博主信誉定原始分）。"""
-    out = []
-    since = _since(LOOKBACK_DAYS * 3)
-    for r in con.execute(
-            "SELECT blogger, rec_date, stock_code, stock_name, video_title, note,"
-            " price_at_rec FROM blogger_reco WHERE stock_code<>'' AND rec_date>=?"
-            " ORDER BY rec_date", (since,)):
-        c = cred.get(r["blogger"]) or {"cred": 1.0}
-        raw = 50.0 * c["cred"]          # 25 ~ 75
-        ev = "%s｜%s" % (r["rec_date"], (r["note"] or "")[:160])
-        if r["video_title"]:
-            ev += "｜" + r["video_title"]
-        out.append({
-            "ts": r["rec_date"], "src_type": "blogger", "src_key": r["blogger"],
-            "code": r["stock_code"], "name": r["stock_name"],
-            "direction": "多", "raw_score": raw,
-            "horizon": "T+5", "evidence": ev,
-        })
-    return out
+    """博主荐股 → 信号 —— **2026-10-30 起永久停用，恒返回空表**。
+
+    进哥 2026-10-29/30 两次拍板的合并结论：
+      · 「咱们从头到尾一直测的这些博主全都是负面信息，短期中期长期都是」；
+      · 「荐股类的博主以后不关注了，不需要这些信息，是噪声」；
+      · 「情绪有很多地方都可以搜集得到，之前那些博主的舆论已经够用了」。
+
+    实证支持：博主战绩（blogger_score）15 人 / 898 样本，最高 |t|=1.17、
+    有效独立窗口仅 10.4 个 —— 连"略微有效"都够不上，是纯噪声。
+
+    为什么**保留函数体与调用点**而不是连函数一起删：
+      ① 下游 `build_exclusion` 仍用历史 blogger_overlap 做「博主推过 + 历史负收益 → 剔除」，
+         那是**负面证据**，与进哥判断同向，删了反而丢风控依据；
+      ② 留一个恒空的桩，比删掉更不容易被后人误加回来（此处有明确的口径注释挡着）。
+    想恢复只需把下面 3 行换成原来的 SQL 循环。
+    """
+    _ = (con, cred)      # 显式声明不用，避免 lint 误判
+    return []
 
 
 def _pull_engine(con: sqlite3.Connection) -> list:
@@ -717,6 +753,30 @@ def _set_bars(bars: dict) -> None:
     _BARS = bars
 
 
+def _drop_blogger(w: dict) -> dict:
+    """把博主维度的权重清零，其份额按比例还给其余三项（合计回到 1.0）。
+
+    2026-10-30 进哥拍板博主维度永久下线。但 `evo_weight` 表里历史学出的行
+    仍带 w_blogger=0.136 —— 若直接拿来用，三项之和只有 0.864，分数被整体压低 13.6%，
+    且页面会显示「博主 13.6%」，等于删了又没删干净。
+    故在**读权重这一处**统一收口：无论来自 evolve 还是默认，博主一律归 0 并重归一化。
+    """
+    try:
+        bw = float(w.get("blogger") or 0)
+    except (TypeError, ValueError):
+        bw = 0.0
+    rest = {k: max(0.0, float(w.get(k) or 0.0)) for k in ("strategy", "senti", "engine")}
+    tot = sum(rest.values())
+    if bw > 0 and tot > 0:
+        for k in rest:
+            rest[k] = round(rest[k] / tot, 4)
+        w.update(rest)
+        w["note"] = (w.get("note") or "") + "｜博主维度 2026-10-30 下线，其 %.1f%% 份额按比例并入其余三项" % (bw * 100)
+    w["blogger"] = 0.0
+    w["blogger_off"] = True
+    return w
+
+
 def _load_weights(con: sqlite3.Connection) -> dict:
     """共振分权重：**优先用 evolve 引擎学出的权重**（数据说话），没有才用默认。
 
@@ -729,14 +789,14 @@ def _load_weights(con: sqlite3.Connection) -> dict:
         r = con.execute("SELECT * FROM evo_weight WHERE fit_date <= ? "
                         "ORDER BY fit_date DESC LIMIT 1", (_latest_trade_date(),)).fetchone()
         if r and r["w_blogger"] is not None:
-            return {"blogger": r["w_blogger"], "strategy": r["w_strategy"],
-                    "senti": r["w_senti"], "engine": r["w_engine"],
-                    "ic": (json.loads(r["ic_json"]) if r["ic_json"] else {}),
-                    "src": "learned", "fit_date": r["fit_date"], "note": r["note"] or ""}
+            return _drop_blogger({"blogger": r["w_blogger"], "strategy": r["w_strategy"],
+                                  "senti": r["w_senti"], "engine": r["w_engine"],
+                                  "ic": (json.loads(r["ic_json"]) if r["ic_json"] else {}),
+                                  "src": "learned", "fit_date": r["fit_date"], "note": r["note"] or ""})
     except Exception:  # noqa: BLE001
         pass
-    return {"blogger": W_BLOGGER, "strategy": W_STRAT, "senti": W_SENTI,
-            "engine": W_ENGINE, "src": "default", "fit_date": "", "note": ""}
+    return _drop_blogger({"blogger": W_BLOGGER, "strategy": W_STRAT, "senti": W_SENTI,
+                          "engine": W_ENGINE, "src": "default", "fit_date": "", "note": ""})
 
 
 # ================================================================ 画像 / 卡片 / 分歧
@@ -1031,15 +1091,17 @@ def build_cards(con: sqlite3.Connection, bars: dict, strat_by_code: dict,
                      if s["strat"] else
                      "0 个（本票未触发任何选股类战法：多为上市时间短 / K 线不足 "
                      "130 根，或当前无技术买点）")
+        # 2026-10-30：博主荐股下线后 bloggers 恒空、bw 恒 0，卡片文案里不再出现博主字样
+        # （省掉"0 位博主提及""博主 0%""博主分档：无提及"这类看着像故障的残句）。
         verdict = (
-            "%d 位博主提及（信誉加权声量 %.0f 分位）｜命中战法 %s｜主引擎 %d 路交叉%s｜权重：%s" % (
-                len(s["bloggers"]), round(nb), strat_txt, len(s["engine"]),
+            "%s命中战法 %s｜主引擎 %d 路交叉%s｜权重：%s" % (
+                ("%d 位博主提及（信誉加权声量 %.0f 分位）｜" % (len(s["bloggers"]), round(nb))
+                 if s["bloggers"] else ""),
+                strat_txt, len(s["engine"]),
                 "｜龙虎榜印证：%s" % s["lhb"][0][:40] if s["lhb"] else "",
                 ("数据学出 %s" % Wt["fit_date"]) if Wt["src"] == "learned" else "默认")
-                + "｜门控权重 舆情%.0f%%/战法%.0f%%/博主%.0f%%/引擎%.0f%%"
-                  % (Wg["senti"]*100, Wg["strategy"]*100, Wg["blogger"]*100, Wg["engine"]*100)
-                + ("｜博主分档：%s" % ("无提及(中性)" if bw[code] <= 0 else
-                   ("弱提及(负面)" if bw[code] < BLOGGER_STRONG_BW else "强提及(正向)")))
+                + "｜门控权重 舆情%.0f%%/战法%.0f%%/引擎%.0f%%"
+                  % (Wg["senti"]*100, Wg["strategy"]*100, Wg["engine"]*100)
                 + ("｜量比 %.2f→扣 %.1f 分" % (_tr, _pen) if _pen > 0 else "")
         )
         con.execute(
@@ -1263,10 +1325,11 @@ def build(con: sqlite3.Connection, force: bool = False) -> dict:
         n_stock = sync_stock_master(con)
         name_of = {r["code"]: r["name"] for r in con.execute("SELECT code,name FROM res_stock")}
 
-        _STATUS.update(stage="抽取信号·博主/引擎/龙虎榜/情绪", detail="", at=_now())
-        cred = _blogger_credibility(con)
+        _STATUS.update(stage="抽取信号·引擎/龙虎榜/情绪", detail="", at=_now())
+        # 2026-10-30：博主荐股这条源已下线（_pull_blogger 恒返回空，见其 docstring），
+        # _blogger_credibility 也不再调用 —— 它的唯一消费者就是 _pull_blogger。
+        # 保留 _blogger_credibility 函数本身不删，便于日后要恢复时一处改回。
         sigs = []
-        sigs += _pull_blogger(con, cred)
         sigs += _pull_engine(con)
         sigs += _pull_lhb(con)
         sigs += _pull_sentiment(con)
@@ -1390,6 +1453,8 @@ def payload(con: sqlite3.Connection) -> dict:
     nst = con.execute("SELECT COUNT(*) n FROM market_state_log").fetchone()["n"]
     nsig = con.execute("SELECT COUNT(*) n FROM sig_unified").fetchone()["n"]
     nfill = con.execute("SELECT COUNT(*) n FROM sig_unified WHERE fill_status='ok'").fetchone()["n"]
+    # 2026-10-30：口径11 要报当前三项权重，payload 自己也读一次（build 里的 Wt 不在此作用域）
+    Wt = _load_weights(con)
     n_mkt = con.execute("SELECT COUNT(*) n FROM res_stock").fetchone()["n"]
     stats = {
         "signals": nsig, "filled": nfill, "cards": len(cards), "strategies": len(strategies),
@@ -1398,7 +1463,7 @@ def payload(con: sqlite3.Connection) -> dict:
     }
     caliber = [
         "口径1 · 超额基准＝%s（基准池＝本地 K 线覆盖的全市场个股，逐日取中位数），不是沪深300："
-        "博主荐股以中小盘题材股为主，等权基准更贴近其真实收益来源。"
+        "面板覆盖的票以中小盘题材股为主，等权基准更贴近其真实收益来源。"
         "股票主数据 %d 只（以 stock_names 归一，全库 code/symbol 五种写法已对齐）。" % (BENCH_LABEL, n_mkt),
         "口径2 · 龙虎榜**只作印证**（cross-check + 少量加分），不进评分主干——"
         "上榜是结果不是原因（因果倒置），故不做预判输入。",
@@ -1412,25 +1477,35 @@ def payload(con: sqlite3.Connection) -> dict:
         "龙虎榜会带出可转债 / B 股 / 北交所标的，其涨跌幅限制与交易规则与 A 股不同，"
         "已在入库前统一剔除（剔除数量见接口 non_a_dropped 字段，不做静默丢弃）。",
         "口径8 · **可交易性**：收益回填按「信号日收盘买入、持有 N 个交易日」计算；"
-        "而博主视频多在盘后发布、实际最早只能**次日**买入 —— 故这是「信号有效性」的度量，"
+        "而龙虎榜 / 舆情 / 战法命中都在盘后生成、实际最早只能**次日**买入 —— 故这是「信号有效性」的度量，"
         "不等于可实现收益，实盘还要再扣掉一个开盘跳空。",
-        "口径9 · **数据源时效**：各源更新节奏不同（龙虎榜 T 日盘后、博主荐股源当前滞后 "
-        "1~2 个交易日、战法命中为当日快照）。面板顶部「数据日」是**统一信号日**口径，"
+        "口径9 · **数据源时效**：各源更新节奏不同（龙虎榜 T 日盘后、战法命中为当日快照、"
+        "论坛舆情为当日抓取）。面板顶部「数据日」是**统一信号日**口径，"
         "不代表每个源都新鲜到该日。",
         "口径10 · **板块资金维度本期未接入**：本地板块资金源当前只有 2026-10-08 一天的数据，"
         "补采时上游（东财/新浪）双双不可达。卡片上 sector / sector_flow 留空，"
         "不用陈旧数据充数 —— 宁缺勿假；源恢复后再接入。",
+        "口径11 · **博主荐股维度已于 2026-10-30 永久下线**：该源实证为纯噪声"
+        "（15 位博主 / 898 样本，最高 |t|=1.17、有效独立窗口仅 10.4 个），"
+        "原 34%% 权重按比例并入战法 / 舆情 / 主引擎三项（现为 %.0f%% / %.0f%% / %.0f%%）。"
+        "历史 blogger_overlap 数据仍保留，只用于「剔除池」的负收益风控，不再参与本面板打分。"
+        % (Wt["strategy"] * 100, Wt["senti"] * 100, Wt["engine"] * 100),
     ]
     return {"ok": True, "build_date": bd, "data_date": bd, "engine_ver": ENGINE_VER,
             "market_state": ms,
             "cards": cards, "strategies": strategies, "sources": sources,
             "divergence": div, "kb_nodes": kb, "stats": stats, "caliber": caliber,
+            "weights": {"strategy": Wt["strategy"], "senti": Wt["senti"],
+                        "engine": Wt["engine"], "blogger": 0.0,
+                        "src": Wt["src"], "fit_date": Wt["fit_date"],
+                        "blogger_off": True},
             "strategy_note": "「今日命中」= 该战法在**全部候选票**中的命中数；"
                              "卡片侧命中数会略小 —— 因为只有出了共振卡的票才进卡片统计。"
                              "两者口径不同，不是数据不一致。",
             "note": "三支柱＋自我提升：个股共振（票为中心）· 战法体系（战法为中心）· "
                     "信源画像（人为中心）· 自我提升（从汇聚到长出）。"
-                    "生成由后端批量任务完成，展示层只读。"}
+                    "生成由后端批量任务完成，展示层只读。"
+                    "博主荐股源已于 2026-10-30 下线，本面板不再含任何博主维度。"}
 
 
 def avoid_payload(con: sqlite3.Connection, limit: int = 80) -> dict:

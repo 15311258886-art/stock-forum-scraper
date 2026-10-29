@@ -4071,6 +4071,28 @@ span.miss{
 .bt-psum-v.good { color: var(--bull, #c81e1e); }
 .bt-psum-v.bad { color: var(--bear, #15803d); }
 .bt-psum-n { font-size: 11px; color: var(--muted); }
+
+/* 跨期累计统计表（2026-10-29）：与「当日总结」并列，防止只看某一期好看的数字就下判断 */
+.btp { margin-top: 10px; padding: 10px 13px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--panel); }
+.btp-h2 { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.btp-h2 .s { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 3px; line-height: 1.55; }
+.btp-t { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.btp-t th { text-align: right; font-weight: 600; font-size: 11.5px; color: var(--muted);
+  padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.btp-t th:first-child { text-align: left; }
+.btp-t td { text-align: right; padding: 7px 8px; border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent); }
+.btp-t tr:last-child td { border-bottom: none; }
+.btp-t td:first-child { text-align: left; }
+.btp-p { font-weight: 700; color: var(--text); }
+.btp-n { color: var(--text); }
+.btp-n i { display: block; font-style: normal; font-size: 10.5px; color: var(--muted); }
+.btp-h { font-weight: 700; }
+.btp-h.good { color: var(--bull, #c81e1e); }
+.btp-h.bad { color: var(--bear, #15803d); }
+.btp-b { color: var(--muted); }
+.btp-v { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+  font-size: 12.5px; line-height: 1.65; color: var(--text); }
 .bt-bwrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 9px;
   font-size: 12px; color: var(--muted); }
 .bt-bw em { font-style: normal; margin-right: 5px; }
@@ -4397,3 +4419,187 @@ span.miss{
 .toast{margin:6px 10px;padding:8px 14px;border-radius:8px;background:rgba(20,24,30,.92);color:#fff;font-size:13px;
   box-shadow:0 6px 20px rgba(0,0,0,.3);transition:opacity .5s,transform .5s;max-width:320px}
 .toast-out{opacity:0;transform:translateY(-8px)}
+/* 2026-10-25（进哥：「加载失败不能就这么放着」）：自动重试等待条。
+   与红色「失败条」刻意区分——这条表达的是「正在自动恢复」，不是「已经坏了」。
+   每条都带倒计时与轮次，用户可以据此判断要不要继续等，而不是盯着一个死掉的界面。 */
+.api-retry-bar { display:none; }
+.api-retry-bar.show {
+  display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px;
+  background:var(--warn-bg, #fef3c7); color:var(--warn, #b45309);
+  border:1px solid color-mix(in srgb, var(--warn, #b45309) 45%, transparent);
+  border-radius:8px; padding:8px 12px; margin-bottom:12px;
+  font-size:12px; line-height:1.5;
+}
+.api-retry-bar .arb-lead { font-weight:800; letter-spacing:.3px; }
+.api-retry-bar .arb-item { display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.api-retry-bar .arb-item b { font-weight:800; }
+.api-retry-bar .arb-item em { font-style:normal; font-weight:800; font-variant-numeric:tabular-nums; }
+.api-retry-bar .arb-ico { display:inline-block; animation:arbPulse 1.6s ease-in-out infinite; }
+@keyframes arbPulse { 0%,100% { opacity:.45 } 50% { opacity:1 } }
+.api-retry-bar .arb-now {
+  border:1px solid currentColor; background:transparent; color:inherit;
+  border-radius:6px; cursor:pointer; font-size:11.5px; padding:2px 8px; line-height:1.4;
+}
+.api-retry-bar .arb-now:hover { opacity:.75; }
+/* ================= Kronos：筛选条件 / 参考结论 / 评分（2026-10-25 进哥）=================
+   进哥原话：「你得标注啊，有什么样的筛选条件，筛选完了都有哪些股票，然后再说上涨下跌，
+             然后你是不是也得给他一个评分啊，满分 100 最低 0，帮我辅助判断。」
+   所以这里的信息层次是固定的：筛选条件 → 参考结论 → 明细（含评分与结论）→ 口径。
+   配色一律走主题变量（--bull/--bear/--warn/--muted），四套主题下都不会出现低对比。 */
+.kf-run { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kf-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  padding: 8px 10px; margin: 0 0 10px; border: 1px solid var(--border); border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--bg)); }
+.kf-cl { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.kf-inp { padding: 3px 6px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel); color: var(--text); }
+.kf-ctl .btn.xs, .kf-run .btn.xs { padding: 3px 9px; font-size: 12px; border-radius: 6px; }
+.kf-ctl .btn .cnt { opacity: .55; font-size: 11px; margin-left: 2px; font-variant-numeric: tabular-nums; }
+.kf-ctl .btn.primary .cnt { opacity: .85; }
+.kf-hit { font-size: 12px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.kf-hit b { color: var(--text); }
+
+/* 参考结论卡：一句话结论 + 两个榜单 */
+.kf-concl { border: 1px solid var(--border); border-left: 4px solid var(--accent);
+  border-radius: 10px; background: var(--panel); padding: 12px 14px; margin-bottom: 12px; }
+.kf-concl-h { font-size: 13px; font-weight: 800; letter-spacing: .3px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kf-chips { display: inline-flex; gap: 5px; flex-wrap: wrap; font-weight: 400; }
+.kf-chip { font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 999px; padding: 1px 8px; background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.kf-concl-s { font-size: 13px; line-height: 1.75; margin-bottom: 10px; }
+.kf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .kf-two { grid-template-columns: 1fr; } }
+.kf-two-h { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.kf-two ul { margin: 0; padding-left: 16px; }
+.kf-two li { font-size: 12.5px; line-height: 1.9; }
+.kf-br { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+
+/* 评分：数字 + 进度条 + 等级标签 */
+.k-scwrap { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ksc { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 14px; }
+.kbar { width: 54px; height: 4px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.kbar i { display: block; height: 100%; border-radius: 3px; background: currentColor; }
+.ksc.g1, .kbar i.g1 { color: var(--bull, #dc2626); }
+.ksc.g2, .kbar i.g2 { color: var(--bull, #dc2626); }
+.ksc.g3, .kbar i.g3 { color: var(--warn, #b45309); }
+.ksc.g4, .kbar i.g4 { color: var(--bear, #16a34a); }
+.ksc.g5, .kbar i.g5 { color: var(--muted, #9ca3af); }
+.kg { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 6px;
+  border: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+.kg.g1 { background: color-mix(in srgb, var(--bull, #dc2626) 16%, transparent); border-color: color-mix(in srgb, var(--bull, #dc2626) 45%, transparent); }
+.kg.g2 { background: color-mix(in srgb, var(--bull, #dc2626) 10%, transparent); border-color: color-mix(in srgb, var(--bull, #dc2626) 32%, transparent); }
+.kg.g3 { background: color-mix(in srgb, var(--warn, #b45309) 12%, transparent); border-color: color-mix(in srgb, var(--warn, #b45309) 38%, transparent); }
+.kg.g4, .kg.g5 { color: var(--muted); }
+.k-flag { font-style: normal; font-size: 11px; color: var(--warn, #b45309);
+  border: 1px dashed color-mix(in srgb, var(--warn, #b45309) 45%, transparent);
+  border-radius: 6px; padding: 0 5px; white-space: nowrap; }
+.k-pfx { font-size: 10px; color: var(--muted); border: 1px solid var(--border);
+  border-radius: 4px; padding: 0 3px; }
+.k-verdict { font-size: 12px; color: var(--muted); min-width: 260px; line-height: 1.5; }
+.k-row { cursor: pointer; }
+.k-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.k-row.open { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.k-det > td { background: color-mix(in srgb, var(--bg) 55%, transparent); padding: 0; }
+.k-detbox { padding: 10px 14px; }
+.k-det-h { font-size: 12.5px; font-weight: 700; margin-bottom: 8px; }
+.k-pt { width: auto; min-width: 460px; border: none; background: transparent; }
+.k-pt td { border-bottom: 1px dashed var(--border); padding: 5px 10px; font-size: 12px; }
+.k-pt-k { color: var(--muted); white-space: nowrap; }
+.k-why { color: var(--muted); }
+.k-det-note { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+/* 后台推理进度条 */
+.kf-prog { display: none; }
+.kf-prog.show, .kf-prog:not(:empty) { display: block; margin: 8px 0 12px; }
+.kf-prog-h { font-size: 12.5px; margin-bottom: 5px; }
+.kf-prog-bar { height: 6px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.kf-prog-bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s; }
+.kf-prog-m { font-size: 11.5px; color: var(--muted); margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+/* ================= 板块热度榜（2026-10-29 进哥拍板） =================
+   荐股降级为「注意力」后的替代页面。配色刻意中性：
+   热度条用金色渐变而非红绿 —— 红绿在本站是涨跌语义，用在这里会被读成涨跌预测。 */
+.ph-wrap { padding: 16px 18px 18px; }
+.ph-head { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.ph-head h2 { margin: 0 0 4px; font-size: var(--fs-lg); font-weight: 700; letter-spacing: .2px; }
+.ph-note-tag { font-size: var(--fs-sm); color: var(--c-orange-fg, #b45309);
+  background: var(--c-orange-bg, rgba(245,158,11,.12));
+  border: 1px solid var(--c-orange-line, rgba(245,158,11,.35));
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+
+/* 前三名结论条：一眼看到「现在最热的是什么」 */
+.ph-lead-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 16px; }
+.ph-lead { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
+.ph-lead-n { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--fs-sm); font-weight: 700; color: var(--on-accent, #fff);
+  background: var(--accent); }
+.ph-lead-p { font-size: var(--fs-base); font-weight: 700; letter-spacing: .3px; }
+.ph-lead-s { font-size: var(--fs-sm); color: var(--muted); margin-top: 3px; }
+
+.ph-tw { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
+.ph-tb { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+.ph-tb th { text-align: left; font-weight: 600; font-size: var(--fs-sm); color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--bg-sub, transparent);
+  white-space: nowrap; position: sticky; top: 0; }
+.ph-tb td { padding: 8px 10px; border-bottom: 1px solid var(--border-dim, var(--border));
+  vertical-align: middle; }
+.ph-tb tbody tr:last-child td { border-bottom: 0; }
+.ph-tb tbody tr:hover { background: var(--hover, transparent); }
+.ph-rk { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; }
+.ph-plate { font-weight: 700; white-space: nowrap; }
+.ph-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ph-num .s { font-size: var(--fs-2xs); color: var(--muted); margin-left: 2px; }
+
+/* 热度条：金橙色渐变（不是红绿） */
+.ph-heat { min-width: 132px; }
+.ph-heat b { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); margin-left: 8px; }
+.ph-bar { display: inline-block; width: 86px; height: 7px; border-radius: 4px;
+  background: var(--border-dim, var(--border)); overflow: hidden; vertical-align: middle; }
+.ph-bar > span { display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--c-orange-line, #f59e0b) 55%, transparent),
+    var(--c-orange-line, #f59e0b)); transition: width .35s ease; }
+
+.ph-ts { max-width: 360px; }
+.ph-stk { display: inline-flex; align-items: center; gap: 3px; margin: 1px 6px 1px 0;
+  padding: 1px 7px; border-radius: 999px; font-size: var(--fs-sm);
+  background: var(--bg-sub, rgba(127,127,127,.08)); border: 1px solid var(--border-dim, var(--border)); }
+.ph-stk i { font-style: normal; color: var(--muted); font-size: var(--fs-2xs);
+  font-variant-numeric: tabular-nums; }
+
+.ph-chg { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+.ph-chg-up { color: var(--c-orange-fg, #b45309); font-weight: 600; }
+.ph-chg-dn { color: var(--c-teal-fg, #0f766e); font-weight: 600; }
+.ph-chg-flat { color: var(--muted); }
+.ph-chg-na { color: var(--muted); }
+
+.ph-foot { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.ph-foot-t { font-size: var(--fs-sm); font-weight: 700; margin-bottom: 6px; color: var(--ink, inherit); }
+.ph-foot ul { margin: 0; padding-left: 18px; }
+.ph-foot li { font-size: var(--fs-sm); color: var(--muted); line-height: 1.75; margin-bottom: 4px; }
+.ph-foot li b { color: var(--ink, inherit); font-weight: 600; }
+
+/* 避坑徽标（2026-10-30）：替代已下线的「博主反向警示」。
+   数据=当日量价+近15日利空公告，hover 看触发项与实证依据。
+   只在中/高档亮灯——全市场命中率 18.3%，若低档也画就是半张表报警，等于没报。 */
+.av-badge { display: inline-block; padding: 0 5px; border-radius: 9px; font-size: var(--fs-xs);
+  font-weight: 600; line-height: 16px; cursor: help; white-space: nowrap; vertical-align: middle; }
+.av-high { background: rgba(217,45,32,.13); color: #b42318; border: 1px solid rgba(217,45,32,.35); }
+.av-mid { background: rgba(181,71,8,.11); color: #a15c07; border: 1px solid rgba(181,71,8,.3); }
+
+/* 解禁徽标（2026-10-30）：限售解禁临近提示。与避坑徽标刻意用不同色系——
+   避坑（红/橙）是「已经跌了」的事后事实，解禁（紫/靛）是「将要发生」的日历事件，
+   两者语义不同，混在一个颜色里会让人分不清是追跌还是预警。
+   三档的依据见 viewer/lift.py：实证只有解禁前 20 个交易日（尤其最后 10 日）才显著跑输，
+   前 40 日仍为 +0.44% 的超额上涨，所以 watch 档只给灰字，不亮灯。 */
+.lift-badge { display: inline-block; padding: 0 5px; border-radius: 9px; font-size: var(--fs-xs);
+  font-weight: 600; line-height: 16px; cursor: help; white-space: nowrap; vertical-align: middle; }
+.lift-high { background: rgba(109,40,217,.13); color: #5b21b6; border: 1px solid rgba(109,40,217,.38); }
+.lift-mid { background: rgba(79,70,229,.10); color: #4338ca; border: 1px solid rgba(79,70,229,.28); }
+.lift-watch { display: inline-block; font-size: var(--fs-xs); color: var(--muted);
+  cursor: help; white-space: nowrap; vertical-align: middle; }

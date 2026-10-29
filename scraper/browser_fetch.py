@@ -49,6 +49,12 @@ PROXY = os.environ.get("XQ_PROXY") or "http://127.0.0.1:53269"
 # 代理不可达时降级为直连（本机可直连外网，无需代理；默认 True，探测失败置 False）
 _USE_PROXY = os.environ.get("XQ_USE_PROXY", "1") != "0"
 
+# 2026-10-25（进哥反馈「黑框又出来了」）：本模块的父进程是 pythonw（无控制台），
+# 拉起 node 子进程时不加 CREATE_NO_WINDOW，Windows 会为它新建一个控制台窗口；
+# 而 stdout/stderr 都已指向 DEVNULL，于是窗口里什么都不显示 —— 就是那个「全黑空框」。
+# 常驻浏览器服务到 BS_MAX_AGE 重启时还会再弹一次，所以现象是「关了又出来」。
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)   # 非 Windows 平台无此常量 → 0
+
 # 2026-10-05（报告 P2 / 建议5）代理降噪：
 # 旧行为是每次抓取都 TCP 探一次代理，探测失败就 warning 一条，13:10-13:13 三分钟内刷了 20 条，
 # 把真实错误全淹了。改成「连续 N 次失败自动停用 + 合并告警 + 指数退避重试」：
@@ -381,6 +387,7 @@ def _ensure_browser_server() -> bool:
             _bs_proc = subprocess.Popen(
                 [NODE_EXE, sp], env=env,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=_NO_WINDOW,   # 2026-10-25：不许弹控制台黑框
             )
         except Exception as e:  # noqa: BLE001
             logger.error("启动雪球浏览器服务失败: %s", e)
@@ -462,6 +469,7 @@ def _browser_get_oneshot(url: str, timeout: int) -> "SimpleNamespace":
         proc = subprocess.run(
             [NODE_EXE, script_path, url],
             capture_output=True, timeout=timeout, env=env,
+            creationflags=_NO_WINDOW,   # 2026-10-25：兜底路径同样不许弹黑框
         )
         html = proc.stdout.decode("utf-8", "replace")
         if proc.returncode == 0 and html:

@@ -1,8 +1,8 @@
 {
   "_meta": {
     "desc": "国际局势 · 研判事件库。每条 = 一件国际大事 + 明确方向 + 板块/个股/原材料 + 国内外来源（含国外原文外链）+ 信源交叉印证。",
-    "as_of": "2026-10-22",
-    "window": "2026-09-13 ~ 2026-10-22",
+    "as_of": "2026-10-29",
+    "window": "2026-09-13 ~ 2026-10-29",
     "honesty": [
       "方向判断、确定性、强度均为研判（推断），不是事实；事实部分以 summary 与 sources 为准。",
       "代表个股为按板块口径选取的代表标的，不是推荐；个股涨跌另有自身基本面与资金面。",
@@ -2903,6 +2903,908 @@
         ],
         "verdict": "一致",
         "note": "国内外均确认台湾拟跟进美国收紧对大陆AI芯片/先进半导体管制；国外聚焦法律工具与走私背景，国内侧重国台办政治回应与产业影响。"
+      }
+    },
+    {
+      "eid": "geo-20261024-france-moody",
+      "title": "穆迪10-23维持法国Aa3/负面展望，法国\"躲过\"降级（兑现10-21欧债危机级预警）",
+      "category": "politics",
+      "event_date": "2026-10-24",
+      "intensity": 3,
+      "certainty": 0.9,
+      "direction": "【研判】法国躲过降级、利差阶段性回落，欧债危机级风险溢价边际缓和，利多欧元与欧洲风险资产情绪修复；但负面展望+赤字/政治隐患未解，对欧出口链风险溢价仅小幅缓释，黄金避险需求边际减弱。",
+      "summary": "穆迪10月23日（周五，欧股收盘后）宣布维持法国主权信用评级Aa3不变、展望维持\"负面\"，未如市场普遍预期下调；前提是通过有助削减赤字的2027年预算案、未来数月融资成本回落且社会动荡趋稳。此前法德10Y利差一度触及178bp（欧债危机以来最高）、10Y法债收益率升至5.14%（2002年来最高），市场已大幅消化降级预期。标普定于11月27日再评法国评级；穆迪声明称本次维持并非正式降级信号。10月26日（周一）欧股开盘为首个完整反应窗口。",
+      "transmission": "评级维持→降级预期落空→法债抛压暂缓、法德利差自高位回落→欧元与欧洲风险资产情绪修复；但负面展望与深层财政/政治风险未消，避险（黄金）需求边际减弱但仍在。",
+      "sectors_up": [
+        "欧洲风险资产",
+        "欧元",
+        "对欧出口链(风险溢价缓释)"
+      ],
+      "sectors_down": [
+        "避险黄金(边际)",
+        "军工(边际)"
+      ],
+      "commodities": [
+        "欧元",
+        "法国OAT国债收益率",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "000333",
+          "name": "美的集团"
+        },
+        {
+          "code": "600690",
+          "name": "海尔智家"
+        }
+      ],
+      "symbols_down": [],
+      "decision": "这是10-21法国股债双杀事件的\"靴子落地\"版：未降级=短期减压，但负面展望+12-17预算投票+11-27标普再评仍是悬顶之剑。对欧出口链可按\"风险溢价小幅缓释\"微调，别按\"危机解除\"定价；黄金仍作对冲底仓。",
+      "watch": "10-26欧股/欧元/CAC40开盘反应；12-17法国2027预算案议会投票；11-27标普再评；法德利差能否回落至150bp下方。",
+      "tags": [
+        "法国",
+        "穆迪",
+        "主权评级",
+        "欧债",
+        "避险"
+      ],
+      "sources": [
+        {
+          "name": "新华财经/中国金融信息网 · 穆迪维持法国主权信用评级及负面展望",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://m.cnfin.com/yw-lb//zixun/20261024/4485921_1.html"
+        },
+        {
+          "name": "华尔街见闻/网易 · 法国躲过降级",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.163.com/dy/article/LA0A0AMM05198NMR.html"
+        },
+        {
+          "name": "TD Economics · France's Bond Warning: Higher Yields Meet Fiscal Doubt",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://economics.td.com/gbl-france-bond-warning"
+        },
+        {
+          "name": "Finance Funds Update · French Bond Stress Weighs on Euro",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://financefundsupdate.com/currencies/global-tech-selloff-lifts-yen-as-french-bond-stress-weighs-on-euro"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "TD Economics",
+            "claim": "法债10Y约4.8-4.9%、曾近5%；与德债利差10月初峰值约150-160bp后回落至约133bp；穆迪10-23审议、Aa3负面；债务约119%GDP、2026赤字5.4%→2027年5.0%",
+            "url": "https://economics.td.com/gbl-france-bond-warning"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "新华财经",
+            "claim": "穆迪维持Aa3/负面；前提通过削减赤字预算+融资成本回落+社会趋稳；市场此前普遍预期下调；公共债务119%GDP，2026赤字率5.4%",
+            "url": "https://m.cnfin.com/yw-lb//zixun/20261024/4485921_1.html"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认穆迪维持Aa3/负面、法国躲过降级；国外更强调利差已从高位回落（约133bp）与债务可持续性，国内侧重评级前提与后续预算/标普再评时点。"
+      }
+    },
+    {
+      "eid": "geo-20261025-mideast-escalate",
+      "title": "中东再升级：美增派第三航母+万名陆战队，特朗普威胁\"史诗怒火\"，伊朗禁美军船入波斯湾，Brent破116",
+      "category": "geopolitics",
+      "event_date": "2026-10-25",
+      "intensity": 5,
+      "certainty": 0.85,
+      "direction": "【研判】利多油气上游/油运/煤炭/黄金/军工，利空航空机场、下游化工、高油耗交运；布伦特破116成A股反弹天花板，油价风险溢价进一步固化。",
+      "summary": "中东局势在10月23—25日进一步升级：10月23日特朗普在佛州竞选集会称将对伊发动小规模\"史诗怒火\"或伊朗妥协；同日伊朗革命卫队称在波斯湾打击4艘\"违规\"运油船、3艘在霍尔木兹以西触雷起火。10月24日伊朗武装部队声明任何情况下不允许美军船只进入波斯湾。美方已于10月22日确认向中东增派第三航母打击群\"罗斯福\"号+第13海军陆战队远征队约1万人（预计11月底抵达，届时中东将现三航母齐聚），现有\"布什\"号、\"华盛顿\"号；胡塞武装持续袭击沙特延布港、油田与机场，沙特阿美首次大规模疏散达兰总部。布伦特10月23日收116.70美元、WTI 103.30美元；10月25日布伦特116.72美元（4月29日以来最高）。",
+      "transmission": "美增兵+以方打击预案+伊朗封锁表态 → 供应风险溢价再升、霍尔木兹通行风险恶化 → 上游油气/油服盈利上修、下游炼化与航运燃油成本抬升 → 避险推升黄金；复航/外交进展为反向风险。",
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "油运(LNG/VLCC)",
+        "煤炭",
+        "黄金",
+        "军工"
+      ],
+      "sectors_down": [
+        "航空机场",
+        "物流快递",
+        "下游化工",
+        "旅游酒店"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "柴油",
+        "VLCC运价",
+        "黄金"
+      ],
+      "symbols_up": [
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600938",
+          "name": "中国海油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        },
+        {
+          "code": "601872",
+          "name": "招商轮船"
+        },
+        {
+          "code": "600547",
+          "name": "山东黄金"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601111",
+          "name": "中国国航"
+        },
+        {
+          "code": "600029",
+          "name": "南方航空"
+        },
+        {
+          "code": "600233",
+          "name": "圆通速递"
+        }
+      ],
+      "decision": "与10-22沙特袭击同源但新增\"美第三航母+特朗普史诗怒火表态+伊朗禁美军入波斯湾\"，风险溢价从\"海峡/沙特\"扩至\"美伊直接冲突临近\"；主攻油气上游+油运，黄金对冲。复航与中期选举后打击节奏是双向风险，设移动止盈。",
+      "watch": "美以中期选举后(11-3后)是否对伊动武；\"罗斯福\"号11月底到位后三航母态势；伊朗是否实质封锁波斯湾/霍尔木兹；胡塞对沙特基础设施袭击频次；Brent能否守住115美元上方。",
+      "tags": [
+        "中东",
+        "美伊",
+        "航母",
+        "原油",
+        "霍尔木兹",
+        "能源安全"
+      ],
+      "sources": [
+        {
+          "name": "同花顺前瞻 · 中期选举前,中东的牌越打越密",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://m.10jqka.com.cn/20261025/c681056164.shtml"
+        },
+        {
+          "name": "腾讯新闻 · 说好选举前不打伊朗,美军为何还在增兵",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://news.qq.com/rain/a/20261025A06B9V00"
+        },
+        {
+          "name": "国际金融报 · 国际金融要情(周六2026.10.24)",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.ifnews.com/news.html?aid=879328&cid=49"
+        },
+        {
+          "name": "CGTN · Third U.S. carrier, 10,000 troops, head to Middle East",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://newsus.cgtn.com/news/2026-10-22/Third-U-S-carrier-10-000-troops-head-to-Middle-East-1RqR7jr0Rri/p.html"
+        },
+        {
+          "name": "Reuters/Yahoo · Stocks drop as Meta fans AI worries, Treasuries gain",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://finance.yahoo.com/markets/world-indices/articles/asian-markets-dip-investors-weigh-021515158.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "CGTN",
+            "claim": "美向中东派第三航母+约1万兵力；\"罗斯福\"号11月底前抵达，加入\"布什\"\"华盛顿\"；区域总兵力达5万；特朗普权衡重启对伊打击",
+            "url": "https://newsus.cgtn.com/news/2026-10-22/Third-U-S-carrier-10-000-troops-head-to-Middle-East-1RqR7jr0Rri/p.html"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "腾讯/同花顺",
+            "claim": "特朗普10-23称将对伊\"史诗怒火\"；纽约时报10-21称美以已制定中期选举后打击伊朗计划；\"罗斯福\"号+第13陆战队远征队约1万人11月底抵中东",
+            "url": "https://news.qq.com/rain/a/20261025A06B9V00"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认美向中东增派第三航母+万名兵力、特朗普对伊强硬表态、胡塞袭沙特致油价破116；国外(CGTN/Reuters)聚焦军力调动与油价结算价，国内偏重政治博弈与A股传导。"
+      }
+    },
+    {
+      "eid": "geo-20261023-meta-ai-selloff",
+      "title": "Meta财报引爆AI基建融资疑虑：纳指-2.6%/费半-6.7%，A股科技情绪承压",
+      "category": "tech",
+      "panel": "tech",
+      "event_date": "2026-10-23",
+      "intensity": 4,
+      "certainty": 0.82,
+      "direction": "【研判】短期利空A股AI算力硬件/光模块/半导体情绪（外溢），但国产存储/设备自主逻辑分化走强；美债收益率大幅回落反而缓和全球成长估值压制。",
+      "summary": "10月22日（美东）Meta公布三季度财报：营收646亿美元（同比+26%）但资本开支高达349亿美元、上调2026年capex指引下限至1350—1450亿美元、未来支出承诺总额约8250亿美元（7月时约7000亿），自由现金流转负并拟发无投票权C类股融资。市场担忧AI基建\"烧钱\"回报，Meta股价-7%、SpaceX-9%、英伟达-4%、英特尔-8%、CoreWeave-10%+；费城半导体指数-6.7%（单日蒸发约8173亿美元），纳指-2.6%（6月来最大单日跌幅）。避险资金涌入美债，10Y美债收益率-19.3bp至4.953%（2023-03来最大单日跌幅），30Y至5.287%。",
+      "transmission": "Meta财报引爆AI资本开支回报疑虑 → 美股科技/半导体遭抛售 → 全球AI交易情绪降温、日韩台AI链跟跌 → A股算力硬件/光模块/半导体短期承压；但美债收益率回落缓和估值压制，国产替代与存储突破形成分化。",
+      "sectors_up": [
+        "国产存储",
+        "半导体设备(分化)",
+        "自主可控"
+      ],
+      "sectors_down": [
+        "AI算力硬件",
+        "光模块",
+        "半导体(短线)",
+        "消费电子(情绪)"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "603986",
+          "name": "兆易创新"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "300502",
+          "name": "新易盛"
+        },
+        {
+          "code": "002475",
+          "name": "立讯精密"
+        }
+      ],
+      "decision": "与10-17费半八连跌同源但新增\"Meta财报\"这一明确催化剂；不追高算力硬件，等美股科技企稳、长端利率回落后右侧；重点看国产存储/材料的独立逻辑与三季报AI链业绩兑现度。",
+      "watch": "费半/纳指能否止跌企稳；Meta后续融资与AI capex执行；三星/SK海力士供给表态；国内三季报AI链业绩兑现度。",
+      "tags": [
+        "Meta",
+        "AI资本开支",
+        "费半",
+        "美股",
+        "情绪外溢"
+      ],
+      "sources": [
+        {
+          "name": "证券时报网 · 美股AI产业链股震荡背后",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.stcn.com/article/detail/4247263.html"
+        },
+        {
+          "name": "21世纪经济报道/今日头条 · 避险风暴席卷市场",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7699845383404601871/"
+        },
+        {
+          "name": "中央社(CNA) · AI烧钱过猛引爆市场疑虑",
+          "region": "国外",
+          "lang": "zh",
+          "url": "https://www.cna.com.tw/news/afe/202610230057.aspx"
+        },
+        {
+          "name": "Reuters/Yahoo · Stocks drop as Meta fans AI worries, Treasuries gain",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://finance.yahoo.com/markets/world-indices/articles/asian-markets-dip-investors-weigh-021515158.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Reuters/CNA",
+            "claim": "Meta财报重燃AI capex疑虑；纳指-2.6%、费半-6.7%；胡塞袭沙特致Brent+4%；10Y美债-19.3bp至4.953%",
+            "url": "https://finance.yahoo.com/markets/world-indices/articles/asian-markets-dip-investors-weigh-021515158.html"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "证券时报",
+            "claim": "Meta Q3 capex 349亿、上调2026下限、承诺8250亿；费半单日蒸发8173亿美元；纳指-2.6%（6月来最大）",
+            "url": "https://www.stcn.com/article/detail/4247263.html"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认Meta财报引爆AI资本开支疑虑→美股科技/费半重挫→美债收益率急降；国外强调避险交易与油价联动，国内侧重A股科技情绪传导。"
+      }
+    },
+    {
+      "eid": "geo-20261025-export-control",
+      "title": "出口管制进入\"对等反制\"阶段：10-19无人机/盾构机/挖泥船列管，叠加40项技术目录（SK海力士豁免、光模块65%规则待验证）",
+      "category": "tech",
+      "panel": "tech",
+      "event_date": "2026-10-25",
+      "intensity": 3,
+      "certainty": 0.8,
+      "direction": "【研判】利多半导体设备/工业软件/国产算力（自主刚性增强），利空出口敞口大的光伏/光模块（情绪与订单扰动）；成熟制程豁免显示封锁有缝，结构性分化。",
+      "summary": "10月19日商务部会同海关总署、中央军委装备发展部联合发布公告，优化调整无人机相关物项出口管制措施、对盾构机等物项实施出口管制、优化调整挖泥船相关物项出口管制，相关措施将于11月18日起实施；此前10月16日商务部、科技部就修订《中国禁止出口限制出口技术目录》征求意见，拟新增AI、生物医药、光伏三领域40项技术（禁14/限26）。市场解读为出口管制进入\"对等反制\"阶段——中国从被动接招转向主动划线。另据同花顺10月25日报道，SK海力士已与美国协商确保一年内为中国工厂供设备无需个别许可；摩根士丹利10月报告称美国对华光模块潜在限制或走FCC\"受控清单\"机制、核心为\"65%美国含量\"规则（中国造收发器仍可进口，但BOM中65%价值须来自美国企业）。【注：SK海力士豁免与65%规则为国内媒体转述，国外一手来源未独立核验，列为待验证】",
+      "transmission": "管制进入双向划线 → 国产替代急迫性再升 → 半导体设备/工业软件/AI基础软件与算力链需求与政策溢价上行；同时成熟制程豁免与\"65%含量\"规则显示供应链在撕裂中重组、利润再分配而非彻底切断。",
+      "sectors_up": [
+        "半导体设备",
+        "工业软件",
+        "国产算力",
+        "信创"
+      ],
+      "sectors_down": [
+        "光伏组件(出口)",
+        "光模块(出口敞口)",
+        "海外收入占比高制造"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "002371",
+          "name": "北方华创"
+        },
+        {
+          "code": "688981",
+          "name": "中芯国际"
+        },
+        {
+          "code": "600584",
+          "name": "长电科技"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601012",
+          "name": "隆基绿能"
+        },
+        {
+          "code": "600438",
+          "name": "通威股份"
+        },
+        {
+          "code": "300502",
+          "name": "新易盛"
+        }
+      ],
+      "decision": "延续10-17科技出口管制主线但新增\"对等反制\"维度：自主从市场逻辑切到安全逻辑，窗口提前。沿设备/软件/算力布局，规避出口敞口大的光伏与光模块；关注SK海力士豁免与光模块规则的正式落地（待验证）。",
+      "watch": "40项技术目录正式稿与生效时间；11-18无人机/盾构机/挖泥船管制生效；SK海力士豁免与光模块\"65%含量\"规则是否落地（待验证）；国产设备/材料招标份额变化。",
+      "tags": [
+        "出口管制",
+        "对等反制",
+        "半导体",
+        "国产替代",
+        "无人机"
+      ],
+      "sources": [
+        {
+          "name": "同花顺 · 出口管制进入对等反制，设备自主窗口变了",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://m.10jqka.com.cn/20261025/c681057559.shtml"
+        },
+        {
+          "name": "新浪/新华社 · 我国优化调整无人机等出口管制措施",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://k.sina.com.cn/article_3167104922_bcc62f9a02001wv74.html"
+        },
+        {
+          "name": "Global Times · China refines export controls on UAVs, dredgers, high-end engineering equipment",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.globaltimes.cn/page/202610/1372543.shtml"
+        },
+        {
+          "name": "China Daily · Export curbs imposed on tunneling machines",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://epaper.chinadaily.com.cn/a/202610/20/WS6ad6bc93e4b07a432ddc4843.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Global Times/China Daily",
+            "claim": "MOFCOM 10-19联合公告：优化无人机出口管制、对盾构机/挖泥船实施管制，11-18实施；具明显军民两用属性",
+            "url": "https://www.globaltimes.cn/page/202610/1372543.shtml"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "新华社/新浪",
+            "claim": "商务部10-19公告：优化无人机管制、对盾构机/挖泥船实施管制，11-18实施；此前已通报相关国家和地区",
+            "url": "https://k.sina.com.cn/article_3167104922_bcc62f9a02001wv74.html"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认10-19无人机/盾构机/挖泥船出口管制优化调整、11-18实施；国外侧重\"国际通行做法/防扩散\"，国内侧重产业技术与合规贸易。SK海力士豁免与光模块65%规则仅见于国内媒体转述，国外一手未独立核验→待验证。"
+      }
+    },
+    {
+      "eid": "geo-20261029-fed-hold",
+      "title": "美联储10月按兵不动（10:2投票），12月加息预期升温",
+      "category": "finance",
+      "panel": "policy",
+      "event_date": "2026-10-29",
+      "intensity": 4,
+      "certainty": 0.9,
+      "direction": "【推断】中性偏空成长：维持利率不变符合预期，但通胀高企+两票反对(库克、哈马克主张加息)+声明称经济\"强劲\"，使12月加息概率升至约76%~80%，压制高估值成长与黄金；银行/红利相对占优。",
+      "summary": "北京时间10月29日凌晨，美联储结束为期两天的FOMC会议，以10票赞成、2票反对的结果将联邦基金利率目标区间维持在3.75%—4.00%不变（理事库克、克利夫兰联储行长哈马克主张再加息25bp）。这是9月加息后的首次按兵不动，符合市场约90%的预期。主席沃什称经济活动\"强劲扩张\"、通胀仍高，明年起削减议息会议次数，拒绝预判12月决策。彭博称美国9月CPI创五个月新高、核心通胀超预期；CNBC对30位基金经理的调查显示76%预计12月加息、超半数预计明年再加息约两次。联邦储备委员会同步将准备金余额利率(IORB)维持在3.90%、贴现率4.0%。",
+      "transmission": "按兵不动但鹰派底色 → 美债10Y维持约5%、美元指数约102 → 全球风险资产估值承压、成长股杀估值延续；12月加息预期升温使外资对新兴市场（含A股）边际流出压力上升，红利/价值相对占优。",
+      "sectors_up": [
+        "银行",
+        "红利/高股息",
+        "价值蓝筹"
+      ],
+      "sectors_down": [
+        "高估值成长",
+        "黄金",
+        "创新药/CXO",
+        "港股互联网"
+      ],
+      "commodities": [
+        "美元指数",
+        "美债收益率"
+      ],
+      "symbols_up": [
+        {
+          "code": "601318",
+          "name": "中国平安"
+        },
+        {
+          "code": "600030",
+          "name": "中信证券"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "300750",
+          "name": "宁德时代"
+        },
+        {
+          "code": "688256",
+          "name": "寒武纪"
+        }
+      ],
+      "decision": "本次是\"预期内按兵不动、预期外鹰派底色\"：方向不在利率变了没，而在12月加息概率被重新定价。A股主要矛盾仍在国内政策与三季报，但高估值成长需更高业绩兑现来对冲；红利/银行是外部利率高位下的相对避风港。",
+      "watch": "12月FOMC（加息概率约76%~80%）；美国10月非农与CPI/PCE；美债10Y能否回落至4.8%下方；美元指数与人民币汇率。",
+      "tags": [
+        "美联储",
+        "利率",
+        "流动性"
+      ],
+      "sources": [
+        {
+          "name": "Federal Reserve 官方 · Implementation Note 2026-10-28",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20261028a1.htm"
+        },
+        {
+          "name": "中国日报网",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.chinadaily.com.cn/a/202610/29/WS6ae242cce4b06d4aa0565b77.html"
+        },
+        {
+          "name": "中国新闻网 / 中新经纬",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://m.chinanews.com/wap/detail/cht/zw/jw694665.shtml"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Federal Reserve 官方",
+            "claim": "维持3.75%-4.00%，IORB 3.90%，贴现率4.0%；声明重申通胀仍高、累积信息以确定政策立场",
+            "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20261028a1.htm"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "中新经纬 / 中国日报",
+            "claim": "10:2投票，库克与哈马克主张加息，沃什称经济\"强劲\"，12月加息预期升温（CNBC调查76%预计12月加息）",
+            "url": "https://m.chinanews.com/wap/detail/cht/zw/jw694665.shtml"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认按兵不动+两票反对+通胀高企；国外强调会议制度调整(2027起减会)，国内聚焦12月加息概率与对成长股压制。"
+      }
+    },
+    {
+      "eid": "geo-20261028-hormuz-mine",
+      "title": "霍尔木兹以东油轮触雷起火，海峡\"不安全\"声明+通行量降四成，战争险保费跳涨",
+      "category": "geopolitics",
+      "event_date": "2026-10-28",
+      "intensity": 5,
+      "certainty": 0.82,
+      "direction": "【推断】利多油气上游/油服、油运(VLCC/LNG)、军工、黄金；利空航空机场、下游化工、高油耗交运；油价高位(布伦特约115-116)下通胀溢价持续。",
+      "summary": "10月27日，一艘关闭AIS的\"违规\"油轮在霍尔木兹海峡东部触雷起火；伊朗方面称对未协调擅自通行的船只，海峡处于\"不安全状态\"，所有通行须事先与伊朗协调。同日胡塞武装向沙特利雅得国防部发射弹道导弹、并袭击艾卜哈机场，沙特主导的多国联军拦截多枚导弹与无人机。Region Alert评估波斯湾威胁等级为\"危急\"，海峡通行量较危机前均值下降近40%；联合战争委员会将波斯湾/阿曼湾战争险保费由10月前的0.35%上调至船体价值的1.25%—1.80%（VLCC单次7天通行附加保费超150万美元）。布伦特10月28日约115—116美元，WTI约101—102美元；OPEC+拟11月1日维持产量目标。",
+      "transmission": "油轮触雷+海峡\"不安全\"声明 → 实货通行受限+保险成本飙升 → 原油地缘溢价长期化 → 上游油气与油服盈利上修、下游炼化与航运燃油成本抬升 → 通胀预期压制宽松空间。",
+      "sectors_up": [
+        "石油石化",
+        "油气服务",
+        "油运(VLCC/LNG)",
+        "煤炭",
+        "军工",
+        "黄金"
+      ],
+      "sectors_down": [
+        "航空机场",
+        "物流快递",
+        "下游化工",
+        "旅游酒店"
+      ],
+      "commodities": [
+        "布伦特原油",
+        "WTI原油",
+        "VLCC运价",
+        "战争险保费"
+      ],
+      "symbols_up": [
+        {
+          "code": "601857",
+          "name": "中国石油"
+        },
+        {
+          "code": "600938",
+          "name": "中国海油"
+        },
+        {
+          "code": "601808",
+          "name": "中海油服"
+        },
+        {
+          "code": "600026",
+          "name": "中远海能"
+        },
+        {
+          "code": "601872",
+          "name": "招商轮船"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "601111",
+          "name": "中国国航"
+        },
+        {
+          "code": "600029",
+          "name": "南方航空"
+        }
+      ],
+      "decision": "与10月25日\"第三航母+史诗怒火\"升级是同一轮中东风险的延续，本次新增的是\"实货通行受限+保险跳涨\"的硬约束，比表态更具持续性；追高油价需设止损，核心反向风险是美伊\"5日互让\"复航谈判落地。",
+      "watch": "美伊复航谈判(5日互让协议)是否落地；霍尔木兹实际AIS通行量；布伦特能否守住110美元；11月1日OPEC+产量决议；Sinokor等船司11月1日起执法。",
+      "tags": [
+        "霍尔木兹",
+        "原油",
+        "航运保险",
+        "中东"
+      ],
+      "sources": [
+        {
+          "name": "Region Alert · 能源航运情报",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://regionalert.com/blog/hormuz-strait-oil-shipping-intelligence-2026.html"
+        },
+        {
+          "name": "Oil & Gas Middle East · Brent复盘",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.oilandgasmiddleeast.com/news/brent-crude-price-drivers"
+        },
+        {
+          "name": "中证网 · 国际油价持续走高",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://jnzstatic.cs.com.cn/zzb/htmlInfo/136406.html"
+        },
+        {
+          "name": "卓创资讯 · 大宗产经(20261028)",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.sci99.com/info/3_1000003_45880028.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Region Alert",
+            "claim": "10-27油轮东霍尔木兹触雷起火、通行量降40%、战争险1.25%-1.80%；Oil&Gas ME称布伦特月内+16.5%、胡塞袭沙特炼厂、美中期选举前外交拉锯",
+            "url": "https://regionalert.com/blog/hormuz-strait-oil-shipping-intelligence-2026.html"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "中证网 / 卓创",
+            "claim": "胡塞袭沙特国防部与艾卜哈机场、油轮触雷、布伦特约116、外交斡旋提速但对抗延续",
+            "url": "https://jnzstatic.cs.com.cn/zzb/htmlInfo/136406.html"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认油轮触雷+胡塞袭沙特+布伦特115-116+通行受限；国外给保险与通行量硬数据，国内给外交斡旋与油价区间。"
+      }
+    },
+    {
+      "eid": "geo-20261024-us-biotech-invest",
+      "title": "美国拟将生物技术纳入对华投资禁令（COINS法案），中国商务部坚决反对",
+      "category": "trade",
+      "panel": "policy",
+      "event_date": "2026-10-24",
+      "intensity": 4,
+      "certainty": 0.78,
+      "direction": "【推断】利空CXO/创新药出海融资预期与美资参与的中国生物科技；利多生物制造/测序/脑机接口国产替代叙事。对A股CXO构成情绪与估值压制，但草案尚在征求意见(12月7日截止)，非即刻生效。",
+      "summary": "美国财政部10月22日发布拟议规则(NPRM)，依据2025年《全面对外投资国家安全法》(COINS Act)将\"生物技术\"新增为受控领域，列为继半导体、AI、量子、超算、高超音速之后的第六类；拟禁止涉及生物衍生化合物/材料、生物制造设备与设施、生物设计与测序技术、脑机接口、自动化科学发现软件等交易。这是美国首次将制药业外国投资纳入限制。中国商务部10月24日表示坚决反对，称其歧视性扩大对华投资限制、泛化国家安全、违背两国元首共识，保留采取相应措施权利。意见征询截至2026年12月7日。现有对华投资规则(2025年1月生效)继续有效，财政部10月7日已开出首张20万美元罚单。",
+      "transmission": "美资对华生物科技投资受限 → CXO/创新药海外融资与并购通道收窄 → 板块风险偏好与估值承压；同时倒逼生物制造、测序、脑机接口自主可控，国产替代逻辑强化。",
+      "sectors_up": [
+        "生物制造",
+        "基因测序(国产)",
+        "脑机接口",
+        "国产替代"
+      ],
+      "sectors_down": [
+        "CXO",
+        "创新药出海",
+        "生物医药(美资参与)"
+      ],
+      "commodities": [],
+      "symbols_up": [
+        {
+          "code": "688114",
+          "name": "华大智造"
+        },
+        {
+          "code": "300676",
+          "name": "华大基因"
+        }
+      ],
+      "symbols_down": [
+        {
+          "code": "603259",
+          "name": "药明康德"
+        },
+        {
+          "code": "300759",
+          "name": "康龙化成"
+        },
+        {
+          "code": "300347",
+          "name": "泰格医药"
+        }
+      ],
+      "decision": "这是\"投资端\"管制(不同于10月16日出口目录的\"技术端\"对等反制)，工具不同、影响面不同：直接压的是CXO出海融资预期，而非立刻断供。草案期至12月7日，关注是否有豁免与行业游说结果；国产测序/生物制造是确定性替代方向。",
+      "watch": "NPRM意见征询期(截至12月7日)与最终规则；是否设研发合作豁免；中国是否出台对等反制；CXO海外订单与融资实际变化。",
+      "tags": [
+        "对外投资",
+        "生物科技",
+        "出口管制",
+        "中美"
+      ],
+      "sources": [
+        {
+          "name": "WilmerHale · 客户警示(解读NPRM)",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.wilmerhale.com/en/insights/client-alerts/20261027-treasury-proposes-major-expansion-of-outbound-investment-rules-to-restrict-us-investments-in-china"
+        },
+        {
+          "name": "财经杂志 / 今日头条",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7700523167017812515/"
+        },
+        {
+          "name": "中国日报网",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.chinadaily.com.cn/a/202610/23/WS6adb20a1e4b06d4aa05647e3.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "WilmerHale",
+            "claim": "10-22 NPRM依COINS法案新增biotech，禁止生物材料/设备/测序/脑机接口投资，comments截至12月7日",
+            "url": "https://www.wilmerhale.com/en/insights/client-alerts/20261027-treasury-proposes-major-expansion-of-outbound-investment-rules-to-restrict-us-investments-in-china"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "财经 / 中国日报",
+            "claim": "财政部10-22更新拟议规则将biotech列第六类，商务部10-24坚决反对",
+            "url": "https://www.toutiao.com/article/7700523167017812515/"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认美10-22拟将biotech纳入对华投资禁令、中方10-24反对；国外给法律细节(COINS/条款)，国内给商务部表态与\"泛化国家安全\"定性。"
+      }
+    },
+    {
+      "eid": "geo-20261026-india-pvc",
+      "title": "印度对华PVC悬浮树脂作出反补贴肯定性初裁，建议征税83.72—143.82美元/吨",
+      "category": "trade",
+      "panel": "policy",
+      "event_date": "2026-10-26",
+      "intensity": 3,
+      "certainty": 0.85,
+      "direction": "【推断】利空对印PVC出口企业(中泰化学/新疆天业/君正集团等)毛利与印度份额；利多内需替代与转口/东南亚产能布局。属贸易摩擦常态化，单品类冲击有限。",
+      "summary": "印度商工部(DGTR)10月26日发布公告，对原产于或进口自中国的聚氯乙烯悬浮树脂(PVC Suspension Resins, K值55—77，海关编码3904)作出反补贴肯定性初裁，建议征收临时反补贴税83.72—143.82美元/吨，征税期由印度中央政府确定。本案由印度企业Chemplast Cuddalore、DCM Shriram、DCW于2026年2月26日申请，补贴调查期2024-10-01至2025-09-30；裁定中方电力、蒸汽煤、土地使用权、乙烯、税费与优惠贷款等构成补贴，配合企业补贴幅度10%—80%、不配合企业residual 90%—100%。利益方可在20日内提交评论。",
+      "transmission": "印度反补贴税 → 对印PVC出口成本抬升、份额承压 → 相关企业毛利与印度市场收入下修；具备东南亚/中东产能或转口能力的企业相对占优。",
+      "sectors_up": [
+        "PVC内需替代",
+        "海外产能布局"
+      ],
+      "sectors_down": [
+        "对印PVC出口",
+        "氯碱(对印敞口)"
+      ],
+      "commodities": [
+        "PVC悬浮树脂"
+      ],
+      "symbols_up": [],
+      "symbols_down": [
+        {
+          "code": "002092",
+          "name": "中泰化学"
+        },
+        {
+          "code": "600075",
+          "name": "新疆天业"
+        },
+        {
+          "code": "601216",
+          "name": "君正集团"
+        }
+      ],
+      "decision": "单品类、区域型贸易摩擦，冲击面有限但提示\"反倾销/反补贴常态化\"：对印、对欧高耗能出口都要按\"双反税+转口核查\"重估。优先看已有海外产能或客户可转内销的企业；别因单事件过度放大。",
+      "watch": "印度中央政府是否正式征税与最终税率；终裁期限；其他PVC下游(地板/管材)是否跟进；国内PVC出口结构变化。",
+      "tags": [
+        "印度",
+        "反补贴",
+        "PVC",
+        "贸易摩擦"
+      ],
+      "sources": [
+        {
+          "name": "Gazette Tracker · 印度官方公报镜像(DGTR)",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.gazettetracker.com/g/CG-DL-E-28102026-277455"
+        },
+        {
+          "name": "新浪财经(引中国贸易救济信息网+DGTR原文)",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://finance.sina.com.cn/jjxw/2026-10-27/doc-iniwsfqu6980469.shtml"
+        },
+        {
+          "name": "华夏时报 · 快讯",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://kuaixun.chinatimes.net.cn/a/121595.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "Gazette Tracker(DGTR原文镜像)",
+            "claim": "10-26初裁、案号CVD(OI)-07/2025、建议83.72-143.82美元/吨、20日内可提交评论",
+            "url": "https://www.gazettetracker.com/g/CG-DL-E-28102026-277455"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "新浪 / 华夏时报",
+            "claim": "10-26印度商工部反补贴肯定性初裁、税额83.72-143.82美元/吨、涉3904编码",
+            "url": "https://finance.sina.com.cn/jjxw/2026-10-27/doc-iniwsfqu6980469.shtml"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认10-26初裁与税额区间；国外给DGTR法律文号与补贴幅度细节，国内给中国贸易救济信息网口径与涉案编码。"
+      }
+    },
+    {
+      "eid": "geo-20261027-memory-lta",
+      "title": "中国云巨头向三星/SK海力士锁DRAM十年长约(至2035)，存储超级周期延续",
+      "category": "tech",
+      "panel": "tech",
+      "event_date": "2026-10-27",
+      "intensity": 3,
+      "certainty": 0.7,
+      "direction": "【推断】利多存储芯片(兆易创新/北京君正/香农芯创/江波龙)与内存涨价预期；同时凸显国产高端服务器DRAM(长鑫)在性能/良率上的供给缺口，对服务器成本中性偏空。板块弹性取决于涨价能否兑现为业绩。",
+      "summary": "据韩国《每日经济新闻》(Maeil Business Newspaper)10月27日报道，阿里、腾讯、字节跳动等中国大型云服务商(CSP)正与三星电子、SK海力士商谈服务器DRAM/LPDDR长期供货协议(LTA)，部分客户要求合同期长达10年、供至2035年，远超行业通常3—5年。背景是内存供应整体趋紧：三星已与全球五大云客户签5年LTA、SK海力士与约10家客户完成谈判，业界估计两家2027年计划产量的70%—80%已被长期合同锁定。SemiAnalysis 9月报告称中国已建成超24GW AI数据中心(仅次于美国56GW)、另有约20GW在建/规划。报道同时指出，长鑫存储(CXMT)在高端服务器DDR与LPDDR的性能与量产稳定性上仍落后韩厂，美光已退出中国本土市场，故中国云厂继续依赖韩系供应。消息传出后SK海力士、闪迪、美光、西部数据等相关个股上涨。",
+      "transmission": "AI数据中心扩张 → 服务器DRAM/LPDDR需求刚性 → 韩厂产能被长协锁定、现货趋紧 → 内存价格上行(DDR/企业级涨幅可期) → A股存储链盈利与估值修复；但\"锁韩厂\"亦暴露国产高端DRAM替代缺口。",
+      "sectors_up": [
+        "存储芯片",
+        "内存模组",
+        "半导体设备(存储)"
+      ],
+      "sectors_down": [
+        "服务器成本(承压)"
+      ],
+      "commodities": [
+        "DRAM",
+        "LPDDR",
+        "NAND"
+      ],
+      "symbols_up": [
+        {
+          "code": "603986",
+          "name": "兆易创新"
+        },
+        {
+          "code": "300223",
+          "name": "北京君正"
+        },
+        {
+          "code": "300504",
+          "name": "香农芯创"
+        },
+        {
+          "code": "301308",
+          "name": "江波龙"
+        },
+        {
+          "code": "688525",
+          "name": "佰维存储"
+        }
+      ],
+      "symbols_down": [],
+      "decision": "存储是本轮AI硬件链中\"量价齐升\"确定性较高的环节：长协锁产=涨价有底。A股标的按\"涨价弹性+国产替代进度\"选，但注意长鑫高端缺口意味着国产替代是慢变量，别把\"锁韩厂\"解读为利空国产(更多是需求验证)。",
+      "watch": "三星/SK海力士是否接受10年条款；TrendForce Q4 DRAM合约价(预期+10%~15%)；长鑫高端DDR/LPDDR量产进度；美光对华供应政策。",
+      "tags": [
+        "存储",
+        "DRAM",
+        "AI服务器",
+        "供应链"
+      ],
+      "sources": [
+        {
+          "name": "PANews(引 Maeil Business Newspaper)",
+          "region": "国外",
+          "lang": "en",
+          "url": "https://www.panewslab.com/en/articles/01a17cce-8d38-7531-bab0-7a492eb2df1f"
+        },
+        {
+          "name": "今日头条 / 芯智讯",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.toutiao.com/article/7701573813116338731/"
+        },
+        {
+          "name": "中财网",
+          "region": "国内",
+          "lang": "zh",
+          "url": "https://www.cfi.cn/p20261028000443.html"
+        }
+      ],
+      "cross_check": {
+        "foreign": [
+          {
+            "src": "PANews(引 MK)",
+            "claim": "中国CSP洽谈10年DRAM LTA、供至2035、70%-80%的2027产量被5年长协锁定",
+            "url": "https://www.panewslab.com/en/articles/01a17cce-8d38-7531-bab0-7a492eb2df1f"
+          }
+        ],
+        "domestic": [
+          {
+            "src": "芯智讯 / 中财网",
+            "claim": "MK 10-27报道、阿里腾讯字节签10年长约、LPDDR争夺升温、价格上行",
+            "url": "https://www.toutiao.com/article/7701573813116338731/"
+          }
+        ],
+        "verdict": "一致",
+        "note": "国内外均确认MK 10-27报道与10年LTA动向；国外给Magnificent 7锁产与CXMT差距细节，国内给A股存储板块反应与SemiAnalysis中国IDC数据。"
       }
     }
   ]
