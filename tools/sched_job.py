@@ -242,6 +242,29 @@ def _ann_daily():
             "err": r.get("err")}
 
 
+def _harvest_daily():
+    """收割视角日更（2026-10-31）：涨停/炸板/连板 → 局面状态 + 陷阱名单。
+
+    读 data/kline_daily.db（1,700 万行日线），增量重算最近 400 个交易日即可
+    （实测首次全量 158s，增量约 40~60s），写 market_structure_daily /
+    harvest_trap_daily。必须排在 kline_daily 之后 —— kline 当天不补，这里算出来的
+    就是昨天的盘面，而「今日陷阱名单」差一天就完全没用。
+    """
+    import sqlite3
+    from viewer.db import Database
+    import viewer.harvest as H
+    db = Database()
+    try:
+        r = H.refresh_daily(db.conn)
+    finally:
+        try:
+            db.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return {"ok": bool(r.get("ok")), "inserted": r.get("inserted"),
+            "traps": r.get("traps"), "range": r.get("range"), "err": r.get("error")}
+
+
 def _signal_backtest():
     """信号 alpha 回测（2026-10-27 C：季度重算，收敛进主工作流）。
     依赖 stock_indicators_daily（~135万行），落 signal_backtest。
@@ -425,6 +448,7 @@ JOBS = {
     "strategy_templates": _strategy_templates,  # 2026-10-26 P5：现成策略模板（依赖 indicators + universe_scan）
     "signal_backtest": _signal_backtest,        # 2026-10-27 C：信号 alpha 回测（季度重算，收敛进主工作流）
     "plate_members": _plate_members,            # 2026-10-27 C3：东财官方板块成分（本机出网，沙箱屏蔽）
+    "harvest_daily": _harvest_daily,           # 2026-10-31：收割视角（局面+陷阱名单，依赖 kline_daily）
 }
 
 

@@ -676,6 +676,27 @@ def _sec_health(conn, date: str) -> list:
     return out
 
 
+def _sec_harvest(conn) -> dict:
+    """局面（2026-10-31）：盘面结构 + 今日陷阱名单 + 实证边界。
+
+    为什么单列一节而不是并进"市场环境"：市场环境讲的是指数涨跌，
+    这一节讲的是**筹码与收割结构**（涨停/炸板/连板/开板派发），
+    两者是不同维度，混在一起模型会把"跌"和"该跑"当成一回事。
+    取数失败一律降级为空，绝不让它拖垮整份复盘。
+    """
+    try:
+        import harvest as HARVEST
+        p = HARVEST.payload(conn)
+        if not p.get("ok"):
+            return {}
+        p["text"] = HARVEST.text_block(conn).replace(
+            "## 七、局面（结构层，全部来自日线实测）", "### 盘面结构（日线实测，不是推断）")
+        return p
+    except Exception:  # noqa: BLE001
+        logging.exception("_sec_harvest 失败")
+        return {}
+
+
 def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
     """汇聚当日信息包。每个分区独立取数，单区失败不影响整体。"""
     ctx = {
@@ -690,6 +711,7 @@ def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
         "evidence": _sec_evidence(conn),
         "last": _sec_last(conn, date, provider),
         "data_health": _sec_health(conn, date),
+        "harvest": _sec_harvest(conn),
     }
     return ctx
 
@@ -718,6 +740,19 @@ SYSTEM_PROMPT = """你是一位为个人投资者服务的 A 股研究工作台�
    · 系统会拿你的假说去回测，结果会进入下一轮上下文。**提错了比不提更有价值**，
      但不要为了凑数提你已经知道答案的。
 
+9. **局内人推演（必答，写在 insider 段）**：假设你是这个市场里资金量最大、信息最早的那一方，
+   要在接下来 5 个交易日内从散户和大游资身上挣钱，你会怎么布这个局？必须具体写四件事：
+   ① `where_to_lure` —— 你现在最想让人在哪个位置接盘？结合当日涨停家数、炸板率、连板高度、
+      以及"今日陷阱名单"（那些昨日连板、今日开板的票就是已经打开的口子）说清楚；
+   ② `squeeze` —— 你会先砸哪一类票、托哪一类票？结合主线板块所处的阶段
+      （启动/加速/高潮/退潮）判断：高潮期的板块就是最好的出货场；
+   ③ `retail_mistake` —— 散户在这个位置最容易犯的那**一个**错，要具体到动作
+      （「看到开板了觉得还有一波，进去接」），不许写"追涨杀跌"这类空话；
+   ④ `reverse` —— 据此，我**今天应该避免做什么、等什么信号再动**。
+   约束：这一段的每一步都必须挂在信息包的数据上（涨停/炸板/连板/陷阱名单/板块阶段/
+   筹码位置）。数据撑不住的地方，必须明写「这一步是猜测」——**不许写成脱离数据的阴谋论**，
+   也不许暗示任何具体个股会被操纵（这既无法验证，也不负责任）。写的是**结构**，不是点名。
+
 只输出 JSON，不要 markdown 代码块，不要任何解释性前后缀。JSON 结构：
 {
   "verdict": "一句话核心判断（40字内，要有方向感）",
@@ -735,6 +770,13 @@ SYSTEM_PROMPT = """你是一位为个人投资者服务的 A 股研究工作台�
     {"symbol": "6位代码或空", "name": "名称", "thesis": "买入逻辑60字内",
      "trigger": "什么条件才动手", "invalidate": "什么情况证明判断错了"}
   ],
+  "insider": {
+    "where_to_lure": "最想让人在哪个位置接盘（80字内，必须引用涨停/炸板/连板/陷阱名单的数据）",
+    "squeeze": "先砸哪类、托哪类（80字内，结合板块阶段）",
+    "retail_mistake": "散户在这个位置最容易犯的那一个错（具体到动作，40字内）",
+    "reverse": "据此我该避免什么、等什么（60字内）",
+    "data_backed": true
+  },
   "risks": [{"label": "风险名", "detail": "60字内", "level": "高/中/低"}],
   "portfolio_advice": [
     {"name": "股票名", "advice": "加/减/持/清/观察", "reason": "50字内"}
@@ -817,6 +859,10 @@ def _render_user(ctx: dict) -> str:
         L.append("（口径说明：%s）" % m["note"])
     if m.get("regime"):
         L.append("系统判定的市场状态：%s（%s）" % (m["regime"].get("state"), m["regime"].get("note") or ""))
+
+    hv = ctx.get("harvest") or {}
+    if hv.get("text"):
+        L.append("\n" + hv["text"])
 
     L.append("\n## 二、主线板块（按当日主力净流入排序）")
     for i, s in enumerate(ctx.get("mainlines") or [], 1):

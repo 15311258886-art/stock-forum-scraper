@@ -4249,6 +4249,22 @@ function renderAiReview() {
       <span class="air-readitem air-readhi"><b>${cs.rules || 0}</b> 条数据自生长规则</span>
     </div>` : "";
 
+  // 局内人推演（2026-10-31 进哥需求）：本面板唯一"换位思考"的部分。
+  // 约束写在 prompt 里：每一步必须挂在当日盘面数据（涨停/炸板/连板/陷阱名单/板块阶段）上，
+  // 撑不住的要自己标「这一步是猜测」——所以这里如实展示 data_backed 标记。
+  const ins = o.insider || {};
+  const insHtml = (ins.where_to_lure || ins.squeeze || ins.reverse) ? `
+    <div class="air-card" style="border-left:3px solid #7c3aed">
+      <div class="air-card-hd"><b>局内人推演</b>
+        <span class="air-card-sub">${ins.data_backed === false ? "含未验证推测" : "挂在当日盘面数据上"}</span></div>
+      <div class="air-card-bd">
+        ${ins.where_to_lure ? '<div class="air-logic"><b style="color:#7c3aed">在哪设套　</b>' + esc(ins.where_to_lure) + '</div>' : ""}
+        ${ins.squeeze ? '<div class="air-logic"><b style="color:#7c3aed">砸谁托谁　</b>' + esc(ins.squeeze) + '</div>' : ""}
+        ${ins.retail_mistake ? '<div class="air-logic"><b style="color:#dc2626">散户会犯的错　</b>' + esc(ins.retail_mistake) + '</div>' : ""}
+        ${ins.reverse ? '<div class="air-logic" style="margin-top:8px;padding:9px 11px;background:rgba(124,58,237,.07);border-radius:8px"><b>反向操作　</b>' + esc(ins.reverse) + '</div>' : ""}
+      </div>
+    </div>` : "";
+
   const evHtml = airList(mr.key_evidence).length
     ? `<ul class="air-ev">${airList(mr.key_evidence).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
 
@@ -4341,6 +4357,8 @@ function renderAiReview() {
         <div class="air-card-bd">${actHtml || `<div class="air-empty-inline">无</div>`}</div>
       </div>
     </div>
+
+    ${insHtml}
 
     <div class="air-card">
       <div class="air-card-hd"><b>③ 主线与阶段</b><span class="air-card-sub">${airList(o.mainlines).length} 条</span></div>
@@ -9173,6 +9191,11 @@ function openWatchGroupMgrModal() {
      ① 在此加一项；② index.html 里加一个空的 <div class="panel" id="p-<tab>">；
      ③ 在 loadAll() 里加一次 fetch + render（或在其首次进入时懒加载）。
    URL 采用 `#大类/子类` 深链接，刷新与浏览器前进/后退都能保持位置。 */
+// 2026-10-31：HARVEST 状态机提到文件顶部 —— 深链 #overview/harvest 首次进入时
+// selectNav 会在 app.js 顶层语句执行途中就调用 loadHarvest，声明放后面会直接 TDZ
+// （实测报 "Cannot access 'HARVEST' before initialization"）。
+const HARVEST = { data: null, busy: false };
+
 const NAV = [
   // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
   { key: "overview", label: "今日总览", icon: "◎", items: [
@@ -9186,6 +9209,8 @@ const NAV = [
     { tab: "summary", label: "今日汇总", child: true, mg: "decision" },
     { tab: "watch_brief", label: "我的提示", child: true, mg: "decision" },
     { group: "当日信号" },
+    // 2026-10-31 进哥需求：先看「局」，再选票。不预测点位，只识别阶段与必亏动作。
+    { tab: "harvest", label: "大势研判" },
     { tab: "prediction", label: "每日预测" },
     { tab: "resonance", label: "多源共振" },
     // 2026-10-21 dy9 进哥拍板：低分卡归因做成一级功能（只做排除，不做推荐）
@@ -12956,6 +12981,10 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "resonance") {
     loadResonance().catch((e) => reportLoadError("多源共振", e));
   }
+  // 大势研判（2026-10-31）：局面 + 今日陷阱名单，进入时按需加载
+  if (tab === "harvest") {
+    loadHarvest().catch((e) => reportLoadError("大势研判", e));
+  }
   // 避雷名单（2026-10-21 dy9）：低分卡归因显式面板，进入时按需加载
   if (tab === "avoid") {
     loadAvoid().catch((e) => reportLoadError("避雷名单", e));
@@ -15839,6 +15868,222 @@ function loadAvoid(force) {
       renderAvoid();
     });
 }
+// ══════════════════════════════════════════════════════════════════════
+// 大势研判 · 局（2026-10-31 进哥需求）
+// 定位：**不预测指数点位**。实测（2019-2026，1600+ 交易日）涨停家数/炸板率/
+// 连板断档对指数方向均无预测力（t 全 <1.6），装成一个"预测"是骗人。
+// 本面板只回答两件能站住的事：
+//   ① 这一局在哪个阶段 —— 用涨停/跌停/炸板率/连板高度的历史分位定位；
+//   ② 今天什么动作必亏 —— 连板开板=派发，T+5 超额 −6.13%（t=−10.68，n=896）。
+// 数据来自 /api/harvest（后端 harvest.py 读 data/kline_daily.db 增量沉淀）。
+// ══════════════════════════════════════════════════════════════════════
+const _HE = (t) => String(t == null ? "" : t).replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// 局面 → 颜色。注意：这是**风险语义**（红=危险），不是涨跌语义。
+const _HPHASE_COLOR = {
+  "杀跌": "#dc2626", "派发": "#dc2626", "过热": "#f59e0b",
+  "健康": "#16a34a", "拉锯": "#64748b",
+};
+
+function loadHarvest(force) {
+  const box = $("#p-harvest");
+  if (box && !HARVEST.data) {
+    box.innerHTML = '<div class="pred-head"><div class="pred-title">大势研判 · 局</div></div>'
+      + '<div class="empty">正在读取盘面结构（涨停/炸板/连板）…</div>';
+  }
+  if (HARVEST.data && !force) { renderHarvest(); return Promise.resolve(HARVEST.data); }
+  HARVEST.busy = true;
+  return api("/api/harvest" + (force ? "?t=" + Date.now() : ""))
+    .catch((e) => ({ ok: false, error: apiErrText(e), _err: true }))
+    .then((d) => { HARVEST.data = d; HARVEST.busy = false; renderHarvest(); });
+}
+
+// 统一口径：**红=危险**（风险语义，非涨跌语义）。
+//   mode="high"   分位越高越危险（跌停家数、炸板率）
+//   mode="low"    分位越低越危险（涨停家数：涨停少 = 赚钱效应差）
+//   mode="pct"    不分位，按涨跌正负着色（涨红跌绿，中国习惯）
+//   mode="none"   不分位、不着色（最高连板：高低都有解读，不给颜色误导）
+const _hMd = (t) => _HE(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+function _hPctCell(label, val, q, unit, mode) {
+  mode = mode || "high";
+  let col = "var(--fg, #111)", foot = "";
+  if (mode === "high" || mode === "low") {
+    const p = Math.round((q || 0) * 100);
+    const danger = mode === "high" ? p >= 85 : p <= 15;
+    const safe = mode === "high" ? p <= 15 : p >= 85;
+    col = danger ? "#dc2626" : (safe ? "#16a34a" : "var(--fg, #111)");
+    foot = '历史 ' + p + '% 分位';
+  } else if (mode === "pct") {
+    const v = parseFloat(val);
+    col = v > 0 ? "#dc2626" : (v < 0 ? "#16a34a" : "var(--fg, #111)");
+    foot = v > 0 ? '全市场中位数上涨' : (v < 0 ? '全市场中位数下跌' : '全市场中位数持平');
+  }
+  return '<div style="flex:1;min-width:120px;border:1px solid var(--line,#e5e7eb);'
+    + 'border-radius:10px;padding:12px 14px;background:var(--panel,#fff)">'
+    + '<div style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280);margin-bottom:6px">'
+    + _HE(label) + '</div>'
+    + '<div style="font-size:var(--fs-xl,22px);font-weight:700;color:' + col + ';line-height:1.1">'
+    + _HE(val) + '<span style="font-size:var(--fs-sm,12px);font-weight:400;color:var(--muted,#6b7280)">'
+    + _HE(unit || '') + '</span></div>'
+    + (foot ? '<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);margin-top:4px">'
+      + foot + '</div>' : '<div style="height:14px"></div>')
+    + '</div>';
+}
+
+function renderHarvest() {
+  const box = $("#p-harvest");
+  if (!box) return;
+  const d = HARVEST.data;
+  if (!d) {
+    box.innerHTML = '<div class="pred-head"><div class="pred-title">大势研判 · 局</div></div>'
+      + '<div class="empty">加载中…</div>';
+    return;
+  }
+  if (!d.ok) {
+    box.innerHTML = '<div class="pred-head"><div class="pred-title">大势研判 · 局</div></div>'
+      + '<div class="empty">' + _HE(d.error || "数据不可用") + '</div>';
+    return;
+  }
+
+  const ph = d.phase || {}, pos = d.position || {}, raw = d.raw || {};
+  const col = _HPHASE_COLOR[ph.tag] || "#64748b";
+  const pq = ph.pct || {};
+  const tr = d.traps || { rows: [], total: 0 };
+  const tt = d.trap_trend || { series: [] };
+  const ev = d.evidence || {};
+
+  let h = '<div class="pred-head"><div class="pred-title">大势研判 · 局</div>'
+    + '<div class="s">数据日 ' + _HE(d.asof) + ' ｜ 结构样本 1,651 个交易日（2020 至今）</div></div>';
+
+  // ── ① 此刻在哪一局 ──────────────────────────────
+  h += '<div style="border:1px solid var(--line,#e5e7eb);border-left:4px solid ' + col + ';'
+    + 'border-radius:12px;padding:16px 18px;margin-bottom:14px;background:var(--panel,#fff)">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+    + '<span style="font-size:var(--fs-lg,16px);font-weight:700;color:' + col + '">'
+    + _HE(ph.tag) + '</span>'
+    + '<span style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280)">'
+    + '强度 ' + _HE(ph.level) + '/3</span></div>'
+    + '<div style="font-size:var(--fs-md,13px);line-height:1.75;margin-bottom:14px">'
+    + _hMd(ph.desc) + '</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    + _hPctCell('涨停家数', raw.zt_n, pq.zt, ' 家', 'low')
+    + _hPctCell('跌停家数', raw.dt_n, pq.dt, ' 家', 'high')
+    + _hPctCell('炸板率', Math.round((raw.zb_rate || 0) * 100), pq.zb, ' %', 'high')
+    + _hPctCell('最高连板', raw.max_streak, null, ' 板', 'none')
+    + _hPctCell('中位涨幅', (raw.median_pct > 0 ? '+' : '') + (raw.median_pct || 0).toFixed(2), null, ' %', 'pct')
+    + '</div>'
+    + '<div style="margin-top:12px;font-size:var(--fs-sm,12px);color:var(--muted,#6b7280)">'
+    + '位置：' + _HE(pos.note || '-') + '</div>'
+    + '</div>';
+
+  // ── ② 今日陷阱 ──────────────────────────────
+  h += '<div style="border:1px solid var(--line,#e5e7eb);border-radius:12px;'
+    + 'padding:16px 18px;margin-bottom:14px;background:var(--panel,#fff)">'
+    + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"'
+    + '><div style="font-size:var(--fs-lg,16px);font-weight:700">今日陷阱</div>'
+    + '<div class="s" style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280)">'
+    + '昨日连板 ≥2、今日触及涨停却未封 → 散户终于买得进的时刻</div></div>';
+
+  if (!tr.rows.length) {
+    h += '<div style="padding:18px 0;color:var(--muted,#6b7280);font-size:var(--fs-md,13px)">'
+      + '今日无「连板开板」陷阱标的。</div>';
+  } else {
+    h += '<table class="tbl-detail" style="margin-top:8px"><thead><tr>'
+      + '<th>代码</th><th>名称</th><th>昨日板数</th><th>今日收盘</th><th>风险</th>'
+      + '</tr></thead><tbody>';
+    tr.rows.forEach((x) => {
+      const rc = x.risk === "极高" ? "#dc2626" : (x.risk === "高" ? "#f97316" : "#64748b");
+      const cc = (x.close_pct || 0) >= 0 ? "#dc2626" : "#16a34a";   // 中国习惯：涨红跌绿
+      h += '<tr>'
+        + '<td class="mono">' + _HE(x.code) + '</td>'
+        + '<td>' + _HE(x.name) + '</td>'
+        + '<td><b>' + _HE(x.prev_streak) + '</b> 板</td>'
+        + '<td style="color:' + cc + ';font-weight:600">'
+        + ((x.close_pct > 0 ? '+' : '') + (x.close_pct || 0).toFixed(2)) + '%</td>'
+        + '<td style="color:' + rc + ';font-weight:600">' + _HE(x.risk) + '</td>'
+        + '</tr>';
+    });
+    h += '</tbody></table>';
+    h += '<div style="margin-top:8px;font-size:var(--fs-sm,12px);color:var(--muted,#6b7280)">'
+      + '共 ' + _HE(tr.total) + ' 只。历史同型（≥3 板开板）T+5 超额 <b>−6.13%</b>，'
+      + '4–5 板 <b>−7.21%</b>，胜率 28.3%。</div>';
+  }
+  if (tt.series && tt.series.length) {
+    const seq = tt.series.map((x) => x.n).join(" → ");
+    h += '<div style="margin-top:10px;font-size:var(--fs-sm,12px)">近 '
+      + tt.series.length + ' 日陷阱数：<span class="mono">' + _HE(seq) + '</span>'
+      + '（<b style="color:' + (tt.trend === "加速" ? "#dc2626" : "inherit") + '">'
+      + _HE(tt.trend) + '</b>）</div>';
+  }
+  h += '</div>';
+
+  // ── ③ 为什么这条能信 ──────────────────────────────
+  const hv = ev.harvest || {}, ctrl = hv.control || {};
+  h += '<div style="border:1px solid var(--line,#e5e7eb);border-radius:12px;'
+    + 'padding:16px 18px;margin-bottom:14px;background:var(--panel,#fff)">'
+    + '<div style="font-size:var(--fs-lg,16px);font-weight:700;margin-bottom:4px">'
+    + '为什么这条能信：同一批强势股，只差「你买不买得进」</div>'
+    + '<div class="s" style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280);margin-bottom:12px">'
+    + '2023-01 ~ 2026-10 日线实测｜超额 = 个股收益 − 同日全市场等权收益｜t 值按日聚合</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+    + '<div style="flex:1;min-width:200px;border:1px solid #bbf7d0;border-radius:10px;'
+    + 'padding:12px 14px;background:rgba(22,163,74,.06)">'
+    + '<div style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280)">买不进（仍封板）</div>'
+    + '<div style="font-size:var(--fs-xl,22px);font-weight:700;color:#16a34a">+'
+    + _HE(ctrl.excess) + '%</div>'
+    + '<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280)">T+5 超额 ｜ t=+'
+    + _HE(ctrl.t) + ' ｜ 胜率 ' + _HE(ctrl.win) + '% ｜ n=' + _HE(ctrl.n) + '</div></div>'
+    + '<div style="flex:1;min-width:200px;border:1px solid #fecaca;border-radius:10px;'
+    + 'padding:12px 14px;background:rgba(220,38,38,.06)">'
+    + '<div style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280)">买得进（开板了）</div>'
+    + '<div style="font-size:var(--fs-xl,22px);font-weight:700;color:#dc2626">'
+    + _HE(hv.excess) + '%</div>'
+    + '<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280)">T+5 超额 ｜ t='
+    + _HE(hv.t) + ' ｜ 胜率 ' + _HE(hv.win) + '% ｜ n=' + _HE(hv.n) + '</div></div>'
+    + '</div>';
+
+  if (ev.by_streak && ev.by_streak.length) {
+    h += '<table class="tbl-detail"><thead><tr><th>封板高度</th><th>T+5 超额</th>'
+      + '<th>t 值</th><th>样本</th></tr></thead><tbody>';
+    ev.by_streak.forEach((x) => {
+      h += '<tr><td>' + _HE(x.streak) + '</td>'
+        + '<td style="color:#16a34a;font-weight:600">' + _HE(x.excess) + '%</td>'
+        + '<td class="mono">' + _HE(x.t) + '</td>'
+        + '<td class="s">' + _HE(x.n) + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+
+  // ── ④ 不能做什么（同样是实测） ──────────────────────────
+  h += '<div style="border:1px solid var(--line,#e5e7eb);border-radius:12px;'
+    + 'padding:16px 18px;background:var(--panel,#fff)">'
+    + '<div style="font-size:var(--fs-lg,16px);font-weight:700;margin-bottom:4px">'
+    + '这个面板不能做什么（同样是实测结论）</div>'
+    + '<div style="font-size:var(--fs-md,13px);line-height:1.8;margin-top:8px">'
+    + '市场层的情绪指标<b>预测不了指数方向</b>：';
+  (ev.market_useless || []).forEach((x, i) => {
+    h += (i ? '、' : '') + _HE(x.cond) + ' 超额 ' + _HE(x.excess)
+      + '%（t=' + _HE(x.t) + '）';
+  });
+  h += '，全部不显著。</div>'
+    + '<div style="font-size:var(--fs-md,13px);line-height:1.8;margin-top:6px">'
+    + '唯一显著的是<b>极端恐慌后的均值回复</b>：';
+  (ev.mean_reversion || []).forEach((x, i) => {
+    h += (i ? '；' : '') + _HE(x.cond) + ' 超额 <b>+' + _HE(x.excess)
+      + '%</b>（t=' + _HE(x.t) + '）';
+  });
+  h += '。但扣掉双边成本后剩不下多少，只能当"情绪位置"参考，不能当买入信号。</div>'
+    + '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;'
+    + 'background:rgba(245,158,11,.1);font-size:var(--fs-sm,12px)">'
+    + '所以本面板<b>不给点位预测、不给买卖建议</b>，只说两件事：'
+    + '这一局在哪个阶段、这个阶段什么动作必亏。</div>'
+    + '</div>';
+
+  box.innerHTML = h;
+}
+
 function renderAvoid() {
   const box = $("#p-avoid");
   if (!box) return;

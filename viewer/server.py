@@ -153,6 +153,7 @@ import watchlib  # noqa: E402  —— 自选/关注池 + 到价提醒（独立�
 import emapi  # noqa: E402
 import moneyflow  # noqa: E402
 import board_flow  # noqa: E402  2026-09-28 板块资金流：多源 + 采样累积（替代单一东财依赖）
+import harvest as HARVEST  # noqa: E402  2026-10-31 收割视角引擎（涨停/炸板/连板 → 局与陷阱名单）
 import board_flow_range  # noqa: E402  2026-10-05 板块资金流「日期区间」聚合（累计流入可指定起止日期）
 from viewer import predictor  # noqa: E402  —— 每日预测：六路信号合成 + 复盘自学习闭环（2026-09-28 新增）
 import pillars  # noqa: E402  —— 四支柱每日预测引擎 A/B/C/D（2026-10-15 新增；仅后端定时任务跑，查看器只读）
@@ -4191,6 +4192,20 @@ def api_hypothesis(limit: int = 30) -> dict:
         return d
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "reason": str(e)[:160]}
+
+
+def api_harvest() -> dict:
+    """收割视角（2026-10-31）：局面状态 + 今日陷阱名单 + 实测证据。
+
+    数据来自 data/kline_daily.db 的完整日线（1,700 万行），由 regime_daily 任务
+    每日收盘后增量写入 market_structure_daily / harvest_trap_daily。
+    本接口只读，不现算（避免请求线程扫日线库）。
+    """
+    try:
+        return HARVEST.payload(DB.conn)
+    except Exception:  # noqa: BLE001
+        logging.exception("api_harvest 失败")
+        return {"ok": False, "error": "局面数据不可用"}
 
 
 def api_avoid_flags(codes: str = "", limit: int = 100) -> dict:
@@ -10058,6 +10073,7 @@ _JOB_TIMEOUT = {
     "lift_daily": 600,           # 实测 3~6s（8 页 HTTP），留 100 倍余量
     "ann_daily": 900,            # 全市场公告 120 页 HTTP，实测约 33s，留足余量防限流重试
     "review_score_daily": 900,   # 复盘回填 + 假说回测：扫全市场行情算 T+5/T+10，实测 <60s
+    "harvest_daily": 1200,       # 收割视角：增量重算 400 交易日，实测 40~158s，留足余量防库锁
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
@@ -10474,6 +10490,16 @@ def _regime_daily_maybe() -> None:
     _daily_job("regime_daily", (15, 30))
 
 
+def _harvest_daily_maybe() -> None:
+    """收割视角日更（2026-10-31）：局面状态 + 今日陷阱名单。
+
+    顺序：排在 kline_daily / regime_daily 之后。它读 kline_daily.db 的日线，
+    kline 当天没补完就直接算，会把「昨天的盘面」标成今天 —— 而陷阱名单的价值
+    全在时效（开板当天收盘才知道，隔天就没意义）。
+    """
+    _daily_job("harvest_daily", (15, 40))
+
+
 def _lift_daily_maybe() -> None:
     """限售解禁事件日更（2026-10-30）。排在 06:10 —— 解禁日提示要在开盘前就位。
 
@@ -10599,6 +10625,7 @@ def _sched_tasks() -> list:
         ("indicators_daily", _indicators_daily_maybe),     # 2026-10-26 P1：技术指标/因子层日更（15:30后，K线增量之后）
         ("universe_scan", _universe_scan_maybe),            # 2026-10-26 P2：全宇宙多因子扫描（依赖 indicators_daily，其后触发）
         ("regime_daily", _regime_daily_maybe),              # 2026-10-29：市场状态（依赖 indicators_daily 当日收盘，其后触发）
+        ("harvest_daily", _harvest_daily_maybe),            # 2026-10-31：收割视角（局面+陷阱，15:40，K线之后）
         ("lift_daily", _lift_daily_maybe),                  # 2026-10-30：限售解禁事件日更（06:10前，开盘前就位）
         ("ann_daily", _ann_daily_maybe),                    # 2026-10-30：全市场公告日更（06:20，覆盖率 3%→全市场）
         ("review_score_daily", _review_score_daily_maybe),   # 2026-10-31：复盘回填+假说回测（18:00，收盘后）
@@ -11642,6 +11669,9 @@ class Handler(BaseHTTPRequestHandler):
         # ── 2026-10-21 dy9 避雷名单（进哥拍板）：低分卡显式归因，只做排除不做推荐 ──
         if route == "/api/avoid":
             return self._send_json(resonance.avoid_payload(DB.conn))
+        # ── 2026-10-31 收割视角：局面状态 + 今日陷阱名单（连板开板=派发）──
+        if route == "/api/harvest":
+            return self._send_json(api_harvest())
         # ── 2026-10-16 量化板块（第三维信号源：因子全景/多因子选股/因子回测/菜谱预设/量化因子自我学习；查看器只读）──
         if route == "/api/quant":
             # 2026-10-29：读落盘缓存，绝不在请求线程现算（见 _heavy_cached_payload）
