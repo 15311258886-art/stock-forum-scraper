@@ -718,6 +718,27 @@ def _sec_oss(conn) -> dict:
         return {}
 
 
+def _sec_selection(conn) -> dict:
+    """选股方向（2026-10-30）：短线形态证伪 + 低波池。
+
+    与 _sec_oss 同类但更硬：这里不只推翻流行说法，还给出了「用户直觉本身
+    被数据推翻」的证据 —— 「长期横盘蓄势待爆发」在 2013-2026 实测 2 年 −0.6%、
+    胜率 35%，是所有底部形态里最差的一组；真正有效的是「一直低波」。
+    不写进上下文，模型会用「底部蓄势、等待突破」这套语言写出一篇看似专业的废话。
+    """
+    try:
+        import selection as SEL
+        txt = SEL.text_block(conn)
+        if not txt:
+            return {}
+        p = SEL.payload(conn)
+        return {"text": txt, "stats": p.get("stats") or {},
+                "asof": p.get("asof")}
+    except Exception:  # noqa: BLE001
+        logging.exception("_sec_selection 失败")
+        return {}
+
+
 def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
     """汇聚当日信息包。每个分区独立取数，单区失败不影响整体。"""
     ctx = {
@@ -734,6 +755,7 @@ def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
         "data_health": _sec_health(conn, date),
         "harvest": _sec_harvest(conn),
         "oss": _sec_oss(conn),
+        "selection": _sec_selection(conn),
     }
     return ctx
 
@@ -889,6 +911,10 @@ def _render_user(ctx: dict) -> str:
     os_ = ctx.get("oss") or {}
     if os_.get("text"):
         L.append("\n" + os_["text"])
+
+    se_ = ctx.get("selection") or {}
+    if se_.get("text"):
+        L.append("\n" + se_["text"])
 
     L.append("\n## 二、主线板块（按当日主力净流入排序）")
     for i, s in enumerate(ctx.get("mainlines") or [], 1):

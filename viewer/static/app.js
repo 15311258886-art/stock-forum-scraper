@@ -9198,6 +9198,8 @@ const HARVEST = { data: null, busy: false };
 // 2026-10-30：开源情报（GitHub 规则重测）。同样必须声明在 NAV 之前 ——
 // 深链 #overview/oss 会走同一条 TDZ 路径。
 const OSS = { data: null, busy: false };
+// 2026-10-30：选股方向（短线证伪 + 低波池）。同样必须在 NAV 之前声明。
+const SELECT = { data: null, busy: false };
 
 const NAV = [
   // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
@@ -9214,6 +9216,9 @@ const NAV = [
     { group: "当日信号" },
     // 2026-10-31 进哥需求：先看「局」，再选票。不预测点位，只识别阶段与必亏动作。
     { tab: "harvest", label: "大势研判" },
+    // 2026-10-30 进哥需求：短线（今天买明天卖）与中长期（底部持有）两个方向。
+    // 实测结果与直觉相反，面板如实呈现正反对照，不给安慰性结论。
+    { tab: "selection", label: "选股方向" },
     // 2026-10-30 进哥需求：GitHub 上的量化规则在我们的数据上重测。
     // 定位是「方法论校验」，不是又一个荐股源 —— 只回答"这个说法成立吗"。
     { tab: "oss", label: "开源情报" },
@@ -12995,6 +13000,10 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "oss") {
     loadOSS().catch((e) => reportLoadError("开源情报", e));
   }
+  // 选股方向（2026-10-30）：短线证伪 + 低波池，进入时按需加载
+  if (tab === "selection") {
+    loadSelection().catch((e) => reportLoadError("选股方向", e));
+  }
   // 避雷名单（2026-10-21 dy9）：低分卡归因显式面板，进入时按需加载
   if (tab === "avoid") {
     loadAvoid().catch((e) => reportLoadError("避雷名单", e));
@@ -15922,6 +15931,220 @@ function _ossExColor(v) {
 function _ossNum(v, d) {
   if (v === null || v === undefined || v === "" || !isFinite(parseFloat(v))) return "—";
   return Number(v).toFixed(d === undefined ? 2 : d);
+}
+
+function loadSelection(force) {
+  const box = $("#p-selection");
+  if (box && !SELECT.data) {
+    box.innerHTML = '<div class="pred-head"><div class="pred-title">选股方向 · 实测结论</div></div>'
+      + '<div class="empty">正在读取回测结果…</div>';
+  }
+  if (SELECT.data && !force) { renderSelection(); return Promise.resolve(SELECT.data); }
+  SELECT.busy = true;
+  return api("/api/selection" + (force ? "?t=" + Date.now() : ""))
+    .catch((e) => ({ ok: false, error: apiErrText(e), _err: true }))
+    .then((d) => { SELECT.data = d; SELECT.busy = false; renderSelection(); });
+}
+
+// 超额配色：负=红（策略失效）、正=绿。这是「策略质量」语义，不是涨跌语义，
+// 与开源情报面板保持同一套色彩语言，避免同一屏出现两套红绿含义。
+function _selEx(v) {
+  if (v === null || v === undefined || isNaN(v)) return "var(--muted,#6b7280)";
+  return v > 0 ? "#16a34a" : (v < 0 ? "#dc2626" : "var(--fg,#111)");
+}
+function _selN(v, d) {
+  if (v === null || v === undefined || v === "" || isNaN(v)) return "—";
+  return Number(v).toFixed(d === undefined ? 2 : d);
+}
+function _selPct(v, d) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return (Number(v) * 100).toFixed(d === undefined ? 1 : d) + "%";
+}
+function _selCard(label, text, color) {
+  return '<div style="flex:1 1 320px;border-left:3px solid ' + color + ';'
+    + 'background:var(--card,#fff);border-radius:6px;padding:10px 12px">'
+    + '<div style="font-size:var(--fs-2xs,10px);color:' + color + ';font-weight:600;'
+    + 'letter-spacing:.04em">' + _HE(label) + '</div>'
+    + '<div style="font-size:var(--fs-xs,11px);line-height:1.6;margin-top:4px;'
+    + 'color:var(--fg,#111)">' + _HE(text) + '</div></div>';
+}
+
+function renderSelection() {
+  const box = $("#p-selection");
+  if (!box) return;
+  const d = SELECT.data;
+  const head = '<div class="pred-head"><div class="pred-title">选股方向 · 实测结论</div>'
+    + '<div class="pred-sub">短线与中长期两个方向都在全量日线上跑过；结论与直觉不一致，如实呈现</div></div>';
+  if (!d || d._err || !d.ok) {
+    box.innerHTML = head + '<div class="empty">读取失败：'
+      + _HE((d && d.error) || "未知错误") + '</div>';
+    return;
+  }
+  const H = [head];
+  const vd = d.verdict || {};
+  H.push('<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px">');
+  H.push(_selCard("短线 T+1 的结论", vd.short || "—", "#dc2626"));
+  H.push(_selCard("中长期持有的结论", vd.hold || "—", "#16a34a"));
+  H.push('</div>');
+
+  // ① 短线：全部负超额
+  const shorts = (d.short || []).filter((x) => x.excess !== null && x.excess !== undefined);
+  if (shorts.length) {
+    H.push('<div style="font-size:var(--fs-sm,12px);font-weight:600;margin:18px 0 4px">'
+      + '① 短线（今天买明天卖）：所有形态都是负超额</div>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'line-height:1.7;margin-bottom:8px">'
+      + '口径：d 日收盘出信号 → d+1 开盘买入 → d+2 开盘卖出（T+1 制度下限）；'
+      + '超额 = 个股收益 − 同日全市场等权；d+1 开盘即涨停判为买不进，已剔除。'
+      + '样本 5,573 只、2,505 个交易日。负超额意味着：这样买还不如当天随便买一篮子。</div>');
+    H.push('<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs,11px)">');
+    H.push('<tr style="color:var(--muted,#6b7280);text-align:left">'
+      + '<th style="padding:6px 8px;font-weight:500">形态</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">样本数</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">超额</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">t 值</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">正超额日占比</th></tr>');
+    shorts.forEach((x) => {
+      H.push('<tr style="border-bottom:1px solid var(--line,#e5e7eb)">'
+        + '<td style="padding:7px 8px">' + _HE(x.title) + '</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _HE(x.n) + '</td>'
+        + '<td style="padding:7px 8px;text-align:right;font-weight:600;color:'
+        + _selEx(x.excess) + '">' + (x.excess > 0 ? "+" : "") + _selN(x.excess, 2) + '%</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:' + _selEx(x.excess) + '">'
+        + _selN(x.t, 2) + '</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _selN(x.win, 1) + '%</td></tr>');
+    });
+    H.push('</table>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'margin-top:6px">t 值在 −8 到 −17 之间，不是运气问题。'
+      + '「正超额日占比」= 按日聚合后，该形态跑赢当日全市场的交易日占比，'
+      + '不是个股赚钱比例。这条数据只能用来判断「不该买」，反过来当买入信号是错的。</div>');
+  }
+
+  // ② 中长期：正反对照
+  const hold = d.hold || [];
+  if (hold.length) {
+    H.push('<div style="font-size:var(--fs-sm,12px);font-weight:600;margin:20px 0 4px">'
+      + '② 中长期（持有约 2 年）：正反对照</div>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'line-height:1.7;margin-bottom:8px">'
+      + '同样口径、同一批样本，只改「底部形态」的定义。'
+      + '「曾活跃后沉寂」就是平时说的「底部横盘蓄势待爆发」——它在四组里最差。</div>');
+    H.push('<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs,11px)">');
+    H.push('<tr style="color:var(--muted,#6b7280);text-align:left">'
+      + '<th style="padding:6px 8px;font-weight:500">形态</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">样本数</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">2年期末</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">超额</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">胜率</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">最大回撤</th></tr>');
+    hold.forEach((x) => {
+      const trap = x.key === "trap";
+      const base = x.key === "hold_all";
+      const bg = trap ? "background:rgba(220,38,38,.06);" : "";
+      H.push('<tr style="border-bottom:1px solid var(--line,#e5e7eb);' + bg + '">'
+        + '<td style="padding:7px 8px;' + (trap ? "font-weight:600;" : "")
+        + (base ? "color:var(--muted,#6b7280);" : "") + '">'
+        + _HE(x.title) + (trap ? ' <span style="color:#dc2626;font-size:var(--fs-2xs,10px)">← 最差</span>' : "")
+        + '</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _HE(x.n) + '</td>'
+        + '<td style="padding:7px 8px;text-align:right;font-weight:600;color:'
+        + ((x.final_ret || 0) >= 0 ? "#16a34a" : "#dc2626") + '">'
+        + ((x.final_ret || 0) > 0 ? "+" : "") + _selN(x.final_ret, 1) + '%</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:' + _selEx(x.excess) + '">'
+        + ((x.excess || 0) > 0 ? "+" : "") + _selN(x.excess, 1) + '%</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _selN(x.win, 1) + '%</td>'
+        + '<td style="padding:7px 8px;text-align:right;color:#dc2626">'
+        + _selN(x.mdd, 1) + '%</td></tr>');
+    });
+    H.push('</table>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'margin-top:6px">注意：低波组赢在回撤和胜率，不是涨幅。'
+      + '它的 2 年「曾涨≥100%」概率反而低于全市场（19.3% vs 23.2%）——'
+      + '想要暴涨的形态，技术面上没有。</div>');
+  }
+
+  // ③ 今日低波池
+  const st = d.stats || {};
+  const pool = d.pool || [];
+  H.push('<div style="font-size:var(--fs-sm,12px);font-weight:600;margin:20px 0 4px">'
+    + '③ 今日低波池（' + _HE(st.pool || 0) + ' 只）</div>');
+  if (!pool.length) {
+    H.push('<div class="empty">今日池子为空（可能今日日线尚未补齐）</div>');
+  } else {
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'line-height:1.7;margin-bottom:8px">'
+      + '入池条件：前 250 日与近 250 日振幅都 ≤45%（即「一直低波」），'
+      + '成交额 ≥1000 万，已剔 ST 与北交所。A 级 ≤25%、B 级 ≤32%、C 级 ≤45%。'
+      + '这是低回撤候选池，不是买入信号，也不预测时点。</div>');
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:#a16207;'
+      + 'line-height:1.7;margin-bottom:8px">'
+      + '池子里会大量出现银行、公用事业、高速铁路——这不是筛选出错，'
+      + '而是「一直低波」这个条件的必然结果：它们正是历史上胜率最高、回撤最小的那一类。'
+      + '想要弹性，请自己往 B / C 级看，但胜率与回撤也会同步变差。</div>');
+    H.push('<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;font-size:var(--fs-2xs,10px)">'
+      + '<span style="color:#16a34a">A 级 ' + _HE(st.A || 0) + ' 只</span>'
+      + '<span style="color:#2563eb">B 级 ' + _HE(st.B || 0) + ' 只</span>'
+      + '<span style="color:var(--muted,#6b7280)">C 级 ' + _HE(st.C || 0) + ' 只</span>'
+      + '<span style="color:var(--muted,#6b7280)">· 数据日 ' + _HE(d.asof || "—") + '</span></div>');
+    H.push('<table style="width:100%;border-collapse:collapse;font-size:var(--fs-xs,11px)">');
+    H.push('<tr style="color:var(--muted,#6b7280);text-align:left">'
+      + '<th style="padding:6px 8px;font-weight:500">股票</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:center">级</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">250日振幅</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">区间位置</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">近1年</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">成交额</th>'
+      + '<th style="padding:6px 8px;font-weight:500;text-align:right">ROE</th></tr>');
+    pool.slice(0, 40).forEach((x) => {
+      const tc = x.tier === "A" ? "#16a34a" : (x.tier === "B" ? "#2563eb" : "#94a3b8");
+      H.push('<tr style="border-bottom:1px solid var(--line,#e5e7eb)">'
+        + '<td style="padding:6px 8px"><b>' + _HE(x.code) + '</b> '
+        + '<span style="color:var(--muted,#6b7280)">' + _HE(x.name) + '</span></td>'
+        + '<td style="padding:6px 8px;text-align:center;font-weight:600;color:' + tc + '">'
+        + _HE(x.tier) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right">' + _selPct(x.amp250, 1) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _selPct(x.pos250, 0) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:'
+        + ((x.chg_1y || 0) >= 0 ? "#dc2626" : "#16a34a") + '">'
+        + ((x.chg_1y || 0) > 0 ? "+" : "") + _selPct(x.chg_1y, 1) + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + _selN((x.amt || 0) / 1e8, 2) + '亿</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--muted,#6b7280)">'
+        + (x.roe === null || x.roe === undefined ? "—" : _selN(x.roe, 1)) + '</td></tr>');
+    });
+    H.push('</table>');
+    if (pool.length > 40) {
+      H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+        + 'margin-top:6px">仅显示前 40 只（按振幅由窄到宽），共 ' + pool.length + ' 只</div>');
+    }
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);margin-top:6px">'
+      + '近1年涨跌幅按 A 股习惯：红=上涨、绿=下跌。'
+      + 'ROE 取自单期快照，覆盖不全，显示「—」表示该股没有数据，不是亏损。</div>');
+  }
+
+  // ④ 口径边界
+  if ((d.caveats || []).length) {
+    H.push('<div style="margin-top:18px;padding:10px 12px;border:1px solid var(--line,#e5e7eb);'
+      + 'border-radius:6px;background:rgba(234,179,8,.06)">'
+      + '<div style="font-size:var(--fs-2xs,10px);font-weight:600;color:#a16207;'
+      + 'margin-bottom:5px">口径边界（结论必须带着这些一起读）</div>');
+    d.caveats.forEach((c) => {
+      H.push('<div style="font-size:var(--fs-xs,11px);color:#57534e;'
+        + 'line-height:1.8">· ' + _HE(c) + '</div>');
+    });
+    H.push('</div>');
+  }
+  if (d.tested_at) {
+    H.push('<div style="font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);'
+      + 'margin-top:10px">回测执行时间 ' + _HE(d.tested_at) + '　·　池子每日 16:20 更新</div>');
+  }
+  box.innerHTML = H.join("");
 }
 
 function loadOSS(force) {

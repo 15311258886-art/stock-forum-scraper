@@ -155,6 +155,7 @@ import moneyflow  # noqa: E402
 import board_flow  # noqa: E402  2026-09-28 板块资金流：多源 + 采样累积（替代单一东财依赖）
 import harvest as HARVEST  # noqa: E402  2026-10-31 收割视角引擎（涨停/炸板/连板 → 局与陷阱名单）
 import oss_mine as OSS  # noqa: E402  2026-10-30 开源情报：GitHub 规则在我们的数据上重测（只抽规则不抄代码）
+import selection as SELECTION  # noqa: E402  2026-10-30 选股方向：短线形态证伪 + 低波池
 import board_flow_range  # noqa: E402  2026-10-05 板块资金流「日期区间」聚合（累计流入可指定起止日期）
 from viewer import predictor  # noqa: E402  —— 每日预测：六路信号合成 + 复盘自学习闭环（2026-09-28 新增）
 import pillars  # noqa: E402  —— 四支柱每日预测引擎 A/B/C/D（2026-10-15 新增；仅后端定时任务跑，查看器只读）
@@ -4220,6 +4221,18 @@ def api_oss() -> dict:
     except Exception:  # noqa: BLE001
         logging.exception("api_oss 失败")
         return {"ok": False, "available": False, "error": "开源情报数据不可用"}
+
+
+def api_selection() -> dict:
+    """选股方向（2026-10-30）：短线形态证伪 + 低波池。
+
+    只读落表结果。池子日更（7 秒），证据回测月度（143 秒）。
+    """
+    try:
+        return SELECTION.payload(DB.conn)
+    except Exception:  # noqa: BLE001
+        logging.exception("api_selection 失败")
+        return {"ok": False, "available": False, "error": "选股方向数据不可用"}
 
 
 def api_avoid_flags(codes: str = "", limit: int = 100) -> dict:
@@ -10089,6 +10102,7 @@ _JOB_TIMEOUT = {
     "review_score_daily": 900,   # 复盘回填 + 假说回测：扫全市场行情算 T+5/T+10，实测 <60s
     "harvest_daily": 1200,       # 收割视角：增量重算 400 交易日，实测 40~158s，留足余量防库锁
     "oss_daily": 2400,           # 开源情报：首轮 11 条规则全测 260s + 长样本复核 37s，留余量防库锁
+    "selection_daily": 1800,     # 选股方向：池子 7s；证据回测 143s（仅过期时跑）
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
@@ -10527,6 +10541,15 @@ def _oss_daily_maybe() -> None:
     _daily_job("oss_daily", (16, 0))
 
 
+def _selection_daily_maybe() -> None:
+    """选股方向日更（2026-10-30）：低波池 7s；证据回测仅在超过 30 天未测时跑 143s。
+
+    必须排在 kline_daily / harvest_daily 之后 —— 池子用的是当日收盘价，
+    K 线没补完就会把昨天的形态标成今天。
+    """
+    _daily_job("selection_daily", (16, 20))
+
+
 def _lift_daily_maybe() -> None:
     """限售解禁事件日更（2026-10-30）。排在 06:10 —— 解禁日提示要在开盘前就位。
 
@@ -10654,6 +10677,7 @@ def _sched_tasks() -> list:
         ("regime_daily", _regime_daily_maybe),              # 2026-10-29：市场状态（依赖 indicators_daily 当日收盘，其后触发）
         ("harvest_daily", _harvest_daily_maybe),            # 2026-10-31：收割视角（局面+陷阱，15:40，K线之后）
         ("oss_daily", _oss_daily_maybe),                    # 2026-10-30：开源情报（GitHub 规则重测，16:00，指标+K线就绪后）
+        ("selection_daily", _selection_daily_maybe),        # 2026-10-30：选股方向（低波池 16:20，K线+收割之后）
         ("lift_daily", _lift_daily_maybe),                  # 2026-10-30：限售解禁事件日更（06:10前，开盘前就位）
         ("ann_daily", _ann_daily_maybe),                    # 2026-10-30：全市场公告日更（06:20，覆盖率 3%→全市场）
         ("review_score_daily", _review_score_daily_maybe),   # 2026-10-31：复盘回填+假说回测（18:00，收盘后）
@@ -11703,6 +11727,9 @@ class Handler(BaseHTTPRequestHandler):
         # ── 2026-10-30 开源情报：GitHub 规则重测（只抽规则不抄代码）──
         if route == "/api/oss":
             return self._send_json(api_oss())
+        # ── 2026-10-30 选股方向：短线形态证伪 + 低波池（含正反对照）──
+        if route == "/api/selection":
+            return self._send_json(api_selection())
         # ── 2026-10-16 量化板块（第三维信号源：因子全景/多因子选股/因子回测/菜谱预设/量化因子自我学习；查看器只读）──
         if route == "/api/quant":
             # 2026-10-29：读落盘缓存，绝不在请求线程现算（见 _heavy_cached_payload）

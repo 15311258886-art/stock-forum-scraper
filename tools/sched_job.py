@@ -289,6 +289,43 @@ def _oss_daily():
             "elapsed": r.get("elapsed")}
 
 
+def _selection_daily():
+    """选股方向日更（2026-10-30）：低波池每日重算，证据回测 30 天一次。
+
+    池子只读最近 600 根日线（约 334 万行），实测 7.7s；
+    证据回测扫 2013 年以来全量日线，实测 143s —— 所以只在超期时跑，
+    否则每天白烧 2 分钟 SQLite IO。
+
+    两条结论都来自本引擎实测，不接受外部说法：
+      · 短线 T+1：超跌 / 涨停 / 放量突破全部负超额 → 只做风控，不做买入信号
+      · 中长期：一直低波（前后两段振幅都 ≤45%）2 年 +24.7%、胜率 65.9%；
+        「曾活跃后沉寂」2 年 −0.6%、胜率 35%，是最差的一组
+    """
+    from viewer.db import Database
+    import viewer.selection as SEL
+    db = Database()
+    try:
+        p = SEL.refresh_pool(db.conn)
+        stale = True
+        try:
+            row = db.conn.execute(
+                "SELECT v FROM sel_meta WHERE k='tested_at'").fetchone()
+            if row and row[0]:
+                import datetime as _dt
+                t = _dt.datetime.strptime(row[0][:10], "%Y-%m-%d")
+                stale = (_dt.datetime.now() - t).days >= 30
+        except Exception:  # noqa: BLE001
+            stale = True
+        e = SEL.refresh_evidence(db.conn) if stale else {"ok": True, "skipped": True}
+    finally:
+        try:
+            db.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return {"ok": bool(p.get("ok")), "pool": p.get("n"), "tier": p.get("tier"),
+            "evidence": e, "elapsed": p.get("elapsed")}
+
+
 def _signal_backtest():
     """信号 alpha 回测（2026-10-27 C：季度重算，收敛进主工作流）。
     依赖 stock_indicators_daily（~135万行），落 signal_backtest。
@@ -474,6 +511,7 @@ JOBS = {
     "plate_members": _plate_members,            # 2026-10-27 C3：东财官方板块成分（本机出网，沙箱屏蔽）
     "harvest_daily": _harvest_daily,           # 2026-10-31：收割视角（局面+陷阱名单，依赖 kline_daily）
     "oss_daily": _oss_daily,                   # 2026-10-30：开源情报（GitHub 规则重测，只抽规则不抄代码）
+    "selection_daily": _selection_daily,       # 2026-10-30：选股方向（低波池日更 + 证据月度回测）
 }
 
 
