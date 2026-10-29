@@ -436,12 +436,27 @@ def evaluate(conn, predicate: str, horizon: int = 5, lookback: int = 150,
                 "excess": None, "t": None, "win": None}
 
     dv = [statistics.fmean(v) for v in per_day.values() if v]
+    ex_all = statistics.fmean(allv)
+    ex_day = statistics.fmean(dv)
+    t_day = _tstat(dv)
+    # 口径冲突检测（2026-10-31 新增，长样本才暴露）：t 值是用**按日聚合后的均值序列**
+    # 算的，而原来的 excess 用的是**逐样本均值**。样本在少数几天高度聚集时，两者会分叉
+    # 甚至符号相反——实测「当日跌 7%」在 2016 起的长样本里逐样本均值 +0.89%（被 2024-02
+    # 那种暴跌后暴力反弹的日子拉正），按日均值却是负的、t=−11.7。此时只报一个数就是误导。
+    # 约定：sign_conflict=True 时，excess 不可用，一律看 excess_day / t。
+    conflict = (ex_all * ex_day < 0)
+    note = ""
+    if conflict:
+        note = "口径冲突：逐样本均值 %+.2f%% 与按日均值 %+.2f%% 符号相反，以按日均值为准" % (
+            ex_all, ex_day)
     return {
         "ok": True, "n": len(allv), "days": len(dv),
-        "excess": round(statistics.fmean(allv), 3),
-        "t": round(_tstat(dv), 2) if _tstat(dv) is not None else None,
+        "excess": round(ex_all, 3),
+        "excess_day": round(ex_day, 3),
+        "t": round(t_day, 2) if t_day is not None else None,
         "win": round(100.0 * sum(1 for v in allv if v > 0) / len(allv), 1),
-        "note": "",
+        "sign_conflict": conflict,
+        "note": note,
     }
 
 

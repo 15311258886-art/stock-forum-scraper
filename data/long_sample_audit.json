@@ -1,0 +1,284 @@
+{
+  "asof": "2026-10-30 07:32",
+  "start": "2016-01-01",
+  "rows": [
+    {
+      "key": "lhb_turnover",
+      "name": "龙虎榜高换手",
+      "group": "avoid",
+      "predicate": "lhb_hit == 1 and turnover >= 15",
+      "horizon": 5,
+      "old": {
+        "n": 1873,
+        "days": 19,
+        "excess": -6.12,
+        "t": -9.05,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 2007,
+        "days": 20,
+        "excess": -5.845,
+        "excess_day": -5.601,
+        "t": -8.88,
+        "win": 20.0,
+        "conflict": false,
+        "note": ""
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "vol_extreme",
+      "name": "极端放量",
+      "group": "avoid",
+      "predicate": "volume_ratio >= 3",
+      "horizon": 5,
+      "old": {
+        "n": 784,
+        "days": 138,
+        "excess": -1.81,
+        "t": -2.59,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 21599,
+        "days": 2590,
+        "excess": -0.744,
+        "excess_day": -0.842,
+        "t": -5.59,
+        "win": 38.6,
+        "conflict": false,
+        "note": ""
+      },
+      "verdict": "weakened"
+    },
+    {
+      "key": "vol_heavy",
+      "name": "放量",
+      "group": "avoid",
+      "predicate": "volume_ratio >= 2",
+      "horizon": 5,
+      "old": {
+        "n": 12171,
+        "days": 144,
+        "excess": -0.89,
+        "t": -4.13,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 238573,
+        "days": 2621,
+        "excess": -0.236,
+        "excess_day": -0.183,
+        "t": -2.55,
+        "win": 42.2,
+        "conflict": false,
+        "note": ""
+      },
+      "verdict": "weakened"
+    },
+    {
+      "key": "crash_big",
+      "name": "大跌",
+      "group": "avoid",
+      "predicate": "ret1 <= -7",
+      "horizon": 5,
+      "old": {
+        "n": 17649,
+        "days": 143,
+        "excess": -1.15,
+        "t": -2.99,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 171447,
+        "days": 2569,
+        "excess": 0.888,
+        "excess_day": -1.475,
+        "t": -11.71,
+        "win": 51.3,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.89% 与按日均值 -1.48% 符号相反，以按日均值为准"
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "crash_mid",
+      "name": "当日下跌",
+      "group": "avoid",
+      "predicate": "ret1 <= -5",
+      "horizon": 5,
+      "old": {
+        "n": 42783,
+        "days": 143,
+        "excess": -0.8,
+        "t": -2.56,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 393337,
+        "days": 2614,
+        "excess": 0.578,
+        "excess_day": -0.947,
+        "t": -9.78,
+        "win": 50.4,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.58% 与按日均值 -0.95% 符号相反，以按日均值为准"
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "macd_dead",
+      "name": "MACD死叉",
+      "group": "avoid",
+      "predicate": "macd_cross_down == 1",
+      "horizon": 5,
+      "old": {
+        "n": 29344,
+        "days": 143,
+        "excess": -0.51,
+        "t": -2.01,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 400543,
+        "days": 2617,
+        "excess": 0.145,
+        "excess_day": -0.077,
+        "t": -1.09,
+        "win": 47.9,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.14% 与按日均值 -0.08% 符号相反，以按日均值为准"
+      },
+      "verdict": "weakened"
+    },
+    {
+      "key": "vol_down",
+      "name": "放量下跌",
+      "group": "avoid",
+      "predicate": "volume_ratio >= 1.8 and ret1 <= -3",
+      "horizon": 5,
+      "old": {
+        "n": 2691,
+        "days": 143,
+        "excess": 0.01,
+        "t": -1.73,
+        "status": "refuted"
+      },
+      "long": {
+        "ok": true,
+        "n": 47948,
+        "days": 2600,
+        "excess": 0.125,
+        "excess_day": -0.564,
+        "t": -5.36,
+        "win": 47.8,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.13% 与按日均值 -0.56% 符号相反，以按日均值为准"
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "shrink_down",
+      "name": "缩量下跌",
+      "group": "avoid",
+      "predicate": "volume_ratio <= 0.6 and ret1 < 0",
+      "horizon": 5,
+      "old": {
+        "n": 18638,
+        "days": 143,
+        "excess": -0.24,
+        "t": -1.97,
+        "status": "refuted"
+      },
+      "long": {
+        "ok": true,
+        "n": 404803,
+        "days": 2609,
+        "excess": 0.079,
+        "excess_day": -0.212,
+        "t": -3.03,
+        "win": 47.0,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.08% 与按日均值 -0.21% 符号相反，以按日均值为准"
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "two_day_drop",
+      "name": "两日累跌",
+      "group": "avoid",
+      "predicate": "ret2 <= -6",
+      "horizon": 5,
+      "old": {
+        "n": 62108,
+        "days": 142,
+        "excess": -0.36,
+        "t": -1.75,
+        "status": "refuted"
+      },
+      "long": {
+        "ok": true,
+        "n": 572157,
+        "days": 2615,
+        "excess": 0.787,
+        "excess_day": -0.446,
+        "t": -5.08,
+        "win": 51.6,
+        "conflict": true,
+        "note": "口径冲突：逐样本均值 +0.79% 与按日均值 -0.45% 符号相反，以按日均值为准"
+      },
+      "verdict": "consistent"
+    },
+    {
+      "key": "ann_reduce",
+      "name": "股东减持",
+      "group": "avoid",
+      "predicate": "ann_neg == 1",
+      "horizon": 5,
+      "old": {
+        "n": 1253,
+        "days": 129,
+        "excess": -1.83,
+        "t": -4.62,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 1264,
+        "days": 130,
+        "excess": -1.81,
+        "excess_day": -1.794,
+        "t": -4.65,
+        "win": 35.8,
+        "conflict": false,
+        "note": ""
+      },
+      "verdict": "consistent"
+    }
+  ],
+  "errors": [
+    [
+      "lift_first_holder",
+      "probe 里没有 predicate，跳过"
+    ],
+    [
+      "forum_hold",
+      "probe 里没有 predicate，跳过"
+    ],
+    [
+      "forum_bullish",
+      "probe 里没有 predicate，跳过"
+    ],
+    [
+      "selfpick_a",
+      "probe 里没有 predicate，跳过"
+    ]
+  ]
+}
