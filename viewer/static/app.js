@@ -9195,6 +9195,9 @@ function openWatchGroupMgrModal() {
 // selectNav 会在 app.js 顶层语句执行途中就调用 loadHarvest，声明放后面会直接 TDZ
 // （实测报 "Cannot access 'HARVEST' before initialization"）。
 const HARVEST = { data: null, busy: false };
+// 2026-10-30：开源情报（GitHub 规则重测）。同样必须声明在 NAV 之前 ——
+// 深链 #overview/oss 会走同一条 TDZ 路径。
+const OSS = { data: null, busy: false };
 
 const NAV = [
   // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
@@ -9211,6 +9214,9 @@ const NAV = [
     { group: "当日信号" },
     // 2026-10-31 进哥需求：先看「局」，再选票。不预测点位，只识别阶段与必亏动作。
     { tab: "harvest", label: "大势研判" },
+    // 2026-10-30 进哥需求：GitHub 上的量化规则在我们的数据上重测。
+    // 定位是「方法论校验」，不是又一个荐股源 —— 只回答"这个说法成立吗"。
+    { tab: "oss", label: "开源情报" },
     { tab: "prediction", label: "每日预测" },
     { tab: "resonance", label: "多源共振" },
     // 2026-10-21 dy9 进哥拍板：低分卡归因做成一级功能（只做排除，不做推荐）
@@ -12985,6 +12991,10 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "harvest") {
     loadHarvest().catch((e) => reportLoadError("大势研判", e));
   }
+  // 开源情报（2026-10-30）：GitHub 规则重测结果，进入时按需加载
+  if (tab === "oss") {
+    loadOSS().catch((e) => reportLoadError("开源情报", e));
+  }
   // 避雷名单（2026-10-21 dy9）：低分卡归因显式面板，进入时按需加载
   if (tab === "avoid") {
     loadAvoid().catch((e) => reportLoadError("避雷名单", e));
@@ -15885,6 +15895,189 @@ const _HPHASE_COLOR = {
   "杀跌": "#dc2626", "派发": "#dc2626", "过热": "#f59e0b",
   "健康": "#16a34a", "拉锯": "#64748b",
 };
+
+// ---------------------------------------------------------------- 开源情报（2026-10-30）
+//
+// 这个面板回答的不是「买什么」，而是「一个听起来很有道理的说法，在我们自己的
+// 数据上到底成不成立」。所以排布顺序是：先说样本边界 → 再说结论 → 最后才是仓库。
+// 全篇不出现「推荐」：这里只有证伪，没有推荐。
+const _OSS_STATUS = {
+  active: ["有效", "#16a34a"],
+  refuted: ["已推翻", "#dc2626"],
+  unstable: ["不稳定", "#f59e0b"],
+  marginal: ["显著但无利", "#64748b"],
+  unsupported: ["未测出", "#94a3b8"],
+  invalid: ["样本不足", "#94a3b8"],
+};
+
+// 超额着色走涨跌语义（正=红、负=绿，中国习惯），与状态标签的「红=危险」分开，
+// 避免同一个颜色在两张表里表示两件事。
+function _ossExColor(v) {
+  const n = parseFloat(v);
+  if (!isFinite(n) || n === 0) return "var(--fg,#111)";
+  return n > 0 ? "#dc2626" : "#16a34a";
+}
+
+// 统一小数位：同一列里 -1 / -2.47 / +0.036 混排会显得脏，且容易被读成不同精度。
+function _ossNum(v, d) {
+  if (v === null || v === undefined || v === "" || !isFinite(parseFloat(v))) return "—";
+  return Number(v).toFixed(d === undefined ? 2 : d);
+}
+
+function loadOSS(force) {
+  const box = $("#p-oss");
+  if (box && !OSS.data) {
+    box.innerHTML = '<div class="pred-head"><div class="pred-title">开源情报 · 规则校验</div></div>'
+      + '<div class="empty">正在读取回测结果…</div>';
+  }
+  if (OSS.data && !force) { renderOSS(); return Promise.resolve(OSS.data); }
+  OSS.busy = true;
+  return api("/api/oss" + (force ? "?t=" + Date.now() : ""))
+    .catch((e) => ({ ok: false, error: apiErrText(e), _err: true }))
+    .then((d) => { OSS.data = d; OSS.busy = false; renderOSS(); });
+}
+
+function renderOSS() {
+  const box = $("#p-oss");
+  if (!box) return;
+  const d = OSS.data;
+  const head = '<div class="pred-head"><div class="pred-title">开源情报 · 规则校验</div>'
+    + '<div class="pred-sub">GitHub 上的量化说法 → 本系统严格口径重测（只抽规则，不抄代码）</div></div>';
+  if (!d) { box.innerHTML = head + '<div class="empty">加载中…</div>'; return; }
+  if (!d.ok) { box.innerHTML = head + '<div class="empty">' + _HE(d.error || "数据不可用") + '</div>'; return; }
+
+  if (!d.available) {
+    box.innerHTML = head + '<div class="empty">' + _HE(d.reason || "尚未跑过回测") + '</div>';
+    return;
+  }
+
+  const st = d.stats || {}, sp = d.data_span || {};
+  const H = [];
+
+  // ① 样本边界：必须放在结论前面。缺少这一句，下面的数字就会被当成长期结论。
+  if (sp.days) {
+    H.push('<div style="border-left:3px solid #f59e0b;background:rgba(245,158,11,.08);'
+      + 'padding:9px 12px;border-radius:6px;margin-bottom:12px;font-size:var(--fs-xs,11px);'
+      + 'color:var(--muted,#6b7280);line-height:1.6">'
+      + '主结果样本：<b style="color:var(--fg,#111)">' + _HE(sp.start) + ' ~ ' + _HE(sp.end) + '</b>'
+      + '（' + _HE(sp.days) + ' 个交易日，约 14 个月）。指标表只有这么长，'
+      + '<b style="color:var(--fg,#111)">未覆盖完整牛熊</b>；'
+      + '标注「长样本」的两条另用 2020 年以来全量日线复核过。</div>');
+  }
+
+  // ② 规模
+  const cards = [
+    ["候选仓库", st.repos || 0, "var(--fg,#111)"],
+    ["已测规则", st.rules || 0, "var(--fg,#111)"],
+    // 0 个有效不能用绿色（绿色读作「良好」），这里是中性事实
+    ["有效", st.active || 0, (st.active || 0) > 0 ? "#16a34a" : "#94a3b8"],
+    ["已推翻", st.refuted || 0, (st.refuted || 0) > 0 ? "#dc2626" : "var(--fg,#111)"],
+  ];
+  H.push('<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">');
+  cards.forEach(([k, v, c]) => {
+    H.push('<div style="flex:1;min-width:105px;border:1px solid var(--line,#e5e7eb);border-radius:10px;'
+      + 'padding:11px 13px;background:var(--panel,#fff)">'
+      + '<div style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280);margin-bottom:5px">' + k + '</div>'
+      + '<div style="font-size:var(--fs-xl,22px);font-weight:700;color:' + c + ';line-height:1.1">' + v + '</div>'
+      + '</div>');
+  });
+  H.push('</div>');
+
+  // 「有效 0 条」必须解释，否则会被读成「系统坏了」。
+  // 事实相反：11 条开源流行说法里 0 条能进规则，这个零就是本轮最有价值的结论。
+  if ((st.rules || 0) > 0 && (st.active || 0) === 0) {
+    H.push('<div style="font-size:var(--fs-xs,11px);color:var(--muted,#6b7280);'
+      + 'margin:-4px 0 14px;line-height:1.7">'
+      + (st.rules || 0) + ' 条里 0 条有效 —— <b style="color:var(--fg,#111)">不是没跑通</b>，'
+      + '而是这些流行说法在本市场、本口径下确实不成立，或幅度不够覆盖交易成本。'
+      + '这个「零」本身就是结论：市面上讲得最响的那套技术面理由，多数经不起可执行口径的检验。</div>');
+  }
+  const hl = d.headline;
+  if (hl) {
+    H.push('<div style="border:1px solid rgba(220,38,38,.35);background:rgba(220,38,38,.06);'
+      + 'border-radius:10px;padding:13px 15px;margin-bottom:14px">'
+      + '<div style="font-size:var(--fs-xs,11px);color:#dc2626;font-weight:600;margin-bottom:6px">'
+      + '最值得注意的一条（与流行说法相反）</div>'
+      + '<div style="font-size:var(--fs-md,15px);font-weight:600;margin-bottom:5px">'
+      + _HE(hl.title) + ' · ' + _HE(hl.repo || '开源') + '</div>'
+      + '<div style="font-size:var(--fs-sm,12px);color:var(--muted,#6b7280);line-height:1.7">'
+      + _HE(hl.rule) + ' → T+5 超额 <b style="color:' + _ossExColor(hl.excess) + '">'
+      + (hl.excess > 0 ? '+' : '') + _ossNum(hl.excess) + '%</b>，t=' + _ossNum(hl.t) + '</div></div>');
+  }
+
+  // ④ 规则表
+  H.push('<div style="font-size:var(--fs-sm,12px);font-weight:600;margin:0 0 8px">全部规则（按状态排序）</div>');
+  H.push('<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;'
+    + 'font-size:var(--fs-sm,12px)"><thead><tr style="color:var(--muted,#6b7280);'
+    + 'font-weight:400;border-bottom:1px solid var(--line,#e5e7eb)">'
+    + '<th style="text-align:left;padding:7px 8px">规则</th>'
+    + '<th style="text-align:left;padding:7px 8px">来源</th>'
+    + '<th style="text-align:right;padding:7px 8px">T+5 超额</th>'
+    + '<th style="text-align:right;padding:7px 8px">t</th>'
+    + '<th style="text-align:right;padding:7px 8px">长样本</th>'
+    + '<th style="text-align:center;padding:7px 8px">状态</th></tr></thead><tbody>');
+
+  (d.rules || []).forEach((r) => {
+    const sm = _OSS_STATUS[r.status] || ["未知", "#94a3b8"];
+    const cross = (r.cross_days && r.cross_excess !== null && r.cross_excess !== undefined)
+      ? ('<span style="color:' + _ossExColor(r.cross_excess) + '">'
+        + (r.cross_excess > 0 ? '+' : '') + _ossNum(r.cross_excess) + '%</span>'
+        + '<span style="color:var(--muted,#6b7280);font-size:var(--fs-2xs,10px)"> / t=' + _ossNum(r.cross_t)
+        + (r.cross_same ? ' 同向' : ' <b style="color:#dc2626">反向</b>') + '</span>')
+      : '<span style="color:var(--muted,#6b7280)">—</span>';
+    H.push('<tr style="border-bottom:1px solid var(--line,#e5e7eb)">'
+      + '<td style="padding:8px;line-height:1.5"><div style="font-weight:600">' + _HE(r.title) + '</div>'
+      + '<div style="color:var(--muted,#6b7280);font-size:var(--fs-2xs,10px)">'
+      + _HE(r.predicate) + ' · n=' + _HE(r.n) + '/' + _HE(r.days) + '日</div></td>'
+      + '<td style="padding:8px;color:var(--muted,#6b7280);font-size:var(--fs-2xs,10px)">'
+      + _HE(r.repo || '开源') + '</td>'
+      + '<td style="padding:8px;text-align:right;font-weight:600;color:' + _ossExColor(r.excess) + '">'
+      + (r.excess > 0 ? '+' : '') + _ossNum(r.excess) + '%</td>'
+      + '<td style="padding:8px;text-align:right">' + _ossNum(r.t) + '</td>'
+      + '<td style="padding:8px;text-align:right">' + cross + '</td>'
+      + '<td style="padding:8px;text-align:center"><span style="color:' + sm[1]
+      + ';border:1px solid ' + sm[1] + '33;border-radius:20px;padding:2px 9px;white-space:nowrap;'
+      + 'font-size:var(--fs-2xs,10px)">' + sm[0] + '</span></td></tr>');
+  });
+  H.push('</tbody></table></div>');
+
+  // ⑤ 仓库清单（发现留痕，避免同一个仓库被反复挖）
+  //   只展示 A/B 两类：C 类是明确不采用的（海外标的、纯数据源），列出来只是噪音。
+  const repos = (d.repos || []).filter((x) => x.bucket === "A" || x.bucket === "B")
+    .sort((a, b) => ((a.bucket === "A" ? 0 : 1) - (b.bucket === "A" ? 0 : 1))
+      || ((b.stars || 0) - (a.stars || 0)));
+  const nC = (d.repos || []).filter((x) => x.bucket === "C").length;
+  const nQ = (d.repos || []).filter((x) => !x.bucket || x.bucket === "?").length;
+  if (repos.length) {
+    H.push('<div style="font-size:var(--fs-sm,12px);font-weight:600;margin:16px 0 8px">'
+      + '已挖仓库（A=规则可回测 · B=结构可借鉴）'
+      + '<span style="font-weight:400;color:var(--muted,#6b7280)">　共 ' + (d.stats.repos || 0)
+      + ' 个候选，' + (d.stats.active || 0) + ' 条规则有效</span></div>');
+    H.push('<div style="display:flex;flex-wrap:wrap;gap:7px">');
+    repos.forEach((x) => {
+      const bc = x.bucket === "A" ? "#16a34a" : "#64748b";
+      H.push('<span title="' + _HE(x.why || x.descr || '') + '" style="border:1px solid var(--line,#e5e7eb);'
+        + 'border-radius:6px;padding:4px 9px;font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280)">'
+        + '<b style="color:' + bc + '">' + _HE(x.bucket) + '</b> ' + _HE(x.full_name)
+        + ' <span style="color:#94a3b8">★' + _HE(x.stars) + '</span></span>');
+    });
+    H.push('</div>');
+    if (nC || nQ) {
+      H.push('<div style="margin-top:7px;font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280)">'
+        + [nC ? 'C 类 ' + nC + ' 个（海外标的/纯数据源，不采用）' : "",
+           nQ ? '待分级 ' + nQ + ' 个（扫描到但还没判断）' : ""]
+          .filter(Boolean).join('　·　') + '</div>');
+    }
+  }
+
+  H.push('<div style="margin-top:14px;font-size:var(--fs-2xs,10px);color:var(--muted,#6b7280);line-height:1.7">'
+    + '口径与全站一致：事件日盘后知情 → 次日收盘建仓 → T+5 收盘平仓，超额减同日全市场等权，t 按日聚合。'
+    + '「显著」≠「可用」：|超额| &lt;0.3% 即使 t 再大也归入「显著但无利」。'
+    + (d.tested_at ? ' 最后回测：' + _HE(d.tested_at) : '')
+    + '</div>');
+
+  box.innerHTML = head + H.join('');
+}
 
 function loadHarvest(force) {
   const box = $("#p-harvest");

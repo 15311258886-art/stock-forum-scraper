@@ -265,6 +265,30 @@ def _harvest_daily():
             "traps": r.get("traps"), "range": r.get("range"), "err": r.get("error")}
 
 
+def _oss_daily():
+    """开源情报日更（2026-10-30）：GitHub 规则 → 我们的严格口径重测。
+
+    与 harvest_daily 同理必须离进程：单条规则要扫 150 万行指标表，纯 Python 占 GIL
+    会把整站拖死。日常开销只有「过期规则重测（通常 0 条）+ 长样本复核 37s」，
+    首轮全量 11 条约 260s。
+    """
+    import sqlite3
+    from viewer.db import Database
+    import viewer.oss_mine as OSS
+    db = Database()
+    try:
+        r = OSS.refresh(db.conn)
+    finally:
+        try:
+            db.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return {"ok": bool(r.get("ok")), "tested": r.get("tested"),
+            "skipped": r.get("skipped"), "failed": r.get("failed"),
+            "scanned": r.get("scanned"), "cross": r.get("cross"),
+            "elapsed": r.get("elapsed")}
+
+
 def _signal_backtest():
     """信号 alpha 回测（2026-10-27 C：季度重算，收敛进主工作流）。
     依赖 stock_indicators_daily（~135万行），落 signal_backtest。
@@ -449,6 +473,7 @@ JOBS = {
     "signal_backtest": _signal_backtest,        # 2026-10-27 C：信号 alpha 回测（季度重算，收敛进主工作流）
     "plate_members": _plate_members,            # 2026-10-27 C3：东财官方板块成分（本机出网，沙箱屏蔽）
     "harvest_daily": _harvest_daily,           # 2026-10-31：收割视角（局面+陷阱名单，依赖 kline_daily）
+    "oss_daily": _oss_daily,                   # 2026-10-30：开源情报（GitHub 规则重测，只抽规则不抄代码）
 }
 
 

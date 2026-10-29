@@ -154,6 +154,7 @@ import emapi  # noqa: E402
 import moneyflow  # noqa: E402
 import board_flow  # noqa: E402  2026-09-28 板块资金流：多源 + 采样累积（替代单一东财依赖）
 import harvest as HARVEST  # noqa: E402  2026-10-31 收割视角引擎（涨停/炸板/连板 → 局与陷阱名单）
+import oss_mine as OSS  # noqa: E402  2026-10-30 开源情报：GitHub 规则在我们的数据上重测（只抽规则不抄代码）
 import board_flow_range  # noqa: E402  2026-10-05 板块资金流「日期区间」聚合（累计流入可指定起止日期）
 from viewer import predictor  # noqa: E402  —— 每日预测：六路信号合成 + 复盘自学习闭环（2026-09-28 新增）
 import pillars  # noqa: E402  —— 四支柱每日预测引擎 A/B/C/D（2026-10-15 新增；仅后端定时任务跑，查看器只读）
@@ -4206,6 +4207,19 @@ def api_harvest() -> dict:
     except Exception:  # noqa: BLE001
         logging.exception("api_harvest 失败")
         return {"ok": False, "error": "局面数据不可用"}
+
+
+def api_oss() -> dict:
+    """开源情报（2026-10-30）：GitHub 上的量化规则在本系统数据上重测的结果。
+
+    只读落表结果，不现算 —— 回测在 oss_daily 的离进程任务里跑。
+    返回里必带 data_span：主结果样本只有约 14 个月，不披露就是误导。
+    """
+    try:
+        return OSS.payload(DB.conn)
+    except Exception:  # noqa: BLE001
+        logging.exception("api_oss 失败")
+        return {"ok": False, "available": False, "error": "开源情报数据不可用"}
 
 
 def api_avoid_flags(codes: str = "", limit: int = 100) -> dict:
@@ -10074,6 +10088,7 @@ _JOB_TIMEOUT = {
     "ann_daily": 900,            # 全市场公告 120 页 HTTP，实测约 33s，留足余量防限流重试
     "review_score_daily": 900,   # 复盘回填 + 假说回测：扫全市场行情算 T+5/T+10，实测 <60s
     "harvest_daily": 1200,       # 收割视角：增量重算 400 交易日，实测 40~158s，留足余量防库锁
+    "oss_daily": 2400,           # 开源情报：首轮 11 条规则全测 260s + 长样本复核 37s，留余量防库锁
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
@@ -10500,6 +10515,18 @@ def _harvest_daily_maybe() -> None:
     _daily_job("harvest_daily", (15, 40))
 
 
+def _oss_daily_maybe() -> None:
+    """开源情报日更（2026-10-30）：扫描候选仓库 + 复核过期规则 + 长样本交叉验证。
+
+    成本结构（实测）：首轮 11 条规则全测 260s；日常只跑「超过 30 天未测」的规则
+    （通常 0 条）+ 长样本复核 37s + GitHub 扫描数秒 ≈ 40s。
+
+    必须离进程：纯 Python 扫 150 万行指标表会长时间占 GIL，直接拖死所有接口
+    （与 harvest_daily 同一个教训）。所以走 _daily_job 的 offproc 通道。
+    """
+    _daily_job("oss_daily", (16, 0))
+
+
 def _lift_daily_maybe() -> None:
     """限售解禁事件日更（2026-10-30）。排在 06:10 —— 解禁日提示要在开盘前就位。
 
@@ -10626,6 +10653,7 @@ def _sched_tasks() -> list:
         ("universe_scan", _universe_scan_maybe),            # 2026-10-26 P2：全宇宙多因子扫描（依赖 indicators_daily，其后触发）
         ("regime_daily", _regime_daily_maybe),              # 2026-10-29：市场状态（依赖 indicators_daily 当日收盘，其后触发）
         ("harvest_daily", _harvest_daily_maybe),            # 2026-10-31：收割视角（局面+陷阱，15:40，K线之后）
+        ("oss_daily", _oss_daily_maybe),                    # 2026-10-30：开源情报（GitHub 规则重测，16:00，指标+K线就绪后）
         ("lift_daily", _lift_daily_maybe),                  # 2026-10-30：限售解禁事件日更（06:10前，开盘前就位）
         ("ann_daily", _ann_daily_maybe),                    # 2026-10-30：全市场公告日更（06:20，覆盖率 3%→全市场）
         ("review_score_daily", _review_score_daily_maybe),   # 2026-10-31：复盘回填+假说回测（18:00，收盘后）
@@ -11672,6 +11700,9 @@ class Handler(BaseHTTPRequestHandler):
         # ── 2026-10-31 收割视角：局面状态 + 今日陷阱名单（连板开板=派发）──
         if route == "/api/harvest":
             return self._send_json(api_harvest())
+        # ── 2026-10-30 开源情报：GitHub 规则重测（只抽规则不抄代码）──
+        if route == "/api/oss":
+            return self._send_json(api_oss())
         # ── 2026-10-16 量化板块（第三维信号源：因子全景/多因子选股/因子回测/菜谱预设/量化因子自我学习；查看器只读）──
         if route == "/api/quant":
             # 2026-10-29：读落盘缓存，绝不在请求线程现算（见 _heavy_cached_payload）

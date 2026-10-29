@@ -697,6 +697,27 @@ def _sec_harvest(conn) -> dict:
         return {}
 
 
+def _sec_oss(conn) -> dict:
+    """开源情报（2026-10-30）：开源社区流行、但已被我们数据推翻的规则。
+
+    为什么必须进上下文：模型最容易被「均线多头」「突破放量」「超买回调」这类
+    流行说法带走，而这些说法在本系统严格口径下是稳定负超额（长样本 t≈−10）。
+    不告诉它，它就会用一套已被证伪的语言写复盘，还写得很有说服力 —— 这正是
+    evidence.py 建账本要解决的同一个问题。
+    """
+    try:
+        import oss_mine as OSS
+        txt = OSS.text_block(conn)
+        if not txt:
+            return {}
+        p = OSS.payload(conn)
+        return {"text": txt, "stats": p.get("stats") or {},
+                "span": p.get("data_span") or {}}
+    except Exception:  # noqa: BLE001
+        logging.exception("_sec_oss 失败")
+        return {}
+
+
 def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
     """汇聚当日信息包。每个分区独立取数，单区失败不影响整体。"""
     ctx = {
@@ -712,6 +733,7 @@ def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
         "last": _sec_last(conn, date, provider),
         "data_health": _sec_health(conn, date),
         "harvest": _sec_harvest(conn),
+        "oss": _sec_oss(conn),
     }
     return ctx
 
@@ -863,6 +885,10 @@ def _render_user(ctx: dict) -> str:
     hv = ctx.get("harvest") or {}
     if hv.get("text"):
         L.append("\n" + hv["text"])
+
+    os_ = ctx.get("oss") or {}
+    if os_.get("text"):
+        L.append("\n" + os_["text"])
 
     L.append("\n## 二、主线板块（按当日主力净流入排序）")
     for i, s in enumerate(ctx.get("mainlines") or [], 1):
