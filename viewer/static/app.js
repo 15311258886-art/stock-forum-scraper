@@ -1229,10 +1229,14 @@ function buildThemePicker() {
    2026-09-23 改造（回应“只罗列数字没有实际价值”）：
      卡片 →（点击）→ 明细抽屉（列出与数字一一对应的记录）→（再点行）→ 该条详情。
    数字与列表条数的一致性由后端 /api/detail_list 的 total(=同一 COUNT(*) 口径) 保证。 */
+/* 2026-10-31：数据量卡片改为「仍在日更的活数据」。
+   原 9 张卡里 8 张是论坛抓取产物（帖子/实盘交易/选手/持仓/人物/讨论股票/热点词/原始文档），
+   论坛 2026-10-30 停抓、10-31 已清表 → 那 8 张永久显示 0，看着像"系统坏了"。
+   现换成公告/龙虎榜/解禁/自选荐股/舆情语料/资讯 —— 每一项都能点开看到真实记录，
+   且都是当前决策链真的在用的数据。 */
 const CARD_KINDS = [
-  ["原始文档(页)", "raw_pages"], ["帖子", "posts"], ["实盘交易", "trades"],
-  ["资讯", "news"], ["入选选手", "players"], ["持仓记录", "positions"],
-  ["人物", "persons"], ["讨论股票", "stock_mentions"], ["热点词", "topics"],
+  ["全市场公告", "stock_ann"], ["龙虎榜", "lhb_stocks"], ["解禁事件", "lift_event"],
+  ["自选荐股", "self_pick"], ["舆情语料", "douyin_corpus_video"], ["资讯", "news"],
 ];
 function renderCards(c) {
   const cc = (c && typeof c === "object") ? c : {};       // P2-9：counts 整体缺失时降级为空对象
@@ -7117,23 +7121,14 @@ function loadAll() {
     renderSummary(s);
     refreshAcquirePanels();
   }).catch((e) => reportLoadError("汇总接口", e));
-  api("/api/stocks").then((x) => renderStocks(toArr(x))).catch((e) => reportLoadError("当前讨论股票", e));
-  // 2026-10-15 全站回测评测修复（首屏提速 · 真问题）：
-  // 下面这几个接口响应体最重（persons 932KB / players 325KB / operating 137KB / lhb 218KB），
-  // 而**默认落地页是「今日决策」**（只依赖 selectNav 里按需拉的 /api/today_decision）。
-  // 首屏同时打 18 个接口时，后端 DB 请求互相排队（实测落地页要 6~12 秒才渲染出内容）。
-  // 这里把「非落地页」的重接口**推迟 2 秒再发**，让落地页请求先拿到连接。
-  // 语义不变：切到对应面板仍有数据；若 2 秒内就切过去，未就绪时有加载态占位兜底。
-  const _deferHeavy = (fn, ms) => { try { setTimeout(fn, ms); } catch (e) { fn(); } };
-  _deferHeavy(() => api("/api/operating").then((x) => renderOperating(toArr(x)))
-    .catch((e) => reportLoadError("正在操作股票", e)), 2000);
-  _deferHeavy(() => api("/api/players").then((x) => renderPlayers(toArr(x)))
-    .catch((e) => reportLoadError("实盘选手", e)), 2000);
-  if (!LHB.data) _deferHeavy(() => loadLhb().catch((e) => reportLoadError("游资龙虎榜", e)), 2500);
-  consensusLoad();
-  coholdLoad(null, null);
-  _deferHeavy(() => api("/api/persons").then((x) => renderPersons(toArr(x)))
-    .catch((e) => reportLoadError("相关人物", e)), 2000);
+  // 2026-10-31：原首屏的 6 个论坛链路请求（/api/stocks 讨论热度、/api/operating 正在操作、
+  // /api/players 选手、/api/persons 人物、consensus 共同持仓、cohold 近5日买入）全部撤除。
+  // 理由：论坛抓取 2026-10-30 全停，这些接口返回的是永久停更的旧数据；且其中
+  // /api/persons 响应体 932KB、/api/smart_money 单次 17s、/api/persons 6s，
+  // 撤掉后首屏少 6 个请求、约 1.5MB 流量，落地更快也更诚实（不再假装有"他人操作"）。
+  // 对应面板已从 NAV 撤下；后端路由与 renderX 函数保留，源恢复时一处加回。
+  // 龙虎榜是**活链路**（lhb_daily 每日 18:00 更新），仍保留首屏延迟预热。
+  if (!LHB.data) setTimeout(() => loadLhb().catch((e) => reportLoadError("游资龙虎榜", e)), 2500);
   api("/api/sentiment").then(renderSentiment).catch((e) => reportLoadError("舆论情绪", e));
   // 2026-10-15（性能修复 · 「面板随机卡 20~30 秒」的真根因之一）：
   // /api/hotspots 是**纯 Python 聚合热词**的重接口，实测首次要 **40 秒**，期间**持有 GIL
@@ -9209,33 +9204,26 @@ const NAV = [
     { tab: "moneyflow", label: "资金流向" },
     { tab: "industry-leaders", label: "龙头全景" },
     { group: "人气" },
-    // 当前讨论股票 改名「讨论热度」——它是注意力而非钱，与情绪同组更顺
-    { tab: "stocks", label: "讨论热度" },
-    // 2026-10-29 进哥拍板：荐股（谁推了什么票、看多看空、事后涨没涨）全部抹除，
-    // 只保留「注意力」这一个维度并在**板块**层面聚合 —— 跟在「讨论热度」后面同组，
-    // 因为它回答的是同一类问题（大家在聊什么），只是颗粒度从个股换成了板块。
-    { tab: "plate_heat", label: "板块热度" },
-    // 市场情绪/舆论情绪 从「消息与外围」迁入（情绪指标，原被腰斩在两个类里）
+    // ⚠️ 2026-10-31：本组原有「讨论热度」(stocks) 与「板块热度」(plate_heat) 两项，已随论坛停抓撤下。
+    //   两者 100% 依赖 posts / stock_mentions（板块热度另一路豆包语料停在 2026-10-11），
+    //   源停之后它们只会把旧帖反复重算成"今天的注意力"，属于用死数据生成活结论。
+    //   渲染函数与面板容器保留（不删代码，便于源恢复时一处加回）。
     { tab: "bili_sentiment", label: "市场情绪", lead: true, mg: "mood" },
     { tab: "sentiment", label: "舆论情绪", child: true, mg: "mood" }] },
   // ③ 消息政策（原「消息与外围」）：只装资讯与政策，边界清晰。外围/情绪已迁出到今日总览/资金动向。
   { key: "info", label: "消息政策", icon: "◈", items: [
     { tab: "info_brief", label: "消息面汇总" },
-    { tab: "topics", label: "近期热点" },
+    // ⚠️ 2026-10-31：「近期热点」(topics) 已撤下 —— hotspots 算法是「拿词库关键词扫 posts 原文」，
+    //   论坛停抓后扫不到新帖，只剩 10-29 之前的历史热度冒充"近期"。容器与 renderTopics 保留。
     { tab: "news", label: "个股快讯公告" },
     { tab: "policy", label: "政策风向" }] },
-  // ④ 他人操作（原「别人怎么做」）：实盘——选手/牛散实际在买卖什么。改名与「他人观点」对仗。
-  { key: "players", label: "他人操作", icon: "▦", items: [
-    { group: "跟踪谁" },
-    { tab: "niusan", label: "牛散追踪" },
-    { tab: "players", label: "选手与渠道" },
-    { tab: "persons", label: "相关人物" },
-    { group: "在做什么" },
-    { tab: "operating", label: "正在操作股票" },
-    // 聪明钱共识/共同持仓共识/近5日共同买入 是同一口径的三个时间窗，归拢到「资金共识」主项
-    { tab: "smart_money", label: "资金共识", lead: true, mg: "consensus" },
-    { tab: "consensus", label: "共同持仓", child: true, mg: "consensus" },
-    { tab: "cohold", label: "近5日买入", child: true, mg: "consensus" }] },
+  // ④ 他人操作（原「别人怎么做」）—— 2026-10-31 整类**下线并撤出导航**。
+  //   本类 7 个面板（牛散追踪/选手与渠道/相关人物/正在操作股票/资金共识/共同持仓/近5日买入）
+  //   全部读论坛抓取产物：trades（选手实时成交）、positions（**2021-06-20 的集思录晒盘快照**）、
+  //   persons/person_scores/public_records、posts ⋈ stock_mentions（共识/共同持仓）。
+  //   论坛 2026-10-30 全停后它们永久停更；其中 positions 尤其不能留 —— 五年前别人晒的仓位
+  //   被当成"选手正在操作"展示，比空白更有害。数据与表已同步清空（见 DECISIONS.md D16）。
+  //   代码不删（后端 /api/players 等路由与前端 renderX 全部保留），源恢复时把本段加回即可。
   // ⑤ 他人观点（原「别人怎么看」）：观点——机构/社区/研报怎么评价。改名为与「他人操作」对仗。
   { key: "opinion", label: "他人观点", icon: "◇", items: [
     { tab: "research", label: "研报评级" },

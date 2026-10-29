@@ -491,10 +491,15 @@ def _blogger_credibility(con: sqlite3.Connection) -> dict:
             }
         return stats
     # 兜底：blogger_score 尚未计算过时退回旧口径（仅保证不炸，数值不作结论）
-    rows = con.execute("SELECT blogger, AVG(r5) a5, AVG(r1) a1,"
-                       " SUM(CASE WHEN r5>0 THEN 1 ELSE 0 END) w5,"
-                       " SUM(CASE WHEN r5 IS NOT NULL THEN 1 ELSE 0 END) n5,"
-                       " COUNT(*) n FROM blogger_perf GROUP BY blogger").fetchall()
+    # 2026-10-31：blogger_perf 已随论坛/博主线全线下线删除，兜底改为「表不在就返回空」——
+    # 本函数目前无任何调用点（_pull_blogger 已停用），这里只是防止日后有人重新接上时炸掉。
+    try:
+        rows = con.execute("SELECT blogger, AVG(r5) a5, AVG(r1) a1,"
+                           " SUM(CASE WHEN r5>0 THEN 1 ELSE 0 END) w5,"
+                           " SUM(CASE WHEN r5 IS NOT NULL THEN 1 ELSE 0 END) n5,"
+                           " COUNT(*) n FROM blogger_perf GROUP BY blogger").fetchall()
+    except sqlite3.Error:
+        return {}
     for r in rows:
         n5 = r["n5"] or 0
         if n5 < MIN_N_SHOW:

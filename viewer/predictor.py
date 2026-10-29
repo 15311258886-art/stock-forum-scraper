@@ -146,7 +146,15 @@ def window_caliber() -> dict:
 _LOCK = threading.Lock()    # 生成/复盘串行化（scheduler 与手动点击可能同时来）
 _STATUS: dict = {"running": False, "stage": "", "started_at": None, "last_error": None}
 
-# ---- 十二路信号元数据（顺序即前端展示顺序）--------------------------------
+# ---- 十路信号元数据（顺序即前端展示顺序）----------------------------------
+# ⚠️ 2026-10-31：由十二路缩为十路。删掉的两路是「论坛情绪」「选手跟随」，
+#   原因不是效果不好，而是**输入源已经不存在**：论坛抓取 2026-10-30 全停
+#   （见 viewer/config.INGEST_SOURCES 与 docs/论坛大V信号实证_20261030.md），
+#   这两路读的 posts / stock_mentions / trades / person_scores 不再有新行。
+#   留着它们的实际后果是：滚动 10 日窗口继续把 10-29 之前的旧帖当"领先信号"喂给模型，
+#   越往后越是拿陈货当新信号 —— 所以宁可直接摘掉，也不让它以"衰减"的方式假装还活着。
+#   sig_sentiment / sig_follow 两个函数体暂留（不删代码便于日后源恢复时一处改回），
+#   但已无任何调用点。
 # prior = 先验权重系数（2026-10-01 按王总要求重构：覆盖度校正 + 维度扩到十二路）
 #   取值来自三件事：① 数据在库里的实际覆盖率 ② 信号本身的"可信度"（是否可被证伪）
 #   ③ 是否容易被刷分（游资上榜、外部信源都属易刷，故给低 prior）
@@ -170,12 +178,8 @@ SIGNALS = [
              "⚠ 2026-10-11 实测：带此信号 T+1 平均跑赢池子 191bp，先验由 0.80 升至 1.00。"},
     {"key": "board", "name": "板块资金", "icon": "⁑", "kind": "signal", "prior": 0.70,
      "desc": "所属行业板块当日主力净额与涨跌幅（板块级映射，稀疏）。"},
-    {"key": "sentiment", "name": "论坛情绪", "icon": "◉", "kind": "signal", "prior": 0.65,
-     "desc": "近 10 日论坛提及热度 × 关联帖多空倾向（唯一领先型信号）。"},
     {"key": "overseas", "name": "海外联动", "icon": "⊕", "kind": "signal", "prior": 0.60,
      "desc": "地缘事件直接点名的个股 + 海外舆情传导板块（稀疏但指向明确）。"},
-    {"key": "follow", "name": "选手跟随", "icon": "▣", "kind": "signal", "prior": 0.40,
-     "desc": "选手**实时成交**（trades，非 2021 年快照 positions）按本人历史胜率加权。"},
     {"key": "extref", "name": "外部参考", "icon": "◇", "kind": "signal", "prior": 0.42,
      "desc": "外部信源（投顾/榜单/共识）看多信号，按信源层级加权；覆盖率极低故权重低。"},
     {"key": "lhb", "name": "游资上榜", "icon": "◈", "kind": "signal", "prior": 0.30,
@@ -976,7 +980,7 @@ def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
     for w, cs in idx.items():
         for c in cs:
             sym_words.setdefault(c, set()).add(w)
-    pol, ovs, bf, sen, fol = {}, {}, {}, {}, {}
+    pol, ovs, bf = {}, {}, {}
     # P1-01: 板块热度三源均按 asof 截断 + 5 日窗口（[asof-5d, asof]），杜绝前视偏差。
     # asof 为 None 时退化为全量（保持旧行为）。各源日期列：
     #   policy_news.pub_time / overseas_hotspots.first_seen(回退 updated_at) / board_flow_samples.trade_date
@@ -1017,29 +1021,19 @@ def _hot_sectors(con: sqlite3.Connection, asof: str | None = None) -> tuple:
             "WHERE kind='industry' AND main_net>0" + bf_win, bf_p):
         bn = str(r["board_name"])
         bf[bn] = bf.get(bn, 0.0) + float(r["main_net"] or 0)
-    sent = sig_sentiment(con, asof=asof)
-    for sym, v in sent.items():
-        for w in sym_words.get(sym, set()):
-            sen[w] = sen.get(w, 0.0) + v["strength"] * 0.1
-    try:
-        follow = sig_follow(con, asof=asof)
-        for sym, v in follow.items():
-            for w in sym_words.get(sym, set()):
-                fol[w] = fol.get(w, 0.0) + v["strength"] * 0.1
-    except Exception:  # noqa: BLE001
-        pass
-
+    # 2026-10-31：sen / fol 两源（论坛提及情绪、选手成交）随论坛停抓一并置空。
+    #   只留 pol（政策）/ ovs（海外传导）/ bf（板块主力资金）三个**仍在日更**的源。
     def _norm(contrib):
         if not contrib:
             return {}
         vals = sorted(contrib.values())
         return {w: _pct_le(vals, v) for w, v in contrib.items()}
 
-    npol, novs, nbf, nsen, nfol = _norm(pol), _norm(ovs), _norm(bf), _norm(sen), _norm(fol)
-    # 政策/板块资金权重高（直接资金/政策信号），情绪/跟随次之
-    src_w = {"pol": 1.0, "ovs": 0.8, "bf": 1.0, "sen": 0.5, "fol": 0.5}
+    npol, novs, nbf = _norm(pol), _norm(ovs), _norm(bf)
+    # 政策/板块资金权重高（直接资金/政策信号）
+    src_w = {"pol": 1.0, "ovs": 0.8, "bf": 1.0}
     heat: dict = {}
-    for src_name, nmap in (("pol", npol), ("ovs", novs), ("bf", nbf), ("sen", nsen), ("fol", nfol)):
+    for src_name, nmap in (("pol", npol), ("ovs", novs), ("bf", nbf)):
         for w, v in nmap.items():
             heat[w] = heat.get(w, 0.0) + v * src_w[src_name]
     hot_boards = sorted(heat.items(), key=lambda x: -x[1])
@@ -2217,16 +2211,14 @@ def _generate_inner(con, run_date, force, progress) -> dict:
         if _bars:
             assert_point_in_time(td, _bars[-1].get("d"))
 
-    # 2) 六路信号
+    # 2) 十路信号（2026-10-31：论坛情绪 / 选手跟随两路已随论坛停抓摘除，见 SIGNALS 注释）
     _STATUS["stage"] = "算技术面"
     strat_list = _load_strategies()
     tech = sig_tech(bars_map, strat_list,
                     progress=(lambda a, b: progress and progress("算技术面", a, b)))
     _STATUS["stage"] = "汇总其它信号"
-    senti_raw = sig_sentiment(con)
     inst_raw = sig_inst(con, asof=td)        # 龙虎榜「机构专用」席位（硬钱）
     lhb_raw = sig_lhb(con, asof=td)          # 龙虎榜游资/营业部席位（噪声级）
-    follow_raw = sig_follow(con, asof=td)
     extref_raw = sig_extref(con, asof=td)
     holders_raw = sig_holders(con)
     ann_raw = sig_ann(con, asof=td)
@@ -2237,8 +2229,7 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     raw_signals = {
         "tech": tech, "holders": holders_raw, "ann": ann_raw, "desk": desk_raw,
         "inst": inst_raw, "policy": policy_raw, "board": board_raw,
-        "sentiment": senti_raw, "overseas": overseas_raw, "follow": follow_raw,
-        "extref": extref_raw, "lhb": lhb_raw,
+        "overseas": overseas_raw, "extref": extref_raw, "lhb": lhb_raw,
     }
     # 只保留候选池内的票参与合成（池外票无 K 线，无法复盘校验，也不计入宽度统计）。
     # 否则 follow/holders 等全表信号会把池外票混入打分与「多信号共振」宽度统计。
@@ -2246,20 +2237,8 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     for k in list(raw_signals):
         raw_signals[k] = {s: v for s, v in raw_signals[k].items() if s in pool_set}
 
-    # 情绪净多（用于研判文案）
+    # 情绪净多（用于研判文案）—— 2026-10-31 起恒为 0：论坛源已停，不再读 posts。
     net_senti = 0
-    try:
-        for r in con.execute(
-                "SELECT sentiment_score FROM posts WHERE post_time >= ?",
-                ((datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d"),)):
-            v = _f(r["sentiment_score"], 0.0) or 0.0
-            v = max(-1.0, min(1.0, v / 4.0))   # sentiment_score 约 -14~3，直接归一
-            if v > SENT_POS:
-                net_senti += 1
-            elif v < SENT_NEG:
-                net_senti -= 1
-    except Exception:  # noqa: BLE001
-        pass
 
     # 3) 强度归一化 + 加权合成
     _STATUS["stage"] = "合成打分"
@@ -3130,27 +3109,10 @@ def _against_evidence(con: sqlite3.Connection, run) -> list:
             })
     except Exception:  # noqa: BLE001
         pass
-    # ② 论坛情绪对立（与 generate 的 net_senti 完全同口径）
-    try:
-        net_senti = 0
-        for r in con.execute(
-                "SELECT sentiment_score FROM posts WHERE post_time >= ?",
-                ((datetime.now() - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d"),)):
-            v = _f(r["sentiment_score"], 0.0) or 0.0
-            v = max(-1.0, min(1.0, v / 4.0))
-            if v > SENT_POS:
-                net_senti += 1
-            elif v < SENT_NEG:
-                net_senti -= 1
-        if net_senti < 0:
-            out.append({
-                "who": "论坛散户情绪",
-                "what": "近 %d 日情绪净多 %+d（看空/悲观言论多于看多），散户情绪站在这条结论对面"
-                        % (LOOKBACK_DAYS, net_senti),
-                "source": "posts@近%d日" % LOOKBACK_DAYS,
-            })
-    except Exception:  # noqa: BLE001
-        pass
+    # ② 论坛情绪对立 —— 2026-10-31 已删除：论坛源停抓，posts 不再更新。
+    #   留着这段的后果不是"少一条反证"，而是**长期用 10-29 之前的旧情绪当今天的反证**，
+    #   那比没有反证更糟（会让人以为模型看过多空分歧，其实看的是历史）。
+    #   原实现见 git 历史 826986d 及之前版本。
     # ③ 资金在撤：lhb_sector_focus 最近交易日的净流出板块（钱在撤 = 反对追多）
     try:
         srow = con.execute("SELECT MAX(trade_date) AS d FROM lhb_sector_focus").fetchone()

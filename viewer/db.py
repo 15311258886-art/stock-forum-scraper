@@ -1545,13 +1545,20 @@ class Database:
         self.conn.commit()
 
     def all_symbols(self) -> list[str]:
-        """库中出现过的全部股票代码（提及 + 交易 + 持仓）。"""
+        """库中出现过的全部股票代码。
+
+        ⚠️ 2026-10-31 换源：原实现是 stock_mentions ∪ trades ∪ positions ——
+        三张表**全部是论坛抓取产物**，论坛 2026-10-30 停抓后已被清空，
+        留在原处会让本函数永久返回空列表（而它有真实消费方：
+        stock_names.backfill_missing 的默认代码集、/api/posts 的兜底）。
+        现改为从「仍在日更的官方宇宙」取：a_shares_universe（全A报价快照日更）
+        ∪ stock_names（名称表，含退市/历史代码），两者都是交易所口径、不依赖任何爬虫。
+        """
         rows = self.conn.execute(
-            "SELECT symbol FROM stock_mentions WHERE symbol IS NOT NULL AND symbol<>'' "
-            "UNION SELECT symbol FROM trades WHERE symbol IS NOT NULL AND symbol<>'' "
-            "UNION SELECT symbol FROM positions WHERE symbol IS NOT NULL AND symbol<>''"
+            "SELECT code FROM a_shares_universe WHERE code IS NOT NULL AND code<>'' "
+            "UNION SELECT code FROM stock_names WHERE code IS NOT NULL AND code<>''"
         ).fetchall()
-        return sorted({r["symbol"] for r in rows})
+        return sorted({r["code"] for r in rows})
 
     def upsert_person(self, name, role="author"):
         self.conn.execute(
@@ -2087,15 +2094,23 @@ class Database:
             return self.conn.execute(f"SELECT COUNT(*) AS n FROM {t}").fetchone()["n"]
 
         return {
+            # ---- 论坛链路（2026-10-30 停抓、2026-10-31 已清表，恒为 0）----
+            # 保留这些键是为了不炸旧调用方；前端统计卡已改用下面「活数据」那一组。
             "posts": c("posts"),
             "trades": c("trades"),
-            "news": c("news"),
             "raw_pages": c("raw_pages"),
             "persons": c("persons"),
             "stock_mentions": c("stock_mentions"),
             "topics": c("topics"),
             "players": c("players"),
             "positions": c("positions"),
+            # ---- 仍在日更的活数据 ----
+            "news": c("news"),
+            "stock_ann": c("stock_ann"),
+            "lhb_stocks": c("lhb_stocks"),
+            "lift_event": c("lift_event"),
+            "self_pick": c("self_pick"),
+            "douyin_corpus_video": c("douyin_corpus_video"),
             "overseas_news": c("overseas_news"),
             "overseas_hotspots": c("overseas_hotspots"),
         }

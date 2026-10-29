@@ -9156,6 +9156,76 @@ def api_detail(kind: str, _id: int, full: bool = False) -> dict:
 #   * SQL 全部是常量，仅 limit/offset 走参数绑定，不拼接任何外部输入（无注入面）；
 #   * columns 交给前端做通用渲染，drill 描述「点这一行能下钻到哪」。
 _DETAIL_SPECS: dict[str, dict] = {
+    # 2026-10-31 新增：论坛链路退役后，统计卡改展示「仍在日更的活数据」。
+    # 原来那排卡（帖子/实盘交易/选手/持仓/人物/讨论股票/热点词/原始文档）8 项归零，
+    # 只剩资讯一项 —— 与其展示一排 0，不如换成真正在增长的数据资产。
+    "stock_ann": {
+        "label": "全市场公告", "table": "stock_ann",
+        "sql": "SELECT id, code, name, notice_date, cat, tone, title FROM stock_ann "
+               "ORDER BY notice_date DESC, id DESC",
+        "columns": [
+            {"key": "notice_date", "label": "公告日"},
+            {"key": "code", "label": "代码", "code": True, "stock": True, "sym_key": "code"},
+            {"key": "name", "label": "名称", "stock_name": True, "sym_key": "code"},
+            {"key": "cat", "label": "类目"},
+            {"key": "tone", "label": "倾向"},
+            {"key": "title", "label": "标题", "clip": 80},
+        ],
+    },
+    "lhb_stocks": {
+        "label": "龙虎榜", "table": "lhb_stocks",
+        "sql": "SELECT trade_date, security_code, security_name, change_rate, turnoverrate, "
+               "net_amt, reason FROM lhb_stocks ORDER BY trade_date DESC, net_amt DESC",
+        "columns": [
+            {"key": "trade_date", "label": "交易日"},
+            {"key": "security_code", "label": "代码", "code": True, "stock": True, "sym_key": "security_code"},
+            {"key": "security_name", "label": "名称", "stock_name": True, "sym_key": "security_code"},
+            {"key": "change_rate", "label": "涨跌幅%", "num": True},
+            {"key": "turnoverrate", "label": "换手率%", "num": True},
+            {"key": "net_amt", "label": "净买额", "num": True},
+            {"key": "reason", "label": "上榜原因", "clip": 40},
+        ],
+    },
+    "lift_event": {
+        "label": "解禁事件", "table": "lift_event",
+        "sql": "SELECT code, name, free_date, share_type, free_shares, lift_cap, free_ratio "
+               "FROM lift_event ORDER BY free_date DESC",
+        "columns": [
+            {"key": "free_date", "label": "解禁日"},
+            {"key": "code", "label": "代码", "code": True, "stock": True, "sym_key": "code"},
+            {"key": "name", "label": "名称", "stock_name": True, "sym_key": "code"},
+            {"key": "share_type", "label": "股份类型", "clip": 30},
+            {"key": "free_shares", "label": "解禁股数", "num": True},
+            {"key": "lift_cap", "label": "解禁市值", "num": True},
+            {"key": "free_ratio", "label": "占比%", "num": True},
+        ],
+    },
+    "self_pick": {
+        "label": "自选荐股", "table": "self_pick",
+        "sql": "SELECT pick_date, code, name, score, tier, direction, verdict FROM self_pick "
+               "ORDER BY pick_date DESC, score DESC",
+        "columns": [
+            {"key": "pick_date", "label": "日期"},
+            {"key": "code", "label": "代码", "code": True, "stock": True, "sym_key": "code"},
+            {"key": "name", "label": "名称", "stock_name": True, "sym_key": "code"},
+            {"key": "score", "label": "分数", "num": True},
+            {"key": "tier", "label": "档位"},
+            {"key": "direction", "label": "方向"},
+            {"key": "verdict", "label": "结论", "clip": 40},
+        ],
+    },
+    "douyin_corpus_video": {
+        "label": "舆情语料", "table": "douyin_corpus_video",
+        "sql": "SELECT video_id, publish_date, author, domain, category, title FROM douyin_corpus_video "
+               "ORDER BY publish_date DESC",
+        "columns": [
+            {"key": "publish_date", "label": "发布日期"},
+            {"key": "author", "label": "作者"},
+            {"key": "domain", "label": "域"},
+            {"key": "category", "label": "分类"},
+            {"key": "title", "label": "标题", "clip": 80},
+        ],
+    },
     "raw_pages": {
         "label": "原始文档(页)", "table": "raw_pages",
         "sql": "SELECT id, site, url, fetched_at, http_status FROM raw_pages ORDER BY id DESC",
@@ -9952,7 +10022,6 @@ _OFFPROC_GAP = {          # 同一任务两次启动的最小间隔（秒）：�
     "lhb_daily": 600,
     # 2026-10-19：夜刷编排出进程。原注：blogger_daily 单轮 525.5s 占 GIL 冻结全站；
     # 2026-10-30 该任务已随博主荐股下线删除，lhb_daily 仍按 600s 节流。
-    "intraday_snap": 3600,                    # 2026-10-21 dy9：盘中快照（窗口内每天一次，3600s 兜底防抖）
     # 2026-10-29：参数化重量级面板（低位箱体/换手榜）—— 这个任务一次消费**全部**待算请求单，
     # 所以间隔要短：否则用户先点换手榜、几秒后再点箱体，第二个请求单会被 600s 去重挡住、
     # 面板一直「计算中」。进程不叠靠 _JOB_PROCS.poll() 保证，5s 起步足够。
@@ -9969,7 +10038,7 @@ _JOB_KILL_PENDING: set = set()   # 已发送 terminate、等待下一 tick 升�
 # 实测日志：lhb_daily / bili_scan 每轮都报这个错。也就是说**所有走子进程的日更任务
 # （龙虎榜 / 四支柱 / 共振 / 每日荐股 / 热点…）跑完一次就卡在收尾**，表现就是数据"莫名停更"。
 # 这也是 person_scores 停在 09-26、evolve 停在 10-22 的可能成因之一。
-_JOB_META = {"blogger_perf": "blogger_perf_last"}   # 子进程成功退出后由父进程落盘的"已完成"标记
+_JOB_META: dict = {}   # 子进程成功退出后由父进程落盘的"已完成"标记（2026-10-31：blogger_perf 已随博主线下线移除）
 
 # 2026-10-29：单任务超时上限（秒）。依据实测单轮耗时给出，留 1.5~2 倍余量。
 # 为什么要这个：刹车闸保证"同时只跑一个"，但如果那**一个**永远不结束，
@@ -10339,39 +10408,6 @@ def _variant_cached(route: str, params: dict) -> dict:
         return {"ok": False, "error": str(e)[:200], "rows": []}
 
 
-_INTRADAY_KEY = "intraday_snap_state"
-
-def _intraday_snap_maybe() -> None:
-    """盘中快照（2026-10-21 dy9）：交易日 14:25~14:45 抓一次，每天最多一次。
-
-    ★ 为什么必须卡在这个窗口（不是随便定个时间）：
-      · 早了信号不全 —— 博主发帖/战法命中仍在累积，抓到的是一份残缺快照；
-      · 晚了就退化成收盘价 —— 与「盘后重建」没有区别，失去对照价值。
-      抓取产物落 intraday_snap 表（tools/intraday_snap.py），
-      攒够 5 个交易日后才能回测「盘中价买入 vs 收盘价买入 vs 次日买入」，
-      再用真实数据决定是否把 resonance_build 挪到盘中。**现在不改调度**。
-    """
-    try:
-        now = datetime.now()
-        m = now.hour * 60 + now.minute
-        if not (14 * 60 + 25 <= m <= 14 * 60 + 45):
-            return
-        today = now.strftime("%Y-%m-%d")
-        raw = DB.get_meta(_INTRADAY_KEY)
-        if raw:
-            try:
-                st = json.loads(raw)
-            except Exception:  # noqa: BLE001
-                st = {}
-            if st.get("date") == today:
-                return                                  # 今天已抓过
-        if _spawn_offproc("intraday_snap"):
-            DB.set_meta(_INTRADAY_KEY, json.dumps(
-                {"date": today, "at": now.strftime("%H:%M:%S")}, ensure_ascii=False))
-    except Exception:  # noqa: BLE001
-        logging.exception("[sched] intraday_snap 判定失败（本轮跳过，下轮重试）")
-
-
 # ------------------------------------------------ 全市场日度报价+估值+宇宙快照（2026-10-26）
 # 进哥原话：「每日任务光弄 K 线，今天的价格、PE/量额/市值、舆论这些基本数据都没抓」。
 # 这里在交易日 15:30 后抓全 A 今日价/PE/PB/市值，落 stock_daily_snapshot + 刷新宇宙 + 导出 CSV。
@@ -10436,15 +10472,6 @@ def _regime_daily_maybe() -> None:
     全历史重算 1.9s，成本可忽略，靠当日标记去重（一天只跑一次）。
     """
     _daily_job("regime_daily", (15, 30))
-
-
-def _plate_heat_maybe() -> None:
-    """板块热度日更（2026-10-29）。排在论坛抓取之后 —— 热度读的是当天落库的帖子提及，
-    跑早了只会把昨天的热度盖上今天的日期。
-    成本 0.24s（16 板块 × 5 日窗口），靠当日标记去重。接口本身也会自愈重算，
-    这里只是保证「打开页面时已经算好」，不必等那 0.24s。
-    """
-    _daily_job("plate_heat", (15, 30))
 
 
 def _lift_daily_maybe() -> None:
@@ -10556,7 +10583,6 @@ def _sched_tasks() -> list:
         ("auction_snapshot", _idle_gate(lambda: auction.maybe_snapshot(DB.conn), "auction_snapshot")),
         ("lhb_daily", lambda: _spawn_offproc("lhb_daily")),
         ("bili_scan", lambda: _spawn_offproc("bili_scan")),
-        ("intraday_snap", _intraday_snap_maybe),          # dy9：14:25~14:45 盘中快照
         ("resonance_build", lambda: _spawn_offproc("resonance_build")),
         ("selfpick_build", lambda: _spawn_offproc("selfpick_build")),
         ("evolve_daily", lambda: _spawn_offproc("evolve_daily")),
@@ -10573,7 +10599,6 @@ def _sched_tasks() -> list:
         ("indicators_daily", _indicators_daily_maybe),     # 2026-10-26 P1：技术指标/因子层日更（15:30后，K线增量之后）
         ("universe_scan", _universe_scan_maybe),            # 2026-10-26 P2：全宇宙多因子扫描（依赖 indicators_daily，其后触发）
         ("regime_daily", _regime_daily_maybe),              # 2026-10-29：市场状态（依赖 indicators_daily 当日收盘，其后触发）
-        ("plate_heat", _plate_heat_maybe),                  # 2026-10-29：板块热度（荐股降级为注意力，读当日帖子提及）
         ("lift_daily", _lift_daily_maybe),                  # 2026-10-30：限售解禁事件日更（06:10前，开盘前就位）
         ("ann_daily", _ann_daily_maybe),                    # 2026-10-30：全市场公告日更（06:20，覆盖率 3%→全市场）
         ("review_score_daily", _review_score_daily_maybe),   # 2026-10-31：复盘回填+假说回测（18:00，收盘后）
@@ -10729,7 +10754,18 @@ def _start_scheduler() -> None:
 
 
 def _hotspots_prewarm() -> None:
-    """延迟预热 /api/hotspots 并写入 TTL 缓存（见 _TTL_ROUTES）。"""
+    """延迟预热 /api/hotspots 并写入 TTL 缓存（见 _TTL_ROUTES）。
+
+    2026-10-31 停用：hotspots 的算法是「拿词库主线关键词去扫 posts 原文」，
+    而论坛抓取 2026-10-30 已全停、posts 表数据已清空 → 扫不到任何帖子，
+    算出来必然是空。原来它是**启动即起子进程跑 138s 纯 Python** 的预热任务，
+    现在既无输入也无消费方（「近期热点」面板已从导航撤下），继续预热纯属空耗 CPU。
+    函数体保留，日后论坛源恢复时删掉下面这段 return 即可复原。
+    """
+    logging.info("hotspots 预热已停用（论坛源停抓，无输入无消费方）")
+    return
+
+def _hotspots_prewarm_impl() -> None:
     try:
         time.sleep(_HOTSPOTS_PREWARM_DELAY)
         key = "/api/hotspots?"
@@ -12491,11 +12527,14 @@ def api_plate_heat(rebuild: bool = False) -> dict:
     口径与缺陷全部写在 payload 的 meta 里，前端必须原样露出（尤其视频源滞后天数
     与「论坛提及只有 12% 能关联到帖子」这两条），不许只挑好看的数字显示。
     """
-    try:
-        return plate_heat.payload(DB.conn, rebuild=bool(rebuild))
-    except Exception:  # noqa: BLE001
-        logging.exception("api_plate_heat 失败")
-        return {"ok": False, "error": "板块热度榜不可用", "rows": []}
+    # 2026-10-31：板块热度已随论坛停抓下线，本接口只回一句说明。
+    #   原口径的两个输入源**同时**死掉：① posts/stock_mentions 自 2026-10-30 停更；
+    #   ② 豆包语料最新更新停在 2026-10-11（超过它自己设定的 7 天滞后阈值 → 整源停用）。
+    #   两源皆死，min-max 归一化下只剩板块广度一项 → 会输出一个「只有广度、没有热度」的
+    #   假排名，比空着更误导。表 plate_heat / plate_heat_top 已删，面板已从导航撤下。
+    return {"ok": False, "retired": True,
+            "note": "板块热度已下线：论坛源 2026-10-30 停抓、豆包语料停在 2026-10-11，无可用输入。",
+            "rows": []}
 
 
 def api_signal_regime(fwd: int = 10) -> dict:
