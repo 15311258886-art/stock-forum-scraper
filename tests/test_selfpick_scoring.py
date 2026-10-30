@@ -284,3 +284,81 @@ def test_hist_rewrite_replaces_previous_hist_rows():
     n = con.execute("SELECT COUNT(*) FROM self_pick WHERE pick_date='2026-10-20'").fetchone()[0]
     assert n == 2, "同一历史日期重复回算应按 (pick_date,kind,code) 覆盖而不是堆叠"
     con.close()
+
+
+# ---------------------------------------------------------------- 舆情分位分母（P1 修复回归）
+def test_senti_percentile_denominator_excludes_missing_candidates():
+    """8 只无舆情 + 2 只有舆情(-5/+5)：分位数组只含可用候选 → 25 / 75。
+
+    旧实现把 8 个 0.0 也算进分母，会得到 5 / 95（把有舆情的票极端化，
+    舆情维学出权重可达 75.9%，一旦舆情源恢复就会直接改写排序）。
+    """
+    cands = []
+    for i in range(8):
+        cands.append({"code": "00000%d" % i, "name": "m%d" % i, "n_blogger": 0,
+                      "blogger_w": 0.0, "n_strat": 3, "senti_net": 0.0, "senti_n": 0,
+                      "engine_cross": "a"})
+    for code, sn in (("100001", -5.0), ("100002", 5.0)):
+        cands.append({"code": code, "name": code, "n_blogger": 0, "blogger_w": 0.0,
+                      "n_strat": 3, "senti_net": sn, "senti_n": 2, "engine_cross": "a"})
+    rows = {x["code"]: x for x in SP._score_pool(
+        cands, {"blogger": 0.0, "strategy": 0.2, "senti": 0.6, "engine": 0.2}, "", [])}
+    assert rows["100001"]["nu"] == 25.0, "舆情分位分母混入了无舆情样本：%s" % rows["100001"]["nu"]
+    assert rows["100002"]["nu"] == 75.0, "舆情分位分母混入了无舆情样本：%s" % rows["100002"]["nu"]
+    # 无一舆情票的 nu 必须仍是 None，且不参与加权
+    assert rows["000000"]["nu"] is None and rows["000000"]["used_w"]["senti"] == 0.0
+    # base = 0.2/0.4*ns + 0.6/0.4*... 归一后仅 strategy+engine
+    for x in rows.values():
+        assert sum(x["used_w"].values()) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_all_missing_senti_pool_keeps_rows_and_coverage_constant():
+    cands = _pool(senti_n=0)
+    rows = SP._score_pool(cands, W_LEARNED, "", [])
+    assert len(rows) == len(cands), "缺失维度不得导致候选被丢弃"
+    cov = rows[0]["coverage"]
+    assert cov == pytest.approx(
+        (W_LEARNED["strategy"] + W_LEARNED["engine"])
+        / sum(W_LEARNED[k] for k in ("strategy", "senti", "engine")), abs=1e-4)
+    assert all(x["nu"] is None and x["coverage"] == cov for x in rows)
+
+
+# ---------------------------------------------------------------- payload 统计口径（P2 修复回归）
+def _insert_pick(con, pick_date, kind, code, dims, is_hist=0, fill="ok",
+                 ret5=1.0, ex5=0.5, rank=1):
+    con.execute(
+        "INSERT OR REPLACE INTO self_pick(pick_date,kind,rank,code,name,score,tier,"
+        "direction,confidence,horizon,base_score,rule_bonus,rule_hits,n_blogger,blogger_w,"
+        "bloggers,n_strat,strat_keys,strat_families,senti_net,senti_n,engine_cross,mkt_state,"
+        "w_json,dims_json,is_own,is_hist,evidence_json,verdict,fill_status,ret_t1,ret_t5,"
+        "ex_t1,ex_t5,built_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+        "?,?,?,?,?,?,?,?,?,?,?,?)",
+        (pick_date, kind, rank, code, "N", 60.0, "B", "偏多", 60.0, "T+5", 60.0, 0.0, "[]",
+         0, 0.0, "", 3, "k", "", 0.0, 0, "", "普跌", "{}",
+         json.dumps(dims, ensure_ascii=False), 0, is_hist, "[]", "v", fill, ret5, ret5,
+         ex5, ex5, "2026-10-30 09:00:00", "2026-10-30 09:00:00"))
+
+
+def test_payload_stats_and_history_only_count_new_caliber():
+    con = _mem_self_pick()
+    con.execute("CREATE TABLE market_state_log(trade_date TEXT, state TEXT)")
+    con.execute("INSERT INTO market_state_log VALUES('2026-10-29','普跌')")
+    con.commit()
+    old = {"blogger": 50.0, "strategy": 50.0, "senti": 50.0, "engine": 50.0}
+    new = {"blogger": 50.0, "strategy": 80.0, "senti": None, "engine": 70.0, "coverage": 0.2407}
+    # 旧口径 2 条（无 coverage），新口径 2 条（有 coverage）；同一天 1 实盘 + 1 历史
+    _insert_pick(con, "2026-10-20", "main", "600000", old, is_hist=0, ret5=10.0)
+    _insert_pick(con, "2026-10-20", "main", "600001", old, is_hist=1, ret5=10.0)
+    _insert_pick(con, "2026-10-21", "main", "600002", new, is_hist=0, ret5=2.0)
+    _insert_pick(con, "2026-10-21", "main", "600003", new, is_hist=1, ret5=2.0)
+    p = SP.payload(con)
+    st = p["stats"]
+    assert st["main"]["total"] == 2, "main 统计混入了旧口径行：%s" % st["main"]
+    assert st["live"]["total"] == 1 and st["hist"]["total"] == 1
+    assert st["main"]["avg_ret5"] == pytest.approx(2.0, abs=1e-9), "旧行收益被混算进均值"
+    # history 按 (pick_date, is_hist) 分组：新口径那天有 1 实盘 + 1 历史 → 2 行；旧口径那天不得出现
+    dates = [h["date"] for h in p["history"]]
+    assert dates == ["2026-10-21", "2026-10-21"], \
+        "历史表只应出现新口径日期：%s" % dates
+    assert all(h["n"] == 1 for h in p["history"])
+    con.close()

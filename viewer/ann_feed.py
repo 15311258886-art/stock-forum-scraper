@@ -149,7 +149,7 @@ def refresh_range(con, begin_date: str, end_date: str, max_pages: int = 1000,
                 err = "空页截断：已读 %d / total_hits %d" % (seen, total_hits)
             break
         pages += 1
-        seen += len(rows)
+        page_in_window = 0
         page_batch = []
         stop = False
         for it in rows:
@@ -165,6 +165,10 @@ def refresh_range(con, begin_date: str, end_date: str, max_pages: int = 1000,
                 continue
             if nd > end:
                 continue
+            # 2026-10-30（QA P1）：seen 必须只数窗口内行。原来 seen += len(rows)
+            # 把 API 混入的窗口外行也算进去，会让 seen 提前达到 total_hits，
+            # 把月份标成 done 后**永不补抓**，剩下页里的公告永久丢失。
+            page_in_window += 1
             codes = it.get("codes") or []
             # codes[0] 不一定是正股：转债公告会把「118066 统联转债」排在前面，
             # 必须取第一个形态是 A 股的代码，否则整条公告挂到转债代码下、正股永远查不到。
@@ -192,6 +196,7 @@ def refresh_range(con, begin_date: str, end_date: str, max_pages: int = 1000,
             page_batch.append((code, name, title, url, nd, cat, tone, is_new, now,
                                (nd + " 15:00:00") if nd else ""))
             cat_added[cat] = cat_added.get(cat, 0) + 1
+        seen += page_in_window
         if page_batch:
             con.executemany(
                 "INSERT INTO stock_ann(code,name,title,url,notice_date,cat,tone,is_new,"

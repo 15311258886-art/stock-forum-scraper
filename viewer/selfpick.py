@@ -696,7 +696,7 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
             "picks": picks, "own_picks": own_picks,
             # 统计同分档表：只算新口径（带 coverage）的行，旧行保留可追溯但不进结论。
             "stats": {"main": _stat("WHERE kind='main' AND dims_json LIKE '%coverage%'"),
-                      "own": _stat("WHERE kind='own'"),
+                      "own": _stat("WHERE kind='own' AND dims_json LIKE '%coverage%'"),
                       "hist": _stat("WHERE kind='main' AND is_hist=1 "
                                     "AND dims_json LIKE '%coverage%'"),
                       "live": _stat("WHERE kind='main' AND is_hist=0 "
