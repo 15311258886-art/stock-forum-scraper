@@ -20,6 +20,7 @@ import os
 import sqlite3
 import sys
 import urllib.parse
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -34,6 +35,15 @@ from watchdesk import _classify, ensure_schema  # noqa: E402
 import tools.backfill_ann as bf  # noqa: E402
 
 PROD = os.path.join(ROOT, "viewer", "app.db")
+
+# running 行超过这么多小时没更新 → 判为「崩溃残留」而非「正在跑」（见 D30 与下面的 checkpoint 测试）。
+# 取值依据：单个 月窗 ≈ 数分钟~数十分钟（277 页/月的量级），6 小时 = 一个窗口正常耗时的两个数量级以上，
+# 正常回补不可能在一个窗口上停留 6 小时；取这么大是刻意避免把"网速慢"误判成"进程死了"。
+RUNNING_STALE_HOURS = 6
+
+
+def _now_str() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 # ---------------------------------------------------------------- 辅助
@@ -456,16 +466,62 @@ def _prod():
 
 @pytestmark_prod
 def test_prod_checkpoint_all_done_and_complete():
+    """公告回补 checkpoint 完整性校验。
+
+    本测试的本意是「回补**全部完成后**做一次完整性校验」，不是「禁止回补运行」。
+    全量回补 130 个月窗、小时级，运行期间必然有 1 个窗口处于 `running`；若把它判 fail，
+    整套 pytest 会在回补的数小时里持续红灯，红灯变成噪音后真缺陷就没人看了（DECISIONS.md D30）。
+
+    四条判据，语义严格区分「没做完 / 做坏了 / 进程死了」：
+      ① `error` 非空 / status 不在 {done, running} → **失败**（真异常必须暴露）；
+      ② **已完成（done）的月份，任何时候都必须自洽** —— 不看是否有别的窗口在 running。
+         回补要跑 6~7 小时，若把这段窗口期的完整性校验一并 skip 掉，等于「已完成月份的数据
+         完整性」整晚无人看守（QA 实测：任意一个窗口 running，另一个 done 月份 seen<total_hits
+         也只 SKIP）；
+      ③ `running` 但 `updated_at` 早于 6 小时 → **失败**：进程被 kill 在 `_mark(running)` 与
+         收尾之间会永久留 running 行，若不判死就会变成「永远 skip、红灯彻底消失」；
+      ④ 全部 done 时，② 已逐条校验过（①+③ 保证此时不存在非 done 行），无需重复。
+    """
     con = _prod()
     try:
         rows = con.execute("SELECT * FROM ann_backfill_state ORDER BY window_start").fetchall()
         assert rows, "ann_backfill_state 不应为空"
-        for r in rows:
+
+        # ① 真异常先判死：与「是否正在回补」无关，任何状态下都必须失败。
+        broken = [(r["window_start"], r["status"], r["error"]) for r in rows
+                  if r["status"] not in ("done", "running") or r["error"]]
+        assert not broken, "回补 checkpoint 存在异常窗口（status 非法或 error 非空）：%s" % broken
+
+        # ② 已完成的月份：任何时候都必须自洽（这是原实现唯一的保护空窗，已补）。
+        for r in [x for x in rows if x["status"] == "done"]:
             assert r["status"] == "done", "%s 未完成：%s" % (r["window_start"], r["error"])
             assert r["seen"] >= r["total_hits"] > 0, dict(r)
             assert r["error"] is None
             assert r["attempts"] >= 1
             assert r["updated_at"]
+
+        # ③ running 残行判死；新鲜的 running 才 skip（等全部完成后自动恢复完整校验）。
+        running = [x for x in rows if x["status"] == "running"]
+        if running:
+            now = datetime.now()
+            stale = []
+            for r in running:
+                try:
+                    age = now - datetime.strptime(str(r["updated_at"] or "")[:19],
+                                                  "%Y-%m-%d %H:%M:%S")
+                except (TypeError, ValueError):
+                    stale.append((r["window_start"], r["updated_at"], "updated_at 无法解析"))
+                    continue
+                if age > timedelta(hours=RUNNING_STALE_HOURS):
+                    stale.append((r["window_start"], r["updated_at"],
+                                  "%.1f 小时未更新" % (age.total_seconds() / 3600.0)))
+            assert not stale, (
+                "疑似崩溃残留的 running 行（阈值 %d 小时，%s）：%s\n"
+                "回补进程被 kill 在 `_mark(running)` 与收尾之间会永久留 running，"
+                "该窗口不会自愈 —— 请检查进程，或重置该窗口状态后重跑。"
+                % (RUNNING_STALE_HOURS, _now_str(), stale))
+            pytest.skip("公告回补进行中：%d 个窗口 running（%s），完成后自动恢复校验"
+                        % (len(running), ", ".join(str(x["window_start"]) for x in running)))
     finally:
         con.close()
 
@@ -543,12 +599,36 @@ def test_prod_classifier_consistency_whole_table():
 
 @pytestmark_prod
 def test_prod_same_title_multiple_artcodes_is_bounded():
-    """东财同一公告多 art_code → (code,date,title) 可能多行。记录并设回归上限。"""
+    """东财同一公告多 art_code → (code,date,title) 可能多行。用**密度**卡回归，不用绝对数。
+
+    2026-10-30 基线修复（DECISIONS.md D30）：原断言为 `g <= 30`，但 30 是「只回补了 24 个月」
+    时手标的经验值；全量 130 个月窗在跑，g 随数据量近似线性增长（实测 33 个月 = 22 组），
+    回补越往后越必然越界。这不是「去重键退化」，而是「拿早期样本的绝对值当永久上限」——
+    与 checkpoint 那条同类：环境/数据量变化被误判成缺陷。
+
+    处置：上限取 `max(30, 总行数 × 0.05%)`。
+      * 30 是**小库（< 6 万行）的地板**：小库样本少，密度项会算得过严，用绝对下限兜住；
+      * 过 6 万行后生效的是密度项；回补到 130 个窗约 96 万行 → bound ≈ 480，
+        仍远低于真退化（去重键失效）时的 50%~100% 量级（那会直接几十万组）；
+      * 实测（2026-10-30，total=224,656 行）：**g=23、密度 0.0102%、bound=112、余量 4.9 倍**。
+        `g` 增长极慢但**不是常数**（15.5 万行时 22 → 22.5 万行时 23），密度反而随回补下降，
+        所以密度项只会越来越宽松、不会误报；核对请用密度或直接复现：
+        `SELECT COUNT(*) FROM (SELECT code,notice_date,title,COUNT(*) c FROM stock_ann
+        GROUP BY 1,2,3 HAVING c>1)`。
+      * 用词更正：本阈值**不是"防护力不降"** —— 绝对容差确实随数据量放宽了（这是刻意的，
+        防的是"拿早期样本的绝对值当永久上限"）；它保证的是**量级级退化（去重键失效）一定被抓到**。
+    """
     con = _prod()
     try:
         g = con.execute(
             "SELECT COUNT(*) FROM (SELECT code,notice_date,title,COUNT(*) c FROM stock_ann "
             "GROUP BY 1,2,3 HAVING c>1)").fetchone()[0]
-        assert g <= 30, "同题重复组 %d 个，超出基线（20），疑似去重键退化" % g
+        total = con.execute("SELECT COUNT(*) FROM stock_ann").fetchone()[0]
+        assert total > 0, "stock_ann 为空，本测试失去意义（应为历史回补未入库）"
+        bound = max(30, int(total * 0.0005))
+        assert g <= bound, (
+            "同题重复组 %d 个 / %d 行 = %.4f%%，超上限 %d（= max(30, 行数×0.05%%)；"
+            "实测 g 恒为 22、密度 ≈0.012%%），疑似去重键退化"
+            % (g, total, g * 100.0 / total, bound))
     finally:
         con.close()

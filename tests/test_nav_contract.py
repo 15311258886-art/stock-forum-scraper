@@ -42,13 +42,38 @@ ORPHAN_ALLOW = {
     "archive",    # 存档
     "fetchlog",   # 抓取日志
     "sources",    # 数据源健康
+
+    # ============ 2026-10-30 `ea292b6` 论坛/博主链路退役：有意撤出 NAV，容器保留 ============
+    # 依据 DECISIONS.md D20（「论坛/博主链路整体退役」）原文：
+    #   「一级类『他人操作』（7 面板）整体撤出 NAV；『讨论热度』『板块热度』（资金动向·人气）
+    #     与『近期热点』（消息政策）一并撤下。**渲染函数与后端路由全部保留**（不删代码），
+    #     源恢复时把 NAV 里那几行加回即可。」
+    # 因此这 10 个 #p-* 容器是**有意保留**，不是待清理项：
+    #   * 严禁删 index.html 里的容器（恢复入口时直接加回 NAV 即可复用）；
+    #   * 严禁删 app.js 里对应的 render*/load* 函数与 server.py 里对应的 /api/ 路由；
+    #   * 本名单只豁免「NAV 里进不去」这一条，不代表面板可用（其数据源已停抓，多为空）。
+    # --- 「他人操作」类 7 面板 ---
+    "cohold",       # 共同持仓
+    "consensus",    # 持仓共识
+    "niusan",       # 牛散追踪
+    "operating",    # 正在操作
+    "persons",      # 人物库
+    "players",      # 实盘选手
+    "smart_money",  # 聪明钱共识（容器 #p-smart_money 仍被「消息面汇总」BRIEF_BOX 复用）
+    # --- 论坛停抓后失去数据源的 3 面板 ---
+    "stocks",       # 讨论热度（资金动向·人气）
+    "plate_heat",   # 板块热度（资金动向·人气）
+    "topics",       # 近期热点（消息政策）
 }
 
-# 运行时由 itemsOfCat() 的 learn 分支注入的导航项（静态 NAV 里看不到，见 app.js:8148 注释）。
+# 运行时由 itemsOfCat() 的 learn 分支注入的导航项（静态 NAV 里看不到，见 app.js itemsOfCat）。
 RUNTIME_NAV_TABS = {
     "buffett",         # 巴菲特选股
     "bili_authors",    # B站博主
     "bili_techvalue",  # B站技术·价值
+    # 2026-10-24 进哥：方法共振。与 strategy_lab / fundmasters / kronos 并列，
+    # 由 itemsOfCat() 内 `const fixed = [...]` 注入「学习」类子项 → 真实可达，不是孤儿。
+    "funnel",
 }
 
 # 形如 { tab: "today", label: "..." }  —— 引号用字符类匹配，避免转义问题
@@ -98,8 +123,30 @@ def _nav_block() -> str:
     raise AssertionError("NAV 数组未正常闭合")
 
 
+_COMMENT_LINE_RE = re.compile(r"^\s*//")
+
+
+def _strip_line_comments(block: str) -> str:
+    """剔除 NAV 块里的**整行注释**（`^\\s*//`）。
+
+    行内 `//` 不在这里处理 —— 那归 `_nav_block()` 的"字符串感知 + 括号配对"逻辑管，
+    改它有风险，且已正确（字符串里的 `//` 不会被误当注释）。
+
+    为什么必须剥：`nav_tabs()` 原本对原文直接跑 `_TAB_RE`，于是把 NAV 条目注释掉
+    （`// { tab: "xxx", label: "..." },`）后 tab 数**一点不变** —— 而"注释掉导航项"
+    恰恰是停用一个面板最现实的手法（比删行更常见：删了不好回滚）。
+    QA 实测注释 2 个、注释 8 个，`test_nav_has_tabs` 与 `test_panels_have_nav_entry`
+    全都照样 PASS —— 两条测试当时是瞎的。
+    """
+    return "\n".join(ln for ln in block.splitlines() if not _COMMENT_LINE_RE.match(ln))
+
+
 def nav_tabs() -> list:
-    return _TAB_RE.findall(_nav_block())
+    tabs = _TAB_RE.findall(_strip_line_comments(_nav_block()))
+    # 护栏：剥注释若把整块剥空（正则写错 / 切片被改坏），必须在这里炸掉。
+    # 否则下游 `test_every_nav_tab_has_panel` 会拿到空列表后"无可检项"而假绿。
+    assert tabs, "剥注释后 NAV 一个 tab 都解析不出来（剥得太狠或 NAV 块被切坏）"
+    return tabs
 
 
 def panel_ids() -> set:
@@ -107,8 +154,17 @@ def panel_ids() -> set:
 
 
 def test_nav_has_tabs():
+    """NAV 解析健康度下限——只防「解析逻辑整体失效」，不锁定具体数量。
+
+    数量基线：2026-10-30 `ea292b6`（论坛/博主链路退役，DECISIONS.md D20）把「他人操作」
+    类 7 个面板 +「讨论热度」「板块热度」「近期热点」共 10 个面板整体撤出 NAV，
+    NAV 由 49 降到 39。这是**有意变更**，不是 `_nav_block()` 解析失效。
+    故阈值取 38（当前基线 39，留 1 个余量）：低于 38 才判定括号配对/正则被改坏。
+    新增面板时无需改这里；只有「数量腰斩」这类解析事故才会触发。
+    """
     tabs = nav_tabs()
-    assert len(tabs) >= 40, "NAV 解析出的 tab 太少（%d），解析逻辑可能失效" % len(tabs)
+    assert len(tabs) >= 38, (
+        "NAV 解析出的 tab 太少（%d，当前基线 39 / 下限 38），解析逻辑可能失效" % len(tabs))
     return True
 
 

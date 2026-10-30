@@ -1272,17 +1272,51 @@ def sig_ann(con: sqlite3.Connection, asof: str | None = None) -> dict:
     return out
 
 
+def desk_snapshot_date(con: sqlite3.Connection) -> str:
+    """`stock_desk` 这份快照的日期（max(scan_at) 的前 10 位）。取不到返回 ""。
+
+    单独抽成函数是因为「这路能不能用」要靠它判：`_generate_inner` 拿它和预测日比，
+    `sig_desk` 内部也用它。**只读，不写库。**
+    """
+    try:
+        r = con.execute("SELECT MAX(scan_at) AS m FROM stock_desk").fetchone()
+    except Exception:  # noqa: BLE001
+        return ""
+    return str((r["m"] if r is not None else "") or "")[:10]
+
+
 def sig_desk(con: sqlite3.Connection, asof: str | None = None) -> dict:
     """盯盘结论：watchdesk 模块当日产出（stock_desk：stance / risk_score / opp_score）。
 
     双向信号 —— 风险主导（risk_score 高）应当负贡献。盯盘结论是内部研判产物，
     与政策、公告同属"内部资料"一路。
 
-    隔离口径说明：stock_desk 是 watchdesk 每次扫描后**全量重写**的快照表（没有历史版本），
-    和 posts/positions 一样无法按日期回溯。若按 asof 过滤 `date(scan_at) <= asof`，
-    回补历史日预测时这路信号恒为 0 —— 等于用技术性的日期条件把它静默杀掉。
-    这里按"快照语义"处理：照常参与，如实标注，不假装隔离。
+    **快照语义（2026-10-30 收紧为「不许冒充历史」，见 DECISIONS.md D31）**：
+      `stock_desk` 每次扫描**全量重写**、只留当前一期（227 行、无历史版本），无法按日回溯。
+      改前是"照常参与 + 如实标注"——回放 2017 年时却拿 2026-10-30 的盯盘结论打分，
+      这是纯前视，标注不能免责。
+      现在：`asof` 早于快照日（`desk_snapshot_date(con) > asof`）→ 返回 `{}`，
+      即**该路不可用**，沿用项目既有缺失语义（空 dict = 这一路没数据，同 sig_extref /
+      sig_board 查不到行时一样），不新造"不可用"标记；原因由调用方写进 run note。
+
+      判据为什么是 `>` 而不是 `!=`：
+        a) `asof >= 快照日` 意味着快照**不来自未来**，不是前视，照常用（陈旧是另一个问题，
+           现状未做新鲜度过滤，本轮不扩大改动面）；
+        b) 快照内混有两个扫描日（2026-10-14 4 行 / 2026-10-30 223 行），若用 `!=`
+           要求"快照日必须等于 asof"，实盘当天也会被判不可用 —— 那是拿修复前视去砸实盘，
+           D31 要求的"实盘零影响"就破了。
+
+    **⚠ `asof` 形参在这里不代表"支持回放"：本路的历史回放能力为零。**
+      任何早于当期快照日的历史日，本函数一律返回 `{}`（不可用）。它保留 `asof` 形参只为
+      让 9 路信号签名一致、并让"这一路在当前 asof 下到底能不能用"有个统一入口；
+      以后若有人想给历史日补盯盘结论，必须先让 `stock_desk` 变成**带历史版本**的表
+      （每次扫描追加而不是全量重写），否则不要试图在这里加日期过滤蒙混过关。
     """
+    cut = str(asof or "")[:10]
+    if cut:
+        snap = desk_snapshot_date(con)
+        if snap and snap > cut:
+            return {}                   # 快照来自未来 → 不许冒充当日结论
     sql = "SELECT code, name, stance, risk_score, opp_score, scan_at FROM stock_desk"
     args: list = []
     try:
@@ -1648,17 +1682,64 @@ def sig_holders(con: sqlite3.Connection, asof: str | None = None) -> dict:
          机构合计持股占比（hold_ratio）、以及 hold_change 含"增持"的家数 —— 这是最硬的
          内部资料，比股东户数总数可读得多；
       ② stock_holder_num：股东户数环比下降（筹码趋集中）。
+
+    **时点口径（2026-10-30 修前视偏差，见 DECISIONS.md D31）**：
+      `asof` 非空  → 只认 `end_date <= asof` 的报告期，再在剩下的期里取最新一期（时点取数）；
+      `asof` 为空  → 与改前**完全一致**（全表最新一期），实盘"当场"路径走这一支。
+
+    改前 `asof` 形参存在但函数体完全没用它：回放 2017 年时取的是 2026 年最新一期，
+    等于"拿十年后的十大股东名单预测今天"（前视偏差）。
+
+    ⚠ **这是近似 PIT，不是严格 PIT，别当严格 PIT 用**：
+      本库 `disclose_at` 只有 2026-01-14 之后的行有值（15.4 万 / 30.8 万），2026 年前基本
+      为空，无法按"公告可得日"过滤，只能把**报告期截止日 `end_date`** 当作已知时点。
+      真实世界财报滞后 1~4 个月才公告，故 asof 落在「报告期截止日之后、公告日之前」时，
+      本函数仍会用到当时市场还不知道的数据 —— 残留的二阶前视，量级远小于改前
+      （改前连报告期都不看，一律取最新一期）。待 `disclose_at` 回补到足够覆盖后，
+      把条件换成 `COALESCE(disclose_at, end_date) <= asof` 即可收敛为严格 PIT。
     """
     out: dict = {}
+    cut = str(asof or "")[:10]        # td 形如 'YYYY-MM-DD'；容忍入参带时间部分
     # ① 前十大股东
     #  重要：同一股东会有 scope='free'/'total' 两行、且跨多个 end_date 重复出现，
     #  早期版本直接累加导致「机构合计持股 30334%」这种离谱值。这里按
     #  (symbol, end_date, holder_rank) 去重后再取最新一期末，且机构占比只累加该期前十大。
+    #  **ORDER BY 不是可选的（2026-10-30 实测踩到）**：下面的循环靠 `d > a["date"]` 才重置
+    #  累加器，若旧报告期的行排在新报告期之后，老期的前十大会被**累加进最新期** ——
+    #  实测 000001 得到「前十大含机构 30 家 / 合计持股 195.6%」（前十大只有 10 个名额，
+    #  30 家在物理上不可能）。而 SQLite 无 ORDER BY 时的行序由查询计划决定，加一个
+    #  WHERE 条件就会变（本次仅因加了 asof 过滤，4911 只票的读数就变了）——
+    #  即"同一份数据、不同行序 → 不同结论"。故显式排序，让「最新一期胜出」可复现。
+    #
+    #  **`scope` 必须进 tie-break（第二层的同一歧义）**：同一 (symbol, end_date, holder_rank)
+    #  会有 scope='free'（十大流通股东）与 'total'（十大股东）两行，而去重键 (sym,d,rank)
+    #  只保留**先出现的那一行**。实测这两行 `is_org` 不一致的有 **15,569 组**、
+    #  `hold_ratio` 差 >0.01 的有 **38,431 组** —— 谁在前，org_n/ratio 就不是同一个数
+    #  （QA 实测：只把 tie-break 从 free 换成 total，org_n 变 800 只、ratio 变 4702 只）。
+    #  现状"恰好 free 在前"是因为 UNIQUE(symbol,end_date,holder_rank,scope) 索引里
+    #  `'free' < 'total'` —— **这是运气，不是设计**；改插入序或换查询计划，800 只票的
+    #  org_n 会静默 ±1，没人发现。故把 scope 显式写进 ORDER BY 钉死。
+    #
+    #  为什么钉 **free 优先**、且为什么不用 `AND scope='free'` 过滤：
+    #    · 语义上 "前十大（流通）股东里的机构" 是这一路的本意（hold_ratio 也是该 scope 的
+    #      比例）；`total` 是总股本口径，切换会让 ratio 语义漂移到另一个口径 —— 那是**另一个决策**，
+    #      不该藏在修 bug 里顺手做（真实影响 4,702 只票）。
+    #    · 不能用 WHERE 过滤：有 **9,690 组只有 total 行**（另有 9,236 组只有 free），
+    #      过滤会把这些组静默丢掉。故"free 优先、缺失回落 total"。
+    #    · 副作用要写清楚：因为有 9,690 组回落 total，这个 ratio **不是严格单一口径**。
+    #      这是既有数据现实（历史就是这么算的），本轮只保证"选谁是可复现的"，
+    #      不假装它已经是纯流通口径。
     try:
         sql = ("SELECT symbol, end_date, holder_rank, holder_name, is_org, holder_type, "
                "hold_ratio, hold_change FROM stock_holders "
                "WHERE symbol IS NOT NULL AND symbol != ''")
-        rows = con.execute(sql).fetchall()
+        args: list = []
+        if cut:
+            sql += " AND end_date <= ?"
+            args.append(cut)
+        rows = con.execute(
+            sql + " ORDER BY symbol, end_date, holder_rank,"
+                  " CASE scope WHEN 'free' THEN 0 ELSE 1 END", args).fetchall()
     except Exception:  # noqa: BLE001
         rows = []
     last: dict = {}
@@ -1690,11 +1771,16 @@ def sig_holders(con: sqlite3.Connection, asof: str | None = None) -> dict:
         elif any(w in chg for w in ("减持", "减仓")):
             a["cut_n"] += 1
     # ② 股东户数环比
+    #  stock_holder_num **有 end_date 字段**（1994-12-31 ~ 2026-10-26），与 ① 同口径按 asof 过滤。
+    #  不过滤会让「户数环比」这一半仍然前视 —— 只修 ① 等于前视从大门赶进小门。
     try:
-        hrows = con.execute(
-            "SELECT symbol, end_date, holder_total_num FROM stock_holder_num "
-            "WHERE symbol IS NOT NULL AND holder_total_num IS NOT NULL "
-            "ORDER BY symbol, end_date").fetchall()
+        hsql = ("SELECT symbol, end_date, holder_total_num FROM stock_holder_num "
+                "WHERE symbol IS NOT NULL AND holder_total_num IS NOT NULL")
+        hargs: list = []
+        if cut:
+            hsql += " AND end_date <= ?"
+            hargs.append(cut)
+        hrows = con.execute(hsql + " ORDER BY symbol, end_date", hargs).fetchall()
     except Exception:  # noqa: BLE001
         hrows = []
     lastn: dict = {}
@@ -2307,8 +2393,10 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     #   - K 线：截断到 td 收盘（补跑历史日时尤其关键——K 线缓存里可能有 td 之后的真实走势，
     #     不截断就等于"拿着后面的答案做前面的预测"）。
     #   - 龙虎榜 / 外部参考：sig_fund / sig_extref 内按 trade_date / pub_date <= td 过滤。
-    #   - 论坛情绪 / 选手跟随 / 股东户数：库内时间戳不可靠（post_time 停在 2021 等），
-    #     属"快照语义"，无法精确回溯 —— 在 run note 中如实标注，不假装隔离。
+    #   - 股东结构（holders）：2026-10-30 起按 end_date <= td 取报告期（近似 PIT，见 D31）。
+    #   - 盯盘结论（desk）：stock_desk 无历史版本，快照日 > td 时直接判该路不可用（见 D31）。
+    #   - 其余（政策/板块/海外）：库内时间戳不可靠（post_time 停在 2021 等），属"快照语义"，
+    #     无法精确回溯 —— 在 run note 中如实标注，不假装隔离。
     _STATUS["stage"] = "数据隔离截断"
     bars_map = {c: [b for b in v if str(b.get("d", ""))[:10] <= td]
                 for c, v in bars_map.items()}
@@ -2330,9 +2418,15 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     inst_raw = sig_inst(con, asof=td)        # 龙虎榜「机构专用」席位（硬钱）
     lhb_raw = sig_lhb(con, asof=td)          # 龙虎榜游资/营业部席位（噪声级）
     extref_raw = sig_extref(con, asof=td)
-    holders_raw = sig_holders(con)
+    holders_raw = sig_holders(con, asof=td)   # 2026-10-30：按 td 取报告期（原漏传 asof → 前视，D31）
     ann_raw = sig_ann(con, asof=td)
     desk_raw = sig_desk(con, asof=td)
+    # desk 不可用时要说明原因（run note 是项目既定的"如实标注"位置，见上面 1.5 段注释）
+    desk_note = ""
+    if not desk_raw:
+        _ds = desk_snapshot_date(con)
+        if _ds and _ds > td:
+            desk_note = "｜盯盘结论不可用：stock_desk 快照日 %s 晚于预测日 %s（该表无历史版本）" % (_ds, td)
     policy_raw = sig_policy(con, asof=td)
     board_raw = sig_board(con, asof=td)
     overseas_raw = sig_overseas(con, asof=td)
@@ -2522,7 +2616,7 @@ def _generate_inner(con, run_date, force, progress) -> dict:
                       for k in SIGNAL_KEYS)
     _bstr = "、".join("%s" % w for w, _ in hot_boards[:TOP_BOARDS])
     _note = "候选池 %d 只；K线截至 %s（asof隔离）；权重：%s；方向(前%d热板块)：%s" % (
-        pool_n, td, _wstr, TOP_BOARDS, _bstr)
+        pool_n, td, _wstr, TOP_BOARDS, _bstr) + desk_note
     con.execute(
         "INSERT OR REPLACE INTO prediction_run (run_date,created_at,engine_ver,pool_n,signal_n,"
         "core_n,watch_n,market_view,style_view,breadth_json,bench_json,status,note) "
