@@ -258,7 +258,10 @@ def _score_pool(cands: list, w: dict, mkt: str, rules: list) -> list:
 
     a_bw = sorted(_bw(r) for r in cands)
     a_sw = sorted(_sw(r) for r in cands)
-    a_sn = sorted(_sn(r) for r in cands)
+    # 分位数组只能含**该维可用**的候选。原先把 senti_n=0 的 0.0 也放进分母，
+    # 会让少数有舆情的票被“无舆情样本”挤到 5/95 的极端分位；等舆情源恢复，
+    # 舆情维（学出权重可达 75.9%）会直接改写排序 —— 这正是要消灭的“数据齐全抬分”。
+    a_sn = sorted(_sn(r) for r in cands if (r.get("senti_n") or 0))
     a_eg = sorted(_eg(r) for r in cands)
 
     rows = []
@@ -670,7 +673,8 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
             "AVG(CASE WHEN fill_status='ok' THEN ret_t5 END) avg_ret5, "
             "AVG(CASE WHEN fill_status='ok' THEN ex_t5 END) avg_ex5, "
             + _WIN5_SQL + " "
-            "FROM self_pick WHERE kind='main' GROUP BY pick_date, is_hist "
+            "FROM self_pick WHERE kind='main' AND dims_json LIKE '%coverage%' "
+            "GROUP BY pick_date, is_hist "
             "ORDER BY pick_date DESC LIMIT 24"):
         hist.append({"date": r["pick_date"], "hist": r["is_hist"], "n": r["n"],
                      "settled": r["settled"],
@@ -690,10 +694,13 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
     return {"ok": True, "engine_ver": ENGINE_VER, "pick_date": cur, "horizon": HORIZON,
             "market_state": mkt, "weight_src": wsrc,
             "picks": picks, "own_picks": own_picks,
-            "stats": {"main": _stat("WHERE kind='main'"),
+            # 统计同分档表：只算新口径（带 coverage）的行，旧行保留可追溯但不进结论。
+            "stats": {"main": _stat("WHERE kind='main' AND dims_json LIKE '%coverage%'"),
                       "own": _stat("WHERE kind='own'"),
-                      "hist": _stat("WHERE kind='main' AND is_hist=1"),
-                      "live": _stat("WHERE kind='main' AND is_hist=0")},
+                      "hist": _stat("WHERE kind='main' AND is_hist=1 "
+                                    "AND dims_json LIKE '%coverage%'"),
+                      "live": _stat("WHERE kind='main' AND is_hist=0 "
+                                    "AND dims_json LIKE '%coverage%'")},
             # 2026-10-30 归因新增：分档实盘成绩（按交易日聚合 + t 值）。
             # 动机是「A 档到底该当买入清单还是回避清单」——见 caliber 第 7 条。
             "tier_stats": _tier_stats(con),
