@@ -84,63 +84,66 @@ CLAIMS: tuple = (
     {
         "key": "lhb_turnover", "group": "avoid", "name": "龙虎榜高换手",
         "rule": "近10个交易日内上过龙虎榜，且上榜当日换手率 ≥ 15%",
-        "horizon": 5, "n": 1873, "days": 19,
-        "excess": -6.12, "t": -9.05, "win": 19.3, "status": "active", "weight": 6,
+        "horizon": 5, "n": 292649, "days": 2621,
+        "excess": -1.22, "t": -12.56, "win": 33.0, "status": "active", "weight": 4,
         "probe": "viewer/hypo.py（predicate: lhb_hit == 1 and turnover >= 15）",
-        "note": "2026-10-31 统一重标定：原分 15~20% / ≥20% 两档，重算后两档强度几乎相同"
-                "（−6.12% t=−9.05 vs −6.43% t=−9.02），故合并为一档、门槛降到 15% —— "
-                "同一个信号拆成两行只会让权重分配失真。<15% 仍不命中（−1.35%，t=−1.84）。"
-                "机制上它等价于「极端放量的极端情形」，是本系统里因果链最清楚的一条。"
-                "T+10 仍在恶化（−9.92%，t=−9.34，胜率 12.7%），不是一日情绪。",
+        "note": "**2026-10-31 龙虎榜历史回补后重测（此前只有 19 个交易日）**：2621 个交易日、"
+                "29.3 万样本，T+5 按日超额 **−1.22%（t=−12.56）** —— 原 −6.12% 高估约 5 倍。"
+                "方向极稳（t 从 −9.05 升到 −12.56），幅度缩水到与大跌同级，权重 6→4。"
+                "这也是「t 值大 ≠ 幅度可信」的最好例子：短样本的 t 只证明那 19 天不是噪声。"
+                "分 15~20% / ≥20% 两档重算后强度几乎相同，故合并为一档。"
     },
     # -------- 量价类：2026-10-31 统一引擎重算，「放量下跌」被推翻 --------
     {
         "key": "vol_extreme", "group": "avoid", "name": "极端放量",
         "rule": "当日量比 ≥3（本项目量比 = 当日量/含当日5日均量，上限≈5，对应真实量比约 5~7 倍）",
-        "horizon": 5, "n": 784, "days": 138,
-        "excess": -1.81, "t": -2.59, "win": 38.4, "status": "active", "weight": 2,
+        "horizon": 5, "n": 21599, "days": 2590,
+        "excess": -0.84, "t": -5.59, "win": 38.6, "status": "active", "weight": 3,
         "probe": "viewer/hypo.py（predicate: volume_ratio >= 3）",
         "note": "**不分涨跌**。「放量上涨」同样 −0.97%（t=−3.81）——起作用的是极端放量本身"
                 "（注意力峰值），不是涨跌方向。这条与龙虎榜是同一个机制的两个刻度："
                 "龙虎榜是「极端放量 + 上了榜」，这里是「纯看量」。"
-                "**长样本（2016 起 2590 个交易日）按日均值只剩 −0.84%（t=−5.59）**——"
-                "方向仍在、显著，但幅度比短样本小一半，权重从 4 降到 2。",
+                "**主数字已改为长样本（2016 起 2590 个交易日）按日均值 −0.84%（t=−5.59）**；"
+                "短样本（288 日）曾是 −1.81%，高估一倍，权重一度从 4 降到 2，"
+                "2026-10-31 龙虎榜回补后再按「与大跌/当日下跌同量级」调回 3。",
     },
     {
         "key": "vol_heavy", "group": "avoid", "name": "放量",
         "rule": "当日量比 2~3",
-        "horizon": 5, "n": 12171, "days": 144,
-        "excess": -0.89, "t": -4.13, "win": 41.1, "status": "active", "weight": 1,
+        "horizon": 5, "n": 238573, "days": 2621,
+        "excess": -0.18, "t": -2.55, "win": 42.2, "status": "active", "weight": 1,
         "probe": "viewer/hypo.py（predicate: volume_ratio >= 2）",
-        "note": "与「极端放量」互斥分档（2~3 给 1 分，≥3 给 2 分），不叠加 —— 同一天不该"
-                "因为同一个现象拿两次分。**长样本（2621 个交易日）按日均值只有 −0.18%"
-                "（t=−2.55）**：显著但幅度可忽略，权重从 2 降到 1。",
+        "note": "与「极端放量」互斥分档（2~3 给 1 分，≥3 给 3 分），不叠加 —— 同一天不该"
+                "因为同一个现象拿两次分。长样本（2621 个交易日、23.9 万样本）按日均值只有 "
+                "**−0.18%（t=−2.55）**：显著但扣掉双边成本（约 0.2%）后归零，只给 1 分。",
     },
     {
         "key": "crash_big", "group": "avoid", "name": "大跌",
         "rule": "当日跌幅 ≥7%",
-        "horizon": 5, "n": 17649, "days": 143,
-        "excess": -1.15, "t": -2.99, "win": 42.4, "status": "active", "weight": 5,
+        "horizon": 5, "n": 171447, "days": 2569,
+        "excess": -1.48, "t": -11.71, "win": 51.3, "status": "active", "weight": 5,
         "probe": "viewer/hypo.py（predicate: ret1 <= -7）",
-        "note": "比「跌 5%~7%」更强（−1.15% vs −0.80%），故分成两档而非一条阈值。"
-                "**长样本（2569 个交易日）按日均值 −1.48%、t=−11.71，比短样本更强**，"
-                "权重 4→5。但要记住它的双面性：逐样本均值是 **+0.89%** —— 少数暴跌后"
-                "暴力反弹的日子赚得极多，把逐笔平均拉成了正数。按规则反复做的期望看按日均值"
-                "（亏），单笔押注的体验看逐样本（可能赚、方差巨大）。",
+        "note": "全系统**幅度最大**的一条（长样本按日 −1.48%，t=−11.71，17.1 万样本）。"
+                "比「跌 5%~7%」强（−1.48% vs −0.95%），故分两档而非一条阈值。"
+                "但它有双面性，必须分开看：逐样本均值 **+0.89%**、逐笔胜率 51.3% —— "
+                "少数暴跌后暴力反弹的日子赚得极多，把逐笔平均拉成正数。按规则反复做的期望"
+                "看按日均值（亏），单笔押注的体验看逐样本（可能赚、方差巨大）。",
     },
     {
         "key": "crash_mid", "group": "avoid", "name": "当日下跌",
         "rule": "当日跌幅 5%~7%",
-        "horizon": 5, "n": 42783, "days": 143,
-        "excess": -0.80, "t": -2.56, "win": 43.9, "status": "active", "weight": 2,
+        "horizon": 5, "n": 393337, "days": 2614,
+        "excess": -0.95, "t": -9.78, "win": 50.4, "status": "active", "weight": 3,
         "probe": "viewer/hypo.py（predicate: ret1 <= -5）",
-        "note": "与「大跌」互斥（≥7% 归上一档）。",
+        "note": "与「大跌」互斥（≥7% 归上一档）。长样本 39.3 万样本，t=−9.78 —— "
+                "显著性比短样本（−2.56）强得多，说明「跌 5% 以上跑输」是十年级别的稳定现象。"
+                "与大跌同样有口径冲突：逐样本 +0.58%，按日 −0.95%。",
     },
     {
         "key": "macd_dead", "group": "avoid", "name": "MACD死叉",
         "rule": "MACD 柱当日由正转负（事件，不是「柱为负」的状态）",
-        "horizon": 5, "n": 29344, "days": 143,
-        "excess": -0.51, "t": -2.01, "win": 43.8, "status": "weak", "weight": 0,
+        "horizon": 5, "n": 400543, "days": 2617,
+        "excess": -0.08, "t": -1.09, "win": 47.9, "status": "weak", "weight": 0,
         "probe": "viewer/hypo.py（predicate: macd_cross_down == 1）",
         "note": "t 刚过线、幅度中等，只作辅助。注意它是**事件型**字段：用「柱为负」这种"
                 "状态型定义会覆盖近半股票，结论完全不同。"
@@ -150,8 +153,8 @@ CLAIMS: tuple = (
     {
         "key": "vol_down", "group": "avoid", "name": "放量下跌",
         "rule": "当日量比 ≥1.8 且跌幅 ≥3%",
-        "horizon": 5, "n": 2691, "days": 143,
-        "excess": 0.01, "t": -1.73, "win": 46.9, "status": "active", "weight": 1,
+        "horizon": 5, "n": 47948, "days": 2600,
+        "excess": -0.56, "t": -5.36, "win": 47.8, "status": "active", "weight": 1,
         "probe": "viewer/hypo.py（predicate: volume_ratio >= 1.8 and ret1 <= -3）",
         "note": "**这条翻过两次案，是「短样本会把真效应判死」的标本：**\n"
                 "  ① 首版 4 分，宽松口径 −0.65%（t=−3.93）；\n"
@@ -165,8 +168,8 @@ CLAIMS: tuple = (
     {
         "key": "shrink_down", "group": "avoid", "name": "缩量下跌",
         "rule": "当日量比 ≤0.6 且收跌",
-        "horizon": 5, "n": 18638, "days": 143,
-        "excess": -0.24, "t": -1.97, "win": 45.4, "status": "active", "weight": 1,
+        "horizon": 5, "n": 404803, "days": 2609,
+        "excess": -0.21, "t": -3.03, "win": 47.0, "status": "active", "weight": 1,
         "probe": "viewer/hypo.py（predicate: volume_ratio <= 0.6 and ret1 < 0）",
         "note": "幅度 −0.24% 在短样本上被判无意义（扣双边成本约 0.2% 后基本归零）；"
                 "长样本按日均值 −0.21%、t=−3.03，**方向稳定但幅度确实小**，只给 1 分提示。",
@@ -174,8 +177,8 @@ CLAIMS: tuple = (
     {
         "key": "two_day_drop", "group": "avoid", "name": "两日累跌",
         "rule": "两日累计跌幅 ≥6%",
-        "horizon": 5, "n": 62108, "days": 142,
-        "excess": -0.36, "t": -1.75, "win": 45.4, "status": "active", "weight": 1,
+        "horizon": 5, "n": 572157, "days": 2615,
+        "excess": -0.45, "t": -5.08, "win": 51.6, "status": "active", "weight": 1,
         "probe": "viewer/hypo.py（predicate: ret2 <= -6）",
         "note": "短样本 −0.36%（t=−1.75）被判不够；长样本按日均值 −0.45%、t=−5.08，"
                 "**显著且方向稳定**。仍只给 1 分：覆盖 13% 的股票，权重高了会把整张表的"
@@ -185,8 +188,8 @@ CLAIMS: tuple = (
     {
         "key": "ann_reduce", "group": "avoid", "name": "股东减持",
         "rule": "近 20 个自然日内有「股东减持」类公告（已剔除承诺不减持/终止减持）",
-        "horizon": 5, "n": 1253, "days": 129,
-        "excess": -1.83, "t": -4.62, "win": 35.8, "status": "active", "weight": 3,
+        "horizon": 5, "n": 1264, "days": 130,
+        "excess": -1.79, "t": -4.65, "win": 35.8, "status": "active", "weight": 2,
         "probe": "viewer/hypo.py（predicate: ann_neg == 1）",
         "note": "**这条经历了两次翻案，是「样本覆盖度决定结论」的最好例子：**\n"
                 "  ① 最初 n=69 → 报 t=−5.66（小样本虚高）；\n"
@@ -387,9 +390,11 @@ def prompt_block(max_chars: int = 3000) -> str:
                 lg.get("t") or 0.0,
                 "（逐样本 %+.2f%% 符号相反，别用）" % (lg.get("excess_sample") or 0.0)
                 if lg.get("conflict") else "")
-        return ("· %s：%s → T+%d 超额 %+.2f%%，t=%+.2f，胜率 %.0f%%（短样本 n=%d，%d 个交易日）%s"
+        # 主数字是否已是长样本：看样本长度，>=1000 个交易日即视为长样本（2016 起）
+        sk = "长样本" if (c.get("days") or 0) >= 1000 else "短样本"
+        return ("· %s：%s → T+%d 超额 %+.2f%%，t=%+.2f，胜率 %.0f%%（%s n=%d，%d 个交易日）%s"
                 % (c["name"], c["rule"], c["horizon"], c["excess"], c["t"], c["win"],
-                   c["n"], c["days"], tail))
+                   sk, c["n"], c["days"], tail))
 
     a = [c for c in CLAIMS if c["status"] == "active"]
     w = [c for c in CLAIMS if c["status"] == "weak"]
@@ -433,3 +438,8 @@ if __name__ == "__main__":
     print("自检 active 但 |t|<2 的条目：", [c["key"] for c in bad] or "无（通过）")
     bad2 = [c for c in CLAIMS if c["weight"] and c["status"] in ("refuted", "watch")]
     print("自检 refuted 却给了权重：", [c["key"] for c in bad2] or "无（通过）")
+    # 样本太短的 claim 不许拿高分权重（2026-10-31 立）：龙虎榜用 19 天拿了 6 分，
+    # 补到 2627 天后幅度只剩 1/5。样本 < 300 个交易日的一律压到 ≤2 分。
+    thin = [(c["key"], c["days"], c["weight"]) for c in CLAIMS
+            if c["weight"] > 2 and (c.get("days") or 0) < 300]
+    print("自检 样本<300日却给>2分权重：", thin or "无（通过）")
