@@ -95,7 +95,11 @@ function ck(cond, name, detail) {
   ck(r.active && r.actives.length === 1 && r.actives[0] === "p-oss",
     "面板唯一 active", JSON.stringify(r.actives));
   ck(r.rows === 11, "规则表 11 行", "实际 " + r.rows);
-  ck(/2025-08-18/.test(r.text), "样本边界已披露（2025-08-18）");
+  // 2026-10-31：因子表回补到 2016 后，样本起点不再是 2025-08-18。
+  // 断言改成「必须披露样本边界 + 年数动态计算」，避免写死日期后一动数据就误报。
+  ck(/主结果样本[:：]/.test(r.text) && /\d{4}-\d{2}-\d{2}\s*~\s*\d{4}-\d{2}-\d{2}/.test(r.text),
+    "样本边界已披露（起止日期）");
+  ck(/约\s*\d+(\.\d+)?\s*年/.test(r.text), "样本长度按实际交易日换算成年");
   ck(/已推翻/.test(r.text), "状态标签「已推翻」出现");
   ck(/同向/.test(r.text), "长样本「同向」标记出现");
   ck(/Stockbee/.test(r.text), "头条规则出现");

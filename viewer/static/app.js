@@ -1032,6 +1032,24 @@ if (typeof window !== "undefined" && typeof MutationObserver !== "undefined") {
 let AVOID_SET = {};        // { "600xxx": { code,name,res_score,reasons:[...] }, ... }
 let _avTick = false;
 
+/* 避雷面板的数据缓存（2026-10-31 修复 TDZ）。
+   ★ 为什么必须声明在这里：`initNav()` 在文件末尾 15213 行执行，它会 selectNav → loadAvoid，
+   而 `loadAvoid` 会读写 `AVOID.data`。原实现把 `const AVOID = {...}` 放在 15869 行（initNav 之后），
+   结果首屏走深链 #overview/avoid 时直接抛
+     ReferenceError: Cannot access 'AVOID' before initialization
+   面板永远停在「正在加载数据…」。与之前 harvest / oss / selection 是同一类问题：
+   **模块级 const 在使用点之后声明 = TDZ 地雷**，凡是 initNav 链路会被调到的状态对象，
+   一律前置声明。 */
+const AVOID = { data: null, busy: false };
+
+/* 同一类 TDZ 地雷的另外两个（2026-10-31 全标签扫描发现）：
+   `quantRefHtml()` 在 4535 行读写 QUANT、ETF 面板在 initNav 链路上读写 ETF，
+   而两者原本分别声明在 16689 / 16705 行 → 深链 #overview/quant、#overview/etf
+   首屏直接抛 ReferenceError，面板永远停在「正在加载数据…」。
+   扫描结论：**凡是 initNav 会碰到的状态对象，声明必须早于一切使用点。** */
+const QUANT = { data: null, busy: false, qtab: "panorama", panorama: null, panoramaCode: "" };
+const ETF = { data: null, busy: false };
+
 function buildAvoidSet(d) {
   const map = {};
   const items = toArr((d && d.items) || []);
@@ -15866,7 +15884,8 @@ function resEvolveView(d) {
  * 所以本面板不许出现「买入」「关注」「推荐」等字样，只呈现「为什么该避」。
  * 数据来自 /api/avoid（后端 resonance.avoid_payload 产出，前端只做呈现）。
  */
-const AVOID = { data: null, busy: false };
+/* 状态对象 AVOID 已前置声明在文件上方（避雷跟随标记那一节）—— 见那里关于 TDZ 的说明。
+   此处不要再写 const AVOID，否则重复声明会直接 SyntaxError。 */
 function loadAvoid(force) {
   const box = $("#p-avoid");
   if (box && !AVOID.data) {
@@ -16201,13 +16220,18 @@ function renderOSS() {
   const H = [];
 
   // ① 样本边界：必须放在结论前面。缺少这一句，下面的数字就会被当成长期结论。
+  //    2026-10-31：因子表回补到 2016 后，年数按实际交易日算，不再写死「14 个月」。
   if (sp.days) {
+    const _yrs = (sp.days / 244).toFixed(1);
+    const _old = Number(sp.days) < 600;
     H.push('<div style="border-left:3px solid #f59e0b;background:rgba(245,158,11,.08);'
       + 'padding:9px 12px;border-radius:6px;margin-bottom:12px;font-size:var(--fs-xs,11px);'
       + 'color:var(--muted,#6b7280);line-height:1.6">'
       + '主结果样本：<b style="color:var(--fg,#111)">' + _HE(sp.start) + ' ~ ' + _HE(sp.end) + '</b>'
-      + '（' + _HE(sp.days) + ' 个交易日，约 14 个月）。指标表只有这么长，'
-      + '<b style="color:var(--fg,#111)">未覆盖完整牛熊</b>；'
+      + '（' + _HE(sp.days) + ' 个交易日，约 ' + _yrs + ' 年）。'
+      + (_old
+        ? '指标表只有这么长，<b style="color:var(--fg,#111)">未覆盖完整牛熊</b>；'
+        : '已覆盖多轮牛熊；')
       + '标注「长样本」的两条另用 2020 年以来全量日线复核过。</div>');
   }
 
@@ -16675,7 +16699,8 @@ const QUANT_FACTOR_LABEL = {
   MA_POS: "均线多空", MACD: "MACD动能", KDJ: "KDJ强度", BOLL: "布林位置",
   VOL_ABS: "量能异常", MOM: "动量(20日)", VOLA: "波动率(稳定)",
 };
-const QUANT = { data: null, busy: false, qtab: "panorama", panorama: null, panoramaCode: "" };
+/* QUANT 状态对象已前置声明在文件上方（避雷跟随标记那一节）。此处的 const 已删除 ——
+   原来写在这里，但 initNav 在更上方就执行了，等于没防住 TDZ（2026-10-31 全标签扫描复现）。 */
 const QUANT_TABS = [
   { key: "panorama", label: "因子全景" },
   { key: "select",   label: "多因子选股" },
@@ -16690,8 +16715,10 @@ function quantTab(k) { QUANT.qtab = k; renderQuant(); }
  *   左栏 A = 量化多因子中的 ETF 候选（复用 quant 的 7 技术因子 + metalearn 权重；候选池空时诚实返回空）
  *   右栏 B = ETF 专属投顾 6 维（份额净申赎/资金流、跟踪指数与成分、溢价率/折溢价、规模、费率、跟踪误差），全部「待接入」
  * 数据源 /api/etf（后端 etf.py 产出：left=A 候选结果，right=B 6 维；查看器只读）。
- * 必须在此处声明（initNav → selectNav 会同步访问 ETF），防 TDZ（与 QUANT / RES 同款前置声明）。 */
-const ETF = { data: null, busy: false };
+ * 状态对象 ETF 已前置声明在文件上方（避雷跟随标记那一节）。
+ *   原注释说「必须在此处声明防 TDZ」，但 initNav 在更上方执行，这里其实已经太晚了 ——
+ *   2026-10-31 全标签深链扫描实测 #overview/etf 首屏报
+ *   「Cannot access 'ETF' before initialization」，面板停在「正在加载数据…」。已上移。 */
 
 function loadEtf(force) {
   const box = $("#p-etf");
