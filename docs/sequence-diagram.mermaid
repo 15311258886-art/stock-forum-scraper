@@ -1,33 +1,43 @@
 sequenceDiagram
     autonumber
-    actor User
-    participant Nav as selectNav('learn','growth')
-    participant App as GROWTH state + renderGrowth()
-    participant API1 as /api/growth/adjust_log
-    participant API2 as /api/prediction/track
-    participant API3 as /api/prediction/scores
-    participant API4 as /api/prediction/today
-    participant DB as SQLite (predictor.py)
+    participant SP as SelfPickEngine
+    participant DB as SQLite及原子文件
+    participant AF as AnnFeed
+    participant AB as AnnBackfillRunner
+    participant EM as EastMoney ann API
+    participant VJ as VariantScheduler
+    participant LB as LowboxService
+    participant LF as LocalFeed/screener
+    participant EXT as F10/Fund/Org/Div/Val
 
-    User->>Nav: 点击「复盘成长 ▸ 成长总览」
-    Nav->>App: ensurePanel('growth') + loadGrowth()
-    par 并行拉取（Promise.all）
-        App->>API1: GET /api/growth/adjust_log
-        API1->>DB: growth_adjust_log_payload (读 adjust_log + score)
-        DB-->>API1: weights_series + recent_adjusts + signals(12维)
-        API1-->>App: {ok,has_data,signals,...}
-        App->>API2: GET /api/prediction/track
-        API2-->>App: track.days (hit_t1/3/5/10)
-        App->>API3: GET /api/prediction/scores
-        API3-->>App: kind 分组当前权重
-        App->>API4: GET /api/prediction/today
-        API4-->>App: 当前研判 + 权重快照
+    SP->>SP: _score_pool(cands,w,mkt,rules)
+    Note over SP: blogger统一退役；分维可用样本算百分位；缺失维度权重移出并归一
+    SP->>DB: 写 dims+coverage+engine_ver
+    SP->>SP: build_history + _fill
+    SP->>DB: 重算后回填ret_t5/ex_t5；统计仅当前版本
+
+    AB->>AB: 生成2016起自然月窗口并读checkpoint
+    loop 每个未完成月份
+        AB->>AF: refresh_range(月初,月末,historical=true)
+        loop 直至末页或失败
+            AF->>EM: page+begin_time+end_time
+            EM-->>AF: rows+total_hits
+            AF->>DB: _classify不变；按(code,url)幂等；is_new=0；每页提交
+        end
+        AF-->>AB: complete/seen/total_hits/added
+        AB->>DB: 仅complete标done，否则保留错误待续跑
     end
-    App->>App: renderGrowth() 画五区 Tab
-    Note over App: 默认激活 A 区
-    App->>App: A：SVG①权重演化(动态12线) + SVG②命中率轨迹(T+1/3/5/10)
-    User->>App: 切到 D 区
-    App->>App: D：权重条(scores)+最近调整(recent)+今日重跑预览(today,标注只读)
-    User->>App: 切到 C 区(隔离开关)
-    App->>App: 按 source_key 并排展示 trust_score，不合并/不加权平均
-    Note over App,DB: 任一 API has_data=false → 该区显示 .empty 占位，不报错不崩
+
+    VJ->>LB: run(codes,params)
+    LB->>LF: evaluation_universe + 分片klines_bulk + 批量_float_map
+    LF-->>LB: 全池本地K线/流通股本
+    LB->>LB: 全池形态+worth/local_score，保存突破雷达全量行
+    LB->>EXT: 全池SECUCODE IN批量org/fund/dividend（分片+分页）
+    EXT-->>LB: 最新财务/实控人/近365天分红，写TTL缓存
+    LB->>LB: 显式>关注>local_rank，仅选Deep TopK
+    loop 仅Deep TopK
+        LB->>EXT: stock_f10 + valuation_cached
+        EXT-->>LB: holders/估值或明确缺失
+    end
+    LB-->>VJ: 全池评分rows + coverage(local/batch/deep/external)
+    VJ-->>DB: 不写self_pick；原子写variant结果

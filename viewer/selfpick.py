@@ -161,6 +161,18 @@ def _env_weight(con: sqlite3.Connection) -> tuple:
                     src = "默认（%s 环境样本未能学出方向，且全局也无学出权重）" % mkt
             else:
                 src = "学出（环境=%s）" % mkt
+    # 全局权重与 by_state 权重必须在同一出口收口：历史环境权重也可能带 blogger。
+    # _drop_blogger 只在 blogger>0 时重归一化，因此再显式归一化其余三维，兼容
+    # blogger 已为 0 但三维合计不为 1 的历史快照。
+    w = R._drop_blogger({k: float(w.get(k) or 0.0)
+                         for k in ("blogger", "strategy", "senti", "engine")})
+    total = sum(max(0.0, float(w.get(k) or 0.0)) for k in ("strategy", "senti", "engine"))
+    if total <= 0:
+        w = R._drop_blogger(dict(E.DEFAULT_W))
+        total = sum(max(0.0, float(w.get(k) or 0.0)) for k in ("strategy", "senti", "engine"))
+    for k in ("strategy", "senti", "engine"):
+        w[k] = max(0.0, float(w.get(k) or 0.0)) / total
+    w["blogger"] = 0.0
     snap = {"w": w, "src": src, "mkt": mkt, "fit_date": base.get("fit_date", "")}
     return w, mkt, src, json.dumps(snap, ensure_ascii=False)
 
@@ -253,9 +265,25 @@ def _score_pool(cands: list, w: dict, mkt: str, rules: list) -> list:
     for r in cands:
         nb = _pct_norm(a_bw, _bw(r))
         ns = _pct_norm(a_sw, _sw(r))
-        nu = _pct_norm(a_sn, _sn(r)) if (r.get("senti_n") or 0) else 50.0
+        # senti_n=0 才表示舆情缺失；全池同值得到的 50 是有效中性分，不能剔除。
+        # 缺失维度不占权重，其余可用维度重归一化，避免数据齐全的股票被天然抬分。
+        nu = _pct_norm(a_sn, _sn(r)) if (r.get("senti_n") or 0) else None
         ne = _pct_norm(a_eg, _eg(r))
-        base = w["blogger"] * nb + w["strategy"] * ns + w["senti"] * nu + w["engine"] * ne
+        dims = {"blogger": nb, "strategy": ns, "senti": nu, "engine": ne}
+        retired = {"blogger"}
+        available = {"blogger": False, "strategy": True,
+                     "senti": bool(r.get("senti_n") or 0), "engine": True}
+        # coverage 分母只含原始四维中的未退役维；blogger 永久退役，不计入缺失或覆盖。
+        original_total = sum(max(0.0, float(w.get(k) or 0.0))
+                             for k in dims if k not in retired)
+        available_total = sum(max(0.0, float(w.get(k) or 0.0))
+                              for k in dims if k not in retired and available[k])
+        coverage = available_total / original_total if original_total > 0 else 0.0
+        used_w = {k: (max(0.0, float(w.get(k) or 0.0)) / available_total
+                      if k not in retired and available[k] and available_total > 0 else 0.0)
+                  for k in dims}
+        base = sum(used_w[k] * dims[k] for k in dims
+                   if k not in retired and available[k] and used_w[k] > 0)
         rb, hits = _rule_bonus(r, mkt, rules)
         score = max(0.0, min(100.0, base + rb))
         own = 1 if ((r.get("n_blogger") or 0) == 0
@@ -263,7 +291,7 @@ def _score_pool(cands: list, w: dict, mkt: str, rules: list) -> list:
         rows.append({"r": r, "code": r.get("code"), "name": r.get("name") or "",
                      "base": round(base, 1), "bonus": round(rb, 2), "hits": hits,
                      "score": round(score, 1), "nb": nb, "ns": ns, "nu": nu, "ne": ne,
-                     "own": own})
+                     "coverage": round(coverage, 4), "used_w": used_w, "own": own})
     rows.sort(key=lambda x: (-x["score"], -len(x["hits"]), -x["own"],
                              -(x["r"].get("n_strat") or 0), str(x["code"])))
     return rows
@@ -298,10 +326,14 @@ def _evidence(x: dict, w: dict, is_hist: bool) -> list:
         ev.append("【博主·参考】%s" % (r.get("bloggers") or ""))
     if r.get("engine_cross"):
         ev.append("【主引擎】%s" % (r.get("engine_cross") or ""))
-    ev.append("【打分】加权 %.1f（博主 %.1f×%.0f%% + 战法 %.1f×%.0f%% + 舆情 %.1f×%.0f%% "
-              "+ 主引擎 %.1f×%.0f%%）＋ 规则加成 %.2f = %.1f"
-              % (x["base"], x["nb"], w["blogger"] * 100, x["ns"], w["strategy"] * 100,
-                 x["nu"], w["senti"] * 100, x["ne"], w["engine"] * 100, x["bonus"], x["score"]))
+    uw = x.get("used_w") or w
+    senti_text = "%.1f" % x["nu"] if x["nu"] is not None else "缺失"
+    ev.append("【打分】可用维度加权 %.1f（博主 %.1f×%.0f%% + 战法 %.1f×%.0f%% + 舆情 %s×%.0f%% "
+              "+ 主引擎 %.1f×%.0f%%）＋ 规则加成 %.2f = %.1f｜coverage %.1f%%"
+              "（可用权重/原始四维中未退役维权重；缺失维度不参与，可用维度已重归一化）"
+              % (x["base"], x["nb"], uw["blogger"] * 100, x["ns"], uw["strategy"] * 100,
+                 senti_text, uw["senti"] * 100, x["ne"], uw["engine"] * 100,
+                 x["bonus"], x["score"], x.get("coverage", 0.0) * 100))
     if is_hist:
         ev.append("【口径】本行为历史回算：用当前学出的权重复盘当日候选池，"
                   "衡量「这套判断放到过去会选出什么」，非当日实时判断")
@@ -313,6 +345,13 @@ def _write_rows(con, pick_date: str, kind: str, rows: list, w: dict, wsnap: str,
     n = 0
     for i, x in enumerate(rows, 1):
         r, sc = x["r"], x["score"]
+        if is_hist:
+            # 主键是 (pick_date,kind,code)，不含 is_hist；同日实盘与回算撞票时，
+            # INSERT OR REPLACE 会把实盘行顶掉。历史回算只允许覆盖历史行。
+            old = con.execute("SELECT is_hist FROM self_pick WHERE pick_date=? AND kind=? AND code=?",
+                              (pick_date, kind, x["code"])).fetchone()
+            if old is not None and not old["is_hist"]:
+                continue
         direction, conf = _dir_conf(sc)
         verdict = ("系统自评 %.1f 分（%s 档）｜短期%s（置信 %.0f）｜%s%s"
                    % (sc, _tier(sc), direction, conf,
@@ -331,7 +370,7 @@ def _write_rows(con, pick_date: str, kind: str, rows: list, w: dict, wsnap: str,
              r.get("strat_families") or "", round(r.get("senti_net") or 0.0, 2),
              r.get("senti_n") or 0, r.get("engine_cross") or "", mkt, wsnap,
              json.dumps({"blogger": x["nb"], "strategy": x["ns"], "senti": x["nu"],
-                         "engine": x["ne"]}, ensure_ascii=False),
+                         "engine": x["ne"], "coverage": x["coverage"]}, ensure_ascii=False),
              x["own"], 1 if is_hist else 0,
              json.dumps(_evidence(x, w, is_hist)[:8], ensure_ascii=False),
              verdict, _now(), _now()))
@@ -557,16 +596,22 @@ def _tier_stats(con: sqlite3.Connection) -> list:
     import math
     import statistics
     out = []
+    # 2026-10-30：新旧算法不能混算。154 条新回算行带 coverage，220 条旧回算行没有；
+    # 实盘里 10-30 之前的行同样是旧算法。凡是带 coverage 的才是新口径，其余一律不进统计
+    # （旧行保留在表里可追溯，只是不参与“分档实测”的结论）。
+    _scope = "dims_json LIKE '%coverage%'"
     for tr in con.execute("SELECT DISTINCT tier FROM self_pick WHERE kind='main' "
-                          "AND tier IS NOT NULL ORDER BY tier"):
+                          "AND tier IS NOT NULL AND " + _scope + " ORDER BY tier"):
         tier = tr["tier"]
         rows = con.execute(
             "SELECT pick_date, AVG(ex_t5) e, AVG(ret_t5) r FROM self_pick "
             "WHERE kind='main' AND tier=? AND fill_status='ok' AND ex_t5 IS NOT NULL "
+            "AND " + _scope + " "
             "GROUP BY pick_date ORDER BY pick_date", (tier,)).fetchall()
         days = [x["e"] for x in rows if x["e"] is not None]
         n = con.execute("SELECT COUNT(*) c FROM self_pick WHERE kind='main' AND tier=? "
-                        "AND fill_status='ok' AND ex_t5 IS NOT NULL", (tier,)).fetchone()["c"]
+                        "AND fill_status='ok' AND ex_t5 IS NOT NULL AND " + _scope,
+                        (tier,)).fetchone()["c"]
         if not days:
             out.append({"tier": tier, "n": n, "days": 0, "avg_ex5": None,
                         "t": None, "win": None})
@@ -674,6 +719,7 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
                 "这个对比本身不成立。真因在别处：9 月只有博主一维有数据、其余三维全池同值被填成 50，"
                 "分数天然压在 C 档；10 月三维齐全后分数整体抬到 90+ 才进 A 档 —— "
                 "**A 档目前标记的是「这一天数据齐全」，不是「这一天机会好」。**"
+                "评分已改为可用维度重归一化，A 档不再因数据齐全而天然抬分；"
                 "在拿到至少 20 个交易日的 A 档样本前，不要把它当买入清单，也不要把它的分数取反当回避清单。",
             ],
             "note": "「自我提升」的成果出口：用学出的权重 + 自生长规则主动选股，并按期回填验证。"}

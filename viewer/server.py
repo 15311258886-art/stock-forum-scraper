@@ -5122,6 +5122,28 @@ def _lowbox_cache_put(key: str, data) -> None:
         pass
 
 
+def _lowbox_cache_put_many(items: dict) -> None:
+    """批量写入 lowbox 缓存，避免预取后逐只反复读写同一个 JSON 文件。"""
+    if not items:
+        return
+    try:
+        with _LOWBOX_LOCK:
+            try:
+                with open(_LOWBOX_CACHE, encoding="utf-8") as fh:
+                    dd = json.load(fh)
+            except Exception:  # noqa: BLE001
+                dd = {}
+            today = datetime.now().date().isoformat()
+            for key, data in items.items():
+                dd[key] = {"updated": today, "data": data}
+            tmp = _LOWBOX_CACHE + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(dd, fh, ensure_ascii=False)
+            os.replace(tmp, _LOWBOX_CACHE)
+    except Exception:  # noqa: BLE001
+        logging.warning("lowbox 批量缓存写入失败，后续退回逐只取数", exc_info=True)
+
+
 def _secucode(code: str) -> str:
     """600519 → 600519.SH / 000001 → 000001.SZ / 83xxxx·43xxxx·87xxxx·92xxxx → BJ。"""
     c = re.sub(r"\D", "", str(code or ""))
@@ -5208,6 +5230,119 @@ def _dividend_ttm(code: str):
     data = {"ttm_div": round(total, 4), "last_ex": last_ex}
     _lowbox_cache_put("div|" + str(code), data)
     return data
+
+
+def _lowbox_prefetch_external(codes: list) -> dict:
+    """按 50 只一批预取 lowbox 的公司概况、最新财务和近一年分红。
+
+    只处理缓存未命中的代码；任一批失败仅留下缓存空洞，_one 中的原逐只函数会兜底，
+    不让单个 emapi 异常扩散成全池失败。返回计数供接口披露与实测核对。
+    """
+    uniq = list(dict.fromkeys(str(c) for c in (codes or []) if _secucode(c)))
+    ttls = {"org": 30, "fund": 7, "div": 7}
+    pending = {kind: {c for c in uniq if _lowbox_cache_get(kind + "|" + c, ttl) is None}
+               for kind, ttl in ttls.items()}
+    stats = {"requested": len(uniq), "batch_size": 50, "batches": 0, "failed_batches": 0,
+             "cache_hits": {kind: len(uniq) - len(pending[kind]) for kind in ttls},
+             "fetched": {kind: 0 for kind in ttls}, "fallback": {}}
+    cut = datetime.now().date() - timedelta(days=365)
+    for start in range(0, len(uniq), 50):
+        chunk = uniq[start:start + 50]
+        code_by_sc = {_secucode(c): c for c in chunk}
+        for kind in ("org", "fund", "div"):
+            batch_codes = [c for c in chunk if c in pending[kind]]
+            if not batch_codes:
+                continue
+            sc_list = [_secucode(c) for c in batch_codes]
+            flt = "(SECUCODE in (%s))" % ",".join('"%s"' % sc for sc in sc_list)
+            kwargs = {"page_size": 50}
+            if kind == "fund":
+                kwargs = {"sort_columns": "REPORT_DATE", "sort_types": "-1", "page_size": 500}
+                report = "RPT_F10_FINANCE_MAINFINADATA"
+            elif kind == "div":
+                kwargs = {"sort_columns": "EX_DIVIDEND_DATE", "sort_types": "-1", "page_size": 500}
+                report = "RPT_SHAREBONUS_DET"
+            else:
+                report = "RPT_F10_BASIC_ORGINFO"
+            stats["batches"] += 1
+            try:
+                res = emapi.datacenter(report, flt=flt, **kwargs)
+            except Exception as e:  # noqa: BLE001
+                stats["failed_batches"] += 1
+                logging.warning("lowbox %s 批量预取异常（%d 只，退回逐只）：%s",
+                                kind, len(batch_codes), e, exc_info=True)
+                continue
+            if not res.get("ok"):
+                stats["failed_batches"] += 1
+                logging.warning("lowbox %s 批量预取失败（%d 只，退回逐只）：%s",
+                                kind, len(batch_codes), res.get("err") or "无数据")
+                continue
+            rows = res.get("rows") or []
+            updates = {}
+            if kind == "org":
+                for x in rows:
+                    code = code_by_sc.get(str(x.get("SECUCODE") or ""))
+                    if not code or code in updates:
+                        continue
+                    updates[code] = {
+                        "actual_holder": (str(x.get("ACTUAL_HOLDER")) if x.get("ACTUAL_HOLDER") else ""),
+                        "industry": str(x.get("EM2016") or ""),
+                        "list_date": str(x.get("LISTING_DATE") or "")[:10]}
+            elif kind == "fund":
+                latest = {}
+                for x in rows:
+                    sc = str(x.get("SECUCODE") or "")
+                    if sc not in code_by_sc:
+                        continue
+                    report_date = str(x.get("REPORT_DATE") or x.get("REPORT_DATE_NAME") or "")
+                    if sc not in latest or report_date > latest[sc][0]:
+                        latest[sc] = (report_date, x)
+                for sc, (_date, x) in latest.items():
+                    code = code_by_sc[sc]
+                    updates[code] = {
+                        "roe": emapi._num(x.get("ROEJQ")), "roe_kf": emapi._num(x.get("ROEKCJQ")),
+                        "dr": emapi._num(x.get("ZCFZL")), "gm": emapi._num(x.get("XSMLL")),
+                        "rev_yoy": emapi._num(x.get("TOTALOPERATEREVETZ")),
+                        "np_yoy": emapi._num(x.get("PARENTNETPROFITTZ")),
+                        "kf_np_yoy": emapi._num(x.get("KCFJCXSYJLRTZ")),
+                        "report": str(x.get("REPORT_DATE_NAME") or "")}
+            else:
+                # 分红批量请求成功后，无记录代表近 365 天可确认派息为 0；
+                # 写入中性缓存，避免无分红股票每次扫描都重复逐只请求。
+                updates = {c: {"ttm_div": 0.0, "last_ex": ""} for c in batch_codes}
+                by_sc = {}
+                for x in rows:
+                    sc = str(x.get("SECUCODE") or "")
+                    if sc in code_by_sc:
+                        by_sc.setdefault(sc, []).append(x)
+                for sc, items in by_sc.items():
+                    total, last_ex = 0.0, ""
+                    for x in items:
+                        if str(x.get("ASSIGN_PROGRESS") or "") != "实施分配":
+                            continue
+                        ex = str(x.get("EX_DIVIDEND_DATE") or "")[:10]
+                        if not ex:
+                            continue
+                        try:
+                            if datetime.fromisoformat(ex).date() < cut:
+                                continue
+                        except ValueError:
+                            continue
+                        amt = emapi._num(x.get("PRETAX_BONUS_RMB"))
+                        if amt:
+                            total += amt / 10.0
+                            last_ex = max(last_ex, ex)
+                    updates[code_by_sc[sc]] = {"ttm_div": round(total, 4), "last_ex": last_ex}
+            if updates:
+                _lowbox_cache_put_many({kind + "|" + code: data for code, data in updates.items()})
+                stats["fetched"][kind] += len(updates)
+    stats["fallback"] = {kind: sum(1 for c in pending[kind]
+                                  if _lowbox_cache_get(kind + "|" + c, ttls[kind]) is None)
+                         for kind in ttls}
+    logging.info("lowbox 外部批量预取：codes=%d batches=%d failed=%d fetched=%s fallback=%s",
+                 len(uniq), stats["batches"], stats["failed_batches"],
+                 stats["fetched"], stats["fallback"])
+    return stats
 
 
 _HOLDER_STATE_KW = ("国资委", "国资", "国有", "人民政府", "财政部", "汇金",
@@ -5608,6 +5743,12 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
     if not universe:
         return {"ok": False, "reason": "股票池为空（关注池为空且自定义代码为空）",
                 "rows": [], "universe_size": 0, "scanned": 0, "elapsed": 0, "params": {}}
+    # 外部 F10/分红先分批预取；任何失败都保留给 _one 的原逐只逻辑兜底。
+    try:
+        _external_prefetch = _lowbox_prefetch_external(list(universe))
+    except Exception:  # noqa: BLE001
+        logging.exception("lowbox 批量预取总入口异常，退回原逐只取数")
+        _external_prefetch = {"requested": len(universe), "error": "批量预取异常，已退回逐只"}
     # —— 避坑标记（整批实时算，替代原博主提及；见 viewer/avoid.py）——
     avoid_map = {}
     try:
@@ -5732,7 +5873,7 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
     return {"ok": True, "rows": out_rows, "universe_size": len(universe),
             "scanned": scanned, "elapsed": round(_t.time() - _t0, 1),
             "pool_candidates": _pool_before, "pool_capped": _pool_capped,
-            "pool_max": _pool_max,
+            "pool_max": _pool_max, "external_prefetch": _external_prefetch,
             "params": {"limit": limit, "box_window": box_window, "low_pct": low_pct,
                        "quality": quality,
                        "w_shape": w_shape, "w_fund": w_fund, "w_worth": w_worth,
