@@ -38,6 +38,25 @@ DB = os.path.join(BASE, "viewer", "app.db")
 LOG_FILE = os.path.join(BASE, "viewer", "logs", "blogger_daily.log")
 IMPORT_SCRIPT = os.path.join("tools", "import_bloggers_direct.py")
 
+# ── 2026-10-30 D33 事故加固：测试永远不许写生产（与 lhb_daily 同一套）─────────
+# 起因见 lhb_daily.py 文件头的「事故经过」：孤立的 daemon 线程会活过 pytest 的 monkeypatch
+# 撤销，撤销之后它看到的 DB / LOG_FILE 又是生产路径，于是把桩数据写进了生产。
+# 本模块已随博主荐股下线（不在 server/_spawn_offproc 的注册表里），但代码还在、函数还能被
+# 直接调用，所以闸一样要加。
+_PROD_DB = os.path.abspath(DB)
+_PROD_LOG = os.path.abspath(LOG_FILE)
+
+
+def _prod_write_blocked(path: str, prod: str) -> bool:
+    """pytest 环境下、且目标仍是生产路径 → 拦下这次写。返回 True 表示已拦截。"""
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    try:
+        return os.path.abspath(path) == prod
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _xlsx_path() -> str:
     """动态解析源头 Excel —— 统一委托给 tools/import_bloggers_direct.py 的候选解析（单一真源）。
 
@@ -171,6 +190,9 @@ def run_once(quiet: bool = True, no_contest: bool = False) -> dict:
 
 def _append_result_log(res: dict, trigger: str) -> None:
     """把每一轮结果追加到 viewer/logs/blogger_daily.log（供巡检/证据留存）。"""
+    if _prod_write_blocked(LOG_FILE, _PROD_LOG):
+        _LOG.warning("写 blogger_daily.log 被拦下：pytest 环境且指向生产日志 %s（不落盘）", LOG_FILE)
+        return
     try:
         os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
         line = (f"=== {datetime.datetime.now():%Y-%m-%d %H:%M:%S} trigger={trigger} "
@@ -184,6 +206,9 @@ def _append_result_log(res: dict, trigger: str) -> None:
 
 def _record_result(res: dict, today: str, trigger: str) -> None:
     """把一轮结果写回 meta（mtime 去重 / 当日兜底去重 / 失败计数）。独立短事务。"""
+    if _prod_write_blocked(DB, _PROD_DB):
+        _LOG.warning("_record_result 被拦下：pytest 环境且指向生产库 %s（不落盘）", DB)
+        return
     conn = None
     try:
         conn = sqlite3.connect(DB, timeout=30)

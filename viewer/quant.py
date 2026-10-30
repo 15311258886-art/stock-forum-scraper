@@ -206,6 +206,81 @@ def _universe_bars(kc_updated=None):
     return out, updated
 
 
+def _single_bars(code: str):
+    """只读**单票** K 线 → [(date,o,h,l,c,v), ...]（升序）；无数据/不足 MIN_BARS 返回 None。
+
+    2026-10-30 D32（「量化板块 → 因子全景」输入代码点查询 → 45s 超时）：
+      单票视图原来借道 `_universe_bars()` 拿数据 —— 只为了看**一只票**，却要把全市场
+      5239 只 × 最近 260 根 K 线一次性读进内存并逐只过一遍过滤。请求线程里实测 45s 超时
+      （`/api/quant/panorama` 连续两次 45s 不返回）。这里把「取一只票」的代价降成
+      一次带 `code = ?` 的 SQL。
+
+    ⚠️ 口径纪律：本函数对同一 code 的输出必须与 `_universe_bars()[0].get(code)` **逐字段一致**
+    （D32 验证：21 只抽样逐字段 diff 为 0，且**全量 5239 只**逐只比对一致）。故以下三步与原实现严格同构：
+      ① 准入：code 必须是真 A 股，且在 K 线底座里确实有 bar（等价于原来的 sources 过滤）；
+      ② 窗口：同样以 `distinct_dates()[-_SERIES_TAIL]` 作为 min_date，再截最近 _SERIES_TAIL 根；
+      ③ 清洗：同样剔掉 date/close 为空的 bar，同样要求 >= MIN_BARS 根才认。
+    ② 的既有副作用也原样保留：长期停更票（如 835670 末根 2025-09-30）在「全市场最近 260 个
+    交易日」这个窗口里只剩个位数根 → 仍判「无数据」；退市票（600677 / 603555 / 603603 /
+    603963 / 603996 / 688086 / 688555，末根早于窗口起点）同样全部判无数据。
+    这是改造前就有的口径，不是本函数引入的；若将来要改，必须单独立项
+    （会同时影响 factor_backtest / multi_factor_select 的宇宙）。
+    """
+    code = str(code or "")
+    if not _is_ashare(code):
+        return None
+    kc = P.load_kcache()
+    # ⚠️ 别写 `kc.get("bars") or {}`：bars 是 KBaseBars（Mapping），`or` 会走 __bool__ → __len__
+    # → `SELECT COUNT(DISTINCT code) FROM kline`（1364 万行，实测 **0.54s**/次）。
+    # 单票视图每多付这 0.54s 就白省了这次改造，故显式判 None。
+    bars_in = kc.get("bars")
+    if bars_in is None:
+        bars_in = {}
+    # ① 准入：必须真有 K 线（与原实现 `sources = [c for c in bars_in.keys() ...]` 等价）
+    try:
+        in_base = bool(bars_in.get(code))
+    except Exception:  # noqa: BLE001
+        in_base = False
+    if not in_base:
+        return None
+    rows_in = None
+    try:
+        from viewer import kbase as _kb
+        base = _kb.get_base()
+        cal = base.distinct_dates()
+        min_date = cal[-_SERIES_TAIL] if len(cal) > _SERIES_TAIL else ""
+        got = base.ohlcv_bulk([code], min_date=min_date)
+        if got or not min_date:
+            rows_in = got
+        else:
+            # 单票批量返回空有两种可能，必须区分（2026-10-30 D32 全量比对抓到的真差异）：
+            #   ① 该票在窗口内确实没有 bar（退市/长停：600677 / 603555 / 688086 … 共 7 只）;
+            #   ② 批量通道整体不可用（sqlite 异常/锁）。
+            # 全池版里 ① 不会让整批 `ohlcv_bulk(...)` 变成空 dict，所以**不会**触发回退；
+            # 单票版若照抄 `or None` 就必然回退，回退分支不带 min_date 过滤 → 会把这 7 只
+            # 退市票从「无数据」误判成「有 260 根」→ 与旧实现不一致。故用 last_date 探针分开：
+            last = base.last_date(code)
+            if last and last < min_date:
+                rows_in = {}        # ①：合法空结果，按「窗口内无数据」判，不回退
+            # 否则保持 None → ②：走逐只回退（与全池版同构）
+    except Exception:  # noqa: BLE001  批量不可用 → 退回逐只读取（慢，但结果一致）
+        rows_in = None
+    if rows_in is not None:
+        rows = list(rows_in.get(code) or [])[-_SERIES_TAIL:]
+    else:
+        rows = []
+        for b in (bars_in.get(code) or [])[-_SERIES_TAIL:]:
+            try:
+                rows.append((str(b.get("d"))[:10], _f(b.get("o")), _f(b.get("h")),
+                             _f(b.get("l")), _f(b.get("c")), _f(b.get("v"))))
+            except Exception:  # noqa: BLE001
+                continue
+    rows = [r for r in rows if r[0] and r[4]]
+    if len(rows) < MIN_BARS:
+        return None
+    return rows
+
+
 # ================================================================ 因子计算
 def _rolling(values, i, k):
     """返回 values[i-k+1 .. i] 的 (mean, std)，不足窗口返回 (None, None)。"""
@@ -692,9 +767,12 @@ def factor_panorama(code: str, con=None) -> dict:
 
     口径：单票无截面，展示分用固定参考尺度 tanh 压到 [-1,1]（见 FACTOR_META.scale），
     纯展示用；真正用于选股/学习的是截面百分位（见 multi_factor_select / quant_self_learn）。
+
+    2026-10-30 D32：取数从 `_universe_bars()` 换成 `_single_bars()` —— 单票视图只该为这只票
+    付一次 SQL 的钱，不该把全市场 5239 只 × 260 根 K 线拖进请求线程（那是 45s 超时的根因）。
+    取数口径与原来逐字段一致（见 `_single_bars` 的 docstring 与 D32 的 diff 记录）。
     """
-    bars_map, _ = _universe_bars()
-    rows = bars_map.get(code)
+    rows = _single_bars(code)
     if not rows:
         return {"ok": False, "code": code, "has_data": False,
                 "reason": "本地 K 线无该票或不足 %d 根" % MIN_BARS}

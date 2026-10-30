@@ -21,11 +21,17 @@
 
 【设计要点】
 - **幂等**：三个脚本内部都是「按 trade_date 先删后插 / INSERT OR REPLACE」，可反复运行。
-- **不阻塞调度线程**：真正的重活（含大量 F10/行情请求，可能数分钟）放到 daemon 后台线程；
-  maybe_daily 只在「该跑且当天没跑过」时立即返回。
+- **同步执行，跑完才返回**（2026-10-30 D33 修正，见 `run_daily_sync` 注释）：
+  原设计把重活丢进 daemon 后台线程、`maybe_daily` 立即 return，前提是"调用方是个常驻进程"。
+  但它真正的调用方是 `tools/sched_job.py` —— 一个短命子进程，print 完就退出，
+  CPython 关解释器时把 daemon 线程直接杀掉 → 一轮都没跑、`record_result` 从未执行。
+  实测 2026-10-19 之后 191 次 `{'started': today}`、每次 0.1~0.2s，数据冻结 11 天。
+  现在 `run_daily_sync` 会一直等到三个子脚本跑完（历史约 484s）；`_JOB_TIMEOUT` 默认 3600s 兜底。
 - **当日去重 + 失败重试**：状态写 meta(key='lhb_daily_state')；成功后当天不再跑，
   失败最多重试 MAX_TRIES 次（防限流打爆数据源），第二天自动恢复。
-- **异常隔离**：任何异常只记日志，绝不外抛拖垮调度线程（与 board_flow/predictor 一致）。
+  闸门是 `last_date`（**只在成功时写**），`last_run_at` 无条件写但不参与判定。
+- **异常隔离**：`maybe_daily` 仍吞异常（不拖垮调用方），但返回值带 `ok`，
+  让 `sched_job` 按「ok is False → rc=1」判失败并退避重试，不再把失败记成完成。
 - **可独立运行**：`python lhb_daily.py --force` 供运维 / 计划任务手动驱动。
 
 【红线】只调用本工程已验证的真实数据链路，不产生任何 mock/示例数据。
@@ -47,6 +53,36 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, "viewer", "app.db")
 LOG_FILE = os.path.join(BASE, "viewer", "logs", "lhb_daily.log")
 
+# ── 2026-10-30 D33 事故加固：测试永远不许写生产 ─────────────────────────────
+# 事故经过（真实发生，不是我猜的）：验证 `lhb_daily`「daemon 线程被短命子进程杀掉」时，
+# 在**同一个 pytest 进程内**把模块文件换回旧版 → 旧版 `maybe_daily()` 起了一个 daemon 线程
+# → 跑完才 return。测试结束、pytest 撤销 monkeypatch 之后，那个**孤儿线程**才把活干完，
+# 此时它看到的 `DB` / `LOG_FILE` 已经恢复成**生产路径** → 它把桩数据写进了生产库：
+#   · `viewer/logs/lhb_daily.log` 多出 4 条 `started=2026-10-30 18:00:00 … 484.0s`（一眼假）
+#   · `meta.lhb_daily_state.last_date` 被推成 2026-10-30
+# 后果极重：`_gate` 的闸门是 `last_date` → 当晚 18:00 判 `skip: done_today`，
+# **真正该跑的那一轮被自己的测试挡掉了** —— 把上一轮刚修好的 11 天停更 bug 原样复刻一遍。
+# 所以下面两个写盘点加一道闸：在 pytest 里、且指向生产路径 → 只 warning，不落盘。
+# ⚠️ 但这道闸**只覆盖 pytest 内**（判据是 `PYTEST_CURRENT_TEST`）。事故当场的做法是
+#    「非 pytest 的进程内红态验证」（`python _xxx.py` 里把模块换回旧版），那个环境变量
+#    根本不存在 —— 所以真正的防线在测试侧，两层：
+#      ① tests/test_lhb_daily_offproc.py 的红态证明全部改到**子进程**里跑（路径一开始就指 tmp）；
+#      ② 该文件的 `ld` fixture 在 `yield` 之后 join 掉 "lhb-daily" 线程并断言其已退出，
+#         保证任何"起线程就返回"的回归都活不过测试收尾（此时它看到的仍是 tmp 路径）。
+# 换句话说：环境变量闸防"测试代码误写"，fixture join 防"孤儿线程活过 monkeypatch 撤销"。
+_PROD_DB = os.path.abspath(DB)
+_PROD_LOG = os.path.abspath(LOG_FILE)
+
+
+def _prod_write_blocked(path: str, prod: str) -> bool:
+    """pytest 环境下、且目标仍是生产路径 → 拦下这次写。返回 True 表示已拦截。"""
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    try:
+        return os.path.abspath(path) == prod
+    except Exception:  # noqa: BLE001
+        return False
+
 # 解释器：优先用工程虚拟环境的 python（与 auto_update.py / start_viewer.bat 一致）。
 _PREFERRED_PY = os.path.join(BASE, ".venv", "Scripts", "python.exe")
 PY = _PREFERRED_PY if os.path.exists(_PREFERRED_PY) else sys.executable
@@ -66,7 +102,9 @@ if not _LOG.handlers:
     _LOG.setLevel(logging.INFO)
 
 _lock = threading.Lock()
-_running = {"v": False}     # 是否有后台刷新线程在跑（防止重复触发）
+_running = {"v": False}     # 是否有一轮正在跑（防同进程内重复触发；status() 也读它）
+                            # 2026-10-30 D33：以前是"有没有后台线程在跑"，现在一轮是同步跑的，
+                            # 语义只剩"本轮是否在执行中"。跨进程去重靠 _OFFPROC_GAP + 父进程那道闸。
 
 
 # ---------------------------------------------------------------- meta 读写
@@ -173,6 +211,10 @@ def run_once(days_fetch: int = FETCH_DAYS, days_link: int = LINK_DAYS) -> dict:
 
 def _append_result_log(res: dict) -> None:
     """把每一轮结果追加到 viewer/logs/lhb_daily.log（供巡检/证据留存）。"""
+    if _prod_write_blocked(LOG_FILE, _PROD_LOG):
+        # 孤儿 daemon 线程会活过 monkeypatch 撤销，撤销后它看到的又是生产路径（见文件头事故说明）
+        _LOG.warning("写 lhb_daily.log 被拦下：pytest 环境且指向生产日志 %s（不落盘）", LOG_FILE)
+        return
     try:
         os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
         line = (f"=== {res.get('started')}~{res.get('ended')} ok={res.get('ok')} "
@@ -187,6 +229,10 @@ def _append_result_log(res: dict) -> None:
 
 def record_result(res: dict, today: str) -> None:
     """把一轮结果写回 meta（当日去重/失败计数）。独立短事务。"""
+    if _prod_write_blocked(DB, _PROD_DB):
+        # 见文件头事故说明：`last_date` 一旦被测试推成今天，当晚 18:00 就会被判 done_today。
+        _LOG.warning("record_result 被拦下：pytest 环境且指向生产库 %s（不落盘）", DB)
+        return
     conn = None
     try:
         conn = sqlite3.connect(DB, timeout=30)
@@ -220,57 +266,100 @@ def record_result(res: dict, today: str) -> None:
     _append_result_log(res)
 
 
-def _worker(today: str) -> None:
-    """后台线程主体：跑一轮 → 回写状态 → 释放 running 标志。"""
+def _gate(conn, now: datetime | None = None):
+    """判断「这一轮该不该跑」。返回 `(skip, today)`：`skip` 非 None 表示本轮跳过。
+
+    2026-10-30 D33：抽出来给 `run_daily_sync` 与 `maybe_daily` **共用同一份判断**。
+    两处若各写一套，「手工跑得成、调度跑不成」这种鬼故事迟早再来一次。
+
+    判断顺序（与历史实现逐条一致，只搬不改）：
+      周末 → 未到 18:00 发布时点 → 今天已成功过 → 今天失败已达 MAX_TRIES → 有实例在跑。
+    ⚠️ 闸门是 `last_date`（只在成功时写），**不是** `last_run_at`（无条件写，只给巡检看）。
+    """
+    now = now or datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    if not _is_weekday(now):
+        return {"skip": "weekend"}, today
+    if not _past_publish(now):
+        return {"skip": "pre_publish"}, today
+    st = _state_read(conn)
+    if st.get("last_date") == today:
+        return {"skip": "done_today"}, today
+    tries = int(st.get("tries", 0)) if st.get("tries_date") == today else 0
+    if tries >= MAX_TRIES:
+        return {"skip": "failed_today"}, today
+    with _lock:
+        if _running["v"]:
+            return {"skip": "running"}, today
+    return None, today
+
+
+def run_daily_sync(conn) -> dict:
+    """**同步**跑完一轮日更，跑完才返回（供 `tools/sched_job.py` 的子进程调用）。
+
+    2026-10-30 D33 —— 这是一个「返回码 0 骗了 11 天」的 bug，病因是**谁活到最后**：
+      · 旧 `maybe_daily()` 起一个 `daemon=True` 线程后**立刻 return**（设计前提是"服务里
+        有个常驻调度线程，不阻塞它"）；
+      · 但它**唯一的调用方**是 `tools/sched_job.py`：父进程只为「起进程 + 看退出码」，
+        子进程 print 完 `{'started': today}` 就 `return 0` 退出；
+      · CPython 关闭解释器时**直接杀掉 daemon 线程** → `_worker()` 一行没跑 →
+        `record_result()` 永不执行 → `last_date` 停在上一次成功那天 → 第二天重演。
+    实测后果：`meta.lhb_daily_state.last_run_at` 冻结在 2026-10-19 22:24:56，
+    `viewer/logs/lhb_daily.log` 最后一条也是 10-19；此后 191 次 `{'started': today}`，
+    每次 **0.1~0.2s**（真跑一轮约 484s）—— 10-29 的明细空洞就是这么攒出来的。
+
+    改成同步后，子进程必须等这一轮真跑完才退出。返回值带 `ok`，让 `sched_job.main()`
+    的「`r.get("ok") is False` → 非 0 退出」生效（那条规则是为 a_shares_snapshot 加的，
+    这里正好用上：失败要能被父进程看见并退避重试，而不是记成"今天跑过了"）。
+    """
+    skip, today = _gate(conn)
+    if skip is not None:
+        _LOG.info("lhb_daily 本轮跳过：%s", skip.get("skip"))
+        return skip
+
+    with _lock:
+        if _running["v"]:                      # double-check，防止与同进程别的调用叠跑
+            return {"skip": "running"}
+        _running["v"] = True
     try:
-        res = run_once()
-        record_result(res, today)
+        # 先记 last_trigger_at（供巡检；**不是闸门**，见 _gate）。写失败不影响主流程。
+        try:
+            st = _state_read(conn)
+            st["last_trigger_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            _state_write(conn, st)
+        except Exception:  # noqa: BLE001
+            _LOG.exception("写 last_trigger_at 失败（已忽略）")
+
+        _LOG.info("lhb_daily 开始同步执行（%s）", today)
+        res = run_once()                       # ← 三个子脚本，历史约 484s，这里会一直等
+        record_result(res, today)              # ← 只有它写 last_date / tries / lhb_daily.log
         _LOG.info("lhb_daily 本轮结束 ok=%s", res.get("ok"))
-    except Exception:  # noqa: BLE001
-        _LOG.exception("lhb_daily 后台刷新异常（已忽略）")
+        return {
+            "started": today,
+            "ok": bool(res.get("ok")),
+            "steps": [{"script": s.get("script"), "returncode": s.get("returncode"),
+                       "seconds": s.get("seconds")} for s in res.get("steps", [])],
+        }
     finally:
         with _lock:
             _running["v"] = False
 
 
-# ---------------------------------------------------------------- 服务内调度钩子
+# ---------------------------------------------------------------- 调度钩子
 def maybe_daily(conn) -> dict:
-    """由 viewer/server.py 的 _scheduler_loop 每轮调用。
+    """历史名，现为 `run_daily_sync` 的别名（**同步**，跑完才返回）。
 
-    交易日 18:00 之后、且当天尚未成功刷新时，触发一次后台刷新线程；否则直接返回。
-    任何异常都吞掉，绝不拖垮调度线程。
+    为什么改：原实现是「起 daemon 线程后立即返回」，而它的唯一调用方是短命子进程
+    `tools/sched_job.py` —— 线程必被进程退出腰斩，详见 `run_daily_sync` 的注释。
+    保留这个名字是因为 `tools/sched_job.py:52` 与可能的巡检脚本按名调用；行为已统一。
+    异常在这里仍然吞掉（沿用历史契约：调度钩子不拖垮调用方），但**返回值会带 `ok`**，
+    让 `sched_job` 能按「ok is False → rc=1」判失败。
     """
     try:
-        now = datetime.now()
-        if not _is_weekday(now):
-            return {"skip": "weekend"}
-        if not _past_publish(now):
-            return {"skip": "pre_publish"}
-        today = now.strftime("%Y-%m-%d")
-        st = _state_read(conn)
-        if st.get("last_date") == today:
-            return {"skip": "done_today"}
-        tries = int(st.get("tries", 0)) if st.get("tries_date") == today else 0
-        if tries >= MAX_TRIES:
-            return {"skip": "failed_today"}
-        with _lock:
-            if _running["v"]:
-                return {"skip": "running"}
-            _running["v"] = True
-        try:
-            st["last_trigger_at"] = now.strftime("%Y-%m-%d %H:%M:%S")
-            _state_write(conn, st)
-            threading.Thread(target=_worker, args=(today,),
-                             name="lhb-daily", daemon=True).start()
-            _LOG.info("lhb_daily 已触发后台刷新（%s）", today)
-            return {"started": today}
-        except Exception:  # noqa: BLE001
-            with _lock:
-                _running["v"] = False
-            raise
-    except Exception:  # noqa: BLE001 —— 调度钩子绝不能外抛
+        return run_daily_sync(conn)
+    except Exception:  # noqa: BLE001 —— 调度钩子绝不外抛
         _LOG.exception("lhb_daily.maybe_daily 异常（已忽略）")
-        return {"error": "exception"}
+        return {"error": "exception", "ok": False}
 
 
 def status(conn=None) -> dict:

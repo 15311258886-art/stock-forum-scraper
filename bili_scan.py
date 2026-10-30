@@ -102,6 +102,46 @@ _STATE = {"status": "idle", "phase": "", "done": 0, "total": 0, "note": "",
 _THREAD = None
 _FAIL_MEM: dict = {}
 
+# ── 2026-10-30 D34：日更扫描只在**晚间**跑（19:45–23:00），白天把闸让给整条计算链 ────
+# ⚠️ 先把这句话读准：**"占闸 1575 秒"只对日更路径成立**。坑位是父进程 `_spawn_offproc`
+#    代持的（`viewer/server.py`），本模块自己**没有任何 brake 代码**、也不经过 `_spawn_offproc`。
+#    所以：
+#      · 日更路径（`tools/sched_job.py` 子进程）→ 占刹车闸 FETCH 1/1 约 26 分钟；
+#      · 手动路径（`scan_payload()`，用户在面板点「立即扫描」）→ **不占闸**，
+#        只是在服务进程内跑 26 分钟抢 CPU 与抓取带宽。
+#    两者受限的原因不同：前者挤掉的是别的日更任务的坑位，后者只是让接口变慢。
+#    2026-10-30 有人（包括我自己）据此误推过"手动路径也占闸"，故此处显式写死。
+# 为什么（算出来的，不是拍脑袋）：`run_daily_sync()` 改成**同步**之后，日更路径会实打实
+# 占住刹车闸的 `FETCH 1/1` **1575 秒 = 26 分钟**（`data/bili_scan_result.json` 实测
+# elapsed_s=1575.1）。而 `_sched_tasks()` 里 bili_scan 排在 kline_daily / indicators_daily
+# **前面**：它早跑 26 分钟，就把后面两个各 ~20~50 分钟的重活整体后推，`indicators_daily`
+# 一旦被推过 18:00，龙虎榜（也是 FETCH/app 域、18:00 才发布、必须当晚落地）当场被挡。
+# 2026-10-30 实测就是这样：`predictor_daily` 从 15:07 占到 16:37，闸一松手，
+# bili → kline → indicators 一路顺延，18:00 那一轮直接没有坑位。
+# 反过来，bili_scan 的结果按**交易日**去重（`_result_cache_load()` 比对 `date`），
+# 第二天开盘前看到就行 —— **晚四小时扫是零成本的**，白天每分钟闸都更贵。
+# 「15:10 之后就扫」这个原语义从来没生效过（A1 的 UnboundLocalError 挡了它整个生命周期，
+# 见 `_start_scan_thread` 的注释），所以挪到晚间**不构成任何行为回退**。
+# 单位＝当日分钟数，闭区间 [19*60+45, 23*60]：19:45 放行、23:00 放行、23:01 不放行。
+# 【23:00 之后也不跑】的理由：跨日会污染次日 `_last_trade_date()` 的去重判断
+# （扫出来的 payload 带的是"昨天"的交易日，次日 15:00 前又被当成"已有结果"跳过）。
+# 只挂在日更入口（`_daily_gate` / `maybe_prewarm`）；`scan_payload()` 是用户手动触发，
+# **不受**此窗限制 —— 用户白天要看就是他要，反正它也不占闸（见开头那三行）。
+# 测试里置为 `()` 即"不设窗、恒放行"（见 tests/test_bili_scan_scheduling.py）。
+_DAILY_WINDOW = (19 * 60 + 45, 23 * 60)
+
+
+def _in_window(now) -> bool:
+    """`now`（`time.struct_time`）是否落在「允许跑日更扫描」的时段内。
+
+    `_DAILY_WINDOW` 置空（`()` / `None`）表示不设窗、恒为 True —— 测试用，
+    生产恒为闭区间 [19:45, 23:00]。
+    """
+    if not _DAILY_WINDOW:
+        return True
+    lo, hi = _DAILY_WINDOW
+    return lo <= now.tm_hour * 60 + now.tm_min <= hi
+
 
 def _set_state(**kw):
     with _LOCK:
@@ -577,10 +617,39 @@ def signals_for_watch(codes, budget_s: float = 8.0) -> dict:
             "fetched": fetched, "cached": cached}
 
 
+def _start_scan_thread(force: bool) -> bool:
+    """（单飞）后台启动一次扫描线程，返回是否真的启动。
+
+    2026-10-30 D33：把「`global _THREAD` + 单飞判断 + 建线程」收成**一处**。
+    此前这段代码在 `scan_payload` / `maybe_daily` / `maybe_prewarm._go` 里各抄了一份，
+    而**只有 `scan_payload` 写了 `global _THREAD`** —— 另两处里 `_THREAD` 因为下面这行赋值
+    变成了**局部名**，于是前面那句 `if _THREAD and _THREAD.is_alive()` 直接
+    `UnboundLocalError: cannot access local variable '_THREAD'`，又被外层
+    `except Exception` 一把吞掉。后果（用 sys.settrace 跟实际执行行验过）：
+      · `maybe_daily()` 每次必抛、永远 return False → `sched-bili_scan.log` 里每 15 分钟
+        一条 `ok 0.2s False`，看着像"当日已完成所以跳过"，其实是**从来没进来过**；
+      · `maybe_prewarm()` 的 45 秒预热线程同样没建成（实测 1.2s 后 `_THREAD` 仍是 None）。
+    也就是说这个「收盘自动扫一次」的能力**从上线起一次都没工作过**。
+    """
+    global _THREAD
+    with _LOCK:
+        if _THREAD and _THREAD.is_alive():
+            return False
+        _THREAD = threading.Thread(target=_run_scan, args=(bool(force),),
+                                   name="bili-scan", daemon=True)
+        _THREAD.start()
+    return True
+
+
 # ---------------------------------------------------------------- 对外入口
 def scan_payload(conn, force: bool = False) -> dict:
-    """前端轮询入口。首次调用触发后台单飞扫描，返回 warming；完成后返回 done。"""
-    global _THREAD
+    """前端轮询入口。首次调用触发后台单飞扫描，返回 warming；完成后返回 done。
+
+    **本入口不受 `_DAILY_WINDOW` 限制**（用户点了「立即扫描」就是他要，白天也该给）。
+    也**不占刹车闸**：坑位由父进程 `_spawn_offproc` 代持，而这个入口是在**服务进程内**
+    起线程跑（`_start_scan_thread`），本模块里没有任何 brake 代码。它在白天占用的是
+    CPU 与抓取带宽，代价是接口变慢，不会挤掉别的日更任务 —— 与日更路径受限的原因是两回事。
+    """
     st = _get_state()
     if st["status"] == "done" and st["result"]:
         cached = st["result"]
@@ -599,16 +668,18 @@ def scan_payload(conn, force: bool = False) -> dict:
         st = _get_state()
         if st["status"] == "done" and st["result"] and st["result"].get("date") == _last_trade_date():
             return st["result"]
-    with _LOCK:
-        if _THREAD and _THREAD.is_alive():
-            return {"status": "warming", "note": "扫描已在进行中"}
-        _THREAD = threading.Thread(target=_run_scan, args=(bool(force),), daemon=True)
-        _THREAD.start()
+    if not _start_scan_thread(bool(force)):
+        return {"status": "warming", "note": "扫描已在进行中"}
     return {"status": "warming", "phase": "", "done": 0, "total": 0,
             "note": "扫描启动中", "elapsed_s": 0}
 
 
-def _run_scan(force: bool) -> None:
+def _run_scan(force: bool) -> dict:
+    """跑一轮完整扫描，把结果写进 `_STATE` + 落盘缓存，同时**返回**本轮结果。
+
+    2026-10-30 D33：原来返回 None、结果只写 `_STATE`，于是"同步调用"拿不到成败
+    （`run_daily_sync` 要靠它给 sched_job 一个 `ok`）。线程调用方忽略返回值即可。
+    """
     t0 = time.time()
     try:
         _set_state(status="warming", phase="fetch", done=0, total=0, error=None,
@@ -639,8 +710,13 @@ def _run_scan(force: bool) -> None:
                    finished_at=time.time(),
                    note="完成：%d 只命中 / 扫描 %d 只 / %.0f 秒"
                         % (payload["total_hits"], payload["scanned"], payload["elapsed_s"]))
+        return {"ok": True, "elapsed": round(time.time() - t0, 1),
+                "hits": payload.get("total_hits"), "scanned": payload.get("scanned"),
+                "error": None}
     except Exception as e:  # noqa: BLE001
         _set_state(status="error", error=str(e), phase="error", finished_at=time.time())
+        return {"ok": False, "elapsed": round(time.time() - t0, 1),
+                "hits": None, "scanned": None, "error": str(e)[:300]}
 
 
 def _conn_for_sim():
@@ -655,47 +731,108 @@ def _conn_for_sim():
         return None
 
 
+def _daily_gate():
+    """收盘刷新的闸：返回 None 表示"该跑"，否则返回跳过原因。
+
+    2026-10-30 D33：`maybe_daily`（bool 兼容别名）与 `run_daily_sync`（子进程入口）
+    **共用这一份**。判断顺序逐条照搬历史实现（交易日 → 15 点后 → 不在 warming →
+    当日已有结果），只搬家不改语义；D34 在 `pre_close` 之后加了一条 `day_brake_window`：
+    **只有 19:45–23:00 允许跑**，其余时段把闸让给 kline_daily / indicators_daily /
+    universe_scan / lhb_daily 整条计算链（理由与 23:00 后也不跑的原因见 `_DAILY_WINDOW`）。
+    """
+    target = _last_trade_date()
+    now = time.localtime()
+    if time.strftime("%Y-%m-%d", now) != target:
+        return "not_trading_day"
+    if now.tm_hour < 15:
+        return "pre_close"
+    if not _in_window(now):
+        return "day_brake_window"
+    st = _get_state()
+    if st["status"] == "warming":
+        return "warming"
+    cached = _result_cache_load()
+    if cached and cached.get("date") == target:
+        return "done"
+    return None
+
+
+def run_daily_sync(conn=None) -> dict:
+    """**同步**跑完一轮收盘扫描，跑完才返回（供 `tools/sched_job.py` 的子进程调用）。
+
+    2026-10-30 D33：和 `lhb_daily` 同一个病 —— 原 `maybe_daily()` 起 daemon 线程后
+    立即 `return True`，而调用方 `tools/sched_job.py::_bili_scan()` 是**短命子进程**：
+    print 完就 `return 0` 退出，CPython 关解释器时把 daemon 线程直接杀掉 → 一次都扫不成。
+    （在此之前还被 `_THREAD` 那个 UnboundLocalError 挡着，连"起了个线程"都没做到。）
+
+    实测一轮真实扫描（`data/bili_scan_result.json`）`elapsed_s=1575.1`，做成同步后子进程
+    要跑满约 25 分钟 —— `_JOB_TIMEOUT`（默认 3600s）兜得住，别往小改。
+    `ok=False` 会被 `sched_job.main()` 判成 rc=1，交父进程退避重试；
+    `skipped` 非空表示被闸挡住（不算失败），取值见 `_daily_gate`：
+    `not_trading_day` / `pre_close` / `day_brake_window`（不在 19:45–23:00）/ `warming` / `done`。
+    """
+    t0 = time.time()
+    started = time.strftime("%Y-%m-%d %H:%M:%S")
+    skip = _daily_gate()
+    if skip:
+        return {"ok": True, "started": started, "skipped": skip,
+                "elapsed": round(time.time() - t0, 1)}
+    res = _run_scan(False)
+    return {"ok": bool(res.get("ok")), "started": started,
+            "elapsed": round(time.time() - t0, 1),
+            "hits": res.get("hits"), "scanned": res.get("scanned"),
+            "error": res.get("error")}
+
+
 def maybe_daily() -> bool:
-    """scheduler 收盘后自动刷新：交易日 15:10 后当日无结果则扫一次。"""
+    """兼容别名（返回 bool）。**已改为同步**，调度路径里不再起线程。
+
+    sched_job 已改调 `run_daily_sync`（要 `ok` 语义）；这个名字留给"跑了吗"这类调用方。
+    历史缺陷：函数体里有 `_THREAD = ...` 赋值 → `_THREAD` 成了**局部名** → 前面那句
+    `if _THREAD and _THREAD.is_alive()` 必抛 UnboundLocalError，被
+    `except Exception: return False` 吞掉 —— **这个入口从上线起一次都没成功触发过扫描**。
+    """
     try:
-        target = _last_trade_date()
-        import datetime as _dt
-        now = _dt.datetime.now()
-        if now.strftime("%Y-%m-%d") != target or now.hour < 15:
-            return False
-        st = _get_state()
-        if st["status"] == "warming":
-            return False
-        cached = _result_cache_load()
-        if cached and cached.get("date") == target:
-            return False
-        with _LOCK:  # P2-08：与 run() 共用同一把锁，杜绝 maybe_daily 与 run/预热 并发起扫
-            if _THREAD and _THREAD.is_alive():
-                return False
-            _THREAD = threading.Thread(target=_run_scan, args=(False,), daemon=True)
-            _THREAD.start()
-        return True
+        res = run_daily_sync()
+        return bool(res.get("ok")) and not res.get("skipped")
     except Exception:  # noqa: BLE001
         return False
 
 
 def maybe_prewarm() -> None:
-    """server 启动 45s 后，当日无结果则后台预热一次。"""
+    """server 启动 45s 后，当日无结果则后台预热一次。
+
+    `_go()` 里的顺序很关键，改之前先读完这段：
+
+      1. **缓存已是当日的** → 直接 return。绝大多数白天重启都走这条（`_last_trade_date()`
+         有 15:05 截断，09:00 时它返回的也是上一个交易日，与缓存自然相等）—— 所以
+         "白天重启别抢闸"这个目的**由缓存判断就实现了**，不需要靠时间窗。
+      2. **缓存不是当日的**，分两种，长得一样但处置相反：
+         · 早盘（15:05 之前）→ `target` 还是上一个交易日，缓存比它还旧 = **昨晚日更真没跑成**；
+           这时**必须预热**，否则用户早上点「一键筛股」就是 26 分钟 warming。
+           这是 prewarm 唯一不可替代的价值，别用时间窗把它关掉（2026-10-30 我就关错过一次）。
+         · 15:05 之后、日更 19:45 之前 → `target` 已变成今天，缓存是昨天属于**正常**，
+           别抢闸，交给 19:45 那轮。
+      3. 19:45–23:00 之内（日更时段）→ 缓存不新鲜就预热，和日更同一份判断（`_in_window`）。
+
+    实测这台机器的 server 今天重启了 5 次（11:06 / 11:12 / 15:07 …），所以第 2、3 条不能省。
+    """
     def _go():
         time.sleep(45)
         try:
             target = _last_trade_date()
             cached = _result_cache_load()
             if cached and cached.get("date") == target:
+                return                  # ① 已有当日结果：不需要预热（也不需要抢闸）
+            now = time.localtime()
+            if now.tm_hour >= 15 and not _in_window(now):
+                # ② 下午/傍晚且不在日更窗口：target 已是今天、缓存还是昨天，属于"日更还没到点"
                 return
+            # ③ 早盘（昨晚真没跑成）或已在日更窗口：宁可抢一次闸，也别让用户干等 26 分钟
             st = _get_state()
             if st["status"] in ("warming",):
                 return
-            with _LOCK:  # P2-08：预热同样走单锁，避免与收盘刷新并发起扫
-                if _THREAD and _THREAD.is_alive():
-                    return
-                _THREAD = threading.Thread(target=_run_scan, args=(False,), daemon=True)
-                _THREAD.start()
+            _start_scan_thread(False)   # ← 统一走单飞入口（原来这里也漏了 global _THREAD）
         except Exception:  # noqa: BLE001
             pass
     threading.Thread(target=_go, daemon=True).start()

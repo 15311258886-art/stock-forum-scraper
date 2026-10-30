@@ -11448,6 +11448,11 @@ function loadValuation(symbol) {
   api(`/api/valuation?symbol=${encodeURIComponent(VAL.symbol)}`).then((d) => {
     FEAT.valuation = { symbol: VAL.symbol, data: d }; renderValuation(); }).catch((e) => reportLoadError("估值诊股", e));
 }
+/* 2026-10-30 D33：这块是**死代码，别照着它排错**。
+   2026-09-29 做面板合并时，「估值诊股」独立页并入「个股诊断」，index.html 里已经没有
+   id="p-valuation" 容器、底部导航也没有对应项，所以下面第一行 `if (!host) return` 必定命中，
+   函数体（含 #valSym / #valGo / #valPoolClear 三个控件和整块评分渲染）永远不会执行。
+   有意保留作参考实现：真要复活它，必须先恢复容器与导航项；否则改了也不会有任何可见效果。 */
 function renderValuation() {
   const host = $("#p-valuation"); if (!host) return;
   const v = (FEAT.valuation && FEAT.valuation.data) || null;
@@ -12332,7 +12337,7 @@ function renderResearch() {
     <td>${esc(r.date || "")}</td>
     <td>${r.stock_code ? `<button type="button" class="wt-sym" data-feat-open="${escAttr(r.stock_code)}">${esc(r.stock_code)}</button> ${esc(r.stock || "")}` : esc(r.stock || "")}</td>
   </tr>`).join("") || `<tr><td colspan="7" class="muted wt-empty">${d.ok === false ? "接口异常：" + esc(d.reason || "未取到数据") : (rs.onlyTar ? "勾选状态下无带目标价研报。取消勾选可看全部（多数券商新版报告用预测 PE 替代目标价）。" : "暂无研报数据。")}</td></tr>`;
-  const rtHtml = rt && rt.ok ? (() => {
+  const rtKpi = () => {
     const dist = rt.dist || {}, tot = rt.total_orgs || 1;
     const bar = (n, lbl, c) => `<div class="feat-comp"><span class="feat-comp-l">${lbl} ${n}</span>
       <span class="feat-bar"><span class="feat-bar-fill ${c}" style="width:${tot ? Math.round(n / tot * 100) : 0}%"></span></span></div>`;
@@ -12349,7 +12354,18 @@ function renderResearch() {
       ${bar(dist.buy || 0, "买入", "good")}${bar(dist.overweight || 0, "增持", "good")}
       ${bar(dist.neutral || 0, "中性", "mid")}${bar(dist.underweight || 0, "减持", "low")}${bar(dist.sell || 0, "卖出", "low")}
       <div class="hint">综合评级：${esc(rt.rating || "—")}</div>`;
-  })() : `<div class="hint wt-foot">输入代码查询单只机构一致预测评级分布。</div>`;
+  };
+  // 2026-10-30 D33：rt.ok=true 但 total_orgs=0（例如输入 12345：数字合法、A 股里没有这只）
+  // 原来会渲染一整屏全是「—」的 KPI 卡片，看着像"数据坏了"。按覆盖数分流，两件事别混：
+  //   ① total_orgs=0 → 「查无研报覆盖」一句话；② ok=false → 才是接口异常（后端原话照转）。
+  const symTxt = (rt && (rt.symbol || rs.symbol)) || "该代码";
+  const rtHtml = (rt && rt.ok)
+    ? ((rt.total_orgs || 0) > 0 ? rtKpi()
+      : `<div class="hint wt-foot">查无研报覆盖记录：${esc(symTxt)} 近半年没有机构评级——`
+        + `可能不是 A 股代码，或暂无券商覆盖。</div>`)
+    : (rt && rt.ok === false && rt.reason
+      ? `<div class="hint wt-foot">${esc(rt.reason)}${rt.symbol ? `（当前输入：${esc(rt.symbol)}）` : ""}</div>`
+      : `<div class="hint wt-foot">输入代码查询单只机构一致预测评级分布。</div>`);
   const nWith = d.n_with_target || 0, nTotal = d.n_total || 0;
   const explainer = nTotal ? `（本次 ${nTotal} 份研报中 ${nWith} 份带目标价，余下用「预测 PE」替代——业内 2024 起券商新版报告普遍不再硬填目标价。）` : "";
   host.innerHTML = `
@@ -12360,14 +12376,39 @@ function renderResearch() {
       <th>标题</th><th>机构</th><th>评级</th><th>目标价</th><th>预测PE</th><th>日期</th><th>个股</th>
     </tr></thead><tbody>${rows}</tbody></table></div>
     <div class="wt-head" style="margin-top:16px"><h2 style="font-size:16px">单只机构评级</h2></div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="wt-form" style="flex:0 1 340px;grid-template-columns:1fr auto;margin:0">
+        <label>代码<input id="rsSym" value="${escAttr(rs.symbol || "")}" placeholder="如 600519（回车即查）"
+          inputmode="numeric" autocomplete="off" maxlength="8"></label>
+        <button type="button" class="btn primary" id="rsGo">查询</button>
+      </div>
+      ${fOnly}
+    </div>
     <div id="rsRating">${rtHtml}</div>
     <div class="hint wt-foot">研报/评级来自东财公开数据，仅供参考，不构成投资建议。${explainer}</div>`;
-  const go = $("#rsGo"); if (go) go.onclick = () => {
-    const s = $("#rsSym"); if (!s || !s.value.trim()) return;
-    rs.symbol = s.value.trim();
+  // 2026-10-30 D33：查询动作抽成具名函数，按钮与回车共用同一份逻辑（原来只有 onclick，
+  // 且控件本身从没进过 innerHTML，整块是死的）。
+  const rsGo = () => {
+    const s = $("#rsSym");
+    const v = ((s && s.value) || "").trim();
+    if (!v) {                                   // 空输入 → 就地提示，不再静默 return
+      // 2026-10-30 D33：必须把 rs.symbol 一起清空。输入框的 value 取的就是 rs.symbol，
+      // 不清的话重渲染会把用户刚删掉的旧代码填回框里，而提示又写着「当前输入：旧代码」，
+      // 看起来像"我明明清空了它自己又变回来了"。清空后提示不再带「当前输入」后缀。
+      rs.symbol = "";
+      rs.rating = { ok: false, symbol: "", reason: "请输入 A 股数字代码" };
+      renderResearch();
+      return;
+    }
+    rs.symbol = v;
     api(`/api/research_rating?symbol=${encodeURIComponent(rs.symbol)}`).then((x) => { rs.rating = x; renderResearch(); })
       .catch((e) => reportLoadError("机构评级", e));
   };
+  const go = $("#rsGo"); if (go) go.onclick = rsGo;
+  const symInp = $("#rsSym");
+  if (symInp) {
+    symInp.onkeydown = (ev) => { if (ev.key === "Enter") { ev.preventDefault(); rsGo(); } };
+  }
   const chk = $("#rsOnlyTar"); if (chk) chk.onchange = () => { rs.onlyTar = chk.checked; renderResearch(); };
   // 结论区交互：分档 / 主线筛选 +「依据」展开
   $$("#p-research .ri-chip").forEach((el) => el.onclick = (ev) => {

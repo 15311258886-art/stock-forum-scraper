@@ -49,12 +49,23 @@ _UT = "7eea3edcaed734bea9cbfc24409ed989"
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
+# 2026-10-30 D33：东财「该日没有数据」是 code=9201（success=False），必须与真失败区分开。
+EMPTY_OK_CODE = 9201
+
 import netctx  # noqa: E402  —— 统一出网 TLS 口径（整改 #27）
 _ctx = netctx.https_context("datacenter-web.eastmoney.com")  # 整改 #27：默认不校验，按环境变量可开启
 _opener = urllib.request.build_opener(
     urllib.request.ProxyHandler({}),          # 直连，不吃系统代理
     urllib.request.HTTPSHandler(context=_ctx),
 )
+
+
+class LhbApiError(RuntimeError):
+    """东财接口层拒绝（报表改名 / 限流 / 结构变更）。
+
+    与「该交易日确实没有记录」（code=9201，合法空结果）**必须分开**：
+    前者要重试/告警，后者是正常的日子。只在 `_rows(..., strict=True)` 里抛。
+    """
 
 
 def _get_json(url: str, timeout: int = 15, retries: int = 2):
@@ -80,9 +91,30 @@ def _api(report: str, day: str, size: int = 500, sort: str = "SECURITY_CODE",
     return f"{_EM}?{q}"
 
 
-def _rows(url: str) -> list[dict]:
+def _rows(url: str, strict: bool = False) -> list[dict]:
+    """取 data 数组。
+
+    2026-10-30 D33：`strict=True` 时把「接口层拒绝」与「该日确实没有数据」分开 —— 这两件事
+    在返回体里长得**几乎一样**（都是 `result: null`、rows 0），但后果完全不同：
+      · code=**9201**「返回数据为空」 = 该交易日确实没有这类记录（合法空结果，**不是失败**）
+      · code=**9501**「报表配置不存在」 = 东财改了报表名/结构（**是真失败**，且正是「明细表
+        悄悄缺一天、主榜却正常」的典型成因）
+    实测（2026-10-30）：非交易日 2026-10-25 → `success=False, code=9201, message='返回数据为空'`；
+    报表名打错 → `success=False, code=9501, message='报表配置不存在,...'`；
+    正常有数据 → `success=True, code=0, result={...}`。
+    所以判据必须是 **code**，不是「抓到几行」。
+    """
     j = _get_json(url)
-    return (j.get("result") or {}).get("data") or []
+    if strict:
+        code = j.get("code") if isinstance(j, dict) else None
+        if code not in (0, EMPTY_OK_CODE):
+            raise LhbApiError("接口拒绝 code=%s message=%s"
+                              % (code, str((j or {}).get("message"))[:80]))
+        # code=0 却拿不到 result 字典 → 结构变了，同样按失败处理（保守：宁可真失败可重试，
+        # 也不要静默写 0 行）
+        if code == 0 and not isinstance((j or {}).get("result"), dict):
+            raise LhbApiError("返回体结构异常：code=0 但 result 不是字典")
+    return ((j or {}).get("result") or {}).get("data") or []
 
 
 # ---------------------------------------------------------------- 建表/补列
@@ -194,12 +226,16 @@ def fetch_stocks(day: str) -> list[dict]:
     return out
 
 
-def fetch_seats(day: str) -> list[dict]:
-    """筹码席位明细：买入前5 / 卖出前5（含该席位3日上涨概率）。"""
+def fetch_seats(day: str, strict: bool = False) -> list[dict]:
+    """筹码席位明细：买入前5 / 卖出前5（含该席位3日上涨概率）。
+
+    `strict=True` 时接口层拒绝（code∉{0,9201}）会抛 `LhbApiError`，供 main() 判失败；
+    默认 False 保持原行为（供运维脚本按需宽松调用）。
+    """
     out = []
     for report, side in (("RPT_BILLBOARD_DAILYDETAILSBUY", "BUY"),
                          ("RPT_BILLBOARD_DAILYDETAILSSELL", "SELL")):
-        for r in _rows(_api(report, day, size=2000)):
+        for r in _rows(_api(report, day, size=2000), strict=strict):
             code = r.get("SECURITY_CODE")
             if not code:
                 continue
@@ -217,16 +253,17 @@ def fetch_seats(day: str) -> list[dict]:
     return out
 
 
-def fetch_depts(day: str) -> list[dict]:
+def fetch_depts(day: str, strict: bool = False) -> list[dict]:
     """营业部视角：某营业部当日上榜了哪些股、买卖额、上榜原因、上榜后表现。
 
     与 fetch_seats 的区别（两者不可互替）：
       - seats 是「以股票为轴」——某股的前5买卖席位；
       - depts 是「以营业部为轴」——某游资席位在扫哪些股，且带 D1/D3/D5 战绩。
+    `strict` 语义见 fetch_seats。
     """
     out = []
     for r in _rows(_api("RPT_OPERATEDEPT_TRADE_DETAILS", day, size=2000,
-                        sort="NET_AMT", sort_type=-1)):
+                        sort="NET_AMT", sort_type=-1), strict=strict):
         code = r.get("SECURITY_CODE")
         if not code:
             continue
@@ -251,11 +288,15 @@ def fetch_depts(day: str) -> list[dict]:
     return out
 
 
-def fetch_inst(day: str) -> list[dict]:
-    """机构席位统计：机构当日在哪些股上买/卖了几次、净买额、占成交比、后续表现。"""
+def fetch_inst(day: str, strict: bool = False) -> list[dict]:
+    """机构席位统计：机构当日在哪些股上买/卖了几次、净买额、占成交比、后续表现。
+
+    `strict` 语义见 fetch_seats。注意「该日无机构上榜」是**合法空结果**（code=9201），
+    strict 下不会抛异常，仍返回 [] —— 空结果不等于失败。
+    """
     out = []
     for r in _rows(_api("RPT_ORGANIZATION_TRADE_DETAILS", day, size=1000,
-                        sort="NET_BUY_AMT", sort_type=-1)):
+                        sort="NET_BUY_AMT", sort_type=-1), strict=strict):
         code = r.get("SECURITY_CODE")
         if not code:
             continue
@@ -309,37 +350,58 @@ def main() -> int:
     tot = {"stocks": 0, "seats": 0, "depts": 0, "inst": 0}
     hit_days = []
     mx = None
+    # 2026-10-30 D33：明细接口失败必须让本进程**非 0 退出**，否则 lhb_daily 会判 ok=true
+    # 并记为"今天跑过了"，当天再也不重试 → 那张表永久缺一天（2026-10-29 就是这么丢的）。
+    # 判据：只认「接口层异常」（网络/解析/code∉{0,9201}），**不认「抓回 0 行」**——
+    # 该日确实没有机构上榜是合法结果，不能当失败（否则天天误报）。
+    detail_failed = []          # [(day, table, err)]
+    stocks_failed = []          # 主榜整体失败的日期（本轮只告警，不改 rc，见下方说明）
     try:
         for d in days:
             try:
                 stocks = fetch_stocks(d)
             except Exception as e:  # noqa: BLE001
-                print(f"  {d}: 个股接口失败 {type(e).__name__}", flush=True)
+                print(f"  {d}: 个股接口失败 {type(e).__name__}: {str(e)[:60]}", flush=True)
+                stocks_failed.append(d)
                 continue
             if not stocks:
                 continue
 
             parts = {}
+            failed_today = set()
             for key, fn in (("seats", fetch_seats), ("depts", fetch_depts), ("inst", fetch_inst)):
                 try:
-                    parts[key] = fn(d)
+                    parts[key] = fn(d, strict=True)
                 except Exception as e:  # noqa: BLE001
-                    print(f"  {d}: {key} 接口失败 {type(e).__name__}: {str(e)[:60]}", flush=True)
+                    print(f"  {d}: {key} 接口失败 {type(e).__name__}: {str(e)[:80]}"
+                          f" ← 视为失败（不写空数据）", flush=True)
                     parts[key] = []
+                    failed_today.add(key)
+                    detail_failed.append((d, key, f"{type(e).__name__}: {str(e)[:80]}"))
+                else:
+                    if not parts[key]:
+                        # 合法空结果：接口正常、该日确实没有这类记录
+                        print(f"  {d}: {key} 抓回 0 行（接口正常，该日无记录；不算失败）",
+                              flush=True)
 
-            # 幂等：先删当日，再插
-            for tbl in ("lhb_stocks", "lhb_seats", "lhb_depts", "lhb_inst"):
-                con.execute(f"DELETE FROM {tbl} WHERE trade_date=?", (d,))
+            # 幂等：先删当日，再插。
+            # 2026-10-30 D33：**只重建抓成功的表** —— 抓失败还照删，等于用空数据覆盖好数据
+            # （--days 8 每轮都会重写最近 8 天，一次抖动就能抹掉 8 天明细）。
+            con.execute("DELETE FROM lhb_stocks WHERE trade_date=?", (d,))
             n_s = _insert(con, "lhb_stocks", stocks)
-            n_t = _insert(con, "lhb_seats", parts["seats"], ignore=True)
-            n_d = _insert(con, "lhb_depts", parts["depts"], ignore=True)
-            n_i = _insert(con, "lhb_inst", parts["inst"], ignore=True)
+            n = {"seats": 0, "depts": 0, "inst": 0}
+            for tbl, key in (("lhb_seats", "seats"), ("lhb_depts", "depts"), ("lhb_inst", "inst")):
+                if key in failed_today:
+                    continue                    # 保留库里原有明细，绝不清空
+                con.execute(f"DELETE FROM {tbl} WHERE trade_date=?", (d,))
+                n[key] = _insert(con, tbl, parts[key], ignore=True)
             con.commit()
 
-            tot["stocks"] += n_s; tot["seats"] += n_t
-            tot["depts"] += n_d; tot["inst"] += n_i
-            hit_days.append(f"{d}(股{n_s}/席{n_t}/部{n_d}/机{n_i})")
-            print(f"  {d}: 个股 {n_s} · 席位 {n_t} · 营业部 {n_d} · 机构 {n_i}", flush=True)
+            tot["stocks"] += n_s; tot["seats"] += n["seats"]
+            tot["depts"] += n["depts"]; tot["inst"] += n["inst"]
+            hit_days.append(f"{d}(股{n_s}/席{n['seats']}/部{n['depts']}/机{n['inst']})")
+            print(f"  {d}: 个股 {n_s} · 席位 {n['seats']} · 营业部 {n['depts']} · 机构 {n['inst']}",
+                  flush=True)
 
         mx = con.execute("SELECT MAX(trade_date) FROM lhb_stocks").fetchone()[0]
     finally:
@@ -350,6 +412,19 @@ def main() -> int:
     for h in hit_days:
         print(f"      {h}", flush=True)
     print(f"[lhb] 库内最新交易日 = {mx}", flush=True)
+
+    if stocks_failed:
+        # 说明：主榜失败本轮只告警、不改退出码。理由：--days 8 里任一天的主榜抖动都会让整轮
+        # 变红，进而挡住 last_date 记账、白烧 MAX_TRIES。主榜另有 tools/backfill_lhb.py 兜底，
+        # 且它就是"回测唯一需要的表"，值得单独决策（见 DECISIONS.md D33 遗留）。
+        print(f"[lhb] ⚠️ 主榜接口失败 {len(stocks_failed)} 天（{'、'.join(stocks_failed)}）"
+              f"—— 本轮不判失败，仅告警；如需补齐请用 tools/backfill_lhb.py", flush=True)
+    if detail_failed:
+        print(f"[lhb] ❌ 明细接口失败 {len(detail_failed)} 处 → 退出码 1（让 lhb_daily 重试）：",
+              flush=True)
+        for d, t, err in detail_failed:
+            print(f"      {d} / {t}: {err}", flush=True)
+        return 1
     return 0
 
 

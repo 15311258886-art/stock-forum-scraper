@@ -1042,4 +1042,619 @@ QA 独立复算给的是 0.083 / 117.9→42.6；我复现不出同一数值，�
 
 ---
 
+## D32 单票视图不该为全市场买单：`/api/quant/panorama` 45s 超时的根因与修法（2026-10-30）
+
+**一句话**：`factor_panorama()` 第一行是 `_universe_bars()` —— 为了看**一只票**，把全市场
+5239 只 × 最近 260 根 K 线读进内存再逐只过滤。用户在「量化板块 → 因子全景」输入 6 位代码点查询，
+请求就挂在那儿（线上实测 **>120s 不返回**，45s 上限的两次测试全超时）。同一处漏网的
+`/api/quant/select` 也是 45s 超时。
+
+### 一、根因：一个「取数函数」被当成了「面板函数」
+
+`viewer/server.py` 里这四条路由的分工原本是清楚的：
+
+| 路由 | 旧实现 | 代价 |
+|---|---|---|
+| `/api/quant` | `_heavy_cached_payload("/api/quant")`（读落盘缓存） | ms 级 |
+| `/api/quant/panorama` | 直调 `quant.factor_panorama(code, con=DB.conn)` | **>120s** |
+| `/api/quant/select` | 直调 `quant.multi_factor_select(...)` | **45s 超时** |
+| `/api/quant/backtest` | 直调 `quant.factor_backtest(...)` | 同样重（本轮未改，见第五节） |
+
+`quant.py` 侧的问题更本质：`_universe_bars()` 的 docstring 自己写着「耗时从分钟级降到几十秒」——
+它是个**全池**取数函数，却被 `factor_panorama()` 当成「拿一只票的 K 线」的通用入口。
+而 `factor_panorama` 下一行就是 `rows = bars_map.get(code)` —— 前面 5239 只票的数据全白读了。
+
+### 二、为什么 2026-10-29 那次改造漏了这两个子接口
+
+那次（见 `_HEAVY_CACHE` 注释）修的是「**面板级**接口」：`/api/quant`、`/api/etf`、`/api/kronos`、
+`/api/hotspots` —— 判据是「这个面板整页要不要等几十秒」。`/api/quant/panorama` 带着 `?code=`
+参数、只返回一只票的 7 个因子、响应体几 KB，**看起来完全不像重活**，所以没进 `_HEAVY_CACHE` 名单。
+漏的不是「忘了加缓存」，是**没人量过它的取数路径**：它轻，是因为它的输出轻，不是因为它的计算轻。
+教训写在这：*给面板做性能分级时，判据必须是「实际执行路径的复杂度」，不是「响应体大小 / 参数个数」。*
+
+### 三、改法（① `viewer/quant.py`）
+
+新增 `_single_bars(code)`：一次 `code = ?` 的 SQL 拿一只票，与 `_universe_bars()` 对同一 code
+的输出**严格同构**（准入 → 窗口 → 清洗三步照抄）：
+
+1. **准入**：`_is_ashare(code)` 且该票在 K 线底座里确有 bar（等价于原来的 `sources` 过滤）。
+2. **窗口**：同样以 `base.distinct_dates()[-_SERIES_TAIL]` 作 `min_date`，再截最近 `_SERIES_TAIL`(260) 根。
+3. **清洗**：同样剔掉 `date`/`close` 为空的 bar，同样要求 `>= MIN_BARS`(130) 根才认。
+
+`factor_panorama()` 只改一行取数（`_universe_bars()` → `_single_bars(code)`），其余一字未动。
+
+**改的过程中踩到三个坑，全部记录在此（都是"看起来等价其实不等价"）**：
+
+- **坑 1｜`KBaseBars.__bool__` 会走 `__len__`**：`kc.get("bars") or {}` 会触发
+  `SELECT COUNT(DISTINCT code) FROM kline`（1364 万行，实测 **0.54s**/次）。
+  `_universe_bars` 里写这句无所谓（一次调用只付一次），单票视图里就是白丢 0.54s。改成显式判 `None`。
+- **坑 2｜`ohlcv_bulk(...) or None` 在单票语义下会翻车**（这个是**全量比对抓出来的真 bug**）：
+  对单票，`ohlcv_bulk` 返回空 dict 有两种可能 —— ①该票在窗口内确实没有 bar；②批量通道坏了。
+  `or None` 把两者都当成 ② → 走「逐只读取」回退分支 → **回退分支不带 `min_date` 过滤**，
+  于是 7 只退市票（600677 / 603555 / 603603 / 603963 / 603996 / 688086 / 688555，末根早于窗口起点）
+  从「无数据」被误判成「有 260 根」，`factor_panorama` 会对退市票吐出因子分。
+  全池版为什么没事：5239 只里这一只的空结果**不会**让整批 dict 变成空，所以从不触发回退。
+  修法：用 `base.last_date(code)` 探针把 ①（合法空，不回退）与 ②（通道异常，回退）分开。
+  **这个差异 21 只抽样样本一个都没覆盖到** —— 只有「对全部 5239 只逐只比对」才暴露。教训：
+  *改取数路径时，抽样比对不算验证，全量比对才算。*
+- **坑 3｜口径里的既有副作用必须原样保留**：`min_date` 是「**全市场**最近 260 个交易日」，
+  所以长期停更票（835670 末根 2025-09-30，窗口内只剩 3 根）会被判「无数据」。
+  这看着像 bug，但它是**改造前就有的行为**，且同时影响 `factor_backtest` / `multi_factor_select`
+  的宇宙。本轮**只搬不动**：要改必须单独立项（改宇宙 = 改所有权重与回测结论）。
+
+### 四、改法（② `viewer/server.py`：`/api/quant/select`）
+
+新增 `_quant_select_cached(top_n)`，路由改为读 `/api/quant` 的**同一份落盘缓存**里的 `"select"` 字段。
+
+为什么不去加 TTL 缓存、也不给 `_universe_bars` 加进程内缓存：**这份结果早就被算过了**。
+`quant.payload()`（`tools/sched_job.py` 的 `quant` 任务在**子进程**里跑，写
+`viewer/data/quant_payload.json`）第 3 步就是 `sel = multi_factor_select(con=con)`，落在
+payload 的 `"select"` 字段里 —— 量化面板读的正是它。所以只需「读同一份落盘 + 按 `top_n` 切片」：
+不新增计算、不新增落盘文件、不新增子进程任务，且与量化面板显示的内容天然一致（不会再出现
+「面板说 30 只、子接口说另外 30 只」的口径分裂）。
+
+**不选「给 `_universe_bars` 加 TTL 缓存」的理由**（写清，避免下次又有人想这条路）：
+① 它治不了首调用 —— 缓存冷的时候第一个请求照样几十秒，照样超时；
+② 它把几百 MB 的全池 bars 常驻**服务进程**内存 —— 2026-10-29 那次「内存冲到 16.7GB 被系统杀掉」
+   就是全池常驻的后果，把同样的风险搬回服务进程是倒退；
+③ `_universe_bars` 被 backtest/etf/self-learn 多处调用，加 TTL 等于给**所有**消费方引入数据陈旧窗口，
+   而「陈旧到什么程度会误导用户」这件事没人能给出依据 —— 现有落盘缓存有 `at` 时间戳 + 前端展示，
+   TTL 缓存没有这个交代能力。
+
+**诚实标注的取舍**：
+- **清单长度**：缓存清单是 `TOP_N_SELECT`(30) 只。`top_n < 30` 正常切片；`top_n > 30`
+  只能给到 30 只并在 `note` 里写明原因 —— 不为「多要几只票」把请求线程拖死。
+- **数据新鲜度（语义变了，写清）**：改前是「每次现算（慢但最新）」，改后是「读落盘缓存」，
+  `_HEAVY_CACHE["/api/quant"]` 的 TTL 是 **36 小时**。响应里保留了 `data_date`，调用方能看出榜单是哪天的；
+  但**最坏可能读到 36 小时前的榜单，跨周末还会更长**。该接口**当前无前端入口**
+  （QA 已 grep 全量 `static/*.js` 复核：只有 `/api/quant`(4 处) 与 `/api/quant/panorama`(app.js:17436)），
+  所以今天无用户影响；**将来若有外部/手工调用方，必须自己看 `data_date`** —— 别把它当"实时榜单"。
+
+### 五、`/api/quant/backtest` 本轮**没改**（不是漏了）
+
+它同样直调 `factor_backtest(con)`（全池 + 120 个截面日算 IC/T+5/10/20 衰减），也是几十秒级。
+但它**与 `/api/quant` 的 payload 完全重叠**：`quant.payload()` 第 4 步就调 `factor_backtest()` 并落在
+`"backtest"` 字段里，前端回测面板读的是 `/api/quant` 的缓存。所以正确修法与 `select` 一模一样
+（读 `_quant_select_cached` 的同款缓存切片），但**本轮不做**：任务边界只划到 panorama/select，
+而这块的收益是「一个无前端入口的接口」，风险是「动到回测口径的展示」。已登记为待办，
+下次要动就照 `_quant_select_cached` 抄，别新发明。
+
+### 六、验证方法（三条，都能复现）
+
+1. **21 只抽样逐字段 diff = 0**：从 `git show HEAD:viewer/quant.py` 取旧版（**先取旧版再改代码**，
+   否则就是自证），对 14 只真实票 + 1 只不存在(999999) + 2 只 K 线不足(301718/601091) +
+   1 只非 A 股前缀(113001) + 空串 + 带空格("600519 ") 各 dump 完整 JSON，递归逐字段比对
+   （键集合/列表顺序/数值 repr），**差异 0**。
+2. **全量 5239 只逐只等价**：`_single_bars(code) == _universe_bars()[0].get(code)` 全库跑一遍
+   （有数据 5185 只 / 无数据 54 只），**差异 0**。这条才是真验证 —— 坑 2 就是它抓到的。
+   复现：`set QUANT_PARITY_ALL=1 && pytest tests/test_quant_panorama_perf.py -q`
+   （实测 **135~170s**，随机器负载浮动；函数级 `_single_bars` 每只票要开两次 sqlite 连接，
+   5239 只 = 上万次开关连接，慢在这里）。
+   ⚠️ **该 test 必须带 `@pytest.mark.timeout(600)`**：`pytest.ini` 有全局 `timeout = 120`（P2-37 防挂死），
+   不加就**必然超时被打断**——而且是「超时」不是「断言失败」，下一个人会误读成「D32 改出 bug 了」。
+   QA 独立复现时按无参数命令跑直接红，加 `--timeout=900` 才绿；现已用 marker 覆写（不动 `pytest.ini`，
+   免得影响别的测试），**按原始命令 `QUANT_PARITY_ALL=1 pytest tests/test_quant_panorama_perf.py -q`
+   实测 `8 passed in 142.76s`**。
+3. **回归测试**：`tests/test_quant_panorama_perf.py` 7 条（+1 条默认 skip 的全量比对）。
+   守门方式不靠"返回 200"，而是：①不存在代码 < 1s；②把 `_universe_bars` 换成爆雷桩，
+   `factor_panorama` 仍须出结果（比计时更硬，不受机器负载影响）；③单票取数与
+   `kbase.bars_of` 的「窗口内最近 260 根 + 剔空 + >= MIN_BARS」逐根相等；
+   ④把 `multi_factor_select` 换成爆雷桩，`_quant_select_cached` 仍须 < 1s 出结果。
+4. **口径更正（QA 指出，采纳）**：`/api/quant/select` **前端零调用** —— `grep` 全量 `static/*.js`
+   只有 `/api/quant`(4 处) 与 `/api/quant/panorama`(`app.js:17436`)，`quant/select` 一次都没有。
+   所以 select 那半边的性质是「**消除一个能在请求线程里持 GIL 162s 的入口**」（防未来有人接前端
+   / 手工调用把全站冻住），**不是修用户可见痛点**；**用户可见收益全部来自 panorama 那半边**。
+   引用本决策时别把收益算给 select。
+
+### 七、实测耗时
+
+| 口径 | 改前 | 改后 |
+|---|---|---|
+| 线上 HTTP `/api/quant/panorama?code=600519` | **>120s（curl --max-time 120 超时）** | 待重启生效（本轮禁止重启服务） |
+| 独立进程 `factor_panorama('600519')` cold | 3.90s / 3.96s | **0.77s / 0.75s** |
+| 独立进程 `factor_panorama('600519')` warm | 3.21s / 3.20s | **0.016s** |
+
+cold 那 0.75s 里 **0.73s 是 `distinct_dates()` 的首次 SQL**（进程内 mtime 记忆化，之后 0.0002s），
+即「服务重启后第一次点查询」的代价；同一进程内后续请求都是 16ms 级。
+服务进程内的绝对耗时比独立进程高（`server.py` 里 2026-10-29 的注释记过同类现象：同段纯 Python
+在服务进程里 14s、独立跑 2.6s），故线上预期仍是「几十毫秒级」，不再有秒级等待。
+
+### 八、遗留
+
+1. **需要重启服务才生效**：改的是 `viewer/quant.py` / `viewer/server.py`，运行中的进程装的是旧模块。
+   本任务明令禁止重启（公告回补在跑），故线上 45s 仍未消失，重启后才是 20ms 级。
+   （前端不受影响：`/static/*` 是每次请求读盘。2026-10-30 研报评级那次改动即因此**无需重启即生效**。）
+2. `/api/quant/backtest` 同款问题未修（见第五节）。
+3. 可选的再加一层保险：`boot()` 时预热 `distinct_dates()`，把那 0.73s 从「重启后第一次点击」挪到启动期。
+   本轮没做（不在任务边界内，且启动期已有足够多的预热项）。
+4. **`factor_panorama(code)` 不传 `con` 时 `name` 静默为空**（`name = "" if con is None`）——这是**改造前
+   就有的**行为，本轮没动。但它是个 footgun：QA 写复核脚本时踩了，第一次跑出 14 处 `name` 差异，
+   差点误报成回归。线上 GET 路由传了 `con=DB.conn` 所以无事。**约定：调它必须传 con，否则 name 必空。**
+   （可选改法：无 con 时降级自己开一次只读连接读名字。本轮不做 —— 会给「读函数」偷偷加一个 DB 连接，
+   得不偿失。）
+5. **`_single_bars` 的存在性检查用的是 `bars_in.get(code)`（一次该票全历史读），不是 `KBase.has(code)`**
+   —— QA 提议换成 `has()` 可省一次读。**本轮不改**，理由：`bars_of(code, adj=KBASE_ADJ)` 按 `adj` 过滤，
+   而 `has(code)` **不看 `adj`**；当前库里只有 `hfq` 一种 adj，两者等价，但一旦将来引入第二种复权口径，
+   `has()` 会把"别的 adj 有、hfq 没有"的票放进宇宙 → 悄悄改变宇宙口径。这属于「用将来的正确性换
+   今天几毫秒」，不划算（生产路径上每请求只多付约 5ms）。
+6. **`pytest.ini` 的全局 `timeout = 120`** 与「分钟级验证测试」天然冲突：本轮用函数级 marker 解决，
+   但**下次再加同类的分钟级测试，记得同样加 marker**，否则它会以「超时」而非「断言失败」的形式红，
+   误导后来者。
+
+---
+
+## D33 研报评级三个控件是「有代码没页面」，龙虎榜明细是「有主榜没明细」（2026-10-30）
+
+两件都不是算法问题，是**链路断在中间**：一件是前端有绑定没模板，一件是后端有抓取没兜底。
+共同点是**静默**——前端 `if (go)` 判空吞掉，后端 `try/except` 吞掉，谁都不报错。
+
+### 一、研报评级：控件定义了，但从来没进过 innerHTML
+
+`renderResearch()`（`viewer/static/app.js`）里三样东西齐备，就是没渲染：
+
+| 控件 | 改前状态 |
+|---|---|
+| `#rsSym`（代码输入框） | 只在 `$("#rsSym")` 被引用，**从没创建** |
+| `#rsGo`（查询按钮） | 只在 `$("#rsGo")` 被引用，**从没创建** |
+| `#rsOnlyTar`（仅看带目标价） | `const fOnly = '<label class="wt-chk">…'` 建好了，**全文件再无第二次引用** |
+
+用户看到的是：标题「单只机构评级」+ `#rsRating` 里的空态文案「输入代码查询单只机构一致预测评级分布」，
+没有输入框、没有按钮、没有复选框。而 12366 那句 `if (!s || !s.value.trim()) return;` 让整块**静默失效**，
+不报错、不告警、控制台干净——所以它能一直躺在那里没人发现。
+
+**根因判定：模板重构时 innerHTML 漏拼，不是"控件被删后忘了清代码"。** 三条证据：
+1. `FEAT.research` 的状态字段 `symbol: ""` / `onlyTar: false` **至今保留**（`app.js:9421`）——
+   状态是给这两个控件准备的，删控件的人不会留状态；
+2. 两个 `$("#...")` 绑定 + `const chk = $("#rsOnlyTar"); if (chk) …` **全都在**，且都带 `if` 判空兜底；
+   这是"先写好绑定、等模板补上"的写法（也可能是从别的面板整段复制过来的，那个面板确实有这个控件）；
+3. 控件该用的类 `wt-chk` 是现成的、且是**唯一**只服务这个复选框的样式（`app.css:2014`），
+   说明它当年是被设计进这个面板的。
+结论：`host.innerHTML` 那次重写只拼了「研报清单表 + 评级块」两段，控件区整段丢了；
+因为 `fOnly` 是 `const` 且再无引用，静态检查（ESLint 的 no-unused-vars）本该抓到，但本工程没接 lint。
+
+**改法**（`viewer/static/app.js:12365-12399`）：
+- 在 `<div id="rsRating">` 之前补一行控件区：`代码` label + `#rsSym` + `#rsGo` + `${fOnly}`。
+- **不新增任何 CSS 类**，全部复用既有类：
+  - 输入框走 `.wt-form` > `.wt-form input`（`app.css:2199-2203`，与「资金流向 `#mfSym`」「估值诊股 `#valSym`」完全同款）；
+  - 按钮走 `.btn.primary`（`app.css:66-72`）；
+  - 复选框 `fOnly` 本身就是 `.wt-chk` 胶囊（`app.css:2014`），直接插进同一条 flex 行。
+  - 没用 `.wt-inp` —— 那个类是**幽灵类**：`app.js` 有 10 处 `class="wt-inp"`，但 `app.css`/任何 css 里
+    **没有 `.wt-inp` 规则**，用了只会显示成浏览器默认样式。
+- 查询动作抽成具名函数 `rsGo`，`#rsGo.onclick` 与 `#rsSym` 的 Enter **共用同一份逻辑**
+  （`newline`/`inputmode="numeric"` 也加上，手机上默认弹数字键盘）。
+- 空输入不再静默 `return`，改为就地提示「请输入 A 股数字代码」——静默是这次事故的同款病。
+- `#rsRating` 的空态分支补一条：`rt.ok === false && rt.reason` 时**原样展示后端 reason**
+  （输入 `abc` → 显示「请输入 A 股数字代码（当前输入：abc）」）。原来一律吞成「输入代码查询…」，
+  用户分不清"没查"和"查了但代码不合法"。
+
+**验证**（`node tests/_probe_rs_controls.js`，真实 Chromium 打 8765，14 项全 PASS）：
+三个控件存在且可见、位于 `#rsRating` 之前、`#rsSym` 在 `.wt-form` 内、`#rsGo` 是 `.btn.primary`、
+回车出评级分布（600519 → 买入 11/增持 3/中性 2，一致目标价 1430）、重渲染后输入框保值、
+`abc` → 「请输入 A 股数字代码（当前输入：abc）」、勾选后清单 30 行 → 1 行且无「未给目标价」格子、无 JS 报错。
+截图：`%TEMP%\d33_research_controls.png` / `d33_research_rating_600519.png` / `d33_research_onlytar.png`。
+
+**探针自身的两个坑（记下来，别下次重踩）**：
+① `#firstRunMask`（首启引导）会盖住整页 → puppeteer 的真实坐标点击**全部落空但不报错**
+（表现为"点了没反应"，很容易误判成功能坏了）。要在探针里先点 `#frDone`。
+② 面板很长（控件区在 y≈6500），`page.click` 前必须自己 `scrollIntoView`。
+BTW：这两条也说明**真实用户第一次进来时，这三个控件是被首启弹窗盖住的**——不是 bug，但验收截图前要关掉它。
+
+### 二、龙虎榜 2026-10-29：主榜 75 行，三张明细表全空
+
+| 表 | 10-28 | 10-29（补前） | 10-29（补后） |
+|---|---|---|---|
+| `lhb_stocks`（主榜） | 78 | **75** | 75（本就没缺，**未被改动**） |
+| `lhb_seats`（前5席位） | 622 | **0** | **613** |
+| `lhb_depts`（营业部） | 500 | **0** | **485** |
+| `lhb_inst`（机构专用） | 50 | **0** | **47** |
+
+**成因（两个缺陷叠加，缺一不可）**：
+1. **`lhb_fetch.py` 对每张明细表单独 `try/except`，失败也 rc=0**（`lhb_fetch.py:323-328`）：
+   三个明细接口任一抛异常 → `parts[key] = []` → 该表当日被删成 0 行、**继续往下走、进程正常退出**。
+   `lhb_daily` 只看子进程 returncode（`lhb_daily.py:169`）→ 判定 `ok=true` → 记为"今天跑过了" →
+   **当天再也不会重试**。这就是"主榜有、明细空"且日志里只有一行「接口失败」的原因。
+2. **`lhb_fetch` 没有单日入口**：`--days N` 是「从今天往前枚举 N 个自然日」（`lhb_fetch.py:302`），
+   一旦当天漏了且窗口滑过去，那一天就**再也补不上**：`tools/backfill_lhb.py` 文件头明写只回补
+   `lhb_stocks`，三张明细表「留作最近窗口增量，不回补」。于是 10-29 的明细成了永久空洞。
+（旁证：`meta.lhb_daily_state.last_run_at` 停在 **2026-10-19 22:24:56**，`last_trigger_at` 是
+ 2026-10-29 23:51 —— 触发过但那一轮没跑成，`last_run_at` 没更新，即 lhb_daily 已 11 天没真正成功。）
+→ **这条旁证后来成了主病灶**：lhb_daily 不是"某天跑挂了"，而是从 10-19 起**一次都没真跑过**
+（daemon 线程被短命子进程杀掉），详见 **第六节**。也就是说下面这条 `try/except` 缺陷是**真缺陷、
+但不是触发原因** —— 它在"跑起来之后"才会咬人，而这段日子它压根没机会咬。
+
+**这次不是接口抓不到**：改前用 `lhb_fetch.fetch_seats/depts/inst('2026-10-29')` 干跑（不写库）就能拿到
+750 / 485 / 47 行，东财对 10-29 的数据完整。所以是纯链路问题，不需要动抓取逻辑、更不许编数据。
+
+**改法**：新增 `tools/backfill_lhb_detail.py` —— **只补指定交易日的三张明细表**，复用 `lhb_fetch`
+的三个已验证抓取函数（不复制请求、不造数据），按日「查→删当日→`INSERT OR IGNORE`→提交」，
+一天一 commit（短事务，避免与公告回补进程抢锁），写库遇 `database is locked` 退避 2s×5 次。
+带 `--dry-run`（只抓不写）。为什么必须新建而不是加参数到 `lhb_fetch`：那个脚本是日更编排的
+被控端，改它的 CLI 会影响 `lhb_daily` 的调用约定；单独一个运维工具边界更清楚。
+
+**执行与结果**（`--date 2026-10-29`）：
+```
+lhb_seats  现状   0 行 · 抓到 750 行 · 写后 613 行     ← 137 行是同日重复席位（主键去重，正常）
+lhb_depts  现状   0 行 · 抓到 485 行 · 写后 485 行
+lhb_inst   现状   0 行 · 抓到  47 行 · 写后  47 行
+```
+**幂等已实测**：同一命令再跑一次 → `613→613 / 485→485 / 47→47`，不增不减。
+**读路径已验证**：`GET /api/lhb?date=2026-10-29` → `stocks 75 / seats 613 / depts_top 20 / inst_top 20`，
+与 10-28（`75 / 622 / 20 / 20`）同量级；机构净买 `inst_buy_net=5.16亿 / inst_sell_net=-7.71亿` 口径正常。
+**没碰历史**：只对 `2026-10-29` 这一天执行；10-28 及更早的行数与改动前完全一致。
+
+### 三、顺带发现的死代码（第①类的"兄弟"，本轮**不改**，登记待决）
+
+用「`$("#x")` 引用的 id 是否在任何模板/HTML 里被创建过」扫了全站 258 个 id：
+- **`#p-valuation` 整块 UI 是死的**：`renderValuation()`（`app.js:11451`）第一行
+  `const host = $("#p-valuation"); if (!host) return;`，而 `index.html` 里已无该容器
+  （`:174` 注释写明「原 p-valuation 容器已并入此页」），NAV 里也没有 `valuation` 项 →
+  `ensurePanel` 永远不会建它。于是 `#valSym`/`#valGo`/`#valPoolClear` 三个控件 + 147 行渲染逻辑
+  **永远不执行**。这与研报评级**形状完全相同**，区别是：它是 2026-09-29 合并页面时**有意保留**的
+  （注释在），属于"故意留的代码"，不是"漏拼"。建议：要么删（git 里有历史），要么在函数头写
+  `// 已并入「个股诊断」，无容器，保留备查`，否则下一个人会照着它找 bug。
+  → **已加注释，见 5.4**（删/留仍待拍板）。
+- 其余 17 个「疑似幽灵」全是误报：`el.id = "..."` 动态创建（`#apiErrorBar`/`#toastHost`/`#netDropBar`/
+  `#branchModal`/`#rsMarketWrap`/`#ver-notice`/`#bili-scan-*` 等），或 `ensurePanel(tab)` 按需建的
+  `p-<tab>`（`#p-kronos`/`#p-lowbox*`/`#p-policy`/`#p-prediction` 等，`app.js:13630`）。
+- **`.wt-inp` 是幽灵类**（10 处引用、0 条 CSS 规则）——影响「低位突破/选股」几个输入框的观感，
+  不报错、无功能影响。本轮不动（不属于这两件事），登记待决。
+  → **已处理，见 5.3**（实际是 13 处引用；补了别名规则 + select 宽度上限）。
+- 除 `fOnly` 外，`app.js` 里没有第二处「定义了没被引用的字符串常量」（78 个逐个查过）——
+  说明这类"模板漏拼"目前只有研报评级这一例，但它能被发现纯靠人眼，建议接 ESLint 的
+  `no-unused-vars`（`const fOnly` 会当场报红）。
+
+### 四、遗留（写清，别以为做完了）
+
+1. **`lhb_fetch` 的"明细失败也算成功"没改**：修它会让 `lhb_daily` 的重试机制真正生效，
+   但也会改变日更任务的成功/失败语义（`MAX_TRIES=3` 会被真正用起来），属于生产任务行为变更，
+   **需要单独决策**。最小改法：`main()` 里累计 `any_detail_failed`，有失败且当天有主榜时 `return 1`。
+   → **已按这个改法实施，见 5.1**（含判据修正：只认接口层异常，不认「抓回 0 行」）。
+2. 研报评级的「现价」KPI 一直是 `—`：`research.rating()` 返回 `"price": None`（`research.py:125`
+   硬编码），后端没取行情。属独立缺陷，本轮不动。
+3. `#rsSym` 的回车是我这次补的；同款的 `#mfSym`（资金流向）、`#valSym`（估值诊股）**仍然没有回车提交**
+   ——不是回归，是同一个习惯缺口，同样登记待决。
+4. 前端改动**不需要重启**（`/static/*` 是每次请求读盘，见 `server.py:11588`），但**后端**的
+   `tools/backfill_lhb_detail.py` 是独立脚本，也不涉及重启。
+
+### 五、同日第二轮：把「明细失败=成功」真正修掉 + 两处观感问题（2026-10-30 晚）
+
+#### 5.1 `lhb_fetch` 的失败语义（根因修复）
+
+「接口没数据」和「接口被拒绝」在返回体里长得几乎一样，这是本轮最容易搞错的地方。实测三种返回：
+
+| 场景 | HTTP | 返回体 | 该判成 |
+|---|---|---|---|
+| 非交易日 2026-10-25 | 200 | `success=False, code=9201, message='返回数据为空'` | **合法空结果** |
+| 报表名打错（如 `RPT_RATEDEPT_STA`） | 200 | `success=False, code=9501, message='报表配置不存在,…'` | **真失败** |
+| 正常有数据 | 200 | `success=True, code=0, result={…}` | 成功 |
+
+所以判据只能是 **`code`**，绝不是「抓到几行」——`code=9201` 时 rows 也是 0，真失败 rows 也是 0。
+（这也是为什么不能用 `if not rows: raise`：那会让每个"当天没人上榜"的日子都变成失败，天天白烧 `MAX_TRIES`。）
+
+改法（`lhb_fetch.py`）：
+- 新增 `EMPTY_OK_CODE = 9201` 与 `LhbApiError`；
+- `_rows(url, strict=False)`：`strict=True` 时 `code ∉ {0, 9201}` → 抛 `LhbApiError`；`code == 0` 但
+  `result` 不是字典（结构变更）**也抛**——保守方向必须选「宁可报失败去重试」，因为静默写 0 行就是事故本身。
+  默认 `strict=False` 保留原行为，运维脚本按需宽松调用；
+- `fetch_seats/fetch_depts/fetch_inst(day, strict=False)` 透传；
+- `main()` 累计 `detail_failed`，非空即 `return 1`；异常与空结果**分开打日志**
+  （「视为失败（不写空数据）」 vs 「抓回 0 行（接口正常，该日无记录；不算失败）」）；
+- **只 DELETE 抓成功的表**（`if key in failed_today: continue`）。原来 `--days 8` 每轮重写最近 8 天，
+  一次抖动会把 8 天明细一起清成 0 行——比"少写一天"严重得多。
+
+主榜失败本轮**只告警不改 rc**（`stocks_failed`）：`--days 8` 里任一天主榜抖动都会让整轮变红、挡住
+`last_date` 记账、白烧 `MAX_TRIES`；主榜另有 `tools/backfill_lhb.py` 兜底。理由写进代码注释。
+
+**「重试会不会被『今天跑过了』挡住」——不会，已实测确认。** 闸门是 `last_date`（`lhb_daily.py:251`），
+而 `last_date` **只在 `res["ok"]` 为真时**才写（`lhb_daily.py:197-201`）；`last_run_at` 无条件写，
+但**从不参与判定**，只给巡检看。所以 rc=1 → `ok=false` → `last_date` 不动 → `tries += 1` → 下一轮
+调度（`_SCHED_WAKE`≈10s）继续触发，到 `MAX_TRIES=3` 才 `skip: failed_today`。
+（改前 rc=0 → `ok=true` → `last_date=今天` → 立刻 `skip: done_today` → **当天永久放弃**，这正是 10-29 的成因。）
+
+**验证**（`tests/test_lhb_fetch_semantics.py`，14 项，临时 sqlite + 桩 `_get_json`，不联网不碰生产库）：
+- 判据本身：9201→`[]`；9501→`LhbApiError`；`code=0` 但 result 非字典→`LhbApiError`；`strict=False` 不抛；
+- **场景 A（明细抛异常）→ `main()` 返回 1**，9501 同样返回 1；
+- **场景 B（明细正常但 0 行）→ `main()` 返回 0**（不误判），日志含「不算失败」；
+- 明细失败时**不清空**已有明细（预置 1 行 → 失败后仍 1 行）；失败时主榜照常落库；
+- 正常路径四张表都写、连跑两次行数不变（幂等）；
+- `lhb_daily`：失败轮不写 `last_date`、`tries=1`；第 1/2 次失败后 `maybe_daily` 仍返回
+  `{"started": today}`，第 3 次才 `failed_today`（用替身线程，**不触发**真实 `run_once`）；
+  成功轮写 `last_date`、`tries` 清零、随后 `skip: done_today`。
+- 结果：`pytest tests/ -q` → **127 passed, 2 skipped**。
+
+**真实接口端到端复核**（`--days 8 --db 临时库`，不写生产库）：rc=0，
+`2026-10-29: 个股 75 · 席位 613 · 营业部 485 · 机构 47` —— 与回补后的生产库数字**完全一致**，
+说明①`strict=True` 不会对真实数据误报；②之前回补的 613/485/47 不是一次性凑出来的，可从空库复现。
+
+#### 5.2 研报评级两处观感缺陷（QA 提的"小瑕疵"）
+
+| 现象 | 根因 | 改法 |
+|---|---|---|
+| 清空输入框回车后旧代码又回到框里，提示却写「当前输入：xyz」 | 空分支只改 `rs.rating`、没改 `rs.symbol`；输入框 `value="${rs.symbol}"` → 重渲染把旧值填回 | 空分支同时 `rs.symbol = ""`；「（当前输入：…）」改为**仅当 `rt.symbol` 非空**才拼 |
+| 输入 `12345`（数字但 A 股没这只）→ 一屏全「—」的 KPI 卡片 | 后端实测返回 `ok:true, total_orgs:0`，走的是"成功"分支 | 按覆盖数分流：`total_orgs>0`→正常 KPI；`=0`→一句「查无研报覆盖记录：12345 近半年没有机构评级——可能不是 A 股代码，或暂无券商覆盖。」；`ok:false`→后端原话（接口异常）。**三类互不合并** |
+
+后端实测（curl 真实接口）：`12345` → `{"ok":true,"total_orgs":0,…}`；`abc` → `{"ok":false,"reason":"请输入 A 股数字代码"}`；
+`600519` → `total_orgs:16`。所以「查无数据」与「接口异常」必须靠 `ok` 分开，不能只看 `total_orgs`。
+**验证**：`node tests/_probe_rs_polish.js` 17/17 PASS（12345 不出 `feat-kpis`、abc 带「当前输入：abc」、
+清空后输入框为空且提示无「当前输入」、600519 仍是 4 个 KPI、无 JS 报错），并重跑 D33 的
+`_probe_rs_controls.js` 14/14 绿灯。
+
+#### 5.3 `.wt-inp` 幽灵类：先看事实再决定
+
+用 puppeteer 取 computed style（1440×1000，`#p-lowbox .wt-ctl`）：
+
+| 属性 | 改前（= UA 默认） | 页面既有口径 `.wt-form input` |
+|---|---|---|
+| padding | `0px` | `7px 9px` |
+| border | `2px inset rgb(118,118,118)` | `1px solid var(--border)` |
+| border-radius | `0px` | `7px` |
+| font-size | `13.3333px`（Arial） | `13px` |
+| 高度 | 19px | ~37px |
+
+结论：**不是"看着还行"，是纯浏览器默认样式**——圆角/内距/边框/字号四项全和旁边的 `.btn`、正文对不上。
+所以补规则是必要的，但**只做别名**：`.wt-inp` 的声明**逐字照抄** `app.css:2201` 的
+`.wt-form input, .wt-form select`（不引入任何新颜色/尺寸/字体），`:focus` 照抄 `:2203`。
+不产生"第二套输入框视觉"，改的只是"这个类名终于按名字生效"。
+
+额外一条（附理由，不是审美偏好）：`select.wt-inp { max-width: 200px }`。原生 select 宽度 = 最长选项宽度，
+「质量档」那个（`严·ROE≥10/PE≤25/负债≤50`）会撑到 **330px**，把后面三个 50px 小输入挤到第二行、
+单个 `25` 孤零零换行；收到 200px 后长选项仍能完整显示。
+**残留**：1440px 宽下这条控件栏现在是 **2 行（64px；改前 19px 高的控件挤在 1 行 49px 内）**——
+7 个控件各多出约 18px 内距，总宽超出约 40px。没有重叠、没有裁切、每个字都读得清。
+要压回 1 行只能收窄 `#lbCodes` 的 300px 或把按钮挪到标题行，那是**视觉决策，本轮没动**。
+
+#### 5.4 `renderValuation()` 顶部注释（只加注释，不改逻辑）
+
+按"要么删、要么在函数头写清楚"选了后者：`app.js` 里 `function renderValuation()` 上方加注释，写明
+「2026-09-29 面板合并 → `index.html` 无 `#p-valuation` 容器、NAV 无此项 → 第一行 `if (!host) return`
+必然命中 → 函数体永不执行 → **别照着它排错**；要复活得先恢复容器与导航项」。
+147 行逻辑一行没删：删它要一并处理 `loadValuation()`、`VAL` 状态和 `valPool*`，属另一件事、不在本轮范围。
+
+#### 5.5 前端版本号（回应"`app.js?v=` 到底改没改"）
+
+改了；这一轮 `app.js` 内容又变了，所以再进一格：
+
+| 位置 | 值 | 为什么 |
+|---|---|---|
+| `index.html:13` `<meta name="app-version">` | `20261030-d33b` | `/api/version` 的唯一真源；变了页面才会弹「界面已更新，点此刷新」 |
+| `index.html:17` `app.css?v=` | `20261030-wtinp1` | 本轮改了 `app.css`，按 `:12` 与 `:271` 的规矩必须跟 |
+| `index.html:264` `app.js?v=` | `20261030-researchfix2` | 本轮又改了 `app.js`（5.2），从 `researchfix1` 再进一格 |
+
+上一轮报的 `20261030-researchfix1` 是**当时**的真值（15:00 已落盘，`sed -n '264p'` 复核过）；
+本轮 `app.js` 内容又改了两处，不跟着进格的话王总那边会继续拿 `researchfix1` 的旧缓存。
+只动这 3 处，其它静态资源版本号（`etf.css`/`bili_methods.css`/`screener_extra.js`/`douyin_corpus.js` 等）一个没碰。
+
+#### 5.6 一条既有红灯，与本轮无关（登记，避免下次误判）
+
+`pytest tests/ -q` 是绿的；但按 `pytest.ini` 的默认入口 `pytest -q`（会额外收集仓库根目录的历史测试）
+会红 1 条：`test_remed_20261012.py::test_send_json_uses_allow_nan_false`。
+它取 `def _send_json` 之后的 **700 字符窗口**找 `allow_nan=False`，而两者相距 **837 字符**
+（中间隔着 TTL 缓存那段）。当前文件与 `git show HEAD:viewer/server.py` **距离完全相同（837）**，
+即 HEAD 上就是红的，属既有脆断言，不是 D32/D33 引入。修它只要把窗口从 700 放大或改成
+`inspect.getsource(_send_json)`，但不在本轮范围。
+
+### 四（原）遗留的现状更新
+
+- 上节「遗留 1：`lhb_fetch` 的明细失败也算成功没改」→ **本轮已修，见 5.1**（含回归测试与端到端复核）。
+- 上节「`.wt-inp` 是幽灵类，本轮不动」→ **本轮已处理，见 5.3**（别名规则 + select 宽度上限，附图证据）。
+- 上节「`#p-valuation` 建议加注释」→ **本轮已加，见 5.4**；删/留仍待进哥拍板。
+- 仍然待决的两条不变：研报「现价」KPI 后端硬编码 `"price": None`（`research.py:125`）；
+  `#mfSym`/`#valSym` 仍无回车提交。
+
+### 六、真病灶：`lhb_daily` 自 10-19 起天天空转（daemon 线程被短命子进程杀掉）
+
+5.1 修的是「明细失败被当成成功」，但**那不是触发原因**。10-29 三表明细全 0 只是水面上的角。
+
+**运行事实**（QA 独立统计，我复核一致）：
+- `meta.lhb_daily_state`：`last_trigger_at=2026-10-29 23:51:36`，而
+  `last_run_at = last_ok_at = 2026-10-19 22:24:56`、`last_date=2026-10-19`、`tries=0`；
+- `viewer/logs/lhb_daily.log`（**只有 `record_result` 会写它**）最后一条就是 `2026-10-19 22:24:56 ok=True`；
+- sched 日志里 `[lhb_daily] ok 0.1s {'started': '2026-10-29'}` 这类 **191 次**，每次 **0.1~0.2s**；
+- 对照：真跑成功的一轮是 `lhb_fetch 6.7s + lhb_sector_link 413s + sector_chain 64s ≈ 484s`。
+
+**机理（四步，缺一不可）**：
+1. `lhb_daily.maybe_daily()` 起 `threading.Thread(target=_worker, daemon=True).start()` 后**立刻
+   `return {"started": today}`**（设计前提是「调用方是个常驻进程，别阻塞它的调度线程」）；
+2. 但它**唯一的调用方**是 `tools/sched_job.py`（`_lhb_daily()`），由 `server.py:10929` 的
+   `_spawn_offproc("lhb_daily")` 起，是个**短命子进程**（父进程只「起进程 + 看退出码」）；
+3. 子进程拿到 dict → `print "[lhb_daily] ok 0.1s"` → `return 0` → **进程退出**；
+4. CPython 关闭解释器 → **daemon 线程被直接杀掉** → `_worker()` 一行没跑 → `record_result()` 永不执行。
+只有这一个解释能同时对上「`{'started'}` / 0.1s / last_run_at 冻结 / tries=0 / 日志冻结」五个事实。
+
+**为什么「返回码 0」骗了 11 天**：0.1s 的空转和 484s 的真跑**都是 rc=0**。
+`server.py` 那套「ok is False → rc=1」的约定（为 a_shares_snapshot 加的）在这里完全失效——
+旧代码返回的 dict 里**根本没有 `ok` 这个键**。所以验收不能看返回码，只能看
+「函数返回那一刻活有没有干完」。
+
+**改法**：
+- 抽出 `_gate(conn, now)` → `(skip, today)`，判断顺序逐条照搬历史实现（周末 → 未到 18:00 →
+  `last_date` 已是今天 → `tries>=MAX_TRIES` → 有实例在跑）。**两个入口共用这一份**，
+  否则「手工跑得成、调度跑不成」会再演一遍；
+- 新增 `run_daily_sync(conn)`：闸 → 记 `last_trigger_at` → **同步** `run_once()` →
+  `record_result()` → 返回 `{"started", "ok", "steps"}`。`ok` 是给 `sched_job.main()`
+  的「ok is False → rc=1」用的，失败才能退避重试；
+- `maybe_daily(conn)` 保留为别名（同步），沿用「调度钩子不外抛」的历史契约；
+- `tools/sched_job.py::_lhb_daily()` 改调 `run_daily_sync`；
+- `viewer/server.py` 的 `_JOB_TIMEOUT` **显式登记 `"lhb_daily": 3600`（= `_DEFAULT_JOB_TIMEOUT`，
+  零行为变化）**，只为可排查性——这次排查就有人把 `_OFFPROC_GAP` 的 600 当成超时上限；
+- **`_OFFPROC_GAP` 的 600 一个数没动**：它是「两次启动最小间隔」，改成 1200 只会让
+  `MAX_TRIES=3` 的重试跨 40 分钟以上，把 18:00–24:00 的重试窗口自己卡掉。
+  `_JOB_TIMEOUT` 也没改小（内层子进程超时已是 900+1800+1800，收紧会误杀限流重试）。
+
+**为什么不能拿 `python lhb_daily.py --force` 当验收**：`main()` 走 `run_once()` **在主进程里同步跑**，
+压根不起线程，这条路从来没坏过。它只能证明「三个子脚本还活着」（必要条件），证明不了线程修好了。
+同理 18:00 前进真路径只会得到 `{'skip': 'pre_publish'}`，什么也验不出。
+
+**验收（`tests/test_lhb_daily_offproc.py`，7 条，临时 sqlite + 桩 `run_once`，不依赖日历、不联网）**：
+核心判据是「**函数返回那一刻**，`run_once` 体内的哨兵是否已落盘」。
+- 旧代码（`git show HEAD:lhb_daily.py` 换回去跑）→ **7 failed**，关键那条的断言原文：
+  `AssertionError: maybe_daily 仍是「起线程就返回」` / `assert ([])`（`calls` 为空 = run_once 从未执行），
+  而 stderr 同时打着 `INFO lhb_daily: lhb_daily 已触发后台刷新（2026-10-30）` —— 正是那 0.1s 的空转；
+- 新代码 → **7 passed**；全量 `pytest tests/ -q` → **134 passed, 2 skipped**。
+- 另有一条**进程寿命**验证（`_prove_sync_offproc.py`，一次性脚本）：跑真实 `tools/sched_job.py` 主流程，
+  只把最内层 `run_once` 换成「睡 3s + 写哨兵」→ 输出
+  `[lhb_daily] ok 3.0s {'started': '2026-10-30', 'ok': True, ...}`、`rc=0 elapsed=3.03s`、
+  进程退出后哨兵仍在。同一行日志在旧版是 `ok 0.1s {'started': ...}`。
+
+**⚠️ 一条必须记住的操作纪律：18:00 之前不许手工强跑真实一轮**。
+成功了会写 `last_date=今天`，而 10-30 的龙虎榜 18:00 才发布 → 今晚那次会被自己的闸判成
+`done_today` 跳过，**等于亲手制造一次「明细缺一天」**。要验证就验证「进程会不会等」，
+不要验证「数据抓没抓到」。
+
+**同类缺陷登记（本轮未改，别当已修）**：`blogger_daily.py:267` 与 `bili_scan.py:675/697` 同样是
+「起 daemon 线程后立即返回」。`blogger_daily` 是否走 offproc 需单独确认；`viewer/predictor.py` /
+`viewer/pillars.py` / `viewer/evolve.py` 的 `maybe_daily` 是**同步**的（所以日志里 predictor 才真有
+79.8s 的耗时），没有这个问题。
+
+**环境侧一条噪声（不是缺陷）**：跑测试时若 `predictor_daily` 正在写 `kbase.db`（实测 15:07 起
+跑了 18 分钟以上、WAL 涨到 6MB），`test_quant_panorama_perf.py` 会有 3~4 条报
+`sqlite3.OperationalError: unable to open database file`——**连裸的
+`sqlite3.connect('file:viewer/kbase.db?mode=ro', uri=True)` 都打不开**，与代码无关；
+该 job 一次 checkpoint 之后自动恢复（实测 15:26 重跑 7 passed / 1 skipped）。
+
+---
+
+## D34 `bili_scan` 从上线起没工作过 + 「测试写生产」事故的确定性加固（2026-10-30）
+
+### 1. 事故复盘：测试把桩数据写进了生产库
+
+15:31:05，验证 `lhb_daily`「daemon 线程被短命子进程杀掉」时，做法是**在同一个 pytest 进程内**
+把模块换回旧版（`git show HEAD:lhb_daily.py`）跑红态。旧版 `maybe_daily()` 起了一个 daemon
+线程，0.3s 后才 return；测试结束、pytest 撤销 monkeypatch 之后，那个**孤儿线程**才把活干完 ——
+此时它读到的 `lhb_daily.DB` / `LOG_FILE` **已经恢复成生产路径**：
+
+- `viewer/logs/lhb_daily.log` 多出 4 条 `started=2026-10-30 18:00:00 … 484.0s`（一眼假）；
+- `meta.lhb_daily_state.last_date` 被推成 `2026-10-30`。
+
+后者的代价是**当晚 18:00 的真抓取会被自己的闸判成 `skip: done_today` 跳过** —— 等于把刚修好的
+「11 天停更」原样复刻一遍。已回滚（`last_date=2026-10-19`、`tries=0`、
+`last_trigger_at=2026-10-29 23:51:36`、删 4 条假行），污染现场快照留在
+`.probe/POLLUTED_lhb_state_20261030_153105.json` / `.probe/POLLUTED_lhb_daily_20261030_153105.log`。
+
+**根因不是"手滑"，是"红态证明的方式本身不安全"**：进程内换模块 → 线程比 monkeypatch 活得久。
+所以加固分三层，缺一层都还会重演：
+
+| 层 | 手段 | 挡什么 | 挡不住什么 |
+|---|---|---|---|
+| ① 数据层 | `lhb_daily.py` / `blogger_daily.py` 顶部 `_PROD_DB` / `_PROD_LOG` 路径**快照** + `record_result` / `_append_result_log` 入口守卫：`PYTEST_CURRENT_TEST` 且路径==生产 → 只 WARNING 不落盘 | pytest 内跑出来的误写 | **非 pytest 进程**（这次的做法）——环境变量压根不存在 |
+| ② 进程层 | 红态证明改到 `subprocess.run` 子进程里跑，路径一开始就指 `tmp_path`（`tests/test_lhb_daily_offproc.py` 第 8/9 条） | 孤儿线程活过测试 | 忘了这么写的人 |
+| ③ 收尾层 | `ld` fixture 在 `yield` **之后**、monkeypatch 撤销**之前** join `lhb-daily`/`blogger-daily` 线程，并断言其已退出；`bili_scan` 的 `bs` fixture 同款（线程名 `bili-scan`） | 「起线程就返回」的任何回归 | join 超时的情况（此时断言会红，仍会阻断） |
+
+关键细节：**join 必须排在 `yield` 之后、其它清理之前** —— 那时线程看到的还是 tmp 路径，
+它跑完也是写 tmp。这就是为什么 `_PROD_DB` 快照用 `os.path.abspath(DB)` 而**不是**读实时 `DB`：
+monkeypatch 之后 `DB` 已经指向 tmp，快照必须留在"生产"那一侧才有意义。
+
+### 2. `bili_scan` 三处缺陷（A1/A2/A3）
+
+- **A1**：`maybe_daily()` 函数体里有 `_THREAD = threading.Thread(...)` 赋值 → `_THREAD` 成局部名 →
+  前面 `if _THREAD and _THREAD.is_alive()` 必抛 `UnboundLocalError`，被 `except Exception: return False` 吞掉。
+  `sched-bili_scan.log` 里每 15 分钟一条 `ok 0.2s False` 看着像"当日已完成"，其实**这个入口从上线起一次没进来过**。
+- **A2**：`maybe_prewarm()._go()` 同一个病，45 秒预热线程同样没建出来。
+- **A3**：就算补上 `global`，仍是「起 daemon 线程就 return」—— 短命子进程里被腰斩（与 D33 的 `lhb_daily` 同病）。
+
+修法：把「`global` + 单飞 + 建线程」收进 **`_start_scan_thread(force)` 一处**（`scan_payload` /
+`maybe_daily` / `maybe_prewarm` 三处抄写的版本里只有第一处有 `global`）；`_run_scan` 改为**返回**
+`{"ok", "elapsed", "hits", "scanned", "error"}`；日更入口拆成 `_daily_gate()`（唯一一份判断）+
+`run_daily_sync()`（同步跑完才返回）；`maybe_daily()` 降为返回 bool 的兼容别名。
+`tools/sched_job.py::_bili_scan()` 改调 `run_daily_sync()`。
+
+**红绿对照实数**（`_prove_bili_ab.py`，**子进程**内跑、`_run_scan` 全桩、只写系统临时目录哨兵）：
+
+| 版本 | `maybe_daily()` | 被吞异常 | `_run_scan` 调用 | 返回那刻哨兵 | 返回那刻线程 | 进程退出后哨兵 |
+|---|---|---|---|---|---|---|
+| HEAD（旧） | `False`，0ms | `UnboundLocalError @ maybe_daily():673` | `[]` | 不存在 | 无 | 不存在 |
+| 旧 + 只补 `global` | `True`，1ms | 无 | `[False]`（线程里） | **不存在** | **活着** | **不存在** |
+| 工作树（新） | `True`，403ms | 无 | `[False]`（同步） | 存在 | 无 | 存在 |
+
+第三行与第二行的差别就是 A3：只补 `global` 仍会在 1ms 返回、哨兵没写、进程一退线程就没了。
+A2 同理：旧版 `maybe_prewarm()` 之后 `_THREAD = None`，新版是 `<Thread(bili-scan, ...)>`。
+
+### 3. `_spawn_offproc` 到底是"发射即返回"还是"等子进程"——**发射即返回**
+
+`viewer/server.py:10422` 用 `subprocess.Popen(...)`，拿到 `Popen` 就 `return True`；父进程只记
+`_JOB_PROCS[job]` / `_JOB_LAST[job]` / `_JOB_LAST_OK[job]`，**等到下一次 tick 才 `poll()`**。
+
+但由此推出的"必须把 `_OFFPROC_GAP["bili_scan"]` 从 900 提到 1800"**是错的**，因为 `poll()` 检查
+排在 gap 检查**之前**（`10428-10465`）：
+
+```
+prev = _JOB_PROCS.get(job)
+if prev is not None and prev.poll() is None:
+    ...超时熔断...
+    return False          # ← 上一轮还没跑完 → 跳过（天然防叠进程）
+```
+
+`_JOB_PROCS` 活在**长命父进程**里，跨 tick 存在，所以只要上一轮没退出，900 秒到点也起不了第二个。
+1575s > 900s 不构成叠跑风险。**结论：900 不动**。理由另有一条：真正会叠的窗口只有
+「父进程重启 + 上一轮子进程变孤儿」（重启后 `_JOB_PROCS`/`_JOB_LAST` 全清空，gap 立刻失效），
+把 900 改成 1800 **对这个窗口一点用都没有**，反而让失败重试从 15 分钟拖到 30 分钟。
+要堵那个窗口只能加**跨进程文件锁**（`msvcrt.locking`），侵入 `bili_scan` 自身、且与
+`_JOB_PROCS[job].poll()` 语义重复 —— 收益不抵成本，登记为遗留。
+
+### 4. 新增时间窗：日更扫描只在 19:45–23:00 跑（**模块侧**，不是调度侧）
+
+`bili_scan` 真跑一轮 1575s（26 分钟，`data/bili_scan_result.json` 实测），改同步后它**实打实占住**
+刹车闸的 `FETCH 1/1`；`lhb_daily` 同类别（FETCH）、同写域（app），18:00 才发布、必须当晚落地。
+闸的语义是"拿不到就跳过本轮"（不排队），所以 17:5x 交给 bili_scan，龙虎榜那轮就被推到 18:2x。
+
+在 `bili_scan._daily_gate()` 里加时间窗，命中即 `{"skip": ...}`。**第一版做的是「17:00–19:30
+让路」，当晚就被实测推翻、改成「只在 19:45–23:00 跑」（`_DAILY_WINDOW`）** —— 因为
+`_sched_tasks()` 里 bili_scan 排在 `kline_daily` / `indicators_daily` **前面**：
+`predictor_daily` 从 15:07 占到 16:37 才松手，bili 早跑 26 分钟 → kline 顺延 → `indicators_daily`
+被推过 18:00 → 龙虎榜照样没有坑位。「挡 17:00 之后新起的 bili」防不住这条**间接路径**。
+白天（15:00–19:45）与 23:00 之后一律 `skip: "day_brake_window"`：前者把闸让给整条计算链，
+后者跨日会污染次日 `_last_trade_date()` 的去重（扫出来的 payload 带"昨天"的交易日，
+次日 15:00 前又被当成"已有结果"）。
+**选模块侧的理由**：① `_daily_gate` 已被 `run_daily_sync` / `maybe_daily` 两个入口共用，一处覆盖全部
+调用方（包括手工 `python tools/sched_job.py bili_scan`）；② 调度侧只能管"服务器派出去的那一路"，
+手工/计划任务绕过它，等于同一条策略写两个地方 —— 正是本轮要消灭的"改了一处、读的是另一处"。
+③ 用户手动触发走 `scan_payload()`，**不受**此窗限制。
+
+bili_scan 的结果按**交易日**去重，晚一小时扫不影响任何面板 —— 让路是零成本的。
+
+### 5. `blogger_daily` 现在还有谁在触发——**没有了**
+
+- 工作树与 HEAD 的 `viewer/server.py::_sched_tasks()` 都**没有** `("blogger_daily", ...)`；
+  `_OFFPROC_GAP` 里也没有（只剩一行历史注释）；`tools/sched_job.py` 的 `JOBS` 里也没有。
+- `viewer/logs/sched-blogger_daily.log` 最后一条是 `2026-10-30 00:01:47` `{'skip': 'up_to_date'}`，
+  它的上一条是 `2026-10-29 23:51:46` —— **间隔正好 600s = 当时的 `_OFFPROC_GAP["blogger_daily"]`**。
+  而产生这两条的进程是 `2026-10-29 23:51:04` 启动的那个（`server-20261029.log:7519`），
+  它内存里的 `_sched_tasks()` 还带着 blogger（见 `backups/kernel-20261029/viewer/server.py:11074`）。
+- 之后 `server-20261030.log` 从 **00:14:53** 起（重启），提交 `826986d`（10-30 03:03:01）把
+  blogger 从 server 调度表删掉；再往后 `sched-blogger_daily.log` 一条都没有。
+- `viewer/logs/blogger_daily.log` 停在 `2026-10-19 22:15:15` → 那之后所有触发都是 `skip: up_to_date`，从未真正落盘。
+- 结论：**触发源是 server 进程内调度线程，不是 Windows 计划任务**（本环境 `schtasks` 被安全策略拦截，
+  无法直接列举；用"日志 + 提交时间线"闭环）。`viewer/kernel/brake.py:103` 仍留
+  `"blogger_daily": (FETCH, "app")`，那只是租约分类表，不影响任何触发，**未动**。
+
+### 6. 未做 / 遗留（登记，不当已修）
+
+1. **跨进程文件锁**：只解决"父进程重启 + 孤儿扫描进程"这一个窄窗口，见 3.。
+2. **`viewer/logs/server-*.log` 被刷屏**：每 10 秒一条 `调度抓取跳过：论坛源已停用`，一天 1.7MB，
+   今天为找 3 行 `[brake]` 翻了 26000 行。建议降成"状态变化时记一次"——**本轮未改**（不在 P0 范围）。
+3. **`scheduler_state.last_run_at` 不是心跳**（停在 `2026-10-29 09:38:47` 而 tick 一直在跑），
+   巡检会误判"调度器死了"。建议改名或每轮写——**本轮未改**。
+
+---
+
 *本文件随每次架构决策追加。改了代码逻辑但没同步这里 = 流程违规。*

@@ -49,7 +49,12 @@ def _pillars_daily():
 
 def _lhb_daily():
     import lhb_daily
-    return lhb_daily.maybe_daily(_con().conn)
+    # 2026-10-30 D33：必须调**同步**入口 `run_daily_sync`，不能用历史上的 `maybe_daily`
+    # 的旧语义（起 daemon 线程后立即返回）。本文件是个**短命子进程**：print 完就 return 0 退出，
+    # CPython 关解释器时会把 daemon 线程直接杀掉 → 一轮都没跑、record_result 从未执行。
+    # 实测这个坑从 2026-10-19 起吃了 11 天（191 次 {'started'} 全是 0.1s，数据一直没更新）。
+    # 返回值带 ok：本文件 main() 会把 `ok is False` 判成 rc=1，父进程据此退避重试。
+    return lhb_daily.run_daily_sync(_con().conn)
 
 
 def _resonance_build():
@@ -69,7 +74,14 @@ def _evolve_daily():
 
 def _bili_scan():
     import bili_scan
-    return bili_scan.maybe_daily()
+    # 2026-10-30 D33：改调**同步**入口。原 `maybe_daily()` 有两层病：
+    #   ① 函数体里赋值 `_THREAD` 却没写 `global` → 局部名 → 读它必抛 UnboundLocalError
+    #      → 被 `except: return False` 吞掉 → 这个入口**从上线起一次都没能触发扫描**；
+    #   ② 就算补上 global，它仍是「起 daemon 线程后立即 return」，而本文件是短命子进程，
+    #      线程会被 CPython 关解释器时杀掉（与 lhb_daily 同一个病）。
+    # 现在 `run_daily_sync()` 同步跑完（实测真实一轮约 1575s，_JOB_TIMEOUT 默认 3600s 兜底），
+    # 返回值带 `ok`：本文件 main() 会把 `ok is False` 判成 rc=1，父进程据此退避重试。
+    return bili_scan.run_daily_sync()
 
 
 def _hotspots():

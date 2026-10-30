@@ -2203,6 +2203,21 @@ button[data-code-open] { background: none; border: 0; padding: 0; margin: 0; fon
 .wt-form input:focus, .wt-form select:focus { outline: none; border-color: var(--accent); }
 .wt-form .wt-full { grid-column: 1 / -1; }
 
+/* 2026-10-30 D33：`.wt-inp` 曾是一个「有类名、零样式」的幽灵类 —— app.js 里 13 处输入框/下拉都
+   挂着它（长期低位 7 个、长期底部埋伏 3 个），但 app.css 里一条规则都没有；而包着它们的是
+   `.wt-ctl lowbox-ctl`（这两个类同样零规则），所以也吃不到上面 `.wt-form input` 的口径。
+   浏览器实测 computed style 就是 UA 默认：padding 0、2px inset 灰边、圆角 0、Arial 13.33px、高 19px
+   —— 和旁边的圆角按钮、13px 正文完全不是一个体系（截图见 D33）。
+   这里**只做别名**：声明逐字照抄 2201 行的 `.wt-form input/select`，不新增任何颜色/尺寸/字体，
+   避免出现「第二套输入框视觉」。 */
+.wt-inp { padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--bg, #fff); color: var(--text); font-size: 13px; }
+.wt-inp:focus { outline: none; border-color: var(--accent); }
+/* 原生 select 的宽度 = 最长选项宽度，于是「质量档」那个（"严·ROE≥10/PE≤25/负债≤50"）会撑到 330px，
+   把后面「权重% 形态/基本面/长窗」三个 50px 小输入挤到第二行、单个 "25" 孤零零换行。
+   只对 select 收一个上限（input 有 inline width，不受影响），不引入任何新颜色/圆角。 */
+select.wt-inp { max-width: 200px; }
+
 /* 加入自选池 · 分组多选（2026-10-15 修复）
    症状：勾选框、组名、只数竖着摞成三行，多选时分不清勾的是哪一个。
    根因：.wt-checks / .wt-check 这套类此前全项目零样式定义，于是这些 <label>

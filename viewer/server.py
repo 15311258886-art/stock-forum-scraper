@@ -10328,6 +10328,12 @@ _JOB_TIMEOUT = {
     "harvest_daily": 1200,       # 收割视角：增量重算 400 交易日，实测 40~158s，留足余量防库锁
     "oss_daily": 2400,           # 开源情报：首轮 11 条规则全测 260s + 长样本复核 37s，留余量防库锁
     "selection_daily": 1800,     # 选股方向：池子 7s；证据回测 143s（仅过期时跑）
+    # 2026-10-30 D33：**显式登记 = 3600，与 _DEFAULT_JOB_TIMEOUT 完全相同，零行为变化**。
+    # 加它的唯一目的是可排查性：lhb_daily 从来不在表里，于是有人（包括这次的排查）
+    # 会去 _OFFPROC_GAP 里看到 600 并误以为它是超时上限。真实依据：历史真跑一轮约 484s
+    # （lhb_fetch 6.7 + sector_link 413 + sector_chain 64），3600s 是 7.4 倍余量。
+    # ⚠️ 别往下改小：内层子进程超时已经是 900 + 1800 + 1800，遇到限流重试会被误杀。
+    "lhb_daily": 3600,
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
@@ -10566,6 +10572,44 @@ def _heavy_spawn_once(route: str) -> bool:
     except Exception:  # noqa: BLE001
         logging.exception("%s 子进程触发失败（忽略，稍后请求会再试）", spec["job"])
         return False
+
+
+def _quant_select_cached(top_n: int) -> dict:
+    """`/api/quant/select` 读 `/api/quant` 落盘缓存里的 "select" 字段（2026-10-30 D32）。
+
+    为什么不在请求线程现算（原实现 `quant.multi_factor_select(...)` 直调）：
+      它要**全池截面** —— `_universe_bars()`（5239 只 × 260 根）→ `_panel()` 建矩阵 →
+      最近 120 个截面日逐日算 IC，纯 Python 持 GIL。实测请求线程 45s 超时，且期间把
+      整站一起冻住（与 2026-10-29 `/api/quant` 现算 >150s 是同一个病）。
+
+    为什么不去加 TTL 缓存/再算一遍：**这份结果已经被算过了**。`quant.payload()`（由
+    tools/sched_job.py 的 `quant` 任务在子进程里跑、写 viewer/data/quant_payload.json）
+    的第 3 步就是 `sel = multi_factor_select(con=con)`，落在 payload 的 "select" 字段里 ——
+    量化面板读的正是它。所以这里只需「读同一份落盘 + 按 top_n 切片」，不新增计算、
+    不新增落盘文件、不新增子进程任务，且与量化面板显示的内容天然一致。
+
+    取舍（诚实标注）：缓存里的清单是 TOP_N_SELECT(30) 只。请求 top_n < 30 就切片；
+    top_n > 30 只能给到已有的 30 只并在 note 里说明（不为了多要几只票把请求线程拖死）。
+    """
+    p = _heavy_cached_payload("/api/quant")
+    if not isinstance(p, dict):
+        return {"ok": False, "error": "量化面板缓存不可读"}
+    if p.get("computing") or p.get("ok") is False:
+        return p                      # 缓存还没生成 → 原样透传「计算中」
+    sel = p.get("select")
+    if not isinstance(sel, dict) or not sel.get("ok"):
+        return {"ok": False, "top_n": top_n,
+                "reason": "多因子选股结果尚未生成（量化面板缓存里没有可用 select）；"
+                          "等量化面板日更任务（tools/sched_job.py quant）跑完即可。"}
+    items = list(sel.get("items") or [])
+    out = dict(sel)
+    out["top_n"] = top_n
+    out["items"] = items[:top_n]
+    if top_n > len(items):
+        base_note = str(sel.get("note") or "")
+        out["note"] = (base_note + " " if base_note else "") + \
+            "（缓存只含前 %d 只，多要需调大 TOP_N_SELECT 后重跑日更任务）" % len(items)
+    return out
 
 
 def _heavy_cached_payload(route: str) -> dict:
@@ -11962,13 +12006,16 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/api/quant/status":
             return self._send_json(quant.status_payload(DB.conn))
         if route == "/api/quant/panorama":
+            # 2026-10-30 D32：取数已改成单票 SQL（quant._single_bars），不再在全池宇宙里现算。
             q = urllib.parse.parse_qs(parsed.query)
             return self._send_json(quant.factor_panorama(
                 self._str_arg(q, "code", "", maxlen=16), con=DB.conn))
         if route == "/api/quant/select":
+            # 2026-10-30 D32：原来在请求线程里现算全市场截面 → 45s 超时（占 GIL 冻全站）。
+            # 改为读 /api/quant 的落盘缓存里的 "select" 字段（同一份数据，量化面板也读它）。
             q = urllib.parse.parse_qs(parsed.query)
-            return self._send_json(quant.multi_factor_select(
-                top_n=self._int_arg(q, "top_n", 30, 5, 200), con=DB.conn))
+            return self._send_json(_quant_select_cached(
+                self._int_arg(q, "top_n", 30, 5, 200)))
         if route == "/api/quant/backtest":
             return self._send_json(quant.factor_backtest(con=DB.conn))
         if route == "/api/quant/recipe":
