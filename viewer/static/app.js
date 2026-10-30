@@ -16220,18 +16220,24 @@ function renderOSS() {
   const H = [];
 
   // ① 样本边界：必须放在结论前面。缺少这一句，下面的数字就会被当成长期结论。
-  //    2026-10-31：因子表回补到 2016 后，年数按实际交易日算，不再写死「14 个月」。
+  //    2026-10-31：sp 现在是**规则实测窗口**（oss_rule.days 反推），不是指标表全跨度；
+  //    两者不同（规则只跑最近 lookback 个交易日，为了单条 2 分钟的可调度性），必须分开说。
   if (sp.days) {
     const _yrs = (sp.days / 244).toFixed(1);
     const _old = Number(sp.days) < 600;
+    const _tb = sp.table_span || {};
     H.push('<div style="border-left:3px solid #f59e0b;background:rgba(245,158,11,.08);'
       + 'padding:9px 12px;border-radius:6px;margin-bottom:12px;font-size:var(--fs-xs,11px);'
       + 'color:var(--muted,#6b7280);line-height:1.6">'
-      + '主结果样本：<b style="color:var(--fg,#111)">' + _HE(sp.start) + ' ~ ' + _HE(sp.end) + '</b>'
-      + '（' + _HE(sp.days) + ' 个交易日，约 ' + _yrs + ' 年）。'
+      + '规则实测窗口：<b style="color:var(--fg,#111)">' + _HE(sp.start) + ' ~ ' + _HE(sp.end) + '</b>'
+      + '（' + _HE(sp.days) + ' 个交易日，约 ' + _yrs + ' 年）'
       + (_old
-        ? '指标表只有这么长，<b style="color:var(--fg,#111)">未覆盖完整牛熊</b>；'
-        : '已覆盖多轮牛熊；')
+        ? '，<b style="color:var(--fg,#111)">未覆盖完整牛熊</b>。'
+        : '，已覆盖多轮牛熊。')
+      + (_tb.days
+        ? '指标表全跨度 ' + _HE(_tb.start) + ' ~ ' + _HE(_tb.end) + '（' + _HE(_tb.days)
+          + ' 个交易日）—— 规则只跑最近窗口，不要读成「结论用了全部历史」。'
+        : '')
       + '标注「长样本」的两条另用 2020 年以来全量日线复核过。</div>');
   }
 

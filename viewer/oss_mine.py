@@ -654,13 +654,39 @@ _SPAN_CACHE: dict = {"v": None}
 
 
 def data_span(conn) -> dict:
-    """回测样本的真实时间边界。必须对外披露——288 个交易日的结论不能冒充长期结论。"""
+    """**规则实测窗口**（不是指标表的窗口）。
+
+    2026-10-31 更正：因子表回补到 2016 后，指标表有 2627 个交易日，但 OSS 的每轮扫描
+    只取最近 `lookback` 个交易日（默认 400，单条规则 2 分钟，全历史 11 条要 2 小时+）。
+    过去这里直接报指标表的起止，会让人以为结论是 11 年算出来的 —— 那是**虚假披露**。
+    现在按 oss_rule.days 的最大值反推真实窗口，指标表的全跨度另放 table_span 供对照。
+    """
     if _SPAN_CACHE["v"]:
         return _SPAN_CACHE["v"]
     try:
         r = conn.execute("SELECT MIN(date),MAX(date),COUNT(DISTINCT date) "
                          "FROM stock_indicators_daily").fetchone()
-        _SPAN_CACHE["v"] = {"start": r[0], "end": r[1], "days": r[2] or 0}
+        table = {"start": r[0], "end": r[1], "days": r[2] or 0}
+        try:
+            # 用**中位数**而不是最大值：单条规则做了 11 年长样本复核（2564 日）会把窗口
+            # 整体拉长，让人误以为 11 条都是 11 年算的。中位数代表「多数规则的实测窗口」，
+            # 个别长样本规则由「长样本」列单独标注。
+            ds = sorted(int(r[0] or 0) for r in
+                        conn.execute("SELECT days FROM oss_rule WHERE days>0").fetchall())
+            used = ds[len(ds) // 2] if ds else 0
+        except Exception:  # noqa: BLE001
+            used = 0
+        used = int(used)
+        if used and table["days"]:
+            rows = conn.execute(
+                "SELECT DISTINCT date FROM stock_indicators_daily ORDER BY date DESC "
+                "LIMIT ?", (used,)).fetchall()
+            if rows:
+                _SPAN_CACHE["v"] = {"start": rows[-1][0], "end": rows[0][0],
+                                    "days": len(rows), "table_span": table}
+                return _SPAN_CACHE["v"]
+        table["table_span"] = table
+        _SPAN_CACHE["v"] = table
     except Exception:  # noqa: BLE001
         _SPAN_CACHE["v"] = {"start": "", "end": "", "days": 0}
     return _SPAN_CACHE["v"]
@@ -758,12 +784,12 @@ def text_block(conn, limit: int = 6) -> str:
                "除非它出现在上面的 active 规则里。")
     sp = data_span(conn)
     if sp.get("days"):
-        yrs = (sp.get("days") or 0) / 244.0
-        out.append("口径边界：以上主结果样本为 %s ~ %s（%d 个交易日，约 %.1f 年）。"
-                   "⚠️ 2026-10-31 起因子表已回补到 2016-01-04，主结果不再只有 14 个月；"
-                   "但迁移前的旧结论是用 288 个交易日算出来的，与长样本可能不同 —— "
-                   "凡是 tested_at 早于 2026-10-31 的行，一律以「长样本」列的复核为准。"
-                   % (sp.get("start"), sp.get("end"), sp.get("days"), yrs))
+        tb = sp.get("table_span") or {}
+        out.append("口径边界：**本轮规则实测窗口** %s ~ %s（%d 个交易日）；"
+                   "指标表全跨度 %s ~ %s（%d 个交易日）。两者不同 —— 规则只跑最近窗口，"
+                   "是为了单条 2 分钟的可调度性，不要读成「结论用了全部历史」。"
+                   % (sp.get("start"), sp.get("end"), sp.get("days"),
+                      tb.get("start") or "—", tb.get("end") or "—", tb.get("days") or 0))
     return "\n".join(out)
 
 
