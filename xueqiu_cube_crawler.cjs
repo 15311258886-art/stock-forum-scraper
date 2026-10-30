@@ -5,6 +5,18 @@
 // 因此必须在「本机带代理的浏览器」里：注入 cookie -> 访问用户主页抠 cube_id ->
 // 调 rebalancing/history.json 取调仓历史 -> 抽持仓(symbol/weight)。
 //
+// ============================================================================
+// 2026-10-30 退役闸：雪球链路整体停用（对应 viewer/config.XUEQIU_ENABLED=False）。
+//   依据 docs/论坛大V信号实证_20261030.md —— 「跟人操作」经同日配对检验后不显著。
+//   Node 读不到 python 配置，故用显式环境变量开门：默认停，XUEQIU_ENABLED=1 才抓。
+//   需要恢复时：config.XUEQIU_ENABLED 改回 True，并 `XUEQIU_ENABLED=1 node xueqiu_cube_crawler.cjs`。
+// ============================================================================
+if (process.env.XUEQIU_ENABLED !== '1') {
+  console.error('[退役] 雪球组合抓取已停用（config.XUEQIU_ENABLED=False）。');
+  console.error('        恢复方式：config 改回 True，并以 XUEQIU_ENABLED=1 运行本脚本。');
+  process.exit(0);
+}
+
 // 输入（环境变量，均可选，有默认值）：
 //   XQ_CHROME_EXE   本机 Chromium 路径（默认见下）
 //   XQ_PROXY        代理 http://127.0.0.1:53269

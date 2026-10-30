@@ -544,6 +544,44 @@ _WINEX5_SQL = ("AVG(CASE WHEN fill_status='ok' "
 # 必须显式给出 ELSE 0.0，AVG 才有分母。这个坑很隐蔽（SQL 不报错、数还很好看）。
 
 
+def _tier_stats(con: sqlite3.Connection) -> list:
+    """分档实盘成绩：**按交易日聚合**（不是按票），并给出 t 值。
+
+    为什么必须按日聚合：同一天会推 15~20 只票，它们的 T+5 窗口完全重叠，
+    按票求均值会把有效样本量放大 20 倍，t 值虚高。（本项目在 hypo 里踩过同一个坑。）
+
+    为什么必须有 t 值：2026-10-30 归因时看到「A 档 T+5 超额 −3.00%」，
+    看着像 A 档是反向指标；实际它只分布在 6 个交易日、且这 6 天市场急跌，
+    按日 t=−2.05 已是边界。**没有天数和 t 的均值不能拿来改算法方向。**
+    """
+    import math
+    import statistics
+    out = []
+    for tr in con.execute("SELECT DISTINCT tier FROM self_pick WHERE kind='main' "
+                          "AND tier IS NOT NULL ORDER BY tier"):
+        tier = tr["tier"]
+        rows = con.execute(
+            "SELECT pick_date, AVG(ex_t5) e, AVG(ret_t5) r FROM self_pick "
+            "WHERE kind='main' AND tier=? AND fill_status='ok' AND ex_t5 IS NOT NULL "
+            "GROUP BY pick_date ORDER BY pick_date", (tier,)).fetchall()
+        days = [x["e"] for x in rows if x["e"] is not None]
+        n = con.execute("SELECT COUNT(*) c FROM self_pick WHERE kind='main' AND tier=? "
+                        "AND fill_status='ok' AND ex_t5 IS NOT NULL", (tier,)).fetchone()["c"]
+        if not days:
+            out.append({"tier": tier, "n": n, "days": 0, "avg_ex5": None,
+                        "t": None, "win": None})
+            continue
+        m = statistics.fmean(days)
+        sd = statistics.stdev(days) if len(days) > 1 else 0.0
+        t = (m / (sd / math.sqrt(len(days)))) if sd else None
+        wins = [1.0 if d > 0 else 0.0 for d in days]
+        out.append({"tier": tier, "n": n, "days": len(days),
+                    "avg_ex5": round(m, 2),
+                    "t": None if t is None else round(t, 2),
+                    "win": round(100.0 * statistics.fmean(wins), 1)})
+    return out
+
+
 def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
     ensure_tables(con)
     mx = con.execute("SELECT MAX(pick_date) m FROM self_pick WHERE is_hist=0").fetchone()
@@ -611,6 +649,9 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
                       "own": _stat("WHERE kind='own'"),
                       "hist": _stat("WHERE kind='main' AND is_hist=1"),
                       "live": _stat("WHERE kind='main' AND is_hist=0")},
+            # 2026-10-30 归因新增：分档实盘成绩（按交易日聚合 + t 值）。
+            # 动机是「A 档到底该当买入清单还是回避清单」——见 caliber 第 7 条。
+            "tier_stats": _tier_stats(con),
             "history": hist[:14],
             "caliber": [
                 "口径1 · 这是**系统自己的推荐**，不是汇总别人的：打分用 evolve 学出的权重"
@@ -626,6 +667,14 @@ def payload(con: sqlite3.Connection, limit: int = 30) -> dict:
                 "去复盘过去」的效果，**不等于当日实时判断**；实时推荐从今天起逐日累积。",
                 "口径6 · 方向（偏多/中性偏多/中性/偏空）与置信度是**规则推断**，不是预测承诺。"
                 "系统自选 ≠ 买入建议；它的价值在于「可回溯验证的学习成果」。",
+                # 2026-10-30 归因（进哥要求「先做归因再定」）：下面这条是结论，不是免责声明。
+                "口径7 · **A 档尚未被证明能当买入清单，也未被证明该回避。**"
+                "实盘（2026-09-14 起）到今天，A 档全部集中在 6 个交易日、T+5 按日超额 −3.0%（t=−2.05）；"
+                "但同期 C 档是另一段日子（9 月），两者**没有任何一个共同交易日**，所以「A 比 C 差」"
+                "这个对比本身不成立。真因在别处：9 月只有博主一维有数据、其余三维全池同值被填成 50，"
+                "分数天然压在 C 档；10 月三维齐全后分数整体抬到 90+ 才进 A 档 —— "
+                "**A 档目前标记的是「这一天数据齐全」，不是「这一天机会好」。**"
+                "在拿到至少 20 个交易日的 A 档样本前，不要把它当买入清单，也不要把它的分数取反当回避清单。",
             ],
             "note": "「自我提升」的成果出口：用学出的权重 + 自生长规则主动选股，并按期回填验证。"}
 

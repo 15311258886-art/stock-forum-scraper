@@ -261,4 +261,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # 2026-10-30 退役闸（viewer/config.XUEQIU_ENABLED）：默认关闭。
+    # 依据 docs/论坛大V信号实证_20261030.md —— 「跟人操作」的独立预测力经配对检验后不显著。
+    # 想重新启用：把 config.XUEQIU_ENABLED 改回 True，本文件一行未删。
+    try:
+        from viewer.config import XUEQIU_ENABLED
+    except Exception:  # noqa: BLE001
+        XUEQIU_ENABLED = False
+        print("[退役] 读不到 viewer/config.XUEQIU_ENABLED，按停用处理")
+    if not XUEQIU_ENABLED:
+        print("[退役] 雪球人轴抓取已停用（config.XUEQIU_ENABLED=False）。"
+              "本脚本不抓取、不入库。需要恢复请先改 config。")
+        raise SystemExit(0)
     raise SystemExit(main())

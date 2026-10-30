@@ -7931,6 +7931,9 @@ const RS = {
   //   /api/market_freshness 返回同一 market 对象。**绝不用帖子抓取时间冒充行情时间**。
   //   market = { src, quote_time, server_now, lag_seconds, is_trading }
   market: null, marketFromStatus: null, marketProbeAt: 0,
+  // 2026-10-30：已退役/已冻结数据源（后端 /api/refresh_status 的 retired_feeds）。
+  //   用途不是"报故障"，是**防止把冻结数据当今天的**——这些面板不会报错，只是不再更新。
+  retired: [],
 };
 /* 盘中行情滞后超过该秒数即视为「报价不新鲜」，顶栏行情栏切警示色（2026-10-09） */
 const MARKET_STALE_SEC = 120;
@@ -8235,9 +8238,19 @@ function renderRefreshBar() {
     label = d ? `帖抓取：抓取失败（上次成功 ${fmtClock(d)}）` : "帖抓取：抓取失败";
   }
   dot.className = "rs-dot " + cls;
+  // 2026-10-30：论坛已整体停抓。若不在这里改口径，顶栏会永远显示「尚未刷新 / 已超时」，
+  //   看起来像故障，实际是主动停用 —— 两者必须分清，否则以后没人敢相信这个指示灯。
+  const _rf = toArr(RS.retired).find((x) => x && x.key === "forum");
+  if (_rf) {
+    dot.className = "rs-dot rs-never";
+    label = `帖抓取：已停用（${_rf.retired_at || "—"}）`;
+    txt.title = (_rf.why || "") + (RS.error ? `\n${RS.error}` : "");
+  } else {
+    txt.title = RS.error
+      ? RS.error
+      : "「帖抓取」＝论坛帖子文本的最近一次成功抓取时间，与行情价格无关（行情另见右侧「行情」栏）";
+  }
   txt.textContent = label;
-  if (RS.error) txt.title = RS.error;
-  else txt.title = "「帖抓取」＝论坛帖子文本的最近一次成功抓取时间，与行情价格无关（行情另见右侧「行情」栏）";
   // 外层 .rb-item 的静态 title 原文是「最近一次成功刷新与下次自动刷新时刻」，拆分后已不能只指行情，
   // 这里顺手改写成明确口径（不改 index.html，避免与其他人的并行改动冲突）。
   const _item = dot.parentNode;
@@ -8343,6 +8356,8 @@ function loadRefreshStatus() {
       // 2026-10-09（P0）：新契约 —— refresh_status 内嵌 market 字段（老接口无此字段则保持 null）
       RS.marketFromStatus = (d.market && typeof d.market === "object") ? d.market : null;
       if (RS.marketFromStatus) RS.market = RS.marketFromStatus;
+      // 2026-10-30：已退役/冻结的数据源（论坛/雪球/抖音语料），供顶栏提示与面板判断。
+      RS.retired = toArr(d.retired_feeds);
       RS_READY = true;
     }
     renderRefreshBar();
@@ -15779,6 +15794,21 @@ function resSelfPickView() {
         ｜胜率 <b>${m.win5 == null ? "—" : (m.win5 * 100).toFixed(1) + "%"}</b></span>
       ${hi.settled ? `<span class="res-src-note">其中历史回算 ${esc(hi.settled)} 条：超额 ${nm(hi.avg_ex5)}｜胜率 ${hi.win5 == null ? "—" : (hi.win5 * 100).toFixed(1) + "%"}</span>` : ""}
     </div>
+    ${toArr(sp.tier_stats).filter((x) => x && x.days > 0).length
+      ? `<div class="res-evo-h" style="margin-top:12px">分档实测 —— 按交易日聚合，不是按票</div>
+      <div class="res-intro-b" style="margin:4px 0 8px">同一期推 15~20 只票、T+5 窗口完全重叠，
+        按票求均值会把有效样本量放大 20 倍，所以这里按<b>交易日</b>聚合并给 t 值。
+        <b>天数不足 20 的档，它的均值不能拿来改算法方向</b>（这正是「A 档该不该反过来用」的判据）。</div>
+      <div class="res-tb-wrap"><table class="res-tb">
+        <thead><tr><th>档</th><th>已结算(只)</th><th>交易日</th><th>按日超额</th><th>t</th><th>日胜率</th><th>能不能下结论</th></tr></thead>
+        <tbody>${toArr(sp.tier_stats).filter((x) => x && x.days > 0).map((x) => `<tr>
+          <td><b>${esc(x.tier)}</b></td><td>${esc(x.n)}</td><td>${esc(x.days)}</td>
+          <td class="${cl(x.avg_ex5)}">${nm(x.avg_ex5)}</td>
+          <td>${x.t == null ? "—" : x.t.toFixed(2)}</td>
+          <td>${x.win == null ? "—" : x.win.toFixed(1) + "%"}</td>
+          <td>${x.days < 20 ? "样本不足（" + x.days + " 日）"
+            : (Math.abs(x.t || 0) >= 2 ? "可参考" : "不显著")}</td>
+        </tr>`).join("")}</tbody></table></div>` : ""}
     <div class="res-grid">${main.map(card).join("")}</div>
     ${own.length ? `<div class="res-evo-h" style="margin-top:12px">★ 系统自己发现 —— 博主声量 0，纯靠战法与规则挖出来的</div>
       <div class="res-intro-b" style="margin:4px 0 8px">这批票<b>没有任何博主在说</b>——是「环境 × 战法 × 规则」自己筛出来的，

@@ -320,6 +320,49 @@ def _kb_keys() -> list[str]:
     return [(c.get("doc_key") or "kb") for c in _kb_sources()]
 
 
+def _retired_feeds() -> list:
+    """已退役 / 已冻结的数据源清单（2026-10-30）。
+
+    为什么要有这个：面板本身不会因为"源停了"而报错，它会**继续展示最后一天的数据**，
+    看上去和正常没区别。这是本项目最容易骗人的一种失效 —— 数据是真的，只是不是今天的。
+    所以统一在这里给出「冻结于哪天、停了多少天」，由顶栏常驻提示，而不是逐个面板去改。
+
+    只登记**已经停掉**的源；在跑的不在本清单里。
+    """
+    out = []
+    # 论坛：config.INGEST_SOURCES 置空 → 抓取全停，「他人操作」类 6 个面板不再更新
+    if not getattr(CFG, "INGEST_SOURCES", None):
+        frozen = ""
+        try:
+            r = DB.conn.execute("SELECT MAX(created_at) m FROM post_raw").fetchone()
+            frozen = (r["m"] if r else "") or ""
+        except Exception:  # noqa: BLE001
+            pass
+        out.append({"key": "forum", "name": "论坛爬虫（淘股吧/东财/新浪）",
+                    "frozen_at": frozen, "retired_at": "2026-10-30",
+                    "why": "七个信号切面六个是噪声；HOLD 配对后不显著",
+                    "affects": "「他人操作」一级类面板"})
+    # 抖音语料：任务已进 DISABLED_SCHED，表停在 2026-10-20
+    if "douyin_corpus" in getattr(CFG, "DISABLED_SCHED", frozenset()):
+        frozen = ""
+        try:
+            r = DB.conn.execute("SELECT MAX(src_updated) m FROM douyin_corpus_video").fetchone()
+            frozen = (r["m"] if r else "") or ""
+        except Exception:  # noqa: BLE001
+            pass
+        out.append({"key": "douyin", "name": "抖音／豆包舆情语料",
+                    "frozen_at": frozen, "retired_at": "2026-10-30",
+                    "why": "源端停更（表最后写入 2026-10-20 后零新增），任务每天空转仍回报成功",
+                    "affects": "舆情／整合类面板 + 板块热度（已下线）"})
+    # 雪球：手动脚本，入口已加退役闸
+    if not getattr(CFG, "XUEQIU_ENABLED", True):
+        out.append({"key": "xueqiu", "name": "雪球人轴／组合抓取",
+                    "frozen_at": "", "retired_at": "2026-10-30",
+                    "why": "「跟人操作」经同日配对检验后不显著",
+                    "affects": "无自动面板（一直是手动辅助脚本）"})
+    return out
+
+
 def api_refresh_status() -> dict:
     """刷新状态汇总（Request G）。
 
@@ -364,6 +407,8 @@ def api_refresh_status() -> dict:
         # 仅在旧字段之外**新增**一个 key，向后兼容；用 api_market_freshness 的 2s 原子缓存，
         # 常态下几乎零成本、不拖慢本接口。取不到时 market.ok=False 并带 reason，绝不造假。
         "market": api_market_freshness().get("market"),
+        # 2026-10-30：已退役/已冻结的数据源。顶栏常驻提示，避免面板把冻结数据当今天的。
+        "retired_feeds": _retired_feeds(),
     }
 
 

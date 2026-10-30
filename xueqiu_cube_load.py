@@ -107,6 +107,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # 2026-10-30 退役闸（同 xueqiu_person.py / viewer/config.XUEQIU_ENABLED）
+    try:
+        from viewer.config import XUEQIU_ENABLED
+    except Exception:  # noqa: BLE001
+        XUEQIU_ENABLED = False
+        print("[退役] 读不到 viewer/config.XUEQIU_ENABLED，按停用处理")
+    if not XUEQIU_ENABLED:
+        print("[退役] 雪球组合入库已停用（config.XUEQIU_ENABLED=False），不入库。")
+        sys.exit(0)
     try:
         sys.exit(main())
     except Exception:  # noqa: BLE001
