@@ -137,6 +137,7 @@ from scraper.config import get_site, load_config  # noqa: E402
 
 from viewer.db import Database  # noqa: E402
 from viewer import config as CFG  # noqa: E402  —— 单一事实源：采集链路开关（DISABLED_SCHED / INGEST_SOURCES）
+from viewer import pool_cap as _pc  # noqa: E402  —— 低位池行业上限纯逻辑（与生产/回测共用）
 from viewer.source_errors import (  # noqa: E402  —— P2-03：请求级数据源错误采集（独立于 server，可单测）
     record_source_error,
     attach_source_errors,
@@ -5740,6 +5741,13 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
     _pool_before = len(universe)
     universe = universe[:_pool_max]
     _pool_capped = _pool_before > len(universe)
+    # 2026-10-30：批量取 证监会一级行业（industry_csrc 的"-"前段），供低位池行业上限使用。
+    # 缺失归 "未知" 组，同样计入上限，避免"缺失即逃避限制"。
+    _ind_map = {}
+    try:
+        _ind_map = _pc.fetch_industry_map(DB.conn, list(universe))
+    except Exception:  # noqa: BLE001
+        _ind_map = {}
     if not universe:
         return {"ok": False, "reason": "股票池为空（关注池为空且自定义代码为空）",
                 "rows": [], "universe_size": 0, "scanned": 0, "elapsed": 0, "params": {}}
@@ -5813,6 +5821,8 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
                     "state_tag": tag, "holder_tag": holder_tag,
                     "actual_holder": (org or {}).get("actual_holder") or "",
                     "industry": (org or {}).get("industry") or "",
+                    "industry_csrc": (org or {}).get("industry_csrc") or "",
+                    "industry1": _ind_map.get(code, "未知"),
                     "pe": (val or {}).get("pe"), "pb": (val or {}).get("pb"),
                     "val_score": (val or {}).get("score"),
                     "roe": (fund or {}).get("roe"), "roe_kf": (fund or {}).get("roe_kf"),
@@ -5868,12 +5878,28 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
     if quality != "off":
         out_rows = [r for r in out_rows if r["quality_pass"]]
     out_rows.sort(key=lambda x: -x["score"])
-    _lowbox_scan_cache_save(out_rows)   # 供 /api/lowbox_breakouts 突破雷达复评
-    out_rows = out_rows[:limit]
+    _lowbox_scan_cache_save(out_rows)   # 供 /api/lowbox_breakouts 突破雷达复评（全量扫描，未截断）
+    # 2026-10-30：行业上限。已按综合分降序，贪心取前 limit 只，但任一行若其 证监会一级行业
+    # 已达上限则跳过（保留更高分的同行业票），使池子行业不过度集中。
+    # 上限来自 viewer/config.py（LOWBOX_MAX_PER_INDUSTRY / LOWBOX_MAX_INDUSTRY_PCT，环境变量可覆盖）。
+    _cap_per = CFG.LOWBOX_MAX_PER_INDUSTRY
+    _cap_pct = CFG.LOWBOX_MAX_INDUSTRY_PCT
+    out_rows, _ind_counts = _pc.apply_industry_cap(
+        out_rows, limit, max_per_industry=_cap_per, max_industry_pct=_cap_pct,
+        industry_key="industry1")
+    _cap_top1, _cap_top3, _cap_nind, _cap_size = _pc.concentration(_ind_counts)
     return {"ok": True, "rows": out_rows, "universe_size": len(universe),
             "scanned": scanned, "elapsed": round(_t.time() - _t0, 1),
             "pool_candidates": _pool_before, "pool_capped": _pool_capped,
             "pool_max": _pool_max, "external_prefetch": _external_prefetch,
+            # 2026-10-30：行业上限落地后的池子披露（与回测口径一致）
+            "industry_cap": {
+                "max_per_industry": _cap_per, "max_industry_pct": _cap_pct,
+                "applied": bool((_cap_per and _cap_per > 0) or (_cap_pct and _cap_pct > 0)),
+                "pool_size": _cap_size, "n_industries": _cap_nind,
+                "top1_share": round(_cap_top1, 4), "top3_share": round(_cap_top3, 4),
+                "counts": _ind_counts,
+            },
             "params": {"limit": limit, "box_window": box_window, "low_pct": low_pct,
                        "quality": quality,
                        "w_shape": w_shape, "w_fund": w_fund, "w_worth": w_worth,

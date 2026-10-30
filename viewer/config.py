@@ -122,6 +122,15 @@ DISABLED_SCHED = frozenset({"douyin_corpus"})
 #   依据同论坛链路的实证：docs/论坛大V信号实证_20261030.md —— 「跟人操作」的价值主张不成立。
 XUEQIU_ENABLED = False
 
+# ---- 低位池（lowbox）/ 低波池 行业上限（2026-10-30 需求）----
+# 同一 证监会一级行业（industry_csrc 的"-"前段；缺失归"未知"组）在池子里占比不能过高，
+# 避免行业过度集中。两个阈值任一生效即叠加取更紧者；置 0 / 留空 = 该维度不限制。
+# 生产代码：viewer/server.py 的 api_screener_lowbox；回测决定阈值见 DECISIONS.md。
+# 语义：LOWBOX_MAX_PER_INDUSTRY = 单行业最多入选只数；
+#       LOWBOX_MAX_INDUSTRY_PCT = 单行业最多占池子比例（生效时折算为 round(limit*pct) 只）。
+LOWBOX_MAX_PER_INDUSTRY = int(os.getenv("LOWBOX_MAX_PER_INDUSTRY", "0") or 0)      # 0 = 不限（按只数）
+LOWBOX_MAX_INDUSTRY_PCT = float(os.getenv("LOWBOX_MAX_INDUSTRY_PCT", "0.20") or 0.0)  # 默认 20%
+
 # 论坛爬虫源：交易时段每 10 分钟一轮（一天约 42 轮）。置空 = 完全停抓。
 # 2026-10-30 夜：进哥全权委托，已置空。依据是实证而不是感觉：
 #   ① 七个信号切面里六个是噪声（BUY +0.28% t=0.36；淘股吧「看多」−1.41% 但 t 仅 −2.02）
