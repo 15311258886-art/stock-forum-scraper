@@ -3,32 +3,6 @@
   "start": "2016-01-01",
   "rows": [
     {
-      "key": "lhb_turnover",
-      "name": "龙虎榜高换手",
-      "group": "avoid",
-      "predicate": "lhb_hit == 1 and turnover >= 15",
-      "horizon": 5,
-      "old": {
-        "n": 1873,
-        "days": 19,
-        "excess": -6.12,
-        "t": -9.05,
-        "status": "active"
-      },
-      "long": {
-        "ok": true,
-        "n": 292649,
-        "days": 2621,
-        "excess": -1.248,
-        "excess_day": -1.218,
-        "t": -12.56,
-        "win": 38.7,
-        "conflict": false,
-        "note": ""
-      },
-      "verdict": "weakened"
-    },
-    {
       "key": "vol_extreme",
       "name": "极端放量",
       "group": "avoid",
@@ -261,6 +235,33 @@
         "note": ""
       },
       "verdict": "consistent"
+    },
+    {
+      "key": "lhb_turnover",
+      "name": "龙虎榜高换手",
+      "group": "avoid",
+      "predicate": "lhb_hit == 1 and turnover >= 15",
+      "horizon": 5,
+      "old": {
+        "n": 292649,
+        "days": 2621,
+        "excess": -1.22,
+        "t": -12.56,
+        "status": "active"
+      },
+      "long": {
+        "ok": true,
+        "n": 372962,
+        "days": 4077,
+        "excess": -1.083,
+        "excess_day": -0.911,
+        "t": -11.28,
+        "win": 39.9,
+        "conflict": false,
+        "note": ""
+      },
+      "verdict": "consistent",
+      "sample_start": "2010-01-01"
     }
   ],
   "errors": [
@@ -280,5 +281,15 @@
       "selfpick_a",
       "probe 里没有 predicate，跳过"
     ]
-  ]
+  ],
+  "lhb_2010": {
+    "asof": "2026-10-30",
+    "start": "2010-01-01",
+    "n": 372962,
+    "days": 4077,
+    "excess_day": -0.911,
+    "excess_sample": -1.083,
+    "t": -11.28,
+    "win": 39.9
+  }
 }
