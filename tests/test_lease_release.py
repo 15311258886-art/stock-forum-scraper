@@ -463,15 +463,15 @@ def test_settle_is_idempotent_for_success_too(sv):
 # ================================================================
 # 5. /api/health 的 leases 段（观测面）
 # ================================================================
-def test_health_exposes_leases_and_blocked_by(sv):
-    """`api_health()['leases']` 必须能回答"谁占着写域、pid 是否已死、谁在等"。"""
+def test_health_exposes_leases_and_recent_refusals(sv):
+    """`api_health()['leases']` 必须能回答"谁占着写域、pid 是否已死、谁最近被拒过"。"""
     lease = sv.BRAKE.acquire(JOB_A)
     assert lease is not None
     sv.BRAKE.bind_pid(lease, 777)
     dead = _FakeProc(returncode=0, pid=777)
     sv._JOB_PROCS[JOB_A] = dead                   # 故意造成"租约还在但子进程已死"
 
-    # 模拟调度侧刚被挡过一次（这是 blocked_by 的数据来源）
+    # 模拟调度侧刚被挡过一次（这是 recent_refusals 的数据来源）
     sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time(), "写域 app 被 hotspots 占用")
 
     out = sv._brake_leases_view()
@@ -487,11 +487,39 @@ def test_health_exposes_leases_and_blocked_by(sv):
     assert it["proc_alive"] is False, (
         "proc_alive 必须能指出「租约还在、进程已死」—— 这正是那次事故的现场")
 
-    blocked = {b["job"]: b for b in out["blocked_by"]}
-    assert JOB_B in blocked, "被写域挡住的任务没进 blocked_by：%r" % (out["blocked_by"],)
+    blocked = {b["job"]: b for b in out["recent_refusals"]}
+    assert JOB_B in blocked, "被写域挡住的任务没进 recent_refusals：%r" % (out["recent_refusals"],)
     assert blocked[JOB_B]["holder"] == JOB_A
     assert blocked[JOB_B]["blocked_by_domain"] is True
     assert blocked[JOB_B]["domain"] == "app"
+
+
+def test_leases_have_no_blocked_by_key(sv):
+    """防回潮：`leases` 里**不存在** `blocked_by` 这个键。
+
+    2026-11-01 把 `leases.blocked_by` 改名为 `leases.recent_refusals`。改名是因为名字
+    在与事实相反：数据来自「被拒那一刻」的留痕，是过去时，可旧名读起来像"此刻被谁挡着"，
+    真的有人（包括我们）拿它去推断"写域是不是泄漏了"，为此多排查了一整轮。
+
+    风险在于"为了兼容先两个都返回"：两名并存 = 读者随手挑一个，其中一个注定被误解，
+    等于没改。所以这里把「不许有 blocked_by」写成硬断言。记录内的 `blocked_by_domain`
+    是合法字段（它答"当时是不是被写域挡的"），不算违规。
+    """
+    lease = sv.BRAKE.acquire(JOB_A)
+    assert lease is not None
+    sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time() - 3, sv.BRAKE.why_detail(JOB_B))
+    out = sv._brake_leases_view()
+
+    assert "recent_refusals" in out, "leases 段必须用新名字 recent_refusals"
+    assert "blocked_by" not in out, (
+        "leases 里又出现了 blocked_by 键 —— 两个名字并存时，读的人一定会挑错那个：%r"
+        % (sorted(out.keys()),))
+    assert "blocked_by" not in out["describe"], "describe 里又解释起 blocked_by 了"
+    # 记录内只允许 blocked_by_domain（它答「当时是不是被写域挡的」，名字是准的）
+    for rec in out["recent_refusals"]:
+        assert "blocked_by" not in rec, "记录里出现了裸 blocked_by 字段：%r" % (rec,)
+        assert "blocked_by_domain" in rec, "blocked_by_domain 被误删了（它答的是另一个问题）"
+    return True
 
 
 def test_health_structure_unchanged_except_new_section(sv, monkeypatch):
@@ -509,3 +537,155 @@ def test_health_structure_unchanged_except_new_section(sv, monkeypatch):
     assert out["level"] == "fresh", "既有字段被改动"
     assert "leases" in out, "api_health 没有暴露 leases 段"
     assert out["leases"]["ok"] is True
+
+
+# ================================================================
+# 6. recent_refusals 的「当时 / 现在」口径（2026-11-01 三处自相矛盾修复）
+# ================================================================
+def _rec_after_sv(sv):
+    """把「被拒留痕」造得和真实一致：走 BRAKE.why_detail 拿结构化 detail，再改时间戳。"""
+    detail = sv.BRAKE.why_detail(JOB_B)
+    return detail
+
+
+def test_recent_refusals_separates_then_from_now(sv):
+    """复现那次现场：记录说「写域 app 被 hotspots 占用」，但此刻一个租约都没有。
+
+    旧实现把这条记录渲染成 `holder: ""` + `blocked_by_domain: false` + reason 点名 hotspots ——
+    三句互相打架。真因不是"域泄漏"，而是**这条记录是过去时**：
+      · 当场：hotspots 占着写域，lhb_daily 被拒 → 留痕（text 里点名 hotspots）
+      · 此刻：hotspots 早就跑完、租约已释放 → holder 是空
+    区分的唯一正确做法是把两组字段分开讲：holder_then（当时）/ holder（现在），
+    live/stale 说这条记录还能不能当"正在排队"用。
+    """
+    lease = sv.BRAKE.acquire(JOB_A)
+    assert lease is not None
+    detail = _rec_after_sv(sv)                       # 此时 hotspots 真的占着 app 域
+    assert detail["kind"] == "domain" and detail["holder"] == JOB_A
+    sv.BRAKE.release(JOB_A)                          # 它跑完了
+
+    # 留痕时刻被改到 224 秒前，复现被观测到的形态
+    sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time() - 224, detail)
+    out = sv._brake_leases_view()
+
+    assert out["running_count"] == 0 and out["items"] == [], "前提：此刻没有任何活着的租约"
+    b = {x["job"]: x for x in out["recent_refusals"]}[JOB_B]
+    # 当时（快照）—— reason 点名谁，holder_then 就必须是同一个名字，不许空
+    assert b["holder_then"] == JOB_A, "当时占着写域的是 hotspots，holder_then 不许是空字符串"
+    assert b["blocked_kind"] == "domain"
+    assert b["blocked_by_domain"] is True, "当时确实是「被写域挡的」，这个字段只回答 domain"
+    assert JOB_A in b["reason"], "reason 与 holder_then 必须同源，不能一个点名一个空"
+    # 现在（实时）—— 域已经空了
+    assert b["holder"] == "" and b["holder_now"] == ""
+    assert b["domain_held_now"] is False
+    # 这条记录该怎么读
+    assert b["stale"] is True and b["live"] is False, (
+        "域已空且拒绝发生在 224 秒前 —— 这是历史记录，不许当成「此刻仍在排队」")
+    assert b["checked_sec_ago"] >= 224
+    return True
+
+
+def test_recent_refusals_live_when_domain_still_held(sv):
+    """域**现在仍被占着**时，同一条旧记录依然算 live（哪怕 3 分钟前的拒绝）。
+    这是「陈旧」与「真被挡」的分界线：判据是"现在还有没有人占"，不是"记录多旧"。"""
+    lease = sv.BRAKE.acquire(JOB_A)
+    assert lease is not None
+    detail = _rec_after_sv(sv)
+    sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time() - 180, detail)
+
+    out = sv._brake_leases_view()
+    b = out["recent_refusals"][0]
+    assert b["domain_held_now"] is True and b["holder"] == JOB_A
+    assert b["live"] is True and b["stale"] is False, "域真被占着，3 分钟前的拒绝结论仍然成立"
+    assert b["holder_now_heartbeat_age_sec"] is not None, "给了 holder 就要给它的心跳年龄"
+    return True
+
+
+def test_recent_refusals_live_within_60s_without_lease(sv):
+    """域是空的，但拒绝发生在 60 秒内 → 任务正在重试，仍算 live（只是没有 holder）。"""
+    detail = {"text": "写域 app 被 hotspots 占用", "kind": "domain", "holder": JOB_A,
+              "holding": [JOB_A], "at": time.time()}
+    sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time() - 5, detail)
+    out = sv._brake_leases_view()
+    b = out["recent_refusals"][0]
+    assert b["live"] is True and b["stale"] is False
+    assert b["holder"] == "" and b["holder_then"] == JOB_A
+    assert b["domain_held_now"] is False
+    return True
+
+
+def test_recent_refusals_never_claim_domain_held_without_lease(sv):
+    """核心不变量（防回潮）：`items` 为空时，**没有任何一条** recent_refusals 可以说「域被占」。
+
+    写域只存在于 `_Lease` 上（`_domain_busy_locked` 就是遍历 `self._leases`），
+    所以「running_count=0 但域还被占着」在实现上不可能。谁要是把这个不变量写坏，
+    监控的人就会去追一个不存在的泄漏 —— 比没有这个字段更坏。
+    """
+    for ago in (1, 30, 120, 599):
+        sv._BRAKE_BLOCK_REASON[JOB_B] = (time.time() - ago, {
+            "text": "写域 app 被 resonance_build 占用", "kind": "domain",
+            "holder": "resonance_build", "holding": ["resonance_build"], "at": time.time() - ago})
+        out = sv._brake_leases_view()
+        assert out["items"] == [], "前提：没有租约"
+        for b in out["recent_refusals"]:
+            assert b["domain_held_now"] is False, "没有租约却说域被占（%ds 前那条记录）" % ago
+            assert b["holder"] == "", "没有租约却给出一个 'now' 的持有者（%ds 前那条记录）" % ago
+            assert b["live"] == (ago <= sv._BRAKE_BLOCK_LIVE_SEC), \
+                "live 判据必须只看「域是否仍被占 或 60 秒内」，不能看记录新旧之外的别的东西"
+    return True
+
+
+def test_domains_now_answers_who_holds_the_domain(sv):
+    """health 必须能直接回答「这个域现在被谁占着」，而不是让人从 recent_refusals 反推。"""
+    lease = sv.BRAKE.acquire(JOB_A)
+    assert lease is not None
+    sv.BRAKE.bind_pid(lease, 4321)
+    out = sv._brake_leases_view()
+    assert len(out["domains_now"]) == 1
+    d = out["domains_now"][0]
+    assert d["domain"] == "app" and d["job"] == JOB_A and d["pid"] == 4321
+    for key in ("kind", "age_sec", "heartbeat_age_sec", "proc_alive"):
+        assert key in d, "domains_now 缺字段 %s" % key
+    sv.BRAKE.release(JOB_A)
+    out2 = sv._brake_leases_view()
+    assert out2["domains_now"] == [], "域已归还，domains_now 必须是空的"
+    return True
+
+
+def test_describe_tells_which_field_is_past_and_which_is_now(sv):
+    """字段说明必须指出时态 —— 上次就是这个没说清，才让 `holder` 被当成现在时读。"""
+    desc = sv._brake_leases_view()["describe"]
+    for key in ("recent_refusals", "blocked_kind", "holder_then", "holder", "live", "stale", "domains_now"):
+        assert key in desc, "describe 没解释字段 %s" % key
+    assert "快照" in desc["recent_refusals"], "recent_refusals 必须说明它是过去 10 分钟内的快照"
+    assert "过去时" in desc["recent_refusals"], (
+        "recent_refusals 必须自己声明是过去时 —— 名字撒谎的代价是别人拿它做推理")
+    assert "永不用" in desc["recent_refusals"] or "不要用它" in desc["recent_refusals"], (
+        "describe 必须写明 recent_refusals 不能用来判断当前状态")
+    assert "domains_now" in desc["recent_refusals"], (
+        "describe 必须把「判当前状态看谁」指到 domains_now，否则读的人还得自己猜")
+    assert "此刻" in desc["holder"], "holder 必须说明它是「此刻」的持有者"
+    assert "当时" in desc["holder_then"], "holder_then 必须说明它是「当时」的持有者"
+    assert "此刻" in desc["domains_now"], "domains_now 必须说明它回答的是「此刻」"
+    return True
+
+
+def test_why_detail_and_why_share_one_source_of_truth(sv):
+    """结构化判定与人话必须同源：`why()` 只能取 `why_detail()['text']`。
+
+    为什么守这个：`blocked_kind` / `holder_then` 来自 why_detail，日志里的是 why()。
+    两份逻辑各算一遍，总有一天它们对不上，而"解释字段和值是两套判定"正是这次要修的病。
+    """
+    # ① 写域被占
+    lease = sv.BRAKE.acquire(JOB_A)
+    assert lease is not None
+    d = sv.BRAKE.why_detail(JOB_B)
+    assert d["kind"] == "domain" and d["holder"] == JOB_A
+    assert sv.BRAKE.why(JOB_B) == d["text"], "why() 与 why_detail()['text'] 不是同一句"
+    # ② 同一任务已在跑
+    assert sv.BRAKE.acquire(JOB_A) is None
+    d2 = sv.BRAKE.why_detail(JOB_A)
+    assert d2["kind"] == "same_job", "同一 job 重入必须判成 same_job，不能算成被写域挡"
+    assert sv.BRAKE.why(JOB_A) == d2["text"]
+    sv.BRAKE.release(JOB_A)
+    return True

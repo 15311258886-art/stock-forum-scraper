@@ -326,27 +326,51 @@ class Brake:
             if ls is not None:
                 ls.settled = True
 
-    def why(self, job: str) -> str:
-        """给日志一句人话：为什么被挡。"""
+    def why_detail(self, job: str) -> dict:
+        """为什么被挡 —— **结构化**版本。日志用人话，观测面用字段。
+
+        为什么要有它（2026-11-01）：
+        `/api/health` 的 `recent_refusals`（原名 `blocked_by`，2026-11-01 改名）
+        原来只能原样存 `why()` 的一句中文本，要回答
+        "当时是被写域挡的还是被配额挡的""当时占着域的是谁"，只能去正则解析那句中文 ——
+        文案一改（或翻译）就静默失真，而且失真的方式是"解释字段说 A、值是空"，比没有更坏。
+        所以把"为什么"在这里一次性判定清楚，文本和字段同源：
+
+        返回：
+          text    —— 给日志/前端的人话（与旧 `why()` 完全一致）
+          kind    —— "same_job" | "domain" | "quota_total" | "quota_kind" | "unknown"
+          holder  —— kind=="domain" 时，当时占着该写域的 job；否则 ""
+          holding —— 触发拒绝时正在跑的相关 job 列表（配额类给同类，总闸给 heavy 集合）
+          at      —— 判定时刻（unix 秒），供"当时/现在"对比时留痕
+        """
         kind, domain = profile(job)
         with self._lock:
             self._reap_locked()
+            at = time.time()
             if job in self._leases:
-                return "同一任务已在执行"
+                return {"text": "同一任务已在执行", "kind": "same_job",
+                        "holder": "", "holding": [job], "at": at}
             holder = self._domain_busy_locked(domain, job)
             if holder:
-                return "写域 %s 被 %s 占用" % (domain, holder)
+                return {"text": "写域 %s 被 %s 占用" % (domain, holder), "kind": "domain",
+                        "holder": holder, "holding": [holder], "at": at}
             if kind in (COMPUTE, FETCH):
                 heavy = self._count_locked(COMPUTE) + self._count_locked(FETCH)
                 if heavy >= _MAX_TOTAL:
                     running = [ls.job for ls in self._leases.values()
                                if ls.kind in (COMPUTE, FETCH)]
-                    return "总闸已满（%d/%d，正在跑：%s）" % (
-                        heavy, _MAX_TOTAL, ", ".join(running) or "-")
+                    return {"text": "总闸已满（%d/%d，正在跑：%s）" % (
+                                heavy, _MAX_TOTAL, ", ".join(running) or "-"),
+                            "kind": "quota_total", "holder": "", "holding": running, "at": at}
             if self._count_locked(kind) >= self._quota.get(kind, 1):
                 running = [ls.job for ls in self._leases.values() if ls.kind == kind]
-                return "%s 配额已满（正在跑：%s）" % (kind, ", ".join(running) or "-")
-            return "未知"
+                return {"text": "%s 配额已满（正在跑：%s）" % (kind, ", ".join(running) or "-"),
+                        "kind": "quota_kind", "holder": "", "holding": running, "at": at}
+            return {"text": "未知", "kind": "unknown", "holder": "", "holding": [], "at": at}
+
+    def why(self, job: str) -> str:
+        """给日志一句人话：为什么被挡。判定逻辑只在 `why_detail` 里写一份，这里只取 text。"""
+        return self.why_detail(job).get("text") or "未知"
 
     def status(self) -> dict:
         """当前闸内状态（供诊断接口 / 前端「系统状态」面板展示）。"""

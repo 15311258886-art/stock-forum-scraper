@@ -67,7 +67,7 @@ from viewer.kernel.brake import BRAKE  # noqa: E402
 from viewer.kernel.brake import backoff_blocked as BRAKE_backoff_wait  # noqa: E402
 from viewer.kernel.brake import backoff_fail as BRAKE_backoff_fail  # noqa: E402
 from viewer.kernel.brake import backoff_ok as BRAKE_backoff_ok  # noqa: E402
-# 2026-11-01：任务画像（类别/写域）只从 brake 取一份，health 的 blocked_by 需要它。
+# 2026-11-01：任务画像（类别/写域）只从 brake 取一份，health 的 recent_refusals 需要它。
 from viewer.kernel.brake import profile as BRAKE_profile  # noqa: E402
 
 # 2026-10-07 智能选股增强：screener_extra 在 viewer/ 下，确保可 import（无论 server 被谁拉起）
@@ -1730,6 +1730,20 @@ def _today_decision_compute() -> dict:
                     "pct": None,
                     "note": "四支柱·%s（%s）" % (_ptitle, pdate),
                 }, _pillar_source_key(p["pillar"])))
+            # 2026-11-01：pct 原为 None —— 前端只能静默不显示，用户分不清「这只票没有涨跌幅」
+            # 和「页面漏了」。本地 data/kline_daily.db 已有这几只票的当日收盘，一条 SQL 两只 bar
+            # 就能算，所以**零外网请求**地补上；日期必须与四支柱 run_date 同日，不同日宁可不填。
+            if got:
+                try:
+                    _pcts = EXECUTABILITY.last_change_pct(
+                        [g[0]["symbol"] for g in got], want_date=pdate)
+                except Exception as _e:  # noqa: BLE001
+                    _pcts = {}
+                    log.warning("today_decision 本地涨跌幅补全失败: %s", _e)
+                for _it, _src in got:
+                    _hit = _pcts.get(_it["symbol"]) or {}
+                    if _hit.get("pct") is not None:
+                        _it["pct"] = _hit["pct"]
         except Exception as e:  # noqa: BLE001
             log.warning("today_decision 四支柱补位失败: %s", e)
         return got
@@ -5114,7 +5128,14 @@ def api_douyin_resonance(limit: int = 40) -> dict:
 
     out_rows, gaps = [], []
     for code, h in hits.items():
-        t, rs = card.get(code, ("-", None))
+        # 2026-11-01（工单②）：原来缺省值是 `("-", None)` —— "-" 是个**假值哨兵**，
+        # 前端拼 `'合成' + tier + '/' + String(score)` 时就渲染成字面量 `合成-/null`。
+        # 按三态诚实原则拆开：
+        #   · 票**不在** res_stock_card  → 这个维度本来就没有（has_card=False，tier/score 皆 None）
+        #   · 票在卡里但 res_score 为空  → 算了没算出（score=None，tier 有值）
+        # 前端据此分别写「合成层未覆盖」和「—」，不再出现 "null"。
+        has_card = code in card
+        t, rs = card.get(code, (None, None))
         s = sig.get(code, {})
         s_n = sum(s.values())
         sc = h["n"] + (5 if code in card else 0) + min(s_n, 5)
@@ -5129,7 +5150,7 @@ def api_douyin_resonance(limit: int = 40) -> dict:
             "code": code, "name": code2name.get(code),
             "douyin_n": h["n"], "domains": sorted(h["domains"]),
             "bloggers": sorted(h["authors"])[:6], "stances": sorted(h["stances"]),
-            "card_tier": t, "card_score": rs,
+            "card_tier": t, "card_score": rs, "has_card": has_card,
             "sig_n": s_n, "sig_dir": s, "verdict": verdict, "score": sc,
             "samples": h["samples"],
         })
@@ -11256,11 +11277,21 @@ _SUPERVISE_POLL_SEC = 0.25
 # supervisor 的**心跳**间隔（秒）。只需远小于 brake 的心跳超时（默认 300s）：
 # 心跳只证明「父进程还在监管这个子进程」，与退出检测的精度无关，所以不必跟着 0.25s 抖。
 _SUPERVISE_HB_SEC = 5.0
-# 最近一次「被闸挡住」的原因（job -> (时刻, BRAKE.why() 的人话)），供 /api/health 的 blocked_by。
-# 为什么单独记一份：`BRAKE.why()` 是**当场查询**，而 health 要回答的是
-# 「此刻还有谁因为写域被谁挡着」—— 把每次 acquire 失败的原因留痕即可，不需要 health 去猜。
+# 最近一次「被闸挡住」的**快照**（job -> (时刻, BRAKE.why_detail() 的结构化结果)），供 /api/health 的 recent_refusals。
+# 名字用过去时的 recent_refusals（原叫 blocked_by，2026-11-01 改名）：它答的是「最近谁被拒过」，
+# 不是「此刻谁被挡着」；旧名字会让人拿它去推断"域是不是泄漏了"，而它根本没这个能力。
+# 为什么单独记一份：`BRAKE.why_detail()` 是**当场查询**，而 health 要回答的是
+# 「刚才谁因为什么被挡、现在那个域还有没有人占」—— 把每次 acquire 失败当场留痕即可，
+# 不需要 health 去猜，更不能让 health 把"当时的快照"当"此刻的实时状态"讲。
+# ⚠️ 2026-11-01（口径修正）：这条记录天生是**过去时**。此前视图把它当现在时渲染，
+# 于是出现「holder 是空字符串、reason 却点名 resonance_build」「blocked_by_domain=false
+# 却说被写域占用」这种自相矛盾的展示。现在 record 里存结构化字段（kind / holder / at），
+# 视图再分别回答"当时"与"现在"，两者不再混在一句话里。
 _BRAKE_BLOCK_REASON: dict = {}
-_BRAKE_BLOCK_REASON_TTL = 600.0   # 10 分钟内没再被挡过，就不再算「当前被挡」
+_BRAKE_BLOCK_REASON_TTL = 600.0   # 记录保留 10 分钟（超过就整条丢掉，不再出现在 health 里）
+# 「这条记录还算不算『此刻仍被挡』」的判据：域现在仍被人占着 → 算；否则只有最近 60 秒内
+# 的拒绝才算"还在重试"。超过 60 秒且域已空 = 只是历史（job 进了 _OFFPROC_GAP 冷却没再试）。
+_BRAKE_BLOCK_LIVE_SEC = 60.0
 
 # 2026-10-29：单任务超时上限（秒）。依据实测单轮耗时给出，留 1.5~2 倍余量。
 # 为什么要这个：刹车闸保证"同时只跑一个"，但如果那**一个**永远不结束，
@@ -11593,14 +11624,17 @@ def _spawn_offproc(job: str, logname: str | None = None) -> bool:
         # 全局准入：并发配额 + 写域互斥（拿不到就跳过本轮，绝不等）
         lease = BRAKE.acquire(job)
         if lease is None:
-            # 留痕给 /api/health 的 blocked_by：为什么被挡、谁占着。**不受日志限频影响**
-            # （限频只管日志，健康接口要靠这份记录回答"现在还有谁在等写域"）。
+            # 留痕给 /api/health 的 recent_refusals：为什么被挡、当时谁占着。**不受日志限频影响**
+            # （限频只管日志，健康接口要靠这份记录回答"刚才谁在等写域"）。
+            # 存结构化 result（不是一句话）：health 需要 kind / holder 来做"当时 vs 现在"的区分。
             try:
-                why = BRAKE.why(job)
+                detail = BRAKE.why_detail(job)
             except Exception:  # noqa: BLE001
-                why = "unknown"
+                detail = {"text": "unknown", "kind": "unknown", "holder": "", "holding": [],
+                          "at": time.time()}
+            why = detail.get("text") or "unknown"
             with _JOB_SETTLE_LOCK:      # health 会并发读这份 dict，避免"迭代中改大小"
-                _BRAKE_BLOCK_REASON[job] = (time.time(), why)
+                _BRAKE_BLOCK_REASON[job] = (time.time(), detail)
             # 限频：同一任务 120 秒内只记一条，避免每 10 秒 tick 刷屏掩盖真正的错误
             if BRAKE.should_log(job):
                 logging.info("[brake] %s 本轮跳过：%s", job, why)
@@ -12464,8 +12498,14 @@ def _brake_leases_view() -> dict:
     一眼看到「租约还在、pid 已死」。所以这里把三样东西并排给出：
       · 租约本身（job / pid / started_at / last_heartbeat / age / heartbeat_age / kind / domain）；
       · 该租约对应的**子进程是否还活着**（`proc_alive`，从 `_JOB_PROCS` 推）；
-      · `blocked_by`：此刻因写域/配额被挡住的任务与挡住它的那个 job。
+      · `recent_refusals`：**过去 10 分钟内**因写域/配额被拒过的任务与拒绝那一刻的快照。
+      · `domains_now`：此刻各写域的持有者 —— 判「域有没有泄漏」只能看这里。
     只新增字段，不改 health 既有结构。
+
+    2026-11-01（命名修正）：`blocked_by` → `recent_refusals`。名字必须自己说明时态：
+    旧名像"此刻被谁挡着"，而数据来自被拒那一刻的留痕，天生是过去时；它被拿去推断
+    "域是不是泄漏了"正是那一轮排查绕远路的直接原因。记录内的 `blocked_by_domain`
+    保留原名 —— 它答的是"**当时**是不是被写域挡的"，名字与语义一致，不动。
     """
     st = BRAKE.status()
     running = st.get("running") or []
@@ -12486,34 +12526,83 @@ def _brake_leases_view() -> dict:
             it["proc_returncode"] = getattr(proc, "returncode", None)
         it["proc_settled"] = settled.get(it.get("job")) is proc and proc is not None
 
-    # 谁被挡住：从调度侧留下的"最近一次被挡原因"推。写域占用者从当前租约反查，
-    # 这样即便 why() 的文案改过，holder 也不会跟着失真。
+    # 谁被挡住：从调度侧留下的"最近一次被挡"快照推。**这份数据天生是过去时** ——
+    # 所以下面把「当时」和「现在」分成两组字段，不再用一句话同时讲两件事
+    #（2026-11-01 修正：此前 holder 取的是"此刻"的域占用者，reason 是"当时"的原话，
+    #  两者混在一起就出现了「holder 为空、reason 却点名 resonance_build」的自相矛盾）。
     holder_by_domain: dict = {}
     for it in running:
         dom = it.get("domain") or ""
-        if dom:
-            holder_by_domain.setdefault(dom, it.get("job"))
+        if dom and dom not in holder_by_domain:
+            holder_by_domain[dom] = it
     now = time.time()
-    blocked_by: list = []
+    recent_refusals: list = []
     for job, rec in block_reasons:
+        # 兼容两种 record：新的是 (ts, detail_dict)，旧的是 (ts, "人话")（历史状态/测试写入）。
         try:
-            ts, why = rec
+            ts, payload = rec
         except Exception:  # noqa: BLE001
             continue
+        if isinstance(payload, dict):
+            detail = payload
+        else:
+            detail = {"text": str(payload), "kind": None, "holder": "", "holding": []}
         age = now - float(ts)
         if age > _BRAKE_BLOCK_REASON_TTL:
-            continue                           # 太久没再被挡过 → 不算"当前"
+            continue                           # 保留期外整条丢掉，不占 health 的位置
         _kind, domain = BRAKE_profile(job)
-        holder = holder_by_domain.get(domain) or ""
-        blocked_by.append({
+        cur = holder_by_domain.get(domain)      # 此刻真正占着这个域的租约（可能已释放）
+        holder_now = (cur or {}).get("job") or ""
+        hb_age = (cur or {}).get("heartbeat_age_sec")
+        # blocked_kind 说"当时因为什么被拒"；旧记录没结构化过，就从文案里取一个保守值，
+        # 取不到就 unknown —— 宁可说不知道，也不猜成"被写域挡"。
+        bkind = detail.get("kind")
+        if bkind is None:
+            txt = detail.get("text") or ""
+            bkind = ("domain" if "写域" in txt else
+                     "same_job" if "已在执行" in txt else
+                     "quota_total" if "总闸" in txt else
+                     "quota_kind" if "配额" in txt else "unknown")
+        # live = 这条记录还代表"此刻真的跑不了"吗：
+        #   域现在仍被别人占着 → 是（哪怕记录旧了，结论依然成立）；
+        #   域是空的 → 只有 60 秒内的拒绝才算"还在重试"，否则只是历史（job 进了 _OFFPROC_GAP 冷却）。
+        live = bool(holder_now) or age <= _BRAKE_BLOCK_LIVE_SEC
+        recent_refusals.append({
             "job": job,
             "domain": domain,
-            "holder": holder,
-            "blocked_by_domain": bool(holder),
-            "reason": str(why),
+            # —— 当时（快照，来自被拒那一刻） ——
+            "blocked_kind": bkind,
+            "holder_then": detail.get("holder") or "",
+            "holding_then": list(detail.get("holding") or []),
+            "reason": str(detail.get("text") or ""),
             "checked_sec_ago": int(age),
+            # —— 现在（实时，来自当前租约表） ——
+            "holder": holder_now,
+            "holder_now": holder_now,
+            "holder_now_heartbeat_age_sec": hb_age,
+            "domain_held_now": bool(holder_now),
+            # 「当时是不是被写域挡的」——名字里说 domain，值就只回答 domain，不再兼职"现在有没有人占"。
+            "blocked_by_domain": bkind == "domain",
+            # —— 这条记录该怎么读 ——
+            "live": live,
+            "stale": not live,
         })
-    blocked_by.sort(key=lambda r: -r["checked_sec_ago"])
+    # live 的排前面；同组内越新越靠前
+    recent_refusals.sort(key=lambda r: (not r["live"], r["checked_sec_ago"]))
+
+    # 此刻各写域的持有者（job 名 + 心跳年龄）。判「域有没有泄漏」看这里，别看 recent_refusals ——
+    # recent_refusals 是过去时快照，域是空是满它答不了。
+    domains_now: list = []
+    for dom, it in sorted(holder_by_domain.items()):
+        domains_now.append({
+            "domain": dom,
+            "job": it.get("job"),
+            "kind": it.get("kind"),
+            "pid": it.get("pid"),
+            "age_sec": it.get("age_sec"),
+            "heartbeat_age_sec": it.get("heartbeat_age_sec"),
+            "proc_alive": it.get("proc_alive"),
+        })
     return {
         "ok": True,
         "items": running,
@@ -12522,11 +12611,20 @@ def _brake_leases_view() -> dict:
         "by_kind": st.get("by_kind"),
         "heartbeat_timeout_sec": st.get("heartbeat_timeout_sec"),
         "abs_max_sec": st.get("abs_max_sec"),
-        "blocked_by": blocked_by,
+        "recent_refusals": recent_refusals,
+        "domains_now": domains_now,
         "describe": {
             "heartbeat_age_sec": "距上次心跳的秒数；超过 heartbeat_timeout_sec 即判定失联并回收",
             "proc_alive": "该租约对应子进程是否还活着（null=没有子进程记录）",
-            "blocked_by": "当前因写域/配额排队中的任务；holder 是占着写域的那个 job",
+            "domains_now": "**此刻**各写域的持有者（job + 心跳年龄）。判断「域被谁占着/是否泄漏」只看这里",
+            "recent_refusals": "**过去 10 分钟内**被闸拒过的任务，每条是「被拒那一刻」的快照。"
+                               "这是过去时：永不用它判断当前状态；要判「域被谁占着/是否泄漏」只看 domains_now",
+            "blocked_kind": "当时被拒的原因类别：domain=写域被占 / quota_total=总闸满 / "
+                            "quota_kind=类别配额满 / same_job=同一任务已在跑 / unknown=旧记录推不出来",
+            "holder_then": "当时占着该写域的那个 job（快照）；它可能早就跑完了，别当成现在",
+            "holder": "此刻真正占着该写域的 job；空字符串=此刻**没有人**占（这时看 holder_then 才知道当时是谁）",
+            "live": "这条记录是否代表「此刻仍被挡」：域现在仍被占，或拒绝发生在 60 秒内；false=只是历史",
+            "stale": "live 的反面。stale=true 说明那次拒绝已经过去、域也空了，不必当成正在排队",
         },
     }
 
@@ -12557,7 +12655,7 @@ def api_health() -> dict:
         # 观测段自己坏掉不能把整个 health 拖垮（前端靠它判"系统是否正常"）
         logging.exception("api_health 的 leases 段失败")
         out["leases"] = {"ok": False, "error": str(e)[:200],
-                         "items": [], "blocked_by": []}
+                         "items": [], "recent_refusals": [], "domains_now": []}
     return out
 
 

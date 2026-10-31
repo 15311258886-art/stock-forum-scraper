@@ -123,6 +123,68 @@ def adv_stats(codes, window=None, min_obs=None):
     return out
 
 
+def last_change_pct(codes, want_date=None):
+    """按代码取「最后一根 bar 相对前一根的涨跌幅（%）」，**只读本地日线，零外网请求**。
+
+    背景（2026-11-01）：今日决策的「观察 / 待验证」条目里 `pct` 一直是 None，
+    前端只能不显示 —— 用户分不清「这只票今天没涨跌幅」还是「页面漏了」。而本地
+    `data/kline_daily.db` 本来就有这些票的当日收盘，两条 SQL 就能算出来，
+    为它去调行情接口是拿 5 次外网请求换 5 个数字，不值得。
+
+    参数 want_date: 期望的 bar 日期。可给 "2026-10-30" 或 20261030。
+        **给了就必须匹配**：把别的交易日的涨跌幅贴到今天的卡片上，比不显示更糟
+        （这也是本仓库反复踩过的坑：数字对不上口径时，宁可空着）。
+
+    返回 {code: {"pct": 涨跌幅%, "last_date": int, "last_close": x, "prev_close": y}}
+    取不到 / bar 不足 / 日期不匹配的票**不出现在结果里** —— 调用方保持 None，
+    前端显示「—」，不撒谎。
+
+    口径：`kline.c` 是前复权收盘（见 adv_stats 的 docstring 实测），
+    相邻两根的前复权比值等于真实涨跌幅，故这里不额外做复权处理。
+    """
+    out = {}
+    want = list(dict.fromkeys([str(c) for c in (codes or []) if c]))
+    if not want:
+        return out
+    wd = None
+    if want_date is not None and str(want_date).strip():
+        _s = str(want_date).replace("-", "").strip()
+        if _s.isdigit():
+            wd = int(_s)
+    con = _kline_conn()
+    if con is None:
+        return out
+    try:
+        for code in want:
+            try:
+                rows = con.execute(
+                    "SELECT d, c FROM kline WHERE code=? ORDER BY d DESC LIMIT 2",
+                    (code,)).fetchall()
+            except sqlite3.Error:
+                continue
+            if len(rows) < 2:
+                continue
+            (d1, c1), (_d0, c0) = rows[0], rows[1]
+            try:
+                if wd is not None and int(d1) != wd:
+                    continue
+                c1 = float(c1 or 0)
+                c0 = float(c0 or 0)
+            except (TypeError, ValueError):
+                continue
+            if c1 <= 0 or c0 <= 0:
+                continue
+            out[code] = {
+                "pct": round((c1 / c0 - 1.0) * 100.0, 2),
+                "last_date": int(d1),
+                "last_close": c1,
+                "prev_close": c0,
+            }
+    finally:
+        con.close()
+    return out
+
+
 # ── 成本摊薄（2026-10-31 决策④）──────────────────────────────────────────────
 def annual_cost_bp(hold_days, fee_bp, impact_bp):
     """年化往返成本（bp）。往返 = 2 × 单边；年轮换 = 244 / hold_days。

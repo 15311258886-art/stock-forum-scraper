@@ -207,3 +207,6 @@ viewer/static/fund_masters/snapshots/
 /node_check.txt
 /nul
 viewer/server_dy8.out
+
+# 根目录临时探测输出（td2.json 等，任务结束即弃）
+/td*.json

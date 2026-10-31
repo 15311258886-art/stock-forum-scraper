@@ -33,6 +33,12 @@
     });
   }
 
+  /* null/undefined/空串 → 「—」。用于所有直接拼进文本的数值：未知必须显性写成「—」，
+     绝不能让 `String(null)` 漏成字面量 "null"（2026-11-01 工单② 的根因）。 */
+  function nv(v) {
+    return (v === null || v === undefined || v === "") ? "—" : String(v);
+  }
+
   function S(domain, opts) {
     if (!State[domain]) {
       State[domain] = {
@@ -473,6 +479,26 @@
 
 
 /* ---------- 共振面板：豆包语料 × 主力合成层（孤岛打通的化学反应） ---------- */
+  /* 2026-11-01（工单②）：合成层那一格原来直接拼 `'合成' + esc(tier) + '/' + esc(String(score))`
+     ⇒ 后端缺省值 `("-", None)` 被渲染成字面量 `合成-/null`。null 不是 "没有"，"-" 也不是
+     一个真实的 tier（res_stock_card 的 tier 只有 A/S/B/C）。三态拆开写：
+       · has_card === false → 这只票**不在**主力合成层里（该维度本来就不存在）→「合成层未覆盖」
+       · has_card 但 tier 空 → 卡在、档位没算出来 → 「合成—」
+       · has_card 但 score 空 → 卡在、分数没算出来 → 「/—」
+     绝不拼出 "null"/"undefined"（未知必须显性写成「—」）。 */
+  function cardCell(x) {    var hasCard = (x && x.has_card !== undefined) ? !!x.has_card
+      : !!(x && (x.card_tier != null || x.card_score != null));
+    if (!hasCard) {
+      return {
+        text: "合成层未覆盖", muted: true,
+        title: "这只票被豆包点到，但主力合成层（res_stock_card）尚未覆盖 —— 不是算出 0 分"
+      };
+    }
+    var tier = (x.card_tier == null || x.card_tier === "") ? "—" : esc(x.card_tier);
+    var score = (x.card_score == null || x.card_score === "") ? "—" : esc(String(x.card_score));
+    return { text: "合成" + tier + "/" + score, muted: false, title: "" };
+  }
+
   function renderResonance(sel) {
     var root = document.querySelector(sel || '#p-dy_reso');
     if (!root) return;
@@ -488,7 +514,8 @@
       + '</div>';
     fetch(API + '/resonance?limit=40').then(function (r) { return r.json(); }).then(function (d) {
       if (!d || !d.ok) { root.querySelector('#reso-list').innerHTML = '<div class="dy-empty">读取失败</div>'; return; }
-      root.querySelector('#reso-meta').textContent = '豆包点名 ' + d.distinct_stocks + ' 只 → 与主力合成层共振 ' + d.resonance_n + ' 只';
+      root.querySelector('#reso-meta').textContent =
+        '豆包点名 ' + nv(d.distinct_stocks) + ' 只 → 与主力合成层共振 ' + nv(d.resonance_n) + ' 只';
       var rows = d.rows || [];
       root.querySelector('#reso-list').innerHTML = rows.map(function (x) {
         var vcls = x.verdict === '强共振' ? 'v-strong' : (x.verdict === '共振' ? 'v-mid' : 'v-alone');
@@ -498,16 +525,23 @@
           + '<b style="color:#e6edf3;min-width:64px;">' + esc(x.code) + '</b>'
           + '<span style="min-width:78px;color:#9fb3c8;">' + esc(x.name || '') + '</span>'
           + '<span class="' + vcls + '" style="padding:1px 8px;border-radius:10px;font-size:12px;">' + esc(x.verdict) + '</span>'
-          + '<span style="color:#f0b400;font-size:12px;">分' + x.score + '</span>'
-          + '<span style="color:#9fb3c8;font-size:12px;">合成' + esc(x.card_tier) + '/' + esc(String(x.card_score)) + '</span>'
-          + '<span style="color:#9fb3c8;font-size:12px;">豆包' + x.douyin_n + '·共振博主' + (x.overlap_n || 0) + '·信号' + (x.sig_n || 0) + (sd ? '(' + sd + ')' : '') + '</span>'
+          + '<span style="color:#f0b400;font-size:12px;">分' + nv(x.score) + '</span>'
+          + (function () {
+              var cc = cardCell(x);
+              return '<span style="color:' + (cc.muted ? '#6b7785' : '#9fb3c8') + ';font-size:12px;"'
+                + (cc.title ? ' title="' + cc.title + '"' : '') + '>' + cc.text + '</span>';
+            })()
+          /* 「共振博主N」这一段已删除：2026-10-30 博主共振下线后后端不再回吐 overlap_n，
+             原来 `(x.overlap_n || 0)` 会把它渲染成「共振博主0」—— 那不是"0 个博主"，
+             而是"这个维度已经没有了"，属于把未知伪装成 0。 */
+          + '<span style="color:#9fb3c8;font-size:12px;">豆包' + nv(x.douyin_n) + '·信号' + nv(x.sig_n == null ? 0 : x.sig_n) + (sd ? '(' + sd + ')' : '') + '</span>'
           + '<span style="color:#6b7785;font-size:12px;">' + esc((x.domains || []).join('/')) + '</span>'
           + '<span style="flex-basis:100%;color:#c9d6e3;font-size:12px;">' + esc(smp) + '</span>'
           + '</div>';
       }).join('') || '<div class="dy-empty">暂无共振</div>';
       var gaps = (d.gaps || []).slice(0, 10).map(function (g) {
         return '<span style="display:inline-block;margin:3px;padding:3px 8px;border:1px solid #3a4150;border-radius:10px;color:#c9d6e3;font-size:12px;">'
-          + esc(g.name || g.code) + '·' + esc(g.code) + '（豆包' + g.douyin_n + '）</span>';
+          + esc(g.name || g.code) + '·' + esc(g.code) + '（豆包' + nv(g.douyin_n) + '）</span>';
       }).join('');
       root.querySelector('#reso-gap').innerHTML = gaps || '<div class="dy-empty">无盲区</div>';
     }).catch(function (e) {

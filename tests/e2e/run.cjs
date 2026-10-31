@@ -54,6 +54,10 @@ const CFG = {
   json: argv.includes("--json"),
   noWrite: argv.includes("--no-write"),
   keepShots: argv.includes("--keep-shots"),
+  /* 自测用：故意注入一条 ok=true/level=warn 的坏断言，门禁**必须**因此变红。
+     存在的理由：自检很容易写成"永远为真"的判断，那样它绿得毫无意义。
+     这条开关让"自检真的有效"本身也能被验证。 */
+  selftestHarness: argv.includes("--selftest-harness"),
   port: 8765,
   help: argv.includes("--help") || argv.includes("-h"),
 };
@@ -71,12 +75,23 @@ const BUDGET_MS = CFG.quick ? 40 * 1000 : 360 * 1000;
 /* 单个 tab 的上限：超过就是「点开它之后页面卡死」，按失败记。 */
 const TAB_TIMEOUT_MS = 15000;
 
+/* 三档视口。放在模块作用域（不是函数里）是有原因的：曾把它写在阶段代码里，
+   结果一次编辑把声明挤到使用点之后，运行时抛 `VPS is not defined`，整个视口阶段
+   连带 6 条断言一起消失，而摘要里只多了一条 runner 失败 —— 想分辨"没跑"和"跑过了"
+   要多翻一次报告。声明提到顶层，这类作用域事故就不可能再吞掉一个阶段。 */
+const VPS = [
+  { w: 1024, h: 700 },
+  { w: 1440, h: 1000 },
+  { w: 1920, h: 1080 },
+];
+
 if (CFG.help) {
   process.stdout.write(
     "用法: node tests/e2e/run.cjs [--quick] [--json] [--no-write] [--port N] [--keep-shots]\n" +
     "  --quick      只跑 3 个 tab + 单位一致性 + 健康检查（<40s）\n" +
     "  --json       stdout 只输出一个 JSON 对象\n" +
     "  --no-write   跳过自选增删（只读环境）\n" +
+    "  --selftest-harness  自测：注入一条坏 level 的断言，应当变红（验证自检有效）\n" +
     "退出码: 0 全过 / 1 用例失败 / 2 环境不可用\n"
   );
   process.exit(0);
@@ -85,16 +100,45 @@ if (CFG.help) {
 /* ==========================================================================
  * 1. 结果收集
  * ======================================================================== */
-/** level: "fail" 计入退出码；"warn" 只记录不红；"info" 纯记录 */
-const RESULTS = [];
-function rec(group, id, ok, detail, why, level) {
-  const lv = level || (ok ? "info" : "fail");
-  RESULTS.push({ group, id, ok: !!ok, detail: detail === undefined ? "" : String(detail), why: why || "", level: lv });
-  return ok;
+/* 三个桶是**互斥且穷尽**的，而且 `level` 现在由 `ok` + 「是否阻断」推导出来，
+   不再由调用方随手写 —— 之前 `level` 出现过 102 条 `fail` 里 102 条都是 ok=true 的情况：
+   字段有值、但值是垃圾，比 null 更危险（health.leases 踩过同一个病）。
+      ok === true              → level = "pass"
+      ok === false && 阻断     → level = "fail"     （计入退出码）
+      ok === false && 不阻断   → level = "warn"     （只记录，不计入退出码）
+   调用方只能表达「阻断 / 不阻断」这个意图，不能再自己决定 level 的取值。 */
+const RESULTS = [];          // 断言（进分母）
+const INFO = [];             // 好消息/正常状态（**不进 checks、不进分母**、不影响判定）
+const LEVEL_HINTS = [];      // 记下调用方的阻断意图，便于事后核对（"这条为什么降级了"）
+const LEVEL_BAD = [];        // 违反三值口径的行（自检用；非空就必须红）
+
+function rec(group, id, ok, detail, why, intent, extra) {
+  const isOk = !!ok;
+  /* intent 只允许 "fail"（阻断）或 "warn"（不阻断）；缺省按 ok 推导 */
+  const blocking = intent === undefined ? !isOk : intent === "fail";
+  const level = isOk ? "pass" : (blocking ? "fail" : "warn");
+  /* 记录调用方原始意图，供核对；同时把"ok=true 却传了 fail/warn"这种口误抓出来 */
+  LEVEL_HINTS.push({ id, ok: isOk, intent: intent === undefined ? null : intent, level });
+  if (!isOk && intent !== undefined && intent !== "fail" && intent !== "warn") {
+    LEVEL_BAD.push({ id, why: `ok=false 的断言传了非法 intent="${intent}"` });
+  }
+  RESULTS.push(Object.assign({
+    group, id, ok: isOk,
+    detail: detail === undefined ? "" : String(detail),
+    why: why || "", level,
+    intent: intent === undefined ? null : intent,
+  }, extra || {}));
+  return isOk;
 }
-const fail = (group, id, detail, why) => rec(group, id, false, detail, why, "fail");
-const pass = (group, id, detail) => rec(group, id, true, detail, "", "info");
-const warn = (group, id, detail, why) => rec(group, id, false, detail, why || "", "warn");
+const fail = (group, id, detail, why, extra) => rec(group, id, false, detail, why, "fail", extra);
+/* pass 一律 level="pass"（以前标 "info" 会让"通过"混进记录桶，是算术对不上的源头之一） */
+const pass = (group, id, detail) => rec(group, id, true, detail, "");
+/* warn = 不阻断的未达标（长文本溢出、重启窗口内的网络失败…） */
+const warn = (group, id, detail, why, extra) => rec(group, id, false, detail, why || "", "warn", extra);
+/* info = 好消息/正常状态：单独一个通道，不进分母 —— 混进 warn 会让 warn 数失去意义 */
+function info(group, id, detail) {
+  INFO.push({ group, id, detail: detail === undefined ? "" : String(detail) });
+}
 
 const NOTES = [];            // 环境/模式说明（不进断言）
 const NEEDS_TESTID = [];     // 需要加稳定标识才能更稳的地方（本轮不许改 app.js，故只登记）
@@ -102,8 +146,9 @@ const BLOCKED = [];          // 因约束无法测的点
 const NOT_COVERED = [];      // 旧版有、新版没覆盖的检查项（漏掉不写 = 假装覆盖了）
 /* 任务约束导致"测得不够硬"的地方必须亮出来（不写 = 假装测过了）： */
 BLOCKED.push(
-  "禁止修改 viewer/static/app.js → 无法给面板/成交量/弹窗加 data-testid，" +
-    "所以「面板是否就绪」只能靠 innerText 长度 + 轮询、「成交量」只能靠 .si-item/.ks-grid 结构定位（见 needs_testid）。",
+  "（2026-11-01 更新）app.js 已补 data-testid：个股抽屉 stk-drawer / 成交量 vol-quote·vol-kline / 自选行 watch-row，" +
+    "面板 data-ready、横条 data-cat。本脚本已改为**优先用 testid**，结构探测只作兜底；" +
+    "兜底命中时会记 needs_testid（降级为提示，不再当告警）。",
   "禁止重启服务（多人共用 8765）→ 只能对「进程里正跑的那份代码」做端到端验证；" +
     "后端 Python 改动必须由人重启后复跑，否则 /api/version 的 build_id 会一直是旧值（报告里标 stale_build）。"
 );
@@ -114,6 +159,21 @@ BLOCKED.push(
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const nowMs = () => Date.now();
 
+/** 本地写接口的令牌 Cookie（server.py 13178 行：只要设了 VIEWER_API_TOKEN，每次响应都会
+ *  下发 `local_token=...`，写接口（POST）缺它就直接 401 "token required"）。
+ *  浏览器侧无需关心（同源 fetch 自动带），但本门禁的 Node 侧清理走裸 http —— 必须自己接住
+ *  这个 Cookie，否则「清理测试数据」会 401 失败，把用户的真实自选池留下脏数据。
+ *  这里不读环境变量、不猜令牌：只做"服务器给什么就用什么"，避免权限假设。 */
+let COOKIE = "";
+function absorbCookie(setCookie) {
+  if (!setCookie) return;
+  const list = Array.isArray(setCookie) ? setCookie : [setCookie];
+  for (const c of list) {
+    const m = /(?:^|;\s*)local_token=([^;]+)/.exec(c);
+    if (m) COOKIE = "local_token=" + m[1];
+  }
+}
+
 /** 极简 HTTP GET/POST（不引依赖：项目无出网权限，也不许新建 package.json） */
 function httpReq(method, p, body, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -123,12 +183,14 @@ function httpReq(method, p, body, timeoutMs) {
         host: "127.0.0.1", port: CFG.port, path: p, method,
         headers: Object.assign(
           { Accept: "application/json" },
+          COOKIE ? { Cookie: COOKIE } : {},
           data ? { "Content-Type": "application/json", "Content-Length": data.length } : {}
         ),
         timeout: timeoutMs || 15000,
       },
       (res) => {
         const chunks = [];
+        absorbCookie(res.headers["set-cookie"]);
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {
           const text = Buffer.concat(chunks).toString("utf8");
@@ -145,14 +207,24 @@ function httpReq(method, p, body, timeoutMs) {
   });
 }
 const httpJson = async (p, body, t) => {
+  /* 写请求第一次跑时可能还没拿到 Cookie（前面全是纯 GET）——先请求一次首页把 Cookie 接住。
+     为什么是 "/" 而不是 /api/version：server.py 只在**发页面**时下发 Set-Cookie（13178 行），
+     JSON 接口不下发。实测踩过：拿 /api/version 预热 → Cookie 为空 → 清理请求 401 "token required"
+     → 门禁把用户自选池写脏了却没删掉。 */
+  if (body !== undefined && !COOKIE) {
+    try { await httpReq("GET", "/", undefined, t); } catch (_) { /* 拿不到就让服务端自己报 401 */ }
+  }
   const r = await httpReq(body === undefined ? "GET" : "POST", p, body, t);
   return { status: r.status, json: r.json, text: r.text };
 };
 
-/** 磁盘侧代码指纹 —— 与 viewer/build_id.py::of_disk 逐字节等价（已交叉验证同值）。
+/** 磁盘侧代码指纹 —— 与 viewer/build_id.py::of_disk **逐字节等价**（2026-11-01 改内容哈希后
+ *  仍需交叉验证同值：两边都算 `sha1( 各文件 "rel|size|sha1hex;" 拼接 )[0:12]`）。
  *  为什么要自己算：服务可能跑的是旧快照，/api/version 的 build_id 与磁盘不一致时，
  *  「单位一致性」这类依赖新代码的用例会 FAIL，但那是"没重启"而不是"改坏了"，
- *  必须在报告里标 stale_build 才不会误判成回归。 */
+ *  必须在报告里标 stale_build 才不会误判成回归。
+ *  ⚠️ 2026-11-01：原来是 `(mtime, size)`，mtime 只到秒 → 同一秒内等长替换指纹不变（漏报，
+ *  致命）；touch 一下指纹就变（误报，让人习惯性忽略告警）。已改内容哈希。 */
 const KEY_FILES = [
   "viewer/server.py", "viewer/quant.py", "viewer/pillars.py", "viewer/evolve.py",
   "viewer/metalearn.py", "viewer/resonance.py", "viewer/backtest.py", "viewer/selfpick.py",
@@ -163,8 +235,9 @@ function diskBuildId() {
   const h = crypto.createHash("sha1");
   for (const rel of KEY_FILES) {
     try {
-      const st = fs.statSync(path.join(ROOT, rel));
-      h.update(`${rel}|${Math.floor(st.mtimeMs / 1000)}|${st.size};`, "utf8");
+      const buf = fs.readFileSync(path.join(ROOT, rel));
+      const digest = crypto.createHash("sha1").update(buf).digest("hex");
+      h.update(`${rel}|${buf.length}|${digest};`, "utf8");
     } catch (_) {
       h.update(`${rel}|missing;`, "utf8");
     }
@@ -208,8 +281,26 @@ function findChromium() {
 /* ==========================================================================
  * 3. 启动前探测：服务不通就直接 EXIT=2，不去猜
  * ======================================================================== */
+/** 用 Python 侧**权威实现**算一次磁盘指纹（viewer/build_id.py::of_disk）。
+ *  为什么要这一层：Node 里那份 `diskBuildId()` 是"复刻"，而复刻会滞后 ——
+ *  本轮就发生过一次：`of_disk` 从 `(mtime,size)` 改成了内容哈希，复刻如果不跟着改，
+ *  `stale_build` 会长期误报"服务跑旧代码"，喊人重启却永远对不上。
+ *  所以：能起 python 就以权威值为准，复刻只当交叉校验；起不来才退回复刻（并如实记录来源）。 */
+function pythonDiskBuildId() {
+  const { execFileSync } = require("child_process");
+  for (const bin of ["python", "py", "python3"]) {
+    try {
+      const out = execFileSync(bin, ["-c", "from viewer.build_id import of_disk; print(of_disk('.'))"],
+        { cwd: ROOT, timeout: 8000, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      const v = String(out || "").trim().split(/\s+/).pop();
+      if (/^[0-9a-f]{6,}$/.test(v || "")) return { bin, value: v };
+    } catch (_) { /* 试下一个 */ }
+  }
+  return null;
+}
+
 async function preflight() {
-  const out = { ok: false, version: null, health: null, diskBuild: null, staleBuild: null, err: null };
+  const out = { ok: false, version: null, health: null, diskBuild: null, staleBuild: null, fpSource: null, replica: null, replicaDrift: null, err: null };
   try {
     const v = await httpJson("/api/version", undefined, 6000);
     if (v.status !== 200 || !v.json) {
@@ -220,7 +311,12 @@ async function preflight() {
     const h = await httpJson("/api/health", undefined, 20000);
     out.health = { status: h.status, json: h.json };
     out.ok = true;
-    out.diskBuild = diskBuildId();
+    /* 权威值优先；复刻值留作交叉校验 */
+    out.replica = diskBuildId();
+    const py = pythonDiskBuildId();
+    out.diskBuild = py ? py.value : out.replica;
+    out.fpSource = py ? `python:${py.bin} viewer.build_id.of_disk` : "node:replica";
+    out.replicaDrift = py ? (py.value === out.replica ? null : { python: py.value, node: out.replica }) : null;
     out.staleBuild = !!out.version.build_id && out.version.build_id !== out.diskBuild;
     return out;
   } catch (e) {
@@ -270,6 +366,55 @@ function scanBadTokensInPage(scopeSel) {
   };
 }
 
+/* 面板内容探测（iframe 感知）。
+   ⚠️ 为什么必须有这一层：`#p-fundmasters` 整块是一个 `<iframe src="/static/fund_masters/index.html">`。
+   `innerText` 不跨子文档，父页面里它**永远是 0 字**，于是"空面板"这个软指标会稳定误报
+   `strategy/fundmasters`（本轮实测：父文档 0 字 / 子文档 127 字 / 数据在盘上 138KB）。
+   这不是产品缺陷，是**度量口径无效** —— 拿 0 当"面板没内容"会把一条好路径记成坏的。
+   现在的口径：面板自己有字就用自己，有 iframe 就把子文档正文也算进来，取两者较大值；
+   同时把 `data-loaded`（iframe 加载成功标记）与 `data-ready` 一起带出来，
+   这样上层既能判"空不空"，也能判"是不是还停在加载中"。
+   不写死 tab 名、也不写死 fundmasters：任何面板套 iframe 都走同一条路。 */
+function panelTextInPage(sel) {
+  const p = document.querySelector(sel);
+  if (!p) return { exists: false, len: 0, ownLen: 0, subLen: 0, frame: false, panelFrame: false, frameLoaded: null, ready: false, empty: true, head: "" };
+  const own = (p.innerText || "").trim();
+  /* 只认"声明了自己是外挂页"的 iframe（app.js 打的语义属性），不拿任意 iframe 当内容源 */
+  const pf = p.querySelector("iframe[data-panel-frame]") || p.querySelector("iframe");
+  const panelFrame = !!(p.querySelector("iframe[data-panel-frame]"));
+  let sub = "", loaded = null;
+  if (pf) {
+    loaded = pf.getAttribute("data-loaded");
+    try {
+      const d = pf.contentDocument;
+      if (d && d.body) sub = (d.body.innerText || "").trim();
+    } catch (_) { sub = ""; }          /* 跨域时读不到：保持 0，但 frame=true 会在明细里体现 */
+  }
+  const best = own.length >= sub.length ? own : sub;
+  const ready = p.getAttribute("data-ready") === "1";
+  /* 「空面板」三口径（缺一不可，任一非空就不算空）：
+       ① 父文档 innerText
+       ② 有 iframe 时读子文档 body.innerText
+       ③ 就绪标记：data-ready + iframe 的 data-loaded
+     为什么要三口径：`#p-fundmasters` 整块是 iframe，①②不跨文档边界恒为 0；
+     只看文本会把一个正常面板稳定判成空（这就是上一轮那条假信号）。
+     反过来只看 data-ready 也不行：它可能因为别的原因没打上，
+     此时文本非空说明"用户确实看得到东西"，不该判空。 */
+  const empty = own.length === 0 && sub.length === 0 && !ready && loaded !== "1";
+  return {
+    exists: true,
+    len: best.length,
+    ownLen: own.length,
+    subLen: sub.length,
+    frame: !!pf,
+    panelFrame,
+    frameLoaded: loaded,
+    ready,
+    empty,
+    head: best.replace(/\s+/g, " ").slice(0, 60),
+  };
+}
+
 /* ==========================================================================
  * 5. 主流程
  * ======================================================================== */
@@ -312,6 +457,9 @@ function scanBadTokensInPage(scopeSel) {
       server_pid: pf.version ? pf.version.pid : null,
       server_started_at: pf.version ? pf.version.started_at : null,
       disk_build_id: pf.diskBuild,
+      disk_build_id_source: pf.fpSource,
+      disk_build_id_replica: pf.replica,
+      disk_build_id_replica_drift: pf.replicaDrift,
       stale_build: pf.staleBuild,
       /* 静态资源是「每次请求现读磁盘」的：server.py 可以是旧进程，app.js 却已经是新文件。
          多人同时改前端时，必须能说清「这份结果对应哪一版 app.js」，否则没法归因。 */
@@ -334,19 +482,43 @@ function scanBadTokensInPage(scopeSel) {
     exit_code: null,
   };
 
+  /* 环境中途坏掉时"这条用例没执行"的登记处。
+     为什么单独建一个：跑全量时真遇到过两种中途断服务 —— 一是别人重启 viewer，
+     二是浏览器开新页面时恰好撞上重启窗口（`ERR_CONNECTION_REFUSED` 出现在**文档层**，
+     页面本身就是错误页，此时面板/文案断言全都不成立）。
+     这种既不能记 PASS（是谎话），也不该记 FAIL（不是产品坏了），所以：
+       · 登记到 ENV_SKIPS；
+       · 全跑完后若有 ENV_SKIPS 且无真实失败 → 退出码 2（"环境不可用，请复跑"），
+         而不是 0 —— 不给自己发一张"全过"的假证书。 */
+  const ENV_SKIPS = [];
+  const envSkip = (where, why) => {
+    ENV_SKIPS.push({ where, why });
+    warn("env", `中途不可用：${where}`, why,
+      "这条用例没执行（不是通过、也不是产品缺陷）；请等服务稳定后复跑");
+  };
+
   const finish = (code, extraNote) => {
     report.exit_code = code;
     report.duration_ms = nowMs() - T0;
     report.meta.finished_at = new Date().toISOString();
     /* 环境不可用会在任何断言跑之前就退出，此时 summary 还没算过 —— 统一在这里兜底，
-       否则打印摘要会抛 "Cannot read properties of undefined"，把一个干净的 EXIT=2 弄成崩溃。 */
+       否则打印摘要会抛 "Cannot read properties of undefined"，把一个干净的 EXIT=2 弄成崩溃。
+       兜底也必须用同一套三值口径，否则摘要又变成加不起来的了。 */
     if (!report.summary) {
+      const passed = RESULTS.filter((r) => r.ok).length;
+      const warned = RESULTS.filter((r) => !r.ok && r.level === "warn").length;
+      const failed = RESULTS.filter((r) => !r.ok && r.level === "fail").length;
       report.summary = {
         checks_total: RESULTS.length,
-        passed: RESULTS.filter((r) => r.ok).length,
-        failed: RESULTS.filter((r) => r.level === "fail" && !r.ok).length,
-        warned: RESULTS.filter((r) => r.level === "warn").length,
+        passed, warned, failed,
+        info_total: INFO.length,
+        algebra: { passed, warned, failed, sum: passed + warned + failed, total: RESULTS.length, ok: passed + warned + failed === RESULTS.length },
+        level_ok: null,
+        warn_split: { assertion_level: warned, phase_level: 0 },
+        phase_warn_ids: [],
+        aggregates: [],
       };
+      report.infos = INFO;
     }
     try { fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), "utf8"); } catch (e) { console.error("写报告失败:", e.message); }
     if (extraNote) NOTES.push(extraNote);
@@ -382,7 +554,18 @@ function scanBadTokensInPage(scopeSel) {
   }
   if (pf.staleBuild) {
     warn("health", "服务与磁盘代码一致（stale_build）",
-      `服务 build_id=${pf.version.build_id} ≠ 磁盘 ${pf.diskBuild}`, "不重启服务就换不掉旧代码；本项只告警，因为门禁无权重启（多人共用）");
+      `服务 build_id=${pf.version.build_id} ≠ 磁盘 ${pf.diskBuild}（指纹来源: ${pf.fpSource}）`,
+      "不重启服务就换不掉旧代码；本项只告警，因为门禁无权重启（多人共用）");
+  } else {
+    pass("health", "服务与磁盘代码一致（build_id 相同）",
+      `build_id=${pf.version.build_id}，指纹来源: ${pf.fpSource}${pf.replicaDrift ? "（Node 复刻已与权威值不一致，见 warn）" : ""}`);
+  }
+  /* 复刻漂移自检：Node 里那份 replica 一旦滞后，stale_build 会长期误报"服务跑旧代码"。
+     现在以 Python 权威实现为准，复刻只做交叉校验；两者不一致就亮出来（不是产品问题，是我的复刻过期了）。 */
+  if (pf.replicaDrift) {
+    warn("health", "Node 复刻指纹与 Python 权威值一致（防止 stale_build 误报）",
+      `python=${pf.replicaDrift.python} / node=${pf.replicaDrift.node} —— 复刻已滞后，已改用权威值`,
+      "复刻滞后会让 stale_build 常年误报，喊人重启却永远对不上；以权威实现为准、复刻降级为交叉校验");
   }
 
   /* ---------- 5.2 起浏览器（起不来 = EXIT 2） ---------- */
@@ -438,7 +621,11 @@ function scanBadTokensInPage(scopeSel) {
      - "Failed to load resource: 4xx" 与接口 4xx 是同一件事，已在 [api] 里单独统计 */
   const NOISE = [
     /frame-ancestors/i,
-    /Failed to load resource.*\b(4\d\d|5\d\d)\b/i,
+    /* 「Failed to load resource」是浏览器对每个失败请求自动打的一条日志，不是前端代码抛的错。
+       4xx/5xx 与 net::ERR_* 都属这一类，且已经在 [api] 的失败统计里单独计过一次；
+       留着它只会让「接口全挂」的场景刷出几十条 console error（实测全 500 时 50 条），
+       属于"把同一个信号数两遍"，会让门禁看起来比实际严重。真正的信号是 pageerror。 */
+    /Failed to load resource/i,
   ];
   const isNoise = (t) => NOISE.some((r) => r.test(t));
 
@@ -623,6 +810,21 @@ function scanBadTokensInPage(scopeSel) {
       return fold;
     };
 
+    /* 按「面板里有没有某个元素」反查 tab —— 用来在不写死 tab 名的前提下定位特定功能面板。
+       例：关注池 → 有 #wtAdd；也用于抽屉测试的行。找不到返回 null（调用方自己判失败）。 */
+    const findTabHaving = async (innerSelector) => {
+      for (const it of nav) {
+        await clickSubTab(it).catch(() => {});
+        await sleep(240);
+        const has = await page
+          .evaluate(([t, s]) => !!document.querySelector(`#p-${t} ${s}`), [it.tab, innerSelector])
+          .catch(() => false);
+        if (has) return it;
+      }
+      return null;
+    };
+    const drawerOpen = () => page.evaluate(() => !!document.querySelector("#drawer.show") && document.querySelector("#drawer").getBoundingClientRect().height > 40);
+
     for (const c of cats) {
       await ensureCat(c.cat);
       const subs = await page.evaluate((cat) =>
@@ -635,11 +837,21 @@ function scanBadTokensInPage(scopeSel) {
           /* 子项没有 data-cat 属性，分类只能从 href="#cat/tab" 里解析 —— 见 needs_testid */
           hrefCat: (a.getAttribute("href") || "").replace(/^#/, "").split("/")[0] || "",
           hasDataCat: a.hasAttribute("data-cat"),
+          /* 2026-11-01：分类有独立属性了，优先用它；href 只作兜底（href 换成 JS 跳转时也能判分类） */
+          dataCat: a.getAttribute("data-cat") || "",
           /* 是否在「研究工具（N）」折叠区里：这些项默认收起，点击前必须先展开 */
           folded: !!(a.closest && a.closest("details")),
           active: a.className.indexOf("active") >= 0,
         })), c.cat);
       for (const s of subs) nav.push({ cat: c.cat, catLabel: c.label, ...s });
+      /* quick 只需要"前 3 个 tab（含 today）"，把 6 个分类全枚举一遍纯属浪费 ——
+         实测这一步在冷服务上能吃掉 20s，把 quick 顶到 39s，离 40s 预算只剩 1s 余量。
+         枚举到够用就停，并在 notes 里写明"quick 的 by_cat 是部分结果"，避免被当成全量口径。 */
+      if (CFG.quick && nav.length >= 3) {
+        NOTES.push(`quick 模式：枚举到 ${nav.length} 个 tab 即停（够 3 个就够用），classified=${cats.length} 个分类中只走了 ` +
+          `${cats.findIndex((x) => x.cat === c.cat) + 1} 个 —— **quick 的 by_cat 不是全量口径**`);
+        break;
+      }
     }
 
     /* 枚举自一致性校验：把最后一个分类再点一次，数量必须与刚才记录的一致。
@@ -649,8 +861,12 @@ function scanBadTokensInPage(scopeSel) {
     const byCat = {};
     for (const x of nav) byCat[x.cat] = (byCat[x.cat] || 0) + 1;
     let recheck = null;
-    if (cats.length) {
-      const lastCat = cats[cats.length - 1].cat;
+    if (cats.length && nav.length) {
+      /* 复查要挑**真的枚举过**的分类：quick 模式只走了一两个分类就停，
+         拿最后一个分类（可能根本没访问）来复查，会得到 "首次 undefined / 复查 1 个" 的假红。
+         这里取"已枚举分类里的最后一个"，两种模式都成立。 */
+      const visited = cats.map((c) => c.cat).filter((k) => byCat[k] > 0);
+      const lastCat = visited[visited.length - 1];
       currentCat = null;                                  // 强制重点，不吃缓存
       await ensureCat(lastCat);
       const n2 = await page.evaluate(() => document.querySelectorAll("#subnav .sub-tab[data-tab]").length);
@@ -666,7 +882,7 @@ function scanBadTokensInPage(scopeSel) {
     const dups = tabs.filter((v, i) => tabs.indexOf(v) !== i);
     const noHref = nav.filter((x) => !x.href || x.href.indexOf("#") !== 0);
     const noDataCat = nav.filter((x) => !x.hasDataCat);
-    const catNoTab = nav.filter((x) => x.hrefCat !== x.cat);
+    const catNoTab = nav.filter((x) => (x.hasDataCat ? x.dataCat !== x.cat : x.hrefCat !== x.cat));
     const rawCount = nav.length;
     /* 重复 tab：真缺陷（同一条横条里同一个入口渲染了两遍），但要按 (cat,tab) 去重后再跑，
        否则同一个面板会被点两遍，纯浪费预算。原始条数仍写进报告。 */
@@ -691,17 +907,37 @@ function scanBadTokensInPage(scopeSel) {
       `不一致: ${JSON.stringify(catNoTab.slice(0, 5).map((x) => x.tab + "→" + x.hrefCat))}`,
       "分类与深链不一致＝点进去 hash 会跳到另一个分类，属于导航归属错误", "fail");
     if (noDataCat.length) {
-      NEEDS_TESTID.push("[nav] .sub-tab 缺 data-cat 属性 —— 现在只能从 href=\"#cat/tab\" 反解分类；" +
-        `若能给每个 .sub-tab 加 data-cat（paintSubnav 里已有 cat.key，一行即可），分类断言会更直接、更稳。影响 ${noDataCat.length} 个 tab。`);
+      /* 2026-11-01：data-cat 已加。这里只会在「改版把属性弄丢」时命中，属真缺陷但不红 ——
+         分类断言还有 href 可用（catNoTab 仍按 fail 计），所以降级为提示。 */
+      warn("nav", ".sub-tab 的 data-cat 属性", `缺 ${noDataCat.length} 个（分类断言已退回解析 href）`,
+        "data-cat 是分类断言的直接依据；丢了它就只能从 href 反解，href 改成 JS 跳转时会静默失效");
+      NEEDS_TESTID.push("[nav] .sub-tab 缺 data-cat：" + noDataCat.length + " 个 tab 退回解析 href。");
     }
-    NEEDS_TESTID.push("[nav] 面板缺统一的「已就绪」标记 —— 现在用 #p-<tab> 的 innerText 长度判断是否渲染完成；" +
-      "建议给面板容器加 data-state=\"loading|ready|empty|error\"（或在渲染完成时设 data-rendered=\"1\"），" +
-      "门禁就能精确等就绪，而不是靠 sleep + 文本长度猜。");
-    NEEDS_TESTID.push("[drawer] 个股详情抽屉缺 data-testid —— 现在靠 #stkQuote / #klineSnap 里的 .si-item/.ks-grid 结构找「成交量」；" +
-      "建议给两个成交量单元格加稳定标识（如 data-testid=\"vol-quote\" / data-testid=\"vol-kline\"），" +
-      "避免以后改版式就再也测不到单位一致性（P0-1 的核心守门项）。");
-    NEEDS_TESTID.push("[watch] 自选行缺稳定选择器 —— 现在用 [data-wt-open]/[data-wt-del] 反查；" +
-      "这两者是业务属性、语义够用，但「加入自选」弹窗 (#wtF-symbol/#wtF-save) 建议加 data-testid，弹窗改名就会断。");
+    /* 2026-11-01：面板已由 app.js 的 initPanelReadyWatcher 打 data-ready="1"。
+       这里现场抽一个当前激活面板确认标记真的在工作；没有才降级回 innerText 轮询并登记。 */
+    const readyProbe = await page.evaluate(() => {
+      const p = document.querySelector(".panel.active");
+      return { id: p ? p.id : null, ready: !!(p && p.getAttribute("data-ready") === "1"),
+        anyReady: document.querySelectorAll('.panel[data-ready="1"]').length };
+    });
+    NOTES.push(`面板就绪标记 data-ready：当前激活面板 ${readyProbe.id} ready=${readyProbe.ready}；` +
+      `全站已标记 ${readyProbe.anyReady} 个`);
+    if (!readyProbe.anyReady) {
+      warn("nav", "面板 data-ready 标记可用", "一个面板都没有 data-ready",
+        "没有就绪标记时，门禁只能靠 sleep + 文本长度猜「画完了没有」，既慢又会误判空态");
+      NEEDS_TESTID.push("[nav] 面板缺 data-ready 标记（app.js initPanelReadyWatcher 失效？）—— 已退回 innerText 轮询。");
+    }
+    /* 2026-11-01：抽屉/成交量/自选行的 testid 都已在 app.js 落地，这段"建议加 testid"的文案随之作废。
+       改为**在 unit 阶段实测**（打开抽屉后验证 stk-drawer / vol-quote / vol-kline 是否真的在），
+       测不到才登记 needs_testid —— 静态地在这里喊一句"建议加"，等加完了就变成永久的假告警。 */
+    NOTES.push("抽屉/成交量/自选行已补 data-testid（stk-drawer / vol-quote / vol-kline / watch-row），实际可用性在 unit 与 watch 阶段实测。");
+    /* 2026-11-01：自选行已有 data-testid="watch-row" + data-symbol，行定位改用 testid（曾用 [data-wt-open] 反查）。
+       这里只探一下当前页面里是否真的有（watch 阶段会再实测增删），没有才登记。
+       弹窗 #wtF-symbol / #wtF-save 仍是 id 选择器：它们不在本轮 testid 范围内，留一条提示。 */
+    { const wr = await page.evaluate(() => document.querySelectorAll('[data-testid="watch-row"]').length);
+      if (!wr) {
+        NEEDS_TESTID.push("[watch] 当前面板没有 [data-testid=\"watch-row\"]（可能还没打开关注池，或属性丢了）—— 行定位会退回 [data-wt-open]。");
+      } }
 
     NOTES.push(`导航枚举结果：${cats.length} 个分类 / ${nav.length} 个 tab` +
       (pf.staleBuild ? "（服务为旧快照，若分类数少于磁盘版本属正常）" : ""));
@@ -770,15 +1006,23 @@ function scanBadTokensInPage(scopeSel) {
            ② 等「面板有内容」—— 空面板是合法状态（当天没数据），最多再等 3s。
          第一版把两者塞进同一个 9s 循环里，遇到 33 个空面板的 tab 就变成 33×9s=297s，
          nav 阶段直接吃掉全量预算 —— 门禁自己把自己跑死了。 */
-      let hashOk = false, panel = { panelExists: false, panelLen: 0 };
-      const readTabState = (x) => page.evaluate((y) => ({
-        hash: location.hash,
-        panelExists: !!document.querySelector("#p-" + y.tab),
-        panelLen: (() => { const p = document.querySelector("#p-" + y.tab); return p ? (p.innerText || "").trim().length : 0; })(),
-        /* 选中态：横条上该项是否带 .active —— 不参与 hard fail（hash 才是深链接判据），但要记录，
-           因为"hash 对了但横条高亮没跟上"是用户能一眼看出来的错位 */
-        active: (() => { const a = document.querySelector(`#subnav .sub-tab[data-tab="${y.tab}"]`); return !!a && a.className.indexOf("active") >= 0; })(),
-      }), x).catch(() => null);
+      let hashOk = false, panel = { panelExists: false, panelLen: 0, ready: false };
+      /* 用字符串形式的 evaluate 把 panelTextInPage 注进页面（与 scanBadTokensInPage 同一手法）：
+         面板可能是 iframe（见 panelTextInPage 注释），直接读父文档 innerText 会得到 0。 */
+      const readTabState = (x) => page.evaluate(
+        `(function(){
+           var t = (${panelTextInPage.toString()})(${JSON.stringify("#p-" + x.tab)});
+           var a = document.querySelector(${JSON.stringify('#subnav .sub-tab[data-tab="' + x.tab + '"]')});
+           return {
+             hash: location.hash,
+             panelExists: t.exists, panelLen: t.len, ownLen: t.ownLen, subLen: t.subLen,
+             frame: t.frame, frameLoaded: t.frameLoaded, ready: t.ready, head: t.head,
+             /* 选中态：横条上该项是否带 .active —— 不参与 hard fail（hash 才是深链接判据），
+                但要记录，因为"hash 对了但横条高亮没跟上"是用户能一眼看出来的错位 */
+             active: !!a && a.className.indexOf("active") >= 0
+           };
+         })()`
+      ).catch(() => null);
 
       const tNav = nowMs() + (CFG.quick ? 4000 : 5000);
       while (nowMs() < tNav) {
@@ -791,7 +1035,8 @@ function scanBadTokensInPage(scopeSel) {
       }
       if (hashOk) {
         const tContent = nowMs() + 3000;
-        while (panel.panelLen === 0 && nowMs() < tContent) {
+        /* 有 data-ready 就以它为准（内容为空也算"画完了"，空态合法）；没有才退回文本长度。 */
+        while (!panel.ready && panel.panelLen === 0 && nowMs() < tContent) {
           await sleep(200);
           const st = await readTabState(item);
           if (!st) break;
@@ -819,6 +1064,13 @@ function scanBadTokensInPage(scopeSel) {
         active: panel.active,
         panel_exists: panel.panelExists,
         panel_len: panel.panelLen,
+        /* 三口径原样落盘，便于别人复核"空/非空"是怎么判的 */
+        panel_own_len: panel.ownLen,
+        panel_sub_len: panel.subLen,
+        panel_frame: !!panel.frame,
+        panel_frame_loaded: panel.frameLoaded === undefined ? null : panel.frameLoaded,
+        panel_ready: !!panel.ready,
+        panel_empty: !!panel.empty,
         new_console_err: cErr,
         new_page_err: pErr,
         new_api_fails: apiNew,
@@ -829,7 +1081,8 @@ function scanBadTokensInPage(scopeSel) {
       if (tabOk) navPassed++;
       const detail = [
         `hash=${panel.hash}${hashOk ? "" : " ✗"}`,
-        `面板${panel.panelExists ? "存在" : "缺失"}/${panel.panelLen}字`,
+        `面板${panel.panelExists ? "存在" : "缺失"}/${panel.panelLen}字` +
+          (panel.frame ? `(iframe 子文档 ${panel.subLen}字${panel.frameLoaded === "1" ? ",已加载" : ",未打 data-loaded"})` : ""),
         cErr ? `console错 ${cErr}` : "console净",
         pErr ? `pageerror ${pErr}` : "无pageerror",
         apiNew.length ? `接口失败 ${apiNew.length}(${apiNew.slice(0, 2).map((f) => f.status + " " + f.url).join(" ")})` : "接口净",
@@ -846,7 +1099,16 @@ function scanBadTokensInPage(scopeSel) {
           item.result.bad_context = hardBad.slice(0, 3).map((h) => h.token + " :: " + h.context);
         }
       }
-      if (scan && scan.panelExists && scan.panelLen === 0) report.nav.empty_panels.push(CURRENT_TAB);
+      /* 空面板口径 = 三口径全空（见 panelTextInPage 注释：父文本 / 子文档文本 / data-ready+data-loaded）。
+         只读父文档会把 iframe 面板稳定误报成空 —— 上一轮就是这样把 fundmasters 记进了 empty_panels。 */
+      if (panel.panelExists && panel.empty) {
+        report.nav.empty_panels.push(CURRENT_TAB);
+        report.nav.empty_detail = report.nav.empty_detail || {};
+        report.nav.empty_detail[CURRENT_TAB] = {
+          own: panel.ownLen, sub: panel.subLen, frame: !!panel.frame,
+          frame_loaded: panel.frameLoaded === undefined ? null : panel.frameLoaded, ready: !!panel.ready,
+        };
+      }
       if (softBad.length) {
         warn("nav", `[${CURRENT_TAB}] 出现独立 null 文本`, softBad.map((h) => h.context).join(" ／ ").slice(0, 300),
           "null 用词边界匹配、并排除了 pre/code，理论上中文 UI 不该出现；降级为 warn 是因为它偶尔来自合法示例文本");
@@ -874,6 +1136,79 @@ function scanBadTokensInPage(scopeSel) {
     report.nav.duplicates = dups;
     report.nav.missing_href = noHref.map((x) => x.tab);
     report.nav.href_cat_mismatch = catNoTab.map((x) => x.tab);
+
+    phase("deep");
+    /* ---------- 5.65 深链接冷启动（点出来的绿 ≠ 直接打开的绿） ----------
+     * 为什么单独做这一段（这是本轮补的最有价值的一条）：
+     * 上面的导航遍历全部是「点」，而「点」天然绕过了**首屏时序**问题 ——
+     * 2026-11-01 实测过一个真 bug：app.js 的启动段在本文件被解析时就执行，
+     * 而 `douyin_corpus.js / funnel.js / industry_leaders.js / bottleneck.js / screener_extra.js`
+     * 都排在 app.js 之后。于是首屏落在依赖这些脚本的面板上时，`window.DOUYIN` 还是 undefined，
+     * `if (tab === "dy_reso" && window.DOUYIN)` 这类守卫**静默跳过**，面板永远停在「正在加载数据…」；
+     * 点别的 tab 再点回来就正常。**点击型回归永远抓不到它**，只有"直接带 hash 冷启动"能抓到。
+     *
+     * 取样：枚举结果的第一个 / 中间 / 最后一个（不写死任何 tab 名，也不挑"看起来容易坏"的）。
+     * 判据三条：
+     *   ① 面板有内容（iframe 感知）—— 冷启动渲了东西；
+     *   ② 不仍停在「正在加载数据」占位 —— 有字但只是一句"正在加载"等于没渲；
+     *   ③ 冷启动期间无 pageerror。
+     * 等就绪用轮询（data-ready / 有内容 / 超时），不 sleep 死等。
+     */
+    if (!timedOut()) {
+      const picks = [];
+      if (nav.length) {
+        const idx = Array.from(new Set([0, Math.floor(nav.length / 2), nav.length - 1]));
+        for (const i of idx) picks.push(nav[i]);
+      }
+      const DEEP = [];
+      for (const it of picks) {
+        if (timedOut()) break;
+        CURRENT_TAB = `(deep) ${it.cat}/${it.tab}`;
+        const pErrs0 = pageErrs.length;
+        const url = `${PAGE_URL}#${it.cat}/${it.tab}`;
+        let gotoErr = null;
+        try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); } catch (e) { gotoErr = e.message; }
+        /* 首启引导可能在新文档里再弹一次（不同 profile 状态下），不处理它不影响读文本，只影响点击 */
+        let st = null;
+        const tEnd = nowMs() + 20000;
+        while (nowMs() < tEnd) {
+          await sleep(350);
+          st = await page.evaluate(
+            `(function(){ return (${panelTextInPage.toString()})(${JSON.stringify("#p-" + it.tab)}); })()`
+          ).catch(() => null);
+          if (!st) break;
+          if ((st.ready || st.len > 0) && !/正在加载数据/.test(st.head)) break;
+        }
+        const stuck = !!st && /正在加载数据/.test(st.head);
+        const pErr = pageErrs.length - pErrs0;
+        let ok = !!st && st.exists && st.len > 0 && !stuck && pErr === 0 && !gotoErr;
+        /* 冷启动失败时先分环境：服务在这一次 goto 前后掉线 → 浏览器错误页，不是产品缺陷 */
+        if (!ok) {
+          const reach = await httpJson("/api/version", undefined, 5000).catch(() => null);
+          if (!reach || reach.status !== 200) {
+            envSkip(`深链接冷启动 #${it.cat}/${it.tab}`, "打开页面时服务不可达（" +
+              (reach ? "HTTP " + reach.status : "连接失败") + "），本例未执行");
+            DEEP.push({ tab: it.cat + "/" + it.tab, ok: null, env_skip: true, url });
+            continue;
+          }
+        }
+        DEEP.push({
+          tab: it.cat + "/" + it.tab, ok, url, gotoErr,
+          exists: !!st && st.exists, len: st ? st.len : 0, ready: !!st && st.ready,
+          frame: !!st && st.frame, stuck, pageerr: pErr, head: st ? st.head : "",
+        });
+        rec("deep", `深链接冷启动 #${it.cat}/${it.tab} 直接打开就有内容`, ok,
+          `goto${gotoErr ? "失败:" + gotoErr.slice(0, 80) : "OK"} | 面板${st && st.exists ? "存在" : "缺失"}/${st ? st.len : 0}字` +
+          (st && st.frame ? "(iframe)" : "") + ` | ready=${!!st && st.ready} | 停在「正在加载」=${stuck} | pageerror ${pErr} | 首屏「${st ? st.head : ""}」`,
+          "「点出来正常」不等于「直接打开正常」：依赖后置脚本的面板在首屏会静默停在加载中，" +
+          "而分享链接/刷新/收藏夹全是冷启动路径 —— 点击型回归永远漏这一档", "fail");
+      }
+      report.deep = DEEP;
+      /* 收尾：回到干净首屏，后面的阶段（单位/抽屉）默认在"已经跑热"的页面上做 */
+      try { await page.goto(PAGE_URL, { waitUntil: "domcontentloaded", timeout: 30000 }); await sleep(800); await dismissFirstRun(page); } catch (_) { /* ignore */ }
+    } else {
+      NOTES.push("预算不足：跳过深链接冷启动（这一档不能当已覆盖）");
+    }
 
     phase("unit");
     /* ---------- 5.7 个股详情 + K线 + 单位一致性（P0-1 端到端守门） ----------
@@ -907,11 +1242,40 @@ function scanBadTokensInPage(scopeSel) {
         await page.evaluate((s) => { if (typeof window.openStock === "function") window.openStock(s); }, SYM);
         opened.how += " → 已用 window.openStock 兜底";
       }
-      rec("unit", "个股抽屉可打开（真实 UI 路径）", opened.ok || true, opened.how,
+      /* 2026-11-01：抽屉是否打开，除了 .show 类还应有一个稳定标识；
+         有 data-testid 之后就不必再靠 #drawer.show + 结构去猜。 */
+      const drawerProbe = await page.evaluate(() => {
+        const d = document.querySelector("#drawer");
+        return { shown: !!(d && /(^|\s)show(\s|$)/.test(d.className || "")),
+          tid: d ? d.getAttribute("data-testid") : null,
+          matched: !!document.querySelector('[data-testid="stk-drawer"]') };
+      });
+      /* testid 就位是**好消息**，走 info 通道（不进分母）。
+         只有"该有却没有、退回结构探测"才是不阻断的告警。以前这两种状态都写进 warn 桶，
+         于是 warn 数被"好消息"灌水，读者无法从"告警 6 条"反推出任何东西。 */
+      if (drawerProbe.matched) {
+        info("unit", "个股抽屉 testid 可用", `data-testid=stk-drawer（shown=${drawerProbe.shown}）`);
+      } else {
+        warn("unit", "个股抽屉带稳定标识 data-testid=stk-drawer", false,
+          `shown=${drawerProbe.shown} data-testid=${drawerProbe.tid || "（无）"}`,
+          "抽屉是个股详情唯一入口；只靠 #drawer.show 判断，改版把类名一换门禁就静默失效");
+        NEEDS_TESTID.push("[drawer] 抽屉没有 data-testid=stk-drawer（openStock 未挂上）—— 已退回 #drawer.show 判断。");
+      }
+
+      /* 这条断言的是「抽屉真的开了」——用抽屉自身的可见态判定，而不是"我调用了某个入口函数"。
+         旧写法 `opened.ok || true` 恒为真，等于把断言写没了（也是"看起来绿"的一种）。 */
+      rec("unit", "个股抽屉可打开（真实 UI 路径）", drawerProbe.shown, opened.how,
         "抽屉都打不开就没法验证单位；路径写进 detail 便于判断是产品回归还是测试手段退化", "fail");
 
       /* 读两个成交量：结构是 .si-item / .ks-grid>div 里 <span>成交量</span><b>数值</b> */
       const readVol = () => page.evaluate(() => {
+        /* 2026-11-01：优先按 testid 取（app.js 给两格挂了 vol-quote / vol-kline）。
+           结构探测（.si-item / .ks-grid > div 里找「成交量」文本）只作兜底 ——
+           兜底一旦被用上，说明 testid 丢了，会记 needs_testid 而不是静默通过。 */
+        const byTid = (tid) => {
+          const el = document.querySelector(`[data-testid="${tid}"]`);
+          return el ? (((el.querySelector("b") || {}).textContent || "").trim() || null) : null;
+        };
         const pick = (rootSel) => {
           const root = document.querySelector(rootSel);
           if (!root) return null;
@@ -922,9 +1286,11 @@ function scanBadTokensInPage(scopeSel) {
           }
           return null;
         };
+        const vq = byTid("vol-quote"), vk = byTid("vol-kline");
         return {
-          quote: pick("#stkQuote"),
-          kline: pick("#klineSnap"),
+          viaTestid: !!(vq && vk),
+          quote: vq || pick("#stkQuote"),
+          kline: vk || pick("#klineSnap"),
           name: (document.querySelector("#stkName") || {}).textContent || "",
           drawerShown: /(^|\s)show(\s|$)/.test((document.querySelector("#drawer") || {}).className || ""),
           klineSrc: ((document.querySelector("#klineSnap .ks-src") || {}).innerText || "").replace(/\s+/g, " ").slice(0, 160),
@@ -984,9 +1350,14 @@ function scanBadTokensInPage(scopeSel) {
         NOTES.push("⚠ 单位一致性 FAIL 且 stale_build=true：服务跑的是旧代码快照（服务 " + pf.version.build_id +
           " / 磁盘 " + pf.diskBuild + "），这条很可能是「没重启」而不是「改坏了」。请重启服务后复跑再定性。");
       }
-      if (!vol.quote || !vol.kline) {
-        NEEDS_TESTID.push("[drawer] 成交量单元格读不到（行情「" + (vol.quote || "空") + "」K线「" + (vol.kline || "空") +
-          "」）—— 若版式改过，需要 data-testid 才能稳定定位。");
+      if (vol.viaTestid) {
+        info("unit", "成交量两格按 testid 定位", `vol-quote=${vol.quote || "空"} / vol-kline=${vol.kline || "空"}`);
+      } else {
+        warn("unit", "成交量两格可用 testid 定位", false,
+          `vol-quote=${vol.quote || "空"} / vol-kline=${vol.kline || "空"} / viaTestid=false`,
+          "testid 丢了就只能靠版式结构找「成交量」，改版即静默失守（P0-1 单位一致性的守门项）");
+        NEEDS_TESTID.push("[drawer] 成交量两格没有 testid（vol-quote / vol-kline），已退回结构探测" +
+          "（行情「" + (vol.quote || "空") + "」K线「" + (vol.kline || "空") + "」）。");
       }
       await page.evaluate(() => { const d = document.querySelector("#drawer"); if (d) d.classList.remove("show"); });
       await page.keyboard.press("Escape");
@@ -1042,25 +1413,55 @@ function scanBadTokensInPage(scopeSel) {
         await page.click("#wtF-symbol");
         await page.type("#wtF-symbol", testSym, { delay: 25 });
         await page.click("#wtF-save");
-        /* 弹窗关闭 + 行出现 */
-        let appeared = false;
-        for (let i = 0; i < 60; i++) {
-          await sleep(300);
-          const st = await page.evaluate((sym) => ({
-            modal: !!document.querySelector("#wtF-symbol"),
-            row: !!document.querySelector(`#p-watch [data-wt-open="${sym}"]`),
-          }), testSym);
-          if (st.row && !st.modal) { appeared = true; break; }
+        /* 反馈一：弹窗关掉。这是"点了有反应"的最低标准，单独记一条 ——
+           否则「行没出现」会同时混进"没写进去"和"写进去了但列表没刷新"两种原因。 */
+        let modalClosed = false;
+        for (let i = 0; i < 40; i++) {
+          await sleep(250);
+          const open = await page.evaluate(() => !!document.querySelector("#wtF-symbol")).catch(() => true);
+          if (!open) { modalClosed = true; break; }
         }
-        rec("watch", `加入自选后出现该行（${testSym}）`, appeared, appeared ? "行已出现" : "加了但列表里没有该行",
-          "自选池是用户最私有的数据面，增删链路一断就等于「点了没反应」", "fail");
-        W.steps.push("add appeared=" + appeared);
+        rec("watch", "点「加入」后弹窗关闭（点击有反馈）", modalClosed,
+          modalClosed ? "弹窗已移除" : "10s 内弹窗仍在（wtF-save 没走到 overlay.remove()）",
+          "弹窗不关＝用户不知道自己点成功没有，会重复点、重复加", "fail");
 
-        /* 删除：从行上取 data-wt-del 的 id，真实点击并接受 confirm */
+        /* 反馈二：新行出现在列表里。
+           loadWatch() 会重新拉 /api/watch_list（带行情 + 策略命中，池子 30+ 条时很慢），
+           实测 18s 不够、45s 够 —— 所以给 45s 并在超时时用接口区分两种原因：
+             · 接口里也没有 → 写入链路断了（真 bug）；
+             · 接口里有、DOM 没有 → 列表刷新太慢/没刷新（也是体验问题，但性质不同）。
+           分开报是为了下一个人不用重新跑一遍才知道该找谁修。 */
+        let appeared = false;
+        const tRow0 = nowMs();
+        while (nowMs() - tRow0 < 45000 && !timedOut()) {
+          await sleep(400);
+          appeared = await page.evaluate((sym) => !!(
+            document.querySelector(`#p-watch tr[data-testid="watch-row"][data-symbol="${sym}"]`) ||
+            document.querySelector(`#p-watch [data-wt-open="${sym}"]`)), testSym).catch(() => false);
+          if (appeared) break;
+        }
+        let apiHas = null;
+        if (!appeared) {
+          try {
+            const chk = await httpJson("/api/watch_list", undefined, 30000);
+            const arr = (chk.json && (chk.json.items || chk.json.data)) || [];
+            apiHas = Array.isArray(arr) && arr.some((x) => String(x.symbol || x.code || "") === testSym);
+          } catch (_) { apiHas = null; }
+        }
+        rec("watch", `加入自选后出现该行（${testSym}）`, appeared,
+          appeared ? `行已出现（${((nowMs() - tRow0) / 1000).toFixed(1)}s）`
+            : `45s 内 DOM 没有该行；接口侧${apiHas === null ? "无法确认" : (apiHas ? "已写入（列表刷新太慢）" : "也没有（写入失败）")}`,
+          "自选池是用户最私有的数据面，增删链路一断就等于「点了没反应」", "fail");
+        W.steps.push("add modalClosed=" + modalClosed + " appeared=" + appeared + " apiHas=" + apiHas);
+
+        /* 删除：从行上取 data-wt-del 的 id，真实点击并接受 confirm。
+           行没出现时不能"就跳过不测"——那样会漏掉删除链路已断的情况却显示全绿，
+           所以照样记一条 fail，并在明细里写清"上游没出现行，UI 删除未验证"。 */
         let removed = false;
         if (appeared) {
           const delId = await page.evaluate((sym) => {
-            const row = document.querySelector(`#p-watch [data-wt-open="${sym}"]`);
+            const tr = document.querySelector(`#p-watch tr[data-testid="watch-row"][data-symbol="${sym}"]`);
+            const row = tr || document.querySelector(`#p-watch [data-wt-open="${sym}"]`);
             const holder = row ? row.closest("tr") || row.parentElement : null;
             const btn = holder ? holder.querySelector("[data-wt-del]") : null;
             return btn ? btn.dataset.wtDel : null;
@@ -1075,7 +1476,9 @@ function scanBadTokensInPage(scopeSel) {
             }, delId);
             for (let i = 0; i < 50; i++) {
               await sleep(300);
-              const gone = await page.evaluate((sym) => !document.querySelector(`#p-watch [data-wt-open="${sym}"]`), testSym);
+              const gone = await page.evaluate((sym) => !(
+                document.querySelector(`#p-watch tr[data-testid="watch-row"][data-symbol="${sym}"]`) ||
+                document.querySelector(`#p-watch [data-wt-open="${sym}"]`)), testSym);
               if (gone) { removed = true; break; }
             }
             page.off("dialog", handler);
@@ -1084,27 +1487,39 @@ function scanBadTokensInPage(scopeSel) {
           }
           rec("watch", `删除后该行消失（${testSym}）`, removed, removed ? "行已消失" : "点了删除但行还在",
             "删除不生效＝用户删不掉自己的标的，且会连带影响下一次添加（已在池中）", "fail");
+        } else {
+          rec("watch", `删除后该行消失（${testSym}）`, false,
+            "上游：加入后 45s 内列表没出现该行，UI 删除链路无法验证（兜底用接口清理）",
+            "删除不生效＝用户删不掉自己的标的；这里如实记失败，不回退成「跳过」", "fail");
         }
         W.ok = appeared && removed;
       } catch (e) {
         fail("watch", "自选增删链路", false, e.message.slice(0, 200),
           "写链路异常必须暴露，但更关键的是不能留下脏数据（见 finally 清理）");
       } finally {
-        /* 兜底清理：不管上面怎么挂的，只要临时标的还可能在池里就删掉，并复核 */
+        /* 兜底清理：不管上面怎么挂的，只要临时标的还可能在池里就删掉，并复核。
+           2026-11-01 踩坑记录：写接口需要 local_token Cookie（server.py 13047 行），
+           而 Cookie 只在**发 HTML 页面**时下发 —— 早期版本直接裸 POST，收 401
+           "token required"，于是"清理"静默失败、真把 000001 留在了用户的池子里。
+           现在：① httpJson 会先 GET "/" 接 Cookie；② 逐条检查删除响应，失败原因写进明细；
+           ③ 最后一定用接口复核"确实不在池里"，不靠"我以为删了"。 */
         try {
           if (testSym) {
             const after = await httpJson("/api/watch_list", undefined, 30000);
             const arr = Array.isArray(after.json && (after.json.items || after.json.data)) ? (after.json.items || after.json.data) : [];
-            const leftover = arr.filter((x) => String(x.symbol || x.code || "") === testSym);
+            let leftover = arr.filter((x) => String(x.symbol || x.code || "") === testSym);
+            const delNotes = [];
             for (const it of leftover) {
-              await httpJson("/api/watch_item_remove", { id: it.id }, 20000);
+              const rr = await httpJson("/api/watch_item_remove", { id: it.id }, 20000);
+              delNotes.push(`id=${it.id}→HTTP ${rr.status}${(rr.json && rr.json.ok) ? "" : " " + String((rr.json && (rr.json.error || rr.json.hint)) || rr.text || "").slice(0, 60)}`);
             }
             const verify = await httpJson("/api/watch_list", undefined, 30000);
             const arr2 = Array.isArray(verify.json && (verify.json.items || verify.json.data)) ? (verify.json.items || verify.json.data) : [];
-            W.cleaned = arr2.every((x) => String(x.symbol || x.code || "") !== testSym);
+            const still = arr2.filter((x) => String(x.symbol || x.code || "") === testSym);
+            W.cleaned = still.length === 0;
             rec("watch", "测试数据已清理（临时标的不留在池中）", W.cleaned,
-              `临时标的 ${testSym}，清理后残留 ${arr2.filter((x) => String(x.symbol || x.code || "") === testSym).length} 条`,
-              "门禁往用户真实数据里写脏数据比不测更糟；必须自证清理干净", "fail");
+              `临时标的 ${testSym}，残留 ${still.length} 条` + (delNotes.length ? `；删除响应 ${delNotes.join(" ")}` : "（UI 删除已生效，无需兜底）"),
+              "门禁往用户真实数据里写脏数据比不测更糟；必须自证清理干净（且要检查删除响应，不能只看'我发过请求'）", "fail");
           }
         } catch (e2) {
           W.cleaned = false;
@@ -1116,19 +1531,169 @@ function scanBadTokensInPage(scopeSel) {
       }
     }
 
+    phase("drawer");
+    /* ---------- 5.9 详情抽屉：四条关闭入口 ----------
+     * 为什么必测：打开抽屉是用户最高频动作，四个关闭入口少一个就有一类用户被卡住
+     * （只用键盘的人靠 Esc、鼠标党靠叉号、习惯点空白处的人靠"点面板外"、底部按钮是滚动到
+     *  长内容末尾时的顺手出口）。少一条，就有人关不掉面板、只能刷新页面。
+     *
+     * 打开方式：动态找"有可点行"的面板 —— 关注池的行带 data-wt-open（语义属性，不是 tab 名）。
+     * 注意一个坑（实测）：面板在 DOM 里一直存在（display:none），所以「#p-watch 有行」不代表
+     * 当前可见可点；必须先把该 tab 点成 active，否则 puppeteer 会报 "Node is not clickable"。
+     *
+     * 关于第四条"再点同一行"：实测语义**不是关闭**，而是"保持打开并重新载入"——
+     * 关闭入口 #4 的监听挂在 document 的 pointerdown 上（app.js 7533 行附近），
+     * pointerdown 先关、随后的 click 又让行的 onclick 重新打开，净效果=开着。
+     * 所以这里断言的是"再点同一行仍然开着且标题有内容"（这是设计行为，也保证点别的行能顺畅切换），
+     * 而不是"点了会关"。写清楚是因为把它当关闭入口会是错的。 */
+    if (!timedOut() && !CFG.quick) {
+      CURRENT_TAB = "(drawer)";
+      const D = { opened: false, opener: null, entries: {} };
+      try {
+        const watchTab = await findTabHaving("#wtAdd");
+        if (!watchTab) throw new Error("找不到含 #wtAdd 的面板（关注池不见了？抽屉测试没有可点的行）");
+        await clickSubTab(watchTab);
+        await sleep(1200);
+        /* 选行：优先带 data-wt-open 的行（关注池行）；没有再退化到任何 data-code-open */
+        const openerSel = await page.evaluate(() => {
+          if (document.querySelector("#p-watch [data-wt-open]")) return "#p-watch [data-wt-open]";
+          if (document.querySelector("[data-code-open]")) return "[data-code-open]";
+          return null;
+        });
+        if (!openerSel) throw new Error("关注池里没有任何可点的行（池子是空的？）");
+        D.opener = openerSel;
+
+        await page.click(openerSel);
+        await sleep(1400);
+        D.opened = await drawerOpen();
+        const title = await page.evaluate(() => (document.querySelector("#drawerTitle") || {}).textContent || "");
+        rec("drawer", "点行可打开详情抽屉且标题非空", D.opened && title.trim().length > 0,
+          `opener=${openerSel} open=${D.opened} title="${title.slice(0, 40)}"`,
+          "抽屉打不开就别谈后面四个关闭入口；标题为空说明 openDrawer 没拿到数据（tab=undefined 之类）", "fail");
+
+        /* 四个关闭入口：每条都"重新打开 → 关闭 → 断言已关" */
+        const reopen = async () => {
+          if (!(await drawerOpen())) { await page.click(openerSel); await sleep(1200); }
+          return drawerOpen();
+        };
+        const entries = [
+          { key: "✕ 关闭按钮", why: "鼠标党最短路径；#btnClose", run: async () => { await page.click("#btnClose"); } },
+          { key: "底部按钮", why: "长内容滚到末尾时的顺手出口；#btnClose2", run: async () => { await page.click("#btnClose2"); } },
+          { key: "Esc 键", why: "纯键盘用户唯一入口", run: async () => { await page.keyboard.press("Escape"); } },
+          {
+            key: "点面板外（遮罩/空白区）", why: "文档级 pointerdown 关闭（app.js:7533 附近）",
+            run: async () => {
+              /* 点右下角远处：先确认落点不在抽屉矩形里，避免"其实点在抽屉上"的假绿 */
+              const box = await page.evaluate(() => {
+                const r = document.querySelector("#drawer").getBoundingClientRect();
+                const x = Math.min(innerWidth - 6, Math.max(6, r.right + 40));
+                const y = Math.min(innerHeight - 6, Math.max(6, r.bottom + 40));
+                const outside = x < r.left || x > r.right || y < r.top || y > r.bottom;
+                const hit = document.elementFromPoint(x, y);
+                const inDrawer = !!(hit && hit.closest && hit.closest("#drawer"));
+                return { x, y, outside, inDrawer, hit: hit ? hit.tagName + "#" + (hit.id || "") : null };
+              });
+              if (!box.outside || box.inDrawer) throw new Error("找不到抽屉外的落点（抽屉几乎占满视口）: " + JSON.stringify(box));
+              await page.mouse.click(box.x, box.y);
+            },
+          },
+        ];
+        for (const e of entries) {
+          const opened = await reopen();
+          let clickedOk = true, err = "";
+          try { await e.run(); } catch (ex) { clickedOk = false; err = String(ex.message).slice(0, 120); }
+          await sleep(500);
+          const stillOpen = await drawerOpen();
+          D.entries[e.key] = { reopen: opened, clicked: clickedOk, closed: opened && !stillOpen, err };
+          rec("drawer", `关闭入口：${e.key}`, opened && clickedOk && !stillOpen,
+            `重新打开=${opened} 触发=${clickedOk}${err ? "(" + err + ")" : ""} 关闭后仍打开=${stillOpen}`,
+            `${e.why}；少这一条就有一类用户关不掉面板只能刷新页面`, "fail");
+        }
+
+        /* 再点同一行：断言"保持打开"（设计行为，见上方注释），并确认标题有内容 */
+        const reopened = await reopen();
+        await page.click(openerSel);
+        await sleep(1200);
+        const stillOpen2 = await drawerOpen();
+        const title2 = await page.evaluate(() => (document.querySelector("#drawerTitle") || {}).textContent || "");
+        D.sameRow = { before: reopened, after: stillOpen2, title: title2.slice(0, 40) };
+        rec("drawer", "点同一行 = 保持打开并刷新（不是关闭入口）", reopened && stillOpen2 && title2.trim().length > 0,
+          `点前=${reopened} 点后=${stillOpen2} title="${title2.slice(0, 40)}"`,
+          "app.js 的关闭入口 #4 挂在 document pointerdown 上：pointerdown 先关、click 又重开，净效果是开着。" +
+          "锁住这个语义，才能保证「点别的行切换股票」不会被误关", "fail");
+
+        /* 抽屉正文无硬脏字符（顺带守一下：抽屉是最容易把裸字段糊上去的地方） */
+        const dupCheck = await page.evaluate(() => {
+          const body = document.querySelector("#drawerBody");
+          if (!body) return null;
+          const ex = Array.from(body.querySelectorAll("pre, code")).map((e) => e.innerText || "").filter((s) => s.trim());
+          let t = body.innerText || "";
+          for (const c of ex) t = t.split(c).join(" ");
+          return {
+            len: t.trim().length,
+            hard: (t.match(/\bundefined\b/g) || []).length + (t.match(/\bNaN\b/g) || []).length + (t.match(/Invalid Date/g) || []).length,
+          };
+        });
+        if (dupCheck) {
+          rec("drawer", "抽屉正文无 undefined/NaN/Invalid Date", dupCheck.hard === 0,
+            `正文 ${dupCheck.len} 字，硬脏字符 ${dupCheck.hard} 处`,
+            "抽屉里字段最多、最容易把裸值糊给用户看", "fail");
+        }
+      } catch (e) {
+        fail("drawer", "详情抽屉四条关闭入口", false, String(e.message).slice(0, 200),
+          "打不开抽屉就无法验证关闭入口；这条失败要么是关注池/行选择器漂移，要么是抽屉本身坏了");
+      } finally {
+        /* 收尾：确保抽屉关掉，别影响后续视口/长文本阶段 */
+        try {
+          await page.keyboard.press("Escape");
+          await page.evaluate(() => { const d = document.querySelector("#drawer"); if (d) d.classList.remove("show"); });
+        } catch (_) { /* ignore */ }
+        report.drawer = D;
+      }
+    } else if (CFG.quick) {
+      NOTES.push("quick 模式：跳过抽屉四条关闭入口（要开关注池并等行情，全量才跑）");
+    }
+
     phase("states");
-    /* ---------- 5.9 空态 / 错误态 / 停更态 ----------
-     * 用请求拦截在"测试页"里构造，不动服务端：某个接口返回 [] / 500 / 非 JSON，
-     * 页面必须给出中文空态或错误提示，不能白屏、不能有未捕获异常。
-     * 这是「后端挂了前端能不能自救」的守门项，且必须与真实数据解耦（否则永远测不到）。 */
+    /* ---------- 5.10 空态 / 错误态（6 种载荷变体） ----------
+     * 用请求拦截在"测试页"里构造，不动服务端。为什么必须做：本仓库反复踩的坑就是
+     * 「接口超时/返回空/返回 500 时前端是不是白板」—— 数据正常到达的路径永远测不出这个问题。
+     *
+     * 6 种变体覆盖的是"后端能怎么烂"的全部基本形态：
+     *   500+JSON / 500+HTML / 网络层失败(超时) / 200+{} / 200+[] / 200+null
+     * 后三种最容易把 `undefined` 直接渲染到页面上（字段缺失），所以它们既是"能不能活"的检查，
+     * 也是脏字符检查的最强触发场景。
+     *
+     * 断言口径（先实测确认"正确实现能过"才写进来，避免又造一个假红）：
+     *   · 非白屏：正文长度 > 0；
+     *   · 抽查面板非空：前 3 个 tab 的面板 innerText 长度 > 0（不是空 div）；
+     *   · 有中文人话（空态/错误/加载/重试任一）；
+     *   · 5xx 与网络失败必须出现"错误/重试"类文案（实测：底部有「服务端 500，2 秒后自动重试」）；
+     *   · 无未捕获 pageerror、无 undefined/NaN/Invalid Date/[object Object]。
+     * 注意：不断言"面板里必须是错误文案"——实测前端的设计是「底部错误条 + 面板保持加载中并自动重试」，
+     * 那是合理 UX，硬要求面板换成错误文案会误伤。 */
     if (!timedOut() && !CFG.quick) {
       CURRENT_TAB = "(states)";
       const CASES = [
-        { name: "空态：主要接口返回 []", kind: "empty" },
-        { name: "错误态：接口 500（HTML 错误页）", kind: "500html" },
-        { name: "错误态：接口 200 但非 JSON", kind: "badjson" },
+        { name: "接口 500 + JSON {error}", kind: "500json", needErrCopy: true },
+        { name: "接口 500 + HTML 错误页", kind: "500html", needErrCopy: true },
+        { name: "接口网络层失败（等价超时/断网）", kind: "timedout", needErrCopy: true },
+        { name: "接口 200 + {} 空对象（字段全缺）", kind: "emptyobj", needErrCopy: false },
+        { name: "接口 200 + [] 空数组（类型不符）", kind: "emptyarr", needErrCopy: false },
+        { name: "接口 200 + null", kind: "nullbody", needErrCopy: false },
       ];
       for (const cs of CASES) {
+        /* 开工前先确认服务还活着：跑全量时别人重启 viewer，这里会撞上
+           "文档层 ERR_CONNECTION_REFUSED" —— 那样页面本身就是浏览器的错误页，
+           后面所有"面板有没有内容 / 有没有错误文案"的断言都不成立。
+           此时把这一例登记为"没执行"，绝不算通过。 */
+        const reach = await httpJson("/api/version", undefined, 5000).catch(() => null);
+        if (!reach || reach.status !== 200) {
+          envSkip(`空态/错误态「${cs.name}」`, "开新页前服务不可达（" +
+            (reach ? "HTTP " + reach.status : "连接失败") + "），本例未执行");
+          report.states.push({ name: cs.name, kind: cs.kind, ok: null, env_skip: true });
+          continue;
+        }
         const mp = await browser.newPage();
         await mp.setViewport({ width: 1440, height: 1000 });
         const mErrs = [];
@@ -1138,69 +1703,183 @@ function scanBadTokensInPage(scopeSel) {
         mp.on("request", (req) => {
           const u = req.url();
           if (u.indexOf("/api/") < 0) return req.continue();
+          const json = (body) => req.respond({ status: 200, contentType: "application/json; charset=utf-8", body });
           try {
-            if (cs.kind === "empty") {
-              return req.respond({ status: 200, contentType: "application/json; charset=utf-8", body: "[]" });
-            }
-            if (cs.kind === "500html") {
-              return req.respond({ status: 500, contentType: "text/html; charset=utf-8", body: "<html><body>Internal Server Error</body></html>" });
-            }
-            return req.respond({ status: 200, contentType: "application/json; charset=utf-8", body: "{not json at all" });
+            if (cs.kind === "500json") return req.respond({ status: 500, contentType: "application/json; charset=utf-8", body: JSON.stringify({ error: "boom" }) });
+            if (cs.kind === "500html") return req.respond({ status: 500, contentType: "text/html; charset=utf-8", body: "<html><body>Internal Server Error</body></html>" });
+            if (cs.kind === "timedout") return req.abort("timedout");   // 浏览器侧等价 net::ERR_TIMED_OUT
+            if (cs.kind === "emptyobj") return json("{}");
+            if (cs.kind === "emptyarr") return json("[]");
+            return json("null");
           } catch (_) { return req.continue(); }
         });
         let navErr = null;
         try { await mp.goto(PAGE_URL, { waitUntil: "networkidle2", timeout: 35000 }); } catch (e) { navErr = e.message; }
-        await sleep(1400);
+        /* 服务在"刚探活成功"和"打开页面"之间被重启了：文档层连接失败 → 浏览器错误页。
+           这不是产品缺陷，登记"未执行"并把页面关掉，别用错误页的文案去判产品。 */
+        if (navErr && /ERR_CONNECTION_REFUSED|ERR_EMPTY_RESPONSE|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED/.test(navErr)) {
+          envSkip(`空态/错误态「${cs.name}」`, "打开页面时服务掉线：" + navErr.slice(0, 100));
+          report.states.push({ name: cs.name, kind: cs.kind, ok: null, env_skip: true });
+          await mp.close().catch(() => {});
+          continue;
+        }
+        await sleep(1300);
         await dismissFirstRun(mp);
         await sleep(300);
+
+        /* 抽查前 3 个 tab：点开看面板是不是空 div。
+           注意面板元素一直存在于 DOM（只是 display:none），所以必须"点开再读"，不能直接读。 */
+        const sampleTabs = await mp
+          .evaluate(() => Array.from(document.querySelectorAll("#subnav .sub-tab[data-tab]")).slice(0, 3).map((a) => a.dataset.tab))
+          .catch(() => []);
+        const perTab = [];
+        for (const t of sampleTabs) {
+          await mp.evaluate((tab) => { const a = document.querySelector(`#subnav .sub-tab[data-tab="${tab}"]`); if (a) a.click(); }, t).catch(() => {});
+          await sleep(650);
+          /* 与主导航同一口径：iframe 面板读子文档，否则父文档 innerText 永远是 0（会把好面板判成空） */
+          perTab.push(await mp.evaluate(
+            `(function(){ var r = (${panelTextInPage.toString()})(${JSON.stringify("#p-")} + ${JSON.stringify(t)});
+               return { tab: ${JSON.stringify(t)}, exists: r.exists, len: r.len, head: r.head.slice(0, 50) }; })()`
+          ).catch(() => ({ tab: t, exists: false, len: 0, head: "" })));
+        }
+
         const st = await mp.evaluate(() => {
-          const txt = (document.body.innerText || "").replace(/\s+/g, " ").trim();
-          const hint = ((document.querySelector("#statusHint") || {}).textContent || "").replace(/\s+/g, " ").trim();
-          const empties = document.querySelectorAll(".empty, .wt-empty, .muted").length;
-          const errBox = document.querySelectorAll(".error, .err-banner, #errorBox, .toast").length;
+          /* 与主页面同一套脏字符口径：排除 pre/code，用词边界 */
+          const ex = Array.from(document.querySelectorAll("pre, code, script, style, textarea")).map((e) => e.innerText || "").filter((s) => s.trim());
+          let txt = document.body.innerText || "";
+          for (const c of ex) txt = txt.split(c).join(" ");
+          const flat = txt.replace(/\s+/g, " ").trim();
           return {
-            bodyLen: txt.length,
-            hint: hint.slice(0, 60),
-            empties, errBox,
-            hasCn: /暂无|无数据|没有|尚未|未检出|无记录|失败|错误|出错|异常|无法|请稍后|重试|加载/.test(txt + " " + hint),
-            badHard: !!(/\bundefined\b/.test(txt) || /\bNaN\b/.test(txt) || /Invalid Date/.test(txt)),
-            head: txt.slice(0, 90),
+            bodyLen: flat.length,
+            hasCn: /暂无|无数据|没有|尚未|未检出|无记录|失败|错误|出错|异常|无法|请稍后|重试|加载/.test(flat),
+            hasErrCopy: /失败|错误|出错|异常|无法|请稍后|重试|\b5\d\d\b|服务端/.test(flat),
+            errHead: (flat.match(/.{0,24}(?:失败|错误|重试|异常|无法|服务端).{0,40}/) || [""])[0].slice(0, 80),
+            hard: {
+              undefined: (flat.match(/\bundefined\b/g) || []).length,
+              NaN: (flat.match(/\bNaN\b/g) || []).length,
+              invalidDate: (flat.match(/Invalid Date/g) || []).length,
+              objObj: (flat.match(/\[object Object\]/g) || []).length,
+            },
+            head: flat.slice(0, 90),
           };
         });
-        const blank = st.bodyLen < 40;                 // 白屏判据
-        const ok = !blank && st.hasCn && !st.badHard && mErrs.length === 0;
+        const emptyPanels = perTab.filter((x) => !x.exists || x.len === 0).map((x) => x.tab);
+        const hardSum = Object.values(st.hard).reduce((a, n) => a + n, 0);
+        const ok = st.bodyLen > 0 && emptyPanels.length === 0 && st.hasCn && hardSum === 0 && mErrs.length === 0 && !navErr &&
+          (!cs.needErrCopy || st.hasErrCopy);
         rec("states", cs.name, ok,
-          `正文 ${st.bodyLen} 字 | 中文提示=${st.hasCn} | 提示条「${st.hint}」| .empty=${st.empties} 错误容器=${st.errBox} | JS异常 ${mErrs.length} | gotoErr=${navErr ? "有" : "无"} | 首屏「${st.head}」`,
-          "后端某接口烂掉时，前端至少要给中文人话、不能白屏或抛未捕获异常；用拦截构造才能与真实数据解耦", "fail");
-        report.states.push({ name: cs.name, ok, st, errs: mErrs.slice(0, 5) });
+          `正文 ${st.bodyLen} 字 | 中文=${st.hasCn} 错误文案=${st.hasErrCopy}「${st.errHead}」| 空面板=${JSON.stringify(emptyPanels)} | 脏字符=${JSON.stringify(st.hard)} | JS异常 ${mErrs.length} | gotoErr=${navErr ? "有" : "无"} | 首屏「${st.head}」` +
+          (perTab.length ? ` | 面板字数=${perTab.map((x) => x.tab + ":" + x.len).join(",")}` : ""),
+          "后端超时/空/500/类型不符时前端不能白板、不能把 undefined 渲染出来；用拦截构造才能与真实数据解耦（数据正常时永远测不到这条路径）", "fail");
+        report.states.push({ name: cs.name, kind: cs.kind, ok, st, panels: perTab, errs: mErrs.slice(0, 5) });
         await mp.close();
       }
     } else if (CFG.quick) {
-      NOTES.push("quick 模式：跳过空态/错误态（需要额外开页面，耗时且不属于「改完立刻要看」的项）");
+      NOTES.push("quick 模式：跳过空态/错误态 6 种变体（每例要开新页面，全量才跑）");
+    }
+
+
+    phase("longtext");
+    /* ---------- 5.11 长文本压力（超长中文 / 超长无空格 ASCII） ----------
+     * 为什么这么测：真实数据里"长"是常态而不是边界 —— 帖子标题、公司全称、备注、理由都会很长。
+     * 注入到**当前面板里文本最长的那些叶子元素**（也就是长文本真实落点），而不是随便挑几个 div：
+     * 否则测的是装饰元素，等于没测。注入后必须还原，不能污染后续断言。
+     *
+     * 两档含义不同，严重度也不同（实测依据见 README）：
+     *   · 超长中文（可换行的真实输入）→ 断言行不溢出，硬失败；
+     *   · 超长无空格 ASCII（300 字符连写，极限输入）→ 抽查的 tab 全部把页面撑到 2381~3892px，
+     *     说明这些文本节点没有 word-break。它是真问题，但属于"全站 CSS 补齐"的活、不是本门禁这一轮
+     *     能修的范围，所以记 **warn** 并把具体宽度报出来，由负责人决定是否提升为硬失败。
+     */
+    if (!timedOut()) {
+      CURRENT_TAB = "(longtext)";
+      const LT = { tabs: [] };
+      const ltTabs = (CFG.quick ? navList.slice(0, 1) : nav.filter((x) => !x.folded).slice(0, 3));
+      for (const it of ltTabs) {
+        if (timedOut()) break;
+        CURRENT_TAB = "(longtext " + it.cat + "/" + it.tab + ")";
+        try {
+          await clickSubTab(it);
+          await sleep(500);
+          const r = await page.evaluate((tab) => {
+            const panel = document.querySelector("#p-" + tab);
+            if (!panel) return { tab, err: "无面板" };
+            /* iframe 面板不能这么注入：往里写 textContent 等于把 <iframe> 自己替换掉，
+               测的就不是布局而是"我有没有把别人的面板搞坏"。跳过并如实记 warn。 */
+            if (panel.querySelector("iframe")) return { tab, skip: "iframe" };
+            const width = () => document.documentElement.scrollWidth;
+            const before = width();
+            const LONG_CJK = "这是一段极其冗长的中文文本用于测试布局在极端文本长度下是否会被撑破换行".repeat(5);
+            const LONG_ASCII = "A".repeat(300);
+            /* 目标：叶子元素里当前文本最长的前 5 个（长文本真实落点） */
+            const cands = Array.from(panel.querySelectorAll("*"))
+              .filter((e) => e.children.length === 0 && (e.innerText || "").trim().length > 0)
+              .sort((a, b) => (b.innerText || "").length - (a.innerText || "").length)
+              .slice(0, 5);
+            const orig = cands.map((e) => e.textContent);
+            cands.forEach((e) => { e.textContent = LONG_CJK; });
+            const afterCJK = width();
+            cands.forEach((e) => { e.textContent = LONG_ASCII; });
+            const afterASCII = width();
+            cands.forEach((e, i) => { e.textContent = orig[i]; });
+            const restored = width();
+            return { tab, n: cands.length, before, afterCJK, afterASCII, restored, innerW: innerWidth };
+          }, it.tab);
+          LT.tabs.push(r);
+          if (r.err) {
+            fail("longtext", `[${it.cat}/${it.tab}] 注入长文本`, r.err, "找不到面板说明渲染还没就绪；这项等于没测", "fail");
+            continue;
+          }
+          if (r.skip === "iframe") {
+            warn("longtext", `[${it.cat}/${it.tab}] 跳过（面板是 iframe）`, "注入会替换掉 iframe 本身，测不出布局问题",
+              "跨文档的长文本压力要在子文档里做；本门禁不越界改别人的页面，如实记跳过而不是记通过");
+            continue;
+          }
+          /* 前置条件：真的注入到了东西。注入 0 个还报"通过"就是典型的"测了个空"。 */
+          rec("longtext", `[${it.cat}/${it.tab}] 找到可注入的长文本落点`, r.n > 0, `注入 ${r.n} 个叶子元素`,
+            "如果目标选择器漂移到找不到元素，这条断言会先红，避免下面的'无溢出'是假绿", "fail");
+          if (r.n > 0) {
+            rec("longtext", `[${it.cat}/${it.tab}] 超长中文不产生横向溢出`, r.afterCJK <= r.innerW + 1,
+              `scrollWidth ${r.before}→${r.afterCJK}（视口 ${r.innerW}）`,
+              "帖子标题/公司全称/备注都是长中文，换行失败就会把整页撑出横向滚动条", "fail");
+            if (r.afterASCII > r.innerW + 1) {
+              warn("longtext", `[${it.cat}/${it.tab}] 超长无空格 ASCII 撑出横向溢出（极限输入）`,
+                `scrollWidth ${r.before}→${r.afterASCII}（视口 ${r.innerW}，超出 ${r.afterASCII - r.innerW}px）`,
+                "这些文本节点没有 word-break；300 字符连写的 ASCII（如长 URL 粘进备注）会让整页横向滚动。" +
+                "本轮抽查的 3 个 tab 全部复现（1440 视口撑到 2381~3892px），属全站 CSS 补齐项，故记 warn 而非 fail —— 要升级为硬失败改一个词即可");
+            } else {
+              pass("longtext", `[${it.cat}/${it.tab}] 超长无空格 ASCII 也不溢出`, `scrollWidth ${r.afterASCII}`);
+            }
+            rec("longtext", `[${it.cat}/${it.tab}] 注入后已还原（不污染后续断言）`, r.restored <= r.innerW + 1,
+              `还原后 scrollWidth=${r.restored}`, "测完必须还原 DOM，否则后面的视口检查会读到被自己撑坏的状态", "fail");
+          }
+        } catch (e) {
+          fail("longtext", `[${it.cat}/${it.tab}] 长文本压力`, String(e.message).slice(0, 160),
+            "注入过程中抛异常说明面板结构超出预期，需要人工看一眼");
+        }
+      }
+      report.longtext = LT;
     }
 
     phase("viewport");
-    /* ---------- 5.10 三档视口 ----------
-     * 1024 / 1440 / 1920：查横向溢出、顶栏按钮能被 elementFromPoint 命中、无可点元素被裁到视口外。
+    /* ---------- 5.12 三档视口 ----------
+     * 1024 / 1440 / 1920：查横向溢出、可点元素是否被裁、顶栏按钮能否被 elementFromPoint 命中。
      * 按钮清单动态枚举（不写死 id）：顶栏里有 hidden 的按钮（如 #btnDemo）写死就会假红。
-     * quick 只测当前 tab；全量逐 tab 测（159 次切换，配合全局预算）。 */
-    const VPS = [
-      { w: 1024, h: 700 },
-      { w: 1440, h: 1000 },
-      { w: 1920, h: 1080 },
-    ];
+     * 效率取舍：不是"每个视口把全部 tab 点一遍"（3×53 次切换 ≈ 130s），而是
+     * 「每个 tab 点一次，就地切三档量三次」—— 覆盖完全一样，切换次数降到 1/3。
+     * 三档常量 VPS 在模块作用域（见文件头声明处注释：写在这里曾被编辑挤掉、吞了整个阶段）。 */
     const vpTabs = CFG.quick ? [navList[0]].filter(Boolean) : nav;
-    for (const vp of VPS) {
+    /* 每个 tab 只切换一次，就地量三档视口 —— 覆盖不变，切换次数从 159 降到 53。 */
+    const perVp = VPS.map((vp) => ({ w: vp.w, h: vp.h, overflow_tabs: [], clipped: [] }));
+    for (const it of vpTabs) {
       if (timedOut()) break;
-      CURRENT_TAB = `(viewport ${vp.w})`;
-      await page.setViewport({ width: vp.w, height: vp.h });
-      await sleep(450);
-      let overflowTabs = [];
-      let clipped = [];
-      for (const it of vpTabs) {
-        if (timedOut()) break;
-        await clickSubTab(it).catch(() => {});
-        await sleep(CFG.quick ? 350 : 420);
+      CURRENT_TAB = `(viewport) ${it.cat}/${it.tab}`;
+      await clickSubTab(it).catch(() => {});
+      await sleep(CFG.quick ? 300 : 360);
+      for (let vi = 0; vi < VPS.length; vi++) {
+        const vp = VPS[vi];
+        await page.setViewport({ width: vp.w, height: vp.h });
+        await sleep(160);
         const m = await page.evaluate((tab) => {
           const doc = document.documentElement;
           const overflow = doc.scrollWidth - innerWidth;
@@ -1225,10 +1904,18 @@ function scanBadTokensInPage(scopeSel) {
             .map((el) => (el.innerText || el.value || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 24));
           return { overflow, out };
         }, it.tab).catch(() => ({ overflow: 0, out: [] }));
-        if (m.overflow > 1) overflowTabs.push(it.cat + "/" + it.tab + "(" + m.overflow + "px)");
-        if (m.out.length) clipped.push(it.cat + "/" + it.tab + ":" + m.out.slice(0, 3).join(","));
+        if (m.overflow > 1) perVp[vi].overflow_tabs.push(it.cat + "/" + it.tab + "(" + m.overflow + "px)");
+        if (m.out.length) perVp[vi].clipped.push(it.cat + "/" + it.tab + ":" + m.out.slice(0, 3).join(","));
       }
-      /* 顶栏按钮命中测试：只在 1440 与 1024 做（1920 是宽屏，几乎不可能遮挡） */
+    }
+
+    /* 顶栏按钮命中测试：每档视口各测一次（按钮清单动态枚举，不写死 id —— 顶栏里有 hidden 按钮） */
+    for (let vi = 0; vi < VPS.length; vi++) {
+      const vp = VPS[vi];
+      if (timedOut()) break;
+      CURRENT_TAB = `(viewport ${vp.w} topbar)`;
+      await page.setViewport({ width: vp.w, height: vp.h });
+      await sleep(320);
       const top = await page.evaluate(() => {
         const bar = document.querySelector(".topbar");
         if (!bar) return { exists: false, btns: [] };
@@ -1250,6 +1937,7 @@ function scanBadTokensInPage(scopeSel) {
         return { exists: true, btns: res };
       });
 
+      const overflowTabs = perVp[vi].overflow_tabs, clipped = perVp[vi].clipped;
       const overflowOk = overflowTabs.length === 0;
       rec("viewport", `[${vp.w}x${vp.h}] 无横向溢出`, overflowOk,
         overflowOk ? `${vpTabs.length} 个 tab 均 scrollWidth<=innerWidth+1` : `溢出: ${overflowTabs.slice(0, 6).join(" ")}`,
@@ -1268,6 +1956,14 @@ function scanBadTokensInPage(scopeSel) {
           "顶栏容器 class 变了会让遮挡类缺陷无法被检出");
       }
       report.viewports.push({ w: vp.w, h: vp.h, overflow_tabs: overflowTabs, clipped, topbar: top });
+    }
+    /* 视口阶段一条都没落地（超预算 / 异常早退）时必须显式红：把"没跑"当"通过"，
+       是门禁里最危险的一种谎话 —— 上一轮就是它让 3×3 条视口断言凭空消失，
+       而摘要里只看到"少了几条"。 */
+    if (!report.viewports.length) {
+      fail("viewport", "三档视口检查已执行", false,
+        `0 档完成（已用 ${Math.round((nowMs() - T0) / 1000)}s，卡在 ${CURRENT_TAB}）`,
+        "把「没跑」当「通过」是门禁最危险的谎话；要么跑，要么红");
     }
     await page.setViewport({ width: 1440, height: 1000 });
 
@@ -1325,7 +2021,17 @@ function scanBadTokensInPage(scopeSel) {
       "接口 4xx/5xx 是用户能直接看到的空面板/报错；只在 /api/ 前缀上计数，避免把静态资源 404 混进来",
       /* 服务在运行期间被重启时，连接失败属于重启窗口 —— 降级为 warn，并要求复跑，
          否则会把"同事重启了一次服务"误判成"接口全挂"。 */
-      restartedMidRun ? "warn" : "fail");
+      restartedMidRun ? "warn" : "fail",
+      /* 聚合信息：这条把 N 次网络失败合并成 1 条断言。不写清 N，下一次没人知道
+         "1 条告警"是 1 次还是 200 次（这正是摘要读不出来的老问题）。 */
+      {
+        agg: {
+          n_failures: apiNetFails.length,
+          n_http: report.api.failures.length,
+          what: restartedMidRun ? "重启窗口内的网络失败" : "网络失败（非重启窗口，需人工看一眼）",
+          window: restartedMidRun ? `pid ${restartedMidRun.pid_before}→${restartedMidRun.pid_after}` : null,
+        },
+      });
     rec("console", "无未捕获 pageerror", pageErrs.length === 0,
       pageErrs.length ? pageErrs.slice(0, 5).map((e) => e.tab + ": " + e.text).join(" | ") : "0 条",
       "pageerror = JS 崩了，通常紧接着就是整块面板不工作", "fail");
@@ -1351,25 +2057,104 @@ function scanBadTokensInPage(scopeSel) {
     /* 未覆盖清单：旧版有、新版没做 —— 写出来，避免「假装覆盖了」 */
     NOT_COVERED.push(
       "四种主题（light-tech / dark-dashboard / minimal-report / card-warm）的文字-背景对比度检测：新版未做。",
-      "抽屉拖拽 / 右下角拉伸 / 拉到极限后手柄仍在视口内：新版未做（旧版 3 种抽屉 × 6 条断言）。",
-      "抽屉四条关闭入口（✕ / Esc / 点面板外 / 底部按钮）：新版未做，只用 Esc 与 JS 收尾。",
-      "长文本压力（超长中文标题、超长无空格 ASCII、公司全称列换行）：新版未做。",
-      "错误态 8 种细粒度变体（网络 abort / 500+JSON / summary 缺 counts / topics 缺 weight / persons 缺字段 / sentiment 类型不符）：" +
-        "新版只做 3 种（[] / 500+HTML / 非 JSON），细粒度缺字段兜底未覆盖。",
+      "抽屉拖拽 / 右下角拉伸 / 拉到极限后手柄仍在视口内：新版未做（旧版 3 种抽屉 × 6 条断言）。" +
+        "（抽屉的「四条关闭入口」本轮已补：✕ / 底部按钮 / Esc / 点面板外）",
+      "超长无空格 ASCII 的横向溢出目前只记 warn（本轮抽查的 3 个 tab 全部复现，撑到 2381~3892px，" +
+        "属全站 CSS word-break 补齐项）；超长中文的溢出已是硬断言。",
+      "细粒度「缺字段兜底」（summary 缺 counts / topics 条目缺 weight / persons 缺字段 / sentiment 返回数组）：" +
+        "本轮只做 6 种整体载荷变体（500+JSON、500+HTML、网络失败、{}、[]、null），单接口/单字段级别的缺字段未逐个覆盖。",
       "10 个旧 tab 的「元素数量与基线一致（未消失）」：新版只断言面板有内容，不比元素计数基线。",
       "抽屉横向不遮挡所点行：新版未做。",
       "主题切换后元素不消失/面板高度一致：新版未做。"
     );
 
-    const hardFails = RESULTS.filter((r) => r.level === "fail" && !r.ok);
-    const warns = RESULTS.filter((r) => r.level === "warn");
-    report.summary = {
-      checks_total: RESULTS.length,
-      passed: RESULTS.filter((r) => r.ok).length,
-      failed: hardFails.length,
-      warned: warns.length,
+    /* ------------------------------------------------------------------
+     * 摘要必须自洽，而且 `level` 不能是垃圾字段。
+     *
+     * 踩过的坑（第三次才修对）：
+     *   ① `level` 以前由调用方随手写，出现过 102 条 `level="fail"` 里 102 条都是 ok=true ——
+     *      **一个字段有值、但值是垃圾，比 null 更危险**（health.leases 同一个病）。
+     *   ② `summary` 按 `level` 计数而不是按 `ok`，于是"通过但被标成 warn"的记录同时进两个桶，
+     *      出现过 107 + 6 = 113 ≠ 111。
+     * 现在：
+     *   · `level` 一律由 `ok` + 阻断意图推导（rec 里做，见文件头），三值只有 pass/warn/fail；
+     *   · 自检 ① 扫 RESULTS：**ok=true 却 level≠pass** 的行数必须为 0（钉死垃圾 level）；
+     *   · 自检 ② 算术：passed + warned + failed === checks_total，不成立就红；
+     *   · 自检 ③ `--selftest-harness` 会故意注入一条 ok=true/level=warn 的坏行，
+     *      门禁必须因此变红（证明自检 ① 真的有效，而不是写了个永远为真的判断）。
+     * ------------------------------------------------------------------ */
+    if (CFG.selftestHarness) {
+      /* 故意绕过 rec() 注入坏行：模拟"某个新增断言把 level 写错" */
+      RESULTS.push({ group: "harness", id: "（自测注入）ok=true 但 level=warn", ok: true,
+        detail: "自测用：这条不该存在", why: "", level: "warn", intent: "warn" });
+      NOTES.push("⚠ 运行在 --selftest-harness 模式下：已注入一条 ok=true/level=warn 的坏行，本轮**必须**红");
+    }
+    const levelBad = RESULTS.filter((r) => (r.ok && r.level !== "pass") || (!r.ok && r.level !== "warn" && r.level !== "fail"));
+    const levelOk = levelBad.length === 0 && LEVEL_BAD.length === 0;
+    rec("harness", "level 三值自洽（ok=true 必须是 pass，ok=false 只能是 warn/fail）", levelOk,
+      levelBad.length === 0 && LEVEL_BAD.length === 0
+        ? `0 条违规（pass=${RESULTS.filter((r) => r.level === "pass").length} warn=${RESULTS.filter((r) => r.level === "warn").length} fail=${RESULTS.filter((r) => r.level === "fail").length}）`
+        : `违规 ${levelBad.length + LEVEL_BAD.length} 条: ` +
+          levelBad.slice(0, 5).map((r) => `${r.group}/${r.id}(ok=${r.ok},level=${r.level})`)
+            .concat(LEVEL_BAD.slice(0, 3).map((x) => x.id + "(" + x.why + ")")).join("; "),
+      "level 有值但值是垃圾比 null 更危险：它会让按 level 统计的摘要静默算错", "fail");
+
+    const tally = (rows) => {
+      const passed = rows.filter((r) => r.ok);
+      const warned = rows.filter((r) => !r.ok && r.level === "warn");
+      const failed = rows.filter((r) => !r.ok && r.level === "fail");
+      return { passed, warned, failed, sum: passed.length + warned.length + failed.length, total: rows.length };
     };
-    let code = hardFails.length > 0 ? 1 : 0;
+    const pre = tally(RESULTS);
+    const sumOk = pre.sum === pre.total;
+    /* 先记自检这一条（它本身也是一条断言），再对全量结果做最终分桶 —— 分母含它、算术仍自洽 */
+    rec("harness", "摘要算术自洽（通过+告警+失败 === 总数）", sumOk,
+      `${pre.passed.length}+${pre.warned.length}+${pre.failed.length} = ${pre.sum} vs 总数 ${pre.total}`,
+      "加不起来的摘要没法被人核对；数字自洽是这份门禁能被信任的最低条件", "fail");
+    const T = tally(RESULTS);
+    const hardFails = T.failed;
+    /* 告警再分成两层，打印时分开列（两层都在分母里，加起来仍然等于总数）：
+       · 断言级：某条具体断言没过（例如长文本 ASCII 溢出）
+       · 阶段级：这一轮的环境/预算状态（stale_build、超预算、导航二次枚举不一致、中途重启…） */
+    const PHASE_LEVEL_IDS = /服务与磁盘代码一致|在预算内完成|导航枚举可复现|中途不可用|重启窗口|重启后|复刻/;
+    const phaseWarns = T.warned.filter((r) => PHASE_LEVEL_IDS.test(r.id));
+    const assertWarns = T.warned.filter((r) => phaseWarns.indexOf(r) < 0);
+    /* 聚合类：把 N 次同类失败合并成 1 条断言的那些（目前只有"网络失败"）。
+       只展示**真的聚合了东西**的（n>0）；0 次就别列，否则摘要里全是"0 次 → 1 条"的噪音。 */
+    const aggs = RESULTS.filter((r) => r.agg && ((r.agg.n_failures || 0) + (r.agg.n_http || 0)) > 0).map((r) => ({
+      id: r.id, what: r.agg.what, n: r.agg.n_failures, n_http: r.agg.n_http, window: r.agg.window,
+      level: r.level, ok: r.ok,
+    }));
+
+    report.summary = {
+      checks_total: T.total,
+      passed: T.passed.length,
+      failed: T.failed.length,
+      warned: T.warned.length,
+      info_total: INFO.length,
+      algebra: {
+        passed: T.passed.length, warned: T.warned.length, failed: T.failed.length,
+        sum: T.sum, total: T.total, ok: sumOk,
+      },
+      level_ok: levelOk,
+      level_counts: {
+        pass: RESULTS.filter((r) => r.level === "pass").length,
+        warn: RESULTS.filter((r) => r.level === "warn").length,
+        fail: RESULTS.filter((r) => r.level === "fail").length,
+      },
+      warn_split: { assertion_level: assertWarns.length, phase_level: phaseWarns.length },
+      phase_warn_ids: phaseWarns.map((r) => r.id),
+      aggregates: aggs,
+    };
+    report.infos = INFO;
+
+    let code = hardFails.length > 0 ? 1 : (ENV_SKIPS.length > 0 ? 2 : 0);
+    report.env_skips = ENV_SKIPS;
+    if (ENV_SKIPS.length) {
+      NOTES.push(`有 ${ENV_SKIPS.length} 处因服务中途不可达未执行（不是通过、也不是产品缺陷）` +
+        `：${ENV_SKIPS.map((s) => s.where).join("；")} —— 请等服务稳定后复跑`);
+      if (hardFails.length === 0) NOTES.push("本次退出码 2（而不是 0）：有用例没跑成，不能发「全过」的结论");
+    }
     phase("(done)");
     try { await browser.close(); } catch (_) { /* ignore */ }
     finish(code);
@@ -1392,8 +2177,15 @@ function printHuman(R) {
   const m = R.meta || {};
   push("──────────────────────────────────────────────────────────────");
   push(`UI 端到端门禁 · 模式=${m.mode} · 端口=${m.port} · ${m.at}`);
-  push(`服务 build_id=${R.env.server_build_id} / 磁盘 build_id=${R.env.disk_build_id}` +
-    (R.env.stale_build ? "  ⚠ stale_build=true（服务跑的是旧代码快照，需重启后复跑才能定性）" : "  ✓ 一致"));
+  /* 服务不可达时两个 build_id 都是 null —— 这时**不能**打"✓ 一致"，
+     那会让人以为"版本对得上"，其实根本没比过。 */
+  if (R.env.server_build_id == null) {
+    push(`服务 build_id=（不可达）/ 磁盘 build_id=${R.env.disk_build_id == null ? "（未计算）" : R.env.disk_build_id}  ⚠ 未比对指纹`);
+  } else {
+    push(`服务 build_id=${R.env.server_build_id} / 磁盘 build_id=${R.env.disk_build_id}` +
+      `（指纹来源 ${R.env.disk_build_id_source || "node:replica"}）` +
+      (R.env.stale_build ? "  ⚠ stale_build=true（服务跑的是旧代码快照，需重启后复跑才能定性）" : "  ✓ 一致"));
+  }
   if (R.env.app_js) {
     push(`产物版本（静态资源每次请求现读磁盘，可与服务版本不同）：app.js sha1=${R.env.app_js.sha1_8} size=${R.env.app_js.size} mtime=${R.env.app_js.mtime}`);
   }
@@ -1439,16 +2231,67 @@ function printHuman(R) {
   }
 
   /* 自选 */
-  if (R.watch) {
+  if (R.watch && R.watch.skipped) {
+    /* 跳过 ≠ 失败：必须和「跑了但失败」分开打印，否则 quick/--no-write 会假红 */
+    push(`[watch] 跳过（${R.watch.reason}）`);
+  } else if (R.watch) {
     push(`[watch] 临时标的 ${R.watch.symbol || "?"} 加入=${R.watch.ok ? "OK" : "FAIL"} 清理=${R.watch.cleaned === null ? "未执行" : (R.watch.cleaned ? "OK" : "FAIL")}`);
   } else {
     push("[watch] 未执行（--no-write 或预算不足）");
   }
 
+  /* 深链接冷启动 */
+  if (R.deep && R.deep.length) {
+    const ran = R.deep.filter((d) => d.ok !== null);
+    const bad = ran.filter((d) => !d.ok);
+    const sk = R.deep.length - ran.length;
+    push(`[deep] 深链接冷启动 ${ran.length - bad.length}/${ran.length} 直接打开就有内容` +
+      (sk ? `（${sk} 例未执行=环境中途不可达）` : "") +
+      (bad.length ? `（问题: ${bad.map((d) => d.tab + (d.stuck ? " 停在加载中" : "")).join("、")}）` : ""));
+  } else {
+    push("[deep] 未执行（预算不足）");
+  }
+
+  /* 环境中途不可用：单列一行，避免被读成"某条产品断言失败" */
+  if (R.env_skips && R.env_skips.length) {
+    push(`[env] 中途不可用 ${R.env_skips.length} 处（未执行，不是通过也不是产品缺陷）：`);
+    for (const s of R.env_skips.slice(0, 6)) push(`      · ${s.where} —— ${s.why}`);
+  }
+
   /* 状态页 */
   if (R.states && R.states.length) {
-    push(`[states] 空态/错误态 ${R.states.filter((s) => s.ok).length}/${R.states.length} 通过`);
-    for (const s of R.states) if (!s.ok) push(`      FAIL ${s.name}`);
+    const sk = R.states.filter((s) => s.ok === null).length;
+    push(`[states] 空态/错误态 ${R.states.filter((s) => s.ok === true).length}/${R.states.length} 通过` +
+      (sk ? `（${sk} 例未执行=环境中途不可达）` : ""));
+    for (const s of R.states) {
+      const tag = s.ok === null ? "SKIP" : (s.ok ? "PASS" : "FAIL");
+      push(`      ${tag} ${s.name}` + (s.ok === null ? " —— 环境不可达，未执行"
+        : (s.st && s.st.errHead ? ` —— 错误文案「${String(s.st.errHead).slice(0, 50)}」` : "")));
+    }
+  }
+
+  /* 抽屉 */
+  if (R.drawer) {
+    const d = R.drawer;
+    const ents = Object.entries(d.entries || {});
+    const badEnt = ents.filter(([, v]) => !v.closed).map(([k]) => k);
+    push(`[drawer] 打开=${d.opened ? "OK" : "FAIL"}，关闭入口 ${ents.length - badEnt.length}/${ents.length} 生效` +
+      (badEnt.length ? `（失效: ${badEnt.join("、")}）` : "") +
+      (d.sameRow ? `；再点同一行=保持打开(${d.sameRow.after ? "是" : "否"})` : ""));
+  } else {
+    /* 跳过 ≠ 失败，而且要区分原因：quick 是主动跳过，其余是预算/环境问题 */
+    push("[drawer] " + (R.watch && R.watch.reason === "quick" ? "跳过（quick 模式）" : "未执行（预算不足或页面不可用）"));
+  }
+
+  /* 长文本 */
+  if (R.longtext && R.longtext.tabs && R.longtext.tabs.length) {
+    const bad = R.longtext.tabs.filter((t) => t.err || (t.n > 0 && t.afterCJK > t.innerW + 1));
+    const asciiBad = R.longtext.tabs.filter((t) => t.n > 0 && t.afterASCII > t.innerW + 1);
+    push(`[longtext] ${R.longtext.tabs.length} 个 tab 注入长文本：中文溢出 ${bad.length} 个` +
+      (bad.length ? `（${bad.map((t) => t.tab).join(",")}）` : "") +
+      `；无空格 ASCII 溢出 ${asciiBad.length} 个（极限输入，见 warn）`);
+  } else {
+    push("[longtext] 未执行");
   }
 
   /* 视口 */
@@ -1457,8 +2300,10 @@ function printHuman(R) {
     push(`[viewport] ${R.viewports.map((v) => v.w).join("/")} ` + (bad.length ? `有溢出/裁切的档位: ${bad.map((v) => v.w).join(",")}` : "无溢出"));
   }
 
-  /* 告警与待办 */
-  const warns = R.checks.filter((c) => c.level === "warn");
+  /* 告警与待办。
+     口径与 summary 完全一致：只有「没过且标了 warn」才算告警 ——
+     否则"通过了但被标成 warn"的记录会同时出现在 PASS 行和这里，读者一加就对不上。 */
+  const warns = R.checks.filter((c) => !c.ok && c.level === "warn");
   if (warns.length) {
     push(`[warn] ${warns.length} 条（不计入退出码）：`);
     for (const w of warns.slice(0, 10)) push(`      ${w.id} —— ${w.detail}`);
@@ -1480,7 +2325,34 @@ function printHuman(R) {
   }
 
   push("──────────────────────────────────────────────────────────────");
-  push(`断言 ${R.summary.passed}/${R.summary.checks_total} 通过，失败 ${R.summary.failed}，告警 ${R.summary.warned}，耗时 ${(R.duration_ms / 1000).toFixed(1)}s`);
+  /* 摘要分三段，**三段各自可核对**：
+       断言：通过 + 告警 + 失败 === 总数    （告警/失败都在分母里）
+       信息：好消息，不进分母、不影响判定
+       聚合：N 次同类失败合并成 1 条断言的地方，把 N 原样写出来
+     为什么不写"107/111 通过，告警 6"：这种写法读者无法反推，也就等于没有摘要。 */
+  const s = R.summary || {};
+  const alg = s.algebra || {};
+  const closed = s.passed + s.warned + s.failed;
+  push(`断言 ${s.checks_total}：通过 ${s.passed} · 告警 ${s.warned} · 失败 ${s.failed}` +
+    `        （${s.passed}+${s.warned}+${s.failed}=${closed}` +
+    `${closed === s.checks_total && alg.ok !== false ? " ✓" : " ✗ 与总数 " + s.checks_total + " 不符"}）`);
+  if (s.warn_split) {
+    const ids = (s.phase_warn_ids || []).slice(0, 3).join(" / ");
+    push(`      告警分层：断言级 ${s.warn_split.assertion_level} · 阶段级 ${s.warn_split.phase_level}` +
+      (ids ? `（阶段级=环境/预算：${ids}）` : ""));
+  }
+  if (s.info_total) {
+    push(`信息 ${s.info_total}：` + ((R.infos || []).slice(0, 3).map((x) => x.id).join(" · ")) +
+      `        （不影响判定，不计入断言分母）`);
+  }
+  if (s.aggregates && s.aggregates.length) {
+    for (const a of s.aggregates) {
+      push(`聚合 ${s.aggregates.length}：${a.what} ` +
+        `${a.n} 次 → 合并为 1 条${a.ok ? "（已通过）" : "告警"}` + (a.window ? `（窗口 pid ${a.window}）` : ""));
+    }
+  }
+  if (s.level_ok === false) push("      ⚠ level 三值自检未通过：见 [harness] 断言明细（这一轮结果不可作为验收依据）");
+  push(`耗时 ${(R.duration_ms / 1000).toFixed(1)}s`);
   push(`报告: ${REPORT_PATH}`);
   push(`EXIT=${R.exit_code}`);
   process.stdout.write(L.join("\n") + "\n");

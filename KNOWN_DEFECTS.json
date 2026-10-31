@@ -171,17 +171,22 @@
    "root_cause": "三处事实，均逐条核过：① a_shares_universe（自称权威全量宇宙，5,240 行）里 920 段记录数为 0，而 stock_indicators_daily 有 328 只 920 段、stock_names 有 348 只 —— 该表是在 920 段启用前建立的快照口径，之后未回补；② 同表混入 111024 澳弘转债、113710 四方转债（board='其它'）、513050 中概互联网ETF（同）共 3 只非股票；③ stock_indicators_daily 中 111024 有 273 行，日期 2010-01-07~2014-09-19，却挂着「澳弘转债」这个名字 —— 澳弘转债 2021 年才上市，同名不同物，属代码复用期数据被新名称覆盖。当前未造成结论错误：111024 的指标数据全部落在回测窗口（2022 起）之外，且 selection.py 的 _bad_code 是有意排除北交所的（见该函数注释），故漏收 920 段暂未影响选股结果。",
    "evidence_level": "confirmed —— audit_universe.py 四节输出可复现（指标库非股票 1 只 / 白名单非股票 3 只 / 白名单漏收 328 只 / 名称错配 3 处），且与 a_shares_universe 的 board 分布（北交所仅 2 行）交叉验证一致。",
    "observed_at": "2026-10-31T15:20:00Z",
-   "fix_commit": "pending（本轮只做了防护：units.stock_kind 统一判定 + 回测取码过滤 + 只读审计工具，未改任何数据）",
-   "status": "open",
+   "fix_commit": "70689a6（security_master 建表回填 + 三处取码入口收口 + 审计工具；数据行级清洗未做）",
+   "status": "mitigated",
    "proposed_fix": "① 补 a_shares_universe 的 920 段（来源用 stock_names 或重新抓取全 A 快照 tools/fetch_a_shares_snapshot.py）；② 把 111024/113710/513050 从白名单标注为非股票（不删行，改 status 或加 kind 列，避免下游再当股票用）；③ stock_indicators_daily 中 111024 的名称按该时段真实标的改写，或整段标注 source 不可信。三项都改数据，需进哥确认后再执行。",
    "cost": "改数据，不可逆（无自动备份机制），故本轮只出报告不动手。",
    "priority": "P2 —— 当前不影响回测结论（111024 在窗口外）与选股（北交所有意排除），但任何新写的取码逻辑只要信了「a_shares_universe 是全量」，就会静默丢掉整个北交所。",
    "guard": "已建：viewer/units.py::stock_kind() 为标的类型唯一判定（回测取码已接入并打印排除名单）；tools/audit_universe.py 可随时复跑；tests/test_universe_kind.py 9 项钉死判定与审计只读性。",
    "regression_guard": "tests/test_universe_kind.py（含 test_bse_920_segment_is_stock、test_audit_collect_finds_the_three_problems、test_audit_does_not_modify_data）",
-   "notes": "本条修正了此前报告里的一个错误结论：报告称「可转债 111024/113710 混入 K 线库」，实测 kline_daily.db 里 111024 只有 2005-2014 的 528 行（是老代码体系里的另一只债券，价格在 100 元附近、日成交量个位数到千位数），113710 则根本不在 kline 库中。真正脏的是宇宙表与指标库，不是 K 线库。",
+   "notes": "本条修正了此前报告里的一个错误结论：报告称「可转债 111024/113710 混入 K 线库」，实测 kline_daily.db 里 111024 只有 2005-2014 的 528 行（是老代码体系里的另一只债券，价格在 100 元附近、日成交量个位数到千位数），113710 则根本不在 kline 库中。真正脏的是宇宙表与指标库，不是 K 线库。\n\n【2026-11-01 收口 · status open -> mitigated 的依据】本条原本要解决的是「任何新写的取码逻辑只要信了 a_shares_universe 是全量，就会静默丢掉整个北交所」—— 这一半已经彻底消除：viewer/security_master.py 成为唯一口径源（5,589 行，其中北交所 350），screener._tx_prefix / _market_prefix / strategy_sim.fetch_kline / intraday_snap._qq 四处代码段前缀判断全部改走它，tools/audit_universe.py --strict 现返回 EXIT=0（WARN 0 / INFO 6）。剩下的三项都是**数据行级**残留，每条都在审计输出里带了「为什么允许存在 / 消费方必须怎么过滤 / 修复命令」，属独立的数据清洗工单，不是本条能关掉的。**没有标 fixed，是因为 111024 的名称错配仍在库里**——把它当 fixed 就等于说「我们已经把脏数据清干净了」，那是假的。",
    "close_condition": "python tools/audit_universe.py --strict 返回 exit 0（即四节告警全部归零），且 tests/test_universe_kind.py 全绿。",
    "generation": 1,
-   "generation_note": "第 1 代：首次把「宇宙表与指标库不一致」显式化。此前的关注点一直在 K 线库是否有脏数据，方向错了。"
+   "generation_note": "第 1 代：首次把「宇宙表与指标库不一致」显式化。此前的关注点一直在 K 线库是否有脏数据，方向错了。",
+   "residual": [
+    "stock_indicators_daily 里 111024 的 273 行（2010-01-07~2014-09-19，挂「澳弘转债」名）仍在 —— 那是代码复用期另一只债券的真实历史，删行是数据清洗决策，本轮约束「只读/只新增」不放行。已在审计 ④ 节给出修复命令。",
+    "a_shares_universe 里 3 只非股票（111024/113710/513050）仍在（本轮禁止删行）—— 但 security_master 已把它们标成 kind != stock，所有新代码一律读 security_master.stock_codes()，不再有人把白名单当「全量股票」。",
+    "a_shares_universe 本身未回补 920 段 —— 该表已被 security_master 取代，回补它等于维护两张口径不同的表，故意不做。"
+   ]
   },
   {
    "id": "DEF-2026-011",
@@ -307,7 +312,16 @@
    "guard": "gzip 协商与 `Content-Length` 由 `tests/test_static_compress.py` 钉死；ETag/304 让重复访问不再重下正文（实测浏览器二访 JS 合计 **2,051 B = 2.0 KB**，首次 450.1 KB）；`_send_file` 对 <1KB、二进制（魔数）不压，避免「压了更大」。",
    "regression_guard": "tests/test_static_compress.py（16 例，含 ::test_second_request_with_if_none_match_gets_304、::test_304_is_decided_before_compression 与 ::test_gzip_when_accepted_and_length_is_consistent）；传输量口径由 tools/measure_wire.py 复算（裸 socket 数线缆字节，等价于 CDP 的 Network.encodedDataLength，但不依赖浏览器），命令：`.venv/Scripts/python.exe tools/measure_wire.py 8799`。",
    "close_condition": "首屏 JS 正文（Content-Length 之和）≤ 450 KB 且重复访问 JS 子集 ≤ 5 KB（304）；响应头字节单独测量、不参与判据。**口径已定稿（2026-11-01 裁决），按此判据当前已达标**：首访 457,824 B = 447.09 KB（余 2,976 B）、二访 JS 子集 2,341 B = 2.29 KB（余 2,779 B）。仅作信息展示、不作为判据：含响应头首访 460,866 B，全页 23 个资源全 304 时 5,431 B —— 两口径由 `tools/measure_wire.py` 并列输出。本条保持 open 是因为 300 KB 那个原始目标尚未达成，可由裁决人直接把本条关闭，并把「300 KB 需 minify+split」记入 plan 的 ②③。",
-   "notes": "度量方式很重要：验收数字必须来自**线缆字节**（真实网卡字节，含响应头），不能拿 `Content-Length` 相加 —— 后者漏掉响应头开销，也漏掉走缓存的请求。第一次量的时候我用 curl 的 `%{size_download}`（411,422），比线缆口径少了 38 KB，差的就是 8 个 JS 的小文件与头部开销。\n\n【口径定稿，2026-11-01 裁决 · 这是定稿依据不是解释】传输量以**资源正文字节**（`Content-Length`）计。响应头字节不该进这个指标，因为它会随服务端配置变化——照含头口径，**今天我们多补一条安全头就会让性能验收倒退**，这显然荒谬。头开销另行测量并在报告里并列展示（`tools/measure_wire.py` 已能给出两口径），但**不作为达标判据**。二访口径同样定死：判据取 **JS 子集 ≤ 5 KB**（实测 2,341 B）；全页 23 个资源 5,431 B 只作信息展示，因为「全页」包含 HTML/CSS/图标，与本条指标（首屏 JS）不同类。\n\n【这条阈值曾经落在测量噪声里 —— 记录保留】两台仪器对「响应头算多少」相差 341 B（约 34 B/响应）：CDP 的 `Network.encodedDataLength` 求和给 460,525 B（在 460,800 B 之内，余 275 B），裸 socket 数线缆字节给 460,866 B（在阈值之外，超 66 B）。同一份代码、两个相反的结论——**阈值落在测量噪声里，谁先跑谁赢**。这条记录留在此处不是为了说明谁对，而是证明我们量过、而不是拍过。当时唯一能凑出达标的操作是砍掉冗余的 `must-revalidate`（RFC 9111 里 `no-cache` 已要求每次复用前必须校验），省 17 B/响应恰好够挡线——**明确否决**：那是把账算在协议头上，用户一个字节没少，纯粹为了让指标变绿。这个仓库最贵的问题从来不是指标没达标，而是为了让指标好看而动了不该动的东西，半年后没人知道那儿为什么少了一行。"
+   "notes": "度量方式很重要：验收数字必须来自**线缆字节**（真实网卡字节，含响应头），不能拿 `Content-Length` 相加 —— 后者漏掉响应头开销，也漏掉走缓存的请求。第一次量的时候我用 curl 的 `%{size_download}`（411,422），比线缆口径少了 38 KB，差的就是 8 个 JS 的小文件与头部开销。\n\n【口径定稿，2026-11-01 裁决 · 这是定稿依据不是解释】传输量以**资源正文字节**（`Content-Length`）计。响应头字节不该进这个指标，因为它会随服务端配置变化——照含头口径，**今天我们多补一条安全头就会让性能验收倒退**，这显然荒谬。头开销另行测量并在报告里并列展示（`tools/measure_wire.py` 已能给出两口径），但**不作为达标判据**。二访口径同样定死：判据取 **JS 子集 ≤ 5 KB**（实测 2,341 B）；全页 23 个资源 5,431 B 只作信息展示，因为「全页」包含 HTML/CSS/图标，与本条指标（首屏 JS）不同类。\n\n【这条阈值曾经落在测量噪声里 —— 记录保留】两台仪器对「响应头算多少」相差 341 B（约 34 B/响应）：CDP 的 `Network.encodedDataLength` 求和给 460,525 B（在 460,800 B 之内，余 275 B），裸 socket 数线缆字节给 460,866 B（在阈值之外，超 66 B）。同一份代码、两个相反的结论——**阈值落在测量噪声里，谁先跑谁赢**。这条记录留在此处不是为了说明谁对，而是证明我们量过、而不是拍过。当时唯一能凑出达标的操作是砍掉冗余的 `must-revalidate`（RFC 9111 里 `no-cache` 已要求每次复用前必须校验），省 17 B/响应恰好够挡线——**明确否决**：那是把账算在协议头上，用户一个字节没少，纯粹为了让指标变绿。这个仓库最贵的问题从来不是指标没达标，而是为了让指标好看而动了不该动的东西，半年后没人知道那儿为什么少了一行。",
+   "adjudication": {
+    "by": "team-lead",
+    "at": "2026-11-01",
+    "decision": "维持 open，不改口径冒充达标",
+    "reason": "测评的 300 KB 隐含 minify + 代码分割的产物形态，本项目无打包器、无 package.json。实测 brotli q11 也只有 306,862 B 仍不达标，且 Python 侧 brotli/brotlicffi/zstandard 三个库全缺。真正达标需引入 esbuild 并把「制品不得过期」做成流程守卫 —— 这个项目今天已经两次踩到「改完代码服务跑的还是旧版本」，不宜对同一类事故重复下注。",
+    "what_is_done": "gzip 从未生效的根因已修（DEF-2026-015），1,254,521 -> 411,422 B；ETag/304 让重复访问只下 2.3 KB。首访正文 447.09 KB ≤ 450 KB 口径达标。",
+    "what_is_not": "300 KB 未达，差 147 KB。差额 = 注释 261 KB + 空白 195 KB 的压缩残余，不砍掉这两块就下不去。",
+    "next": "若要冲 300 KB：单独排期「esbuild 制品化 + 制品过期断言 + _send_file 双源选择」，需批一条新依赖；不建议在功能整改轮里夹带。"
+   }
   }
  ]
 }

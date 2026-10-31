@@ -662,7 +662,7 @@ function renderCmdList(q) {
 }
 function bindCmdFirst() {
   const el = document.querySelector("#cmdList .cmd-item");
-  if (el) el.onclick = () => { const c = el.dataset.code; closeCmdPalette(); openStock(c, null); };
+  if (el) el.onclick = () => openStockFromCmd(el.dataset.code);
 }
 let _cmdKeyBound = false;
 function bindCmdKeys() {
@@ -676,8 +676,8 @@ function bindCmdKeys() {
     else if (e.key === "ArrowUp") { e.preventDefault(); idx = Math.max(0, idx - 1); }
     else if (e.key === "Enter") {
       e.preventDefault();
-      const first = document.querySelector("#cmdList .cmd-item[data-code]");
-      if (first && /^[\d]{6}$/.test((ci.value || "").trim())) { cmdActivate(first); return; }
+      // 6 位代码以**输入框**为准：列表还没刷到 data-code 那一帧也能开（见 openStockFromCmd 的说明）
+      if (openStockFromCmd((ci.value || "").trim())) return;
       if (items[idx]) cmdActivate(items[idx]);
       return;
     } else return;
@@ -685,9 +685,23 @@ function bindCmdKeys() {
     if (items[idx]) { items[idx].classList.add("active"); items[idx].scrollIntoView({ block: "nearest" }); }
   });
 }
+/* 2026-11-01（e2e 反馈「Ctrl+K 打不开个股抽屉」）：根因是**两条激活路径选中的对象来源不同**。
+     鼠标路径：每条 .cmd-item 各自绑 onclick（bindCmdFirst / renderCmdList），点的是哪个就是哪个；
+     键盘路径：Enter 时按 DOM 现况重新找 `#cmdList .cmd-item[data-code]`。
+   输入框已经是第 6 位数字、而列表还停在上一帧（"无匹配项" / 命令列表）时，
+   键盘路径会落到 `items[idx]` —— 也就是第一条**命令**（如「一键刷新全部」），
+   于是"鼠标能开、快捷键不开"，且不报错。修复不是补一步，而是让两条路径共用本函数，
+   并且**代码以输入框的值为准**，不再依赖列表 DOM 是否已经刷新。 */
+function openStockFromCmd(code) {
+  const c = String(code == null ? "" : code).trim();
+  if (!/^\d{6}$/.test(c)) return false;
+  closeCmdPalette();
+  openStock(c, null);
+  return true;
+}
 function cmdActivate(el) {
   if (!el) return;
-  if (el.dataset.code) { const c = el.dataset.code; closeCmdPalette(); openStock(c, null); return; }
+  if (el.dataset.code) { openStockFromCmd(el.dataset.code); return; }
   if (el.dataset.action) { closeCmdPalette(); cmdAction(el.dataset.action); return; }
   if (el.dataset.tab) { closeCmdPalette(); selectNav(el.dataset.cat, el.dataset.tab, true); }
 }
@@ -1951,6 +1965,7 @@ function openStock(symbol, anchorEl, extraHtml) {
         ${holdDaysNote("symbol_first_build")}
         ${extraHtml || ""}`;
   openDrawer(`股票 · ${symbol}`, html, anchorEl);
+  { const _dw = $("#drawer"); if (_dw) _dw.setAttribute("data-testid", "stk-drawer"); }
   // ② 五段各自独立加载 —— 都不依赖 /api/stock，所以任何一段慢都不会拖住抽屉
   initStockQuote(symbol);
   initStockKline(symbol);
@@ -2377,8 +2392,10 @@ function renderStockQuote(d) {
   const has = (v) => !(v === null || v === undefined || v === "" || isNaN(v));
   const cls = has(q.pct) ? (Number(q.pct) >= 0 ? "bull" : "bear") : "";
   const vsPre = (v) => (has(v) && has(q.prev_close)) ? (Number(v) >= Number(q.prev_close) ? "bull" : "bear") : "";
-  const item = (k, v, c, id) =>
-    `<div class="si-item"${id ? ` id="${id}"` : ""}><span>${k}</span><b class="${c || ""}">${v}</b></div>`;
+  // 2026-11-01（e2e）：第 5 参 tid = data-testid。成交量那格必须有稳定标识 ——
+  // 单位一致性是 P0-1 的核心守门项，靠 .si-item 结构去找，版式一改就静默测不到。
+  const item = (k, v, c, id, tid) =>
+    `<div class="si-item"${id ? ` id="${id}"` : ""}${tid ? ` data-testid="${tid}"` : ""}><span>${k}</span><b class="${c || ""}">${v}</b></div>`;
   const grp = (label, extra, items) =>
     `<div class="si-sec">${label}${extra || ""}</div><div class="si-grid">${items.filter(Boolean).join("")}</div>`;
   const chg = has(q.change) ? (Number(q.change) >= 0 ? "+" : "") + siNum(q.change) : "—";
@@ -2418,7 +2435,7 @@ function renderStockQuote(d) {
       item("昨收", siNum(q.prev_close)),
       item("最高", siNum(q.high), vsPre(q.high)),
       item("最低", siNum(q.low), vsPre(q.low)),
-      item("成交量", siVol(q.volume, volUnitOf(q, "hand"))),
+      item("成交量", siVol(q.volume, volUnitOf(q, "hand")), "", "", "vol-quote"),
       item("成交额", siMoney(q.amount)),
       item("换手率", siPctPlain(q.turnover)),
       item("振幅", siPctPlain(q.amplitude)),
@@ -2698,7 +2715,7 @@ function renderKlineSnap(d) {
       <div><span>${per ? per + "低" : "最低"}</span><b>${siNum(c.low)}</b></div>
       <div><span>${per ? per + "收" : "收/最新"}</span><b>${siNum(c.price)}</b></div>
       <div><span>${prevLbl}</span><b>${siNum(c.prev_close)}</b></div>
-      <div><span>成交量</span><b>${siVol(c.volume, klineVolUnit(c, d))}</b></div>
+      <div data-testid="vol-kline"><span>成交量</span><b>${siVol(c.volume, klineVolUnit(c, d))}</b></div>
       <div><span>成交额</span><b>${amtTxt}</b></div>
       <div><span>数据日</span><b>${esc((c.date || "").slice(0, 10))}</b></div>
     </div>
@@ -4858,7 +4875,7 @@ function renderToday() {
   //    2026-11-01 P0-2：这里只剩**过了证据门禁**的条目；一行一条证据徽章，六项必显。
   const oppHtml = opps.length ? opps.map((x) => `
     <div class="td-row">
-      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
+      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : `<span class="td-pct muted" title="没有取到这只票的当日涨跌幅（数据源缺失），不是 0%">—</span>`}
         <span class="td-sub">${tdRowMetaBadge("opportunity", x)}${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span>
         <span class="td-sub">${tdEvidenceBadge(x.evidence)}</span></span>
     </div>`).join("") : tdOppEmptyHtml(d);
@@ -4869,7 +4886,7 @@ function renderToday() {
     const ev = x.evidence || {};
     return `
     <div class="td-row">
-      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
+      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : `<span class="td-pct muted" title="没有取到这只票的当日涨跌幅（数据源缺失），不是 0%">—</span>`}
         <span class="td-sub">${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span>
         <span class="td-sub">${tdEvidenceBadge(ev)}</span>
         <span class="td-sub" style="color:#8B3A2E">为什么不能执行：${esc(ev.reason || "—")}</span></span>
@@ -7426,6 +7443,10 @@ function openDrawer(title, html, anchorEl) {
   body.innerHTML = (jump ? jump : "") + html;
   body.scrollTop = 0;
   const d = $("#drawer");
+  // 抽屉是共用的（板块成员 / 研报 / 个股都走这里）。个股标识**每开必先清**，
+  // 由 openStock 自己再挂上 —— 否则「先看个股、再看板块成员」时属性会残留，
+  // e2e 拿它找成交量就会找错地方（读到上一次的内容）。
+  d.removeAttribute("data-testid");
   d.classList.add("show");
   d.setAttribute("aria-hidden", "false");
   d.setAttribute("aria-modal", "true");   // P3-13：声明为模态对话框
@@ -9874,7 +9895,7 @@ function watchRow(it, idx, arr) {
       + `<span class="wt-op" data-wt-gdel-item="${it.id}" title="仅移出本组，池中保留">移出</span>` + ops;
   }
   const dragAttr = inGroup ? ` draggable="true" data-wt-drag="${it.id}"` : "";
-  return `<tr${dragAttr}>
+  return `<tr${dragAttr} data-testid="watch-row" data-symbol="${escAttr(it.symbol || "")}">
     <td class="wt-c1"><button type="button" class="wt-sym" data-wt-open="${escAttr(it.symbol)}">${esc(it.symbol)}</button> <span class="wt-nm">${esc(it.name || "")}</span>${c1Extra}</td>
     <td>${wtMoney(it.price_at_add)}</td>
     <td>${wtMoney(it.price)}</td>
@@ -14115,8 +14136,20 @@ function paintSubnav(cat, tab) {
         横条上看不见自己在哪一项，会以为跳错了页。 */
   const renderList = (list, inFold) => {
     const out = [];
+    /* 2026-11-01（e2e 反馈）：`.sub-tab` 原来只带 data-tab，分类只能从 href="#cat/tab" 反解。
+       反解一旦写歪（或 href 换成 JS 跳转）分类断言就会静默失效，故把分类作为独立属性带上。
+       只定义一次、三处模板共用 —— e2e 与 tests/test_ui_contract.py 都按"恰好一处定义"来守。 */
+    const dcatAttr = ` data-cat="${escAttr(cat.key)}"`;
+    /* ⚠️ 2026-11-01（e2e 抓到的真 bug，不是缺标识）：
+       折叠区里「主项 + 同 mg 子项」原来会被渲染**两遍** —— ① lead 的收拢循环把子项画了一次；
+       ② 外层循环继续走到那些子项时，`if (i.child && !inFold) continue` 在 inFold=true 下不跳过，
+       于是又画一次。实测 #subnav 出现 5 个重复 tab（lowbox_bottom / lowbox_radar / sentiment /
+       overseas_sentiment / geo_events）：用户看到两个一模一样的入口，且 e2e「点第几个」会指错元素。
+       修法：用 emitted 记账，cluster 里画过的子项，外层循环直接跳过（不改变渲染顺序与样式）。 */
+    const emitted = new Set();
     for (let k = 0; k < list.length; k++) {
       const i = list[k];
+      if (i.tab && !i.lead && emitted.has(i.tab)) continue;   // 已被所属主项的簇收拢画过
       if (i.group) {
         // 分组标题：不可点小标题 + 左侧虚线分隔，纯视觉锚点（不计入 tab 校验）
         out.push(`<span class="sub-group" style="display:inline-flex;align-items:center;height:28px;margin:0 6px 0 2px;padding:0 10px 0 12px;color:#9aa4b2;font-size:12px;letter-spacing:1px;border-left:1px dashed rgba(255,255,255,.22);white-space:nowrap;">${esc(i.group)}</span>`);
@@ -14128,18 +14161,19 @@ function paintSubnav(cat, tab) {
       if (i.lead) {
         // 主项 + 紧随其后的同 mg 子项：用浅底簇视觉归拢，主项加粗、子项缩进挂在右侧
         out.push(`<span class="sub-cluster" style="display:inline-flex;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:2px 5px;margin:0 3px;">`);
-        out.push(`<a class="sub-tab sub-lead${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}" style="font-weight:600;">${esc(i.label)}</a>`);
+        out.push(`<a class="sub-tab sub-lead${i.tab === tab ? " active" : ""}"${dcatAttr} data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}" style="font-weight:600;">${esc(i.label)}</a>`);
         for (let j = k + 1; j < list.length; j++) {
           const c = list[j];
           if (c.group || !c.child) break;          // 遇到下一个分组或主项即停止收拢
           if (c.mg === i.mg) {
-            out.push(`<a class="sub-tab sub-child${c.tab === tab ? " active" : ""}" data-tab="${escAttr(c.tab)}" title="${escAttr(TAB_HINTS[c.tab] || c.label)}" href="#${escAttr(cat.key)}/${escAttr(c.tab)}" style="font-size:12px;padding-left:11px;margin-left:3px;border-left:1px solid rgba(255,255,255,.18);opacity:.95;">${esc(c.label)}</a>`);
+            if (c.tab) emitted.add(c.tab);
+            out.push(`<a class="sub-tab sub-child${c.tab === tab ? " active" : ""}"${dcatAttr} data-tab="${escAttr(c.tab)}" title="${escAttr(TAB_HINTS[c.tab] || c.label)}" href="#${escAttr(cat.key)}/${escAttr(c.tab)}" style="font-size:12px;padding-left:11px;margin-left:3px;border-left:1px solid rgba(255,255,255,.18);opacity:.95;">${esc(c.label)}</a>`);
           } else break;
         }
         out.push(`</span>`);
       } else {
         // 普通独立子项（无 lead/child/group 标记）
-        out.push(`<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`);
+        out.push(`<a class="sub-tab${i.tab === tab ? " active" : ""}"${dcatAttr} data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`);
       }
     }
     return out.join("");
@@ -15110,12 +15144,101 @@ function itemsOfCat(cat) {
    容器由 .main 改为 .content（2026-09-23 外壳改造后，.wrap/.layout/.main 已合并为 .shell/.content）。 */
 /* ================= 基金经理策略（自包含 iframe，含巴菲特作为价值一脉子项） =================
    数据：static/fund_masters/index.json + reports/<key>/<期>.html（后端 fund_masters.py 本地引擎生成）。
-   整块 UI 是自包含页面，iframe 内嵌，不污染本文件渲染逻辑。 */
+   整块 UI 是自包含页面，iframe 内嵌，不污染本文件渲染逻辑。
+
+   ⚠️ 2026-11-01（工单③）：e2e 报「本面板 innerText 为空」——**不是数据没到，也不是渲染没跑**：
+   这一屏整块是 <iframe>，`innerText`/`textContent` 天生**不跨子文档**，父文档里它永远是 0 字。
+   实测 iframe 内部（contentDocument）有内容。但"白板"这个真实风险确实存在
+   —— 页面 404 / index.json 没生成 / 同源被拦 时，用户看到的就是一块纯色，
+   分不清"加载失败"和"本来就没数据"。所以这里补三样：
+     ① iframe 挂 data-panel-frame + data-testid（e2e 可据此探 contentDocument，而不是量父文档文本）；
+     ② 探测子文档正文，真为空就把**带原因和下一步**的空态显性画出来（不再留白）；
+     ③ 成功加载时给面板打就绪标记（走唯一入口 markPanelReady，见其内对 iframe 的处理）。 */
+const FM_FALLBACK_HTML = ''
+  + '<div data-testid="fm-fallback" class="fm-fallback" hidden '
+  + '     style="padding:28px 24px;color:#c9d6e3;line-height:1.9;font-size:14px;">'
+  + '  <div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:8px;">'
+  + '    基金经理策略页没有加载出来</div>'
+  + '  <div>这一屏是<b>独立页面</b> <code>/static/fund_masters/index.html</code>（不是本页内联渲染），'
+  + '       它自己再去读 <code>index.json</code> 取基金经理与共识数据。</div>'
+  + '  <div>现在读到的正文是空的，可能原因按概率排：'
+  + '       ① <code>index.json</code> 还没生成 / 生成失败；'
+  + '       ② 页面文件缺失（404）；'
+  + '       ③ 浏览器拦截了同源 iframe（本应用自己就嵌了一个同源 iframe，CSP 若有变动会先打到它）。</div>'
+  + '  <div>下一步：先 <a href="/static/fund_masters/index.html" target="_blank" rel="noopener" '
+  + '       style="color:#7cc4ff;">在新窗口打开这一页</a> 看是否同样空白；'
+  + '       仍空则重跑基金经理数据任务（按交易日更新，不按小时）。</div>'
+  + '  <div style="color:#8b98a5;font-size:12.5px;margin-top:6px;">'
+  + '    这一屏是"独立页面"而非本页 DOM，所以本页的文本长度检测对它无效 —— 判定要看这里给出的原因。</div>'
+  + '</div>';
+
 function loadFundMasters() {
   const box = ensurePanel("fundmasters");
   if (!box) return;
-  box.innerHTML = '<iframe src="/static/fund_masters/index.html" '
-    + 'style="width:100%;height:calc(100vh - 132px);border:0;background:#F5F6F8"></iframe>';
+  // 幂等：iframe 已经在了就不重建（每次切回本 tab 都重载一次会白屏重来、丢掉页面内的筛选状态）
+  if (box.querySelector('iframe[data-panel-frame="fundmasters"]')) return;
+  box.innerHTML = FM_FALLBACK_HTML
+    + '<iframe data-panel-frame="fundmasters" data-testid="fm-frame" '
+    + '        title="基金经理策略（独立页面，含共识标的与历史报告）" '
+    + '        src="/static/fund_masters/index.html" '
+    + '        style="width:100%;height:calc(100vh - 132px);border:0;background:#F5F6F8"></iframe>';
+
+  const frame = box.querySelector('iframe[data-panel-frame="fundmasters"]');
+  const fallback = box.querySelector(".fm-fallback");
+  if (!frame) return;
+
+  const showFallback = (why) => {
+    if (fallback) { fallback.hidden = false; fallback.setAttribute("data-why", why); }
+    frame.style.display = "none";
+  };
+
+  /* 探活：同源可直接读子文档。返回正文长度（读不到也算 0，由调用方兜底成"未知"→ 显性空态）。 */
+  const probe = () => {
+    let txt = "";
+    try {
+      const doc = frame.contentDocument;
+      txt = doc && doc.body ? (doc.body.innerText || doc.body.textContent || "") : "";
+    } catch (e) {
+      txt = "";
+    }
+    return (txt || "").replace(/\s+/g, " ").trim().length;
+  };
+
+  frame.addEventListener("load", () => {
+    const n = probe();
+    if (n > 0) {
+      frame.dataset.loaded = "1";
+      if (fallback) fallback.hidden = true;
+      markPanelReady(box);            // 唯一设置点仍是 markPanelReady（它内部认 iframe 的 ready）
+      return;
+    }
+    /* 子页面首帧可能还在等 index.json（它自己 fetch），给它两次补救机会再判失败，
+       用 requestIdleCallback 不可靠，这里用递增的短延时并只做最多 2 次复检。 */
+    setTimeout(() => {
+      if (probe() > 0) {
+        frame.dataset.loaded = "1";
+        if (fallback) fallback.hidden = true;
+        markPanelReady(box);
+      } else {
+        setTimeout(() => {
+          if (probe() > 0) {
+            frame.dataset.loaded = "1";
+            if (fallback) fallback.hidden = true;
+            markPanelReady(box);
+          } else {
+            showFallback("empty-after-retry");
+          }
+        }, 2600);
+      }
+    }, 900);
+  });
+  frame.addEventListener("error", () => showFallback("iframe-error"));
+  /* 连 load 都没触发（文件 404 时多数浏览器仍会触发 load，但同源策略/网络中断可能不触发）：
+     给一个一次性的兜底计时，超过 12s 仍未拿到内容就显性报因，不留白板。 */
+  setTimeout(() => {
+    if (frame.dataset.loaded === "1") return;
+    if (!probe()) showFallback("no-load-12s");
+  }, 12000);
 }
 
 /* 2026-10-20：基金经理策略 iframe 内点击共识股票 → 打开个股详情抽屉（K线/换手/持股全套）。
@@ -16820,12 +16943,94 @@ function btSummaryHtml() {
   </div>`;
 }
 
-/* 启动：先建两级导航（决定首屏落在哪个子板块），再拉数据 */
+/* ---------- 2026-11-01：面板「画完了没有」的显式标记 data-ready ----------
+   e2e 原先靠 `#p-<tab>` 的 innerText 长度判断就绪：文本短就再等、文本长就认为到了。
+   这既会误判（空态 / 一句话提示的文本也短），又必须靠 sleep 兜底，慢且不稳。
+   这里用**一条** MutationObserver 给所有面板打标记，几十个 renderX 一个都不用改：
+     面板内容被替换 → 若不再是「正在加载数据…」占位 → data-ready="1"
+   为什么用观察者而不是在每个 render 末尾加一行：后者等于给未来每个新面板都留一个
+   "忘了加"的口子；观察者天然覆盖现在和以后的所有面板（含 ensurePanel 动态建的知识轨道面板）。
+   ⚠️ 判据用 textContent 不用 innerText：后者强制回流，而这里会在每次 DOM 变更时被调用。 */
+const PANEL_PLACEHOLDER_RE = /^(正在加载数据…|加载中…|—)$/;
+
+function markPanelReady(el) {
+  if (!el || el.nodeType !== 1 || !/^p-/.test(el.id || "")) return;
+  /* 外挂整页面板（整块是 <iframe>，#p-fundmasters 就是）：内容全在子文档里，
+     父文档 textContent 天生为空 —— 若只看文本，这类面板永远拿不到 data-ready，
+     e2e 就只能退回"等 3 秒看 innerText"，而 innerText 也不跨 iframe，永远等不到。
+     判据改为：iframe 自己标了 data-loaded=1（由 loadFundMasters 探活成功后打）。 */
+  const panelFrame = el.querySelector("iframe[data-panel-frame]");
+  /* 有外挂页就**只看子文档**，绝不回落到父文档文本：
+     那个带原因的空态 div 是隐藏的，但 `hidden` 只影响渲染、不影响 textContent ——
+     回落就会把"空态说明文案"当成"面板已有内容"，于是数据还没到就先标 ready（e2e 立刻往下跑）。 */
+  const ready = panelFrame
+    ? panelFrame.dataset.loaded === "1"
+    : (() => {
+        const txt = (el.textContent || "").replace(/\s+/g, " ").trim();
+        // 占位态：selectNav 注入的 .panel-loading 且只有它一个孩子 / 文本为空或就是占位文案
+        const onlyPlaceholder = el.children.length <= 1 && !!el.querySelector(".panel-loading");
+        return !!txt && !onlyPlaceholder && !PANEL_PLACEHOLDER_RE.test(txt);
+      })();
+  if (ready) {
+    if (el.getAttribute("data-ready") !== "1") el.setAttribute("data-ready", "1");
+  } else if (el.hasAttribute("data-ready")) {
+    el.removeAttribute("data-ready");
+  }
+}
+
+function initPanelReadyWatcher() {
+  const host = document.querySelector(".content") || document.body;
+  const pending = new Set();
+  let flushTimer = null;
+  const obs = new MutationObserver((muts) => {
+    for (const m of muts) {
+      let el = m.target;
+      if (el && el.nodeType === 3) el = el.parentElement;          // 文本节点 → 父元素
+      const panel = el && el.closest ? el.closest(".panel") : null;
+      // 同一个微任务批次里对同一面板只算一次（一次 innerHTML 覆盖会产生多条记录）
+      if (panel) pending.add(panel);
+    }
+    if (!pending.size || flushTimer) return;
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      const list = [...pending]; pending.clear();
+      list.forEach(markPanelReady);
+    }, 60);
+  });
+  obs.observe(host, { childList: true, subtree: true });
+  document.querySelectorAll(".panel").forEach(markPanelReady);   // 首屏已渲染好的（如 p-today）
+  return obs;
+}
+
+/* 启动：先建两级导航（决定首屏落在哪个子板块），再拉数据。
+
+   ⚠️ 2026-11-01（查工单②时挖出来的真 bug，比 "null" 严重得多）：
+   这段启动代码原来在本文件**被解析时**就执行，而 `douyin_corpus.js` / `funnel.js` /
+   `industry_leaders.js` / `bottleneck.js` / `screener_extra.js` 都是**排在 app.js 之后**的
+   <script>，此刻 `window.DOUYIN / window.FUNNEL` 还是 undefined。
+   loadTab 里那些 `if (tab === "dy_reso" && window.DOUYIN)` 守卫于是**静默跳过** ——
+   表现是：深链接（或首屏）直接落在这些面板上时，面板永远停在「正在加载数据…」；
+   而先点别的 tab、再点回来就正常（那时脚本都到了）。
+   「点了别的再看就好」= 用户以为"偶尔卡住"，实际上是一个可从地址栏稳定复现的空白面板。
+
+   修法：把首屏渲染推迟到 DOMContentLoaded —— 它之后所有同步 <script> 都已执行完，模块齐了。
+   不是加 sleep、也不是在每个 loadTab 分支里重试：后者是把"加载顺序"这个确定性事实
+   变成"碰运气的时间窗口"，窗口一缩（机器更快/更慢）就复现。 */
+function bootViewer() {
+  initPanelReadyWatcher();
+  initNav();          // 决定首屏落在哪个子板块 —— 必须在所有渲染模块就绪之后
+  loadAll();
+}
+/* 这三件与本文件之外的模块无关（主题按钮 / 本地分级映射 / 避雷名单），
+   保持"解析即执行"以尽早出效果，不受上面的顺序约束。 */
 buildThemePicker();
 loadDragonMap();   // 2026-10-21：预取龙头分级映射（本地 JSON，几十 KB），保证首屏表格就带徽章
 loadAvoidSet();    // 2026-10-22：预拉避雷名单 code 集合，供全站风险标记使用
-initNav();
-loadAll();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bootViewer, { once: true });
+} else {
+  bootViewer();       // 极端情况：脚本被动态插到已解析完的文档里（readyState=interactive/complete）
+}
 renderRefreshBar();
 renderSchedText();
 loadSchedulerStatus();

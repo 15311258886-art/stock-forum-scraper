@@ -35,21 +35,24 @@
   「快捷方式已更改」确认框，更烦），改为在 main() 最开头 *_hide_startup_console()*：
   把 stderr 重定向到 NUL → 隐藏控制台窗口（user32.ShowWindow/SW_HIDE）
   → kernel32.FreeConsole() 脱离控制台。窗口在出现的瞬间即消失，不掉日志，
-  因为日志本来就由 _setup_logging() 落盘到 viewer/logs/desktop-YYYYMMDD.log。
+  因为日志本来就由 _setup_logging() 落盘到 viewer/logs/desktop_app.log。
   排障要临时看控制台：设环境变量 VIEWER_KEEP_CONSOLE=1 再启动即可。
 """
 from __future__ import annotations
 
+import atexit
 import ctypes
 import json
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import signal
 import socket
 import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,6 +62,24 @@ if ROOT not in sys.path:
 PORT = int(os.environ.get("VIEWER_PORT", "8765"))
 BASE = f"http://127.0.0.1:{PORT}"
 MUTEX_NAME = f"Local\\stock_forum_viewer_{PORT}"
+
+# ---------------------------------------------------------------------------
+# 启动诊断（2026-11-01 工单②）
+#   现象：`restart_viewer.py` → 本文件，起来的进程 4~5 秒后**静默消失**，日志空、无报错。
+#   定性：这可能是环境问题（无交互桌面会话，WebView2 建不了窗口），但"桌面应用启动失败却一个字
+#         都不留"本身是可诊断性缺陷 —— 进哥双击用的正是这条路，出问题时无从下手。
+#   对策：本文件从此**任何一步都必须留下痕迹**：
+#     · 固定日志文件 viewer/logs/desktop_app.log（不按日期切分：排障要的是"就这一个文件"，
+#       日期切分只会把"今天为什么没日志"变成新的疑问）；
+#     · 每个阶段一行 [stage]，带自进程启动以来的秒数（哪一步慢/哪一步停，一眼可见）；
+#     · 启动横幅记录 python/exe/argv/cwd/端口/webview 后端/WebView2 参数/用户数据目录；
+#     · sys.excepthook + threading.excepthook + atexit + signal 全接上，异常带完整 traceback；
+#     · 退出必须写明原因（窗口关闭 / 建窗失败回退浏览器 / 提前 return 的每一条都有 reason）。
+#   ⚠️ 刻意**不**加重试、不加常驻兜底：要的是"它死了能说出为什么"，不是"看起来还活着"。
+# ---------------------------------------------------------------------------
+LOG_PATH = os.path.join(ROOT, "viewer", "logs", "desktop_app.log")
+_T0 = time.time()                      # 进程启动基准时刻（秒表，用于 [stage] 的 +Xs）
+_EXIT = {"reason": "unknown", "code": None}   # 供 atexit / 硬退出写最后一行
 
 # ---------------------------------------------------------------------------
 # WebView2 稳定性加固（2026-09-23）
@@ -91,7 +112,7 @@ def _hide_startup_console() -> None:
     两个必须注意的点：
       1. FreeConsole 之后 stdout/stderr 即失效，任何 print() 都会抛异常，
          因此**先**把它们重定向到 NUL 再 FreeConsole；
-      2. 日志已由 _setup_logging() 落盘到 viewer/logs/desktop-*.log，
+      2. 日志已由 _setup_logging() 落盘到 viewer/logs/desktop_app.log，
          脱离控制台不影响排障。
     调试时想保留控制台：设环境变量 VIEWER_KEEP_CONSOLE=1 即可跳过。
     """
@@ -113,29 +134,31 @@ def _hide_startup_console() -> None:
         pass
 
 
-def _setup_logging() -> None:
-    """桌面入口诊断日志落盘 viewer/logs/desktop-YYYYMMDD.log（UTF-8，滚动 5MB×5）。
+def _setup_logging() -> str:
+    """桌面入口诊断日志落盘 `viewer/logs/desktop_app.log`（UTF-8，滚动 5MB×5）。返回日志路径。
 
-    修复（2026-09-28 体检报告 P1）：双击 .lnk 启动无可见控制台，原 print() 全部丢弃，
-    出问题无法排查。改为强制 UTF-8 文件落盘；同时保留控制台输出（若有）。
+    2026-09-28（体检报告 P1）：双击 .lnk 启动无可见控制台，原 print() 全部丢弃 → 改落盘。
+    2026-11-01（工单②）：文件路径改为**固定名** `desktop_app.log`。旧口径是
+    `desktop-YYYYMMDD.log` —— 日常排障要在十几个按日期切分的文件里找"刚才那次"，
+    而"今天这次为什么没有任何日志"会被误读成"没启动过"。固定一个名字更利于对着看。
+    同时把级别默认 INFO、可用 `VIEWER_LOG_DEBUG=1` 提到 DEBUG。
     """
     try:
         log_dir = os.path.join(ROOT, "viewer", "logs")
         os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "desktop-%s.log" % time.strftime("%Y%m%d"))
-        log_path_abs = os.path.abspath(log_path)
-        fmt = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+        log_path_abs = os.path.abspath(LOG_PATH)
+        fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(message)s", "%Y-%m-%d %H:%M:%S")
         root = logging.getLogger()
-        if any(isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename", "") == log_path_abs
-               for h in root.handlers):
-            return
-        fh = RotatingFileHandler(log_path, encoding="utf-8", maxBytes=5 * 1024 * 1024, backupCount=5)
-        fh.setFormatter(fmt)
-        fh.setLevel(logging.INFO)
-        root.addHandler(fh)
+        if not any(isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename", "") == log_path_abs
+                   for h in root.handlers):
+            fh = RotatingFileHandler(log_path_abs, encoding="utf-8",
+                                     maxBytes=5 * 1024 * 1024, backupCount=5)
+            fh.setFormatter(fmt)
+            fh.setLevel(logging.DEBUG if os.environ.get("VIEWER_LOG_DEBUG") else logging.INFO)
+            root.addHandler(fh)
         try:
-            is_tty = sys.stderr is not None and os.isatty(sys.stderr.fileno())
-        except Exception:
+            is_tty = sys.stderr is not None and sys.stderr.isatty()
+        except Exception:                             # noqa: BLE001
             is_tty = False
         has_console = any(isinstance(h, logging.StreamHandler) and not isinstance(h, RotatingFileHandler)
                           for h in root.handlers)
@@ -146,8 +169,137 @@ def _setup_logging() -> None:
             root.addHandler(sh)
         if root.level == logging.NOTSET or root.level > logging.INFO:
             root.setLevel(logging.INFO)
-    except Exception as e:  # noqa: BLE001
-        print(f"[desktop_app] 日志初始化失败（不影响启动）：{e}", file=sys.stderr)
+        logging.captureWarnings(True)                 # warnings.warn 也进日志，别在窗口里消失
+        return log_path_abs
+    except Exception as e:                            # noqa: BLE001
+        # 连日志都建不起来时，除了 stderr 无处可写；尽量别在这里再抛
+        try:
+            print(f"[desktop_app] 日志初始化失败（不影响启动）：{e}", file=sys.stderr)
+        except Exception:                             # noqa: BLE001
+            pass
+        return ""
+
+
+def _flush_log() -> None:
+    """把缓冲区刷到磁盘。硬退（os._exit）前必须调 —— 否则最后几行正是丢的那几行。"""
+    try:
+        for h in logging.getLogger().handlers:
+            try:
+                h.flush()
+            except Exception:                         # noqa: BLE001
+                pass
+        logging.shutdown()
+    except Exception:                                 # noqa: BLE001
+        pass
+
+
+def _stage(name: str, **kw) -> None:
+    """打一行阶段标记：`[stage] 名称 +自进程启动的秒数 key=val…`。
+
+    为什么要带秒数：`restart_viewer.py` 那次是"4~5 秒后消失"，而日志里只有时间戳的话，
+    要人自己拿两个时钟相减。带 `+Xs` 之后，停在哪一步、那一步耗了多久是直接读出来的。
+    """
+    parts = ["[stage] %-20s +%.2fs" % (name, time.time() - _T0)]
+    for k, v in kw.items():
+        parts.append("%s=%s" % (k, v))
+    logging.info(" ".join(parts))
+
+
+def _log_env() -> None:
+    """启动横幅：把"哪份代码、哪个解释器、什么环境"一次性记下来。
+
+    排障时最常见的三个问题都能一眼回答：跑的是不是 .venv 的 python、cwd 对不对、
+    WebView2 运行时在不在（`webview` 能不能 import）。
+    """
+    import platform
+    import importlib.util
+    try:
+        spec = importlib.util.find_spec("webview")
+        webview_where = getattr(spec, "origin", None) or "not-found"
+    except Exception as e:                            # noqa: BLE001
+        webview_where = "find_spec failed: %s" % e
+    logging.info("=" * 78)
+    logging.info("[boot] desktop_app 启动 argv=%r", sys.argv)
+    logging.info("[boot] python=%s (exe=%s)", sys.version.split()[0], sys.executable)
+    logging.info("[boot] cwd=%s root=%s frozen=%s", os.getcwd(), ROOT,
+                 getattr(sys, "frozen", False))
+    logging.info("[boot] os=%s %s", platform.platform(), platform.machine())
+    logging.info("[boot] port=%s base=%s", PORT, BASE)
+    logging.info("[boot] webview(pywebview)=%s", webview_where)
+    logging.info("[boot] WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=%r",
+                 os.environ.get("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") or "")
+    logging.info("[boot] storage=%s keep_console=%s log=%s",
+                 WEBVIEW_STORAGE, bool(os.environ.get("VIEWER_KEEP_CONSOLE")), LOG_PATH)
+
+
+def _install_crash_hooks() -> None:
+    """接上所有"进程可能无声消失"的出口：未捕获异常 / 线程异常 / 正常退出 / 信号。
+
+    为什么四条都要：一个 GUI 进程在 pythonw 下死掉时，**没有任何人**会告诉用户为什么。
+    · sys.excepthook         —— 主线程未捕获异常
+    · threading.excepthook   —— 后台线程（supervisor / 后端兜底线程）异常，默认只打 stderr
+    · atexit                 —— 正常 return / sys.exit 的收尾
+    · signal                 —— Ctrl+C / 任务管理器结束（Windows 上 SIGBREAK 对应 Ctrl+Break）
+    """
+    def _hook(exc_type, exc, tb):
+        if issubclass(exc_type, SystemExit):
+            _EXIT["reason"] = _EXIT["reason"] if _EXIT["reason"] != "unknown" else "SystemExit"
+            _EXIT["code"] = getattr(exc, "code", 0)
+            return
+        logging.critical("[crash] 主线程未捕获异常，进程将退出：\n%s",
+                         "".join(traceback.format_exception(exc_type, exc, tb)))
+        _EXIT["reason"] = "uncaught:%s" % exc_type.__name__
+        _flush_log()
+
+    def _thread_hook(args):
+        if args.exc_type is SystemExit:
+            return
+        logging.critical("[crash] 线程 %s 未捕获异常：\n%s",
+                         getattr(getattr(args, "thread", None), "name", "?"),
+                         "".join(traceback.format_exception(args.exc_type, args.exc_value,
+                                                            args.exc_traceback)))
+        _flush_log()
+
+    def _on_exit():
+        logging.info("[exit] 进程退出 reason=%s code=%s 用时 %.2fs",
+                     _EXIT["reason"], _EXIT["code"], time.time() - _T0)
+        _flush_log()
+
+    def _on_signal(signum, frame):
+        logging.critical("[exit] 收到信号 %s(%s)，进程被外部终止（reason=%s）",
+                         signum, getattr(signal.Signals(signum), "name", "?"), _EXIT["reason"])
+        _EXIT["reason"] = "signal:%s" % signum
+        _flush_log()
+        try:                                          # 还原默认处理再自杀，保留真实退出码
+            signal.signal(signum, signal.SIG_DFL)
+            os.kill(os.getpid(), signum)
+        except Exception:                             # noqa: BLE001
+            os._exit(128 + int(signum))
+
+    sys.excepthook = _hook
+    try:
+        threading.excepthook = _thread_hook          # py3.8+
+    except Exception:                                 # noqa: BLE001
+        pass
+    atexit.register(_on_exit)
+    for name in ("SIGINT", "SIGTERM", "SIGBREAK"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
+        try:
+            signal.signal(sig, _on_signal)
+        except Exception:                             # noqa: BLE001 —— 非主线程/平台不支持
+            pass
+
+
+def _hard_exit(code: int, reason: str) -> None:
+    """兜底硬退出，但**先写明原因再走**（旧代码直接 `os._exit(0)`，退出原因永远丢失）。"""
+    _EXIT["reason"] = reason
+    _EXIT["code"] = code
+    logging.info("[exit] 硬退出 os._exit(%s) reason=%s 用时 %.2fs",
+                 code, reason, time.time() - _T0)
+    _flush_log()
+    os._exit(code)
 
 
 def _harden_webview_env() -> None:
@@ -303,16 +455,29 @@ def _js_restart_service():
 
 
 def main():
-    _hide_startup_console()      # 先去黑框，再初始化日志（日志改落盘，不受影响）
+    # 2026-11-01（工单②）：顺序调整 —— **先建日志，再藏控制台**。
+    # 旧版先 `_hide_startup_console()` 再 `_setup_logging()`：一旦藏控制台那步把进程弄死，
+    # 日志文件根本没被创建，于是"启动失败且一个字都没有"。日志只写文件（非 tty 不挂 StreamHandler），
+    # 所以提前建日志不会让黑框多留哪怕一帧。
     _setup_logging()
-    allow_multi = "--allow-multi" in sys.argv
+    _install_crash_hooks()
+    _log_env()
+    _stage("boot")
 
+    _hide_startup_console()
+    _stage("console_hidden", keep=bool(os.environ.get("VIEWER_KEEP_CONSOLE")))
+
+    allow_multi = "--allow-multi" in sys.argv
+    _stage("single_instance_check", allow_multi=allow_multi, mutex=MUTEX_NAME)
     if not allow_multi and not _acquire_single_instance():
+        _stage("exit_early", reason="已有实例在运行，本次不新开窗口")
         logging.info("[desktop_app] 已有查看器窗口在运行，本次不再新开窗口（请在任务栏切换；"
                      "如需并行调试加 --allow-multi）。")
+        _EXIT["reason"] = "already_running"
         return
 
     server_ready = _port_in_use()
+    _stage("port_probe", ready=server_ready, port=PORT)
     if server_ready:
         # 2026-10-16：端口有人听 ≠ 跑的是最新代码。原来在这里无条件「复用」，于是改了
         # .py / 静态资源后双击图标重启，后端仍是旧进程、旧代码，新接口直接 404
@@ -322,6 +487,7 @@ def main():
         # （新后端进程会终止旧后端并抢占端口，见 server._takeover_stale_server）。
         _running = _running_backend_build()
         _disk = _disk_build_id()
+        _stage("build_check", running=(_running or {}).get("build_id"), disk=_disk)
         if _disk and _running and _running.get("build_id") != _disk:
             logging.warning("[desktop_app] 8765 上的后端是旧代码（运行 build=%s ≠ 磁盘 build=%s），"
                             "接管重启中…", _running.get("build_id"), _disk)
@@ -341,11 +507,15 @@ def main():
         # （旧做法下窗口一崩/一关，服务随 os._exit(0) 一起没了，页面就成死页）。
         try:
             _spawn_server_process()
+            _stage("server_spawned", mode="detached")
             server_ready = _wait_port()
+            _stage("server_wait", ready=server_ready)
         except Exception as e:  # noqa: BLE001 —— 拉不起来再退到线程兜底，不阻断开窗
             logging.warning("[desktop_app] 独立进程拉起后端失败（%s），回退本进程线程。", e)
+            _stage("server_spawn_failed", err=type(e).__name__)
         if not server_ready:
-            threading.Thread(target=_start_server, daemon=True).start()
+            threading.Thread(target=_start_server, daemon=True, name="viewer-server-fallback").start()
+            _stage("server_fallback_thread", note="独立进程没起来，改用本进程守护线程")
             for _ in range(50):
                 try:
                     urllib.request.urlopen(BASE + "/api/summary", timeout=2)
@@ -353,6 +523,7 @@ def main():
                     break
                 except Exception:  # noqa: BLE001
                     time.sleep(0.2)
+            _stage("server_fallback_wait", ready=server_ready)
 
     # 2026-09-23：后端没起来就**不要再开窗口** —— 旧版对着一个死地址开窗只会白屏，
     # 还平白让 WebView2 多崩一次。这里给出可执行的诊断后直接退出。
@@ -360,11 +531,15 @@ def main():
         logging.error("[desktop_app] 本地服务未在预期时间内就绪（%s）。"
                       "请先确认 8765 未被残留实例占用，或直接运行："
                       ".venv\\Scripts\\python.exe -m viewer.server", BASE)
+        _stage("exit_early", reason="后端未就绪，不开窗口")
+        _EXIT["reason"] = "server_not_ready"
         return
 
     try:
         _harden_webview_env()          # 必须在 import webview / 创建 WebView2 环境之前
+        _stage("webview_harden")
         import webview
+        _stage("webview_imported", ver=getattr(webview, "__version__", "?"))
         _wnd = webview.create_window(
             "股票讨论实时查看器",
             BASE + "/",
@@ -372,6 +547,7 @@ def main():
             min_size=(900, 600),
             text_select=True,
         )
+        _stage("window_created")
         # 暴露给页面 JS：服务进程阵亡时，前端没有可用的 HTTP 通道发重启请求，
         # 只能借这条 pywebview 桥让窗口侧把后端重新拉起来（见 _js_restart_service 注释）。
         try:
@@ -382,18 +558,35 @@ def main():
         # 不再每次启动都新建 %TEMP%\tmp*\EBWebView（消除目录堆积与运行时更新期的竞态）。
         try:
             os.makedirs(WEBVIEW_STORAGE, exist_ok=True)
-        except OSError:
-            pass
+        except OSError as e:
+            logging.warning("[desktop_app] 建 WebView2 数据目录失败（%s）：%s", WEBVIEW_STORAGE, e)
+        _stage("webview_start_enter", storage=WEBVIEW_STORAGE)
         webview.start(private_mode=False, storage_path=WEBVIEW_STORAGE)
+        # 正常返回 = 窗口被用户关闭（或窗口循环自行结束）
+        _stage("webview_start_return", note="窗口循环已结束（用户关闭窗口或渲染层退出）")
+        _EXIT["reason"] = "window_closed"
     except Exception as e:  # noqa: BLE001
         # 无 WebView2 运行时等：回退到浏览器
-        logging.error("[desktop_app] 原生窗口不可用（%s），回退到浏览器。", e)
+        logging.error("[desktop_app] 原生窗口不可用（%s: %s），回退到浏览器。\n%s",
+                      type(e).__name__, e, traceback.format_exc())
+        _stage("webview_failed", err=type(e).__name__)
         import webbrowser
-        webbrowser.open(BASE + "/")
+        try:
+            webbrowser.open(BASE + "/")
+            _EXIT["reason"] = "fallback_browser"
+            _stage("browser_opened", url=BASE + "/")
+        except Exception as e2:  # noqa: BLE001
+            _EXIT["reason"] = "fallback_browser_failed"
+            logging.error("[desktop_app] 回退打开浏览器也失败：%s", e2)
+            _stage("browser_open_failed", err=type(e2).__name__)
     finally:
-        sys.stdout.flush()
-        sys.stderr.flush()
-        os._exit(0)     # 兜底：窗口关闭即退出进程，避免残留（守护线程随进程结束）
+        try:
+            sys.stdout.flush()
+            sys.stderr.flush()
+        except Exception:  # noqa: BLE001 —— 藏过控制台后这两个流可能已失效
+            pass
+        # 兜底：窗口关闭即退出进程，避免残留（守护线程随进程结束）
+        _hard_exit(0, _EXIT["reason"])
 
 
 if __name__ == "__main__":
