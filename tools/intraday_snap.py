@@ -28,12 +28,19 @@ DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 
 def _qq(code: str) -> str:
+    """腾讯 qt.gtimg.cn 的市场前缀（sh / sz / bj）—— 唯一来源 security_master。
+
+    2026-11-01：原实现是 ``"sh" if c[0] in ("6","9") else ("bj" if c[:2] in
+    ("43","83","87","88") else "sz")``。920 段首字符是 '9'，**命中 "sh" 分支**，
+    腾讯拿 sh920000 去查直接返回空 —— 与 fetch_a_shares_tencent 里修掉的那个
+    920→sh 是同一个 bug，症状同样是"不报错、这只票永远没有盘中快照"。
+    现在按交易所归属判，段规则只在 viewer/security_master.py 里定义一次。
+    """
     c = str(code).zfill(6)
-    if c[0] in ("6", "9"):
-        return "sh" + c
-    if c[:2] in ("43", "83", "87", "88"):
-        return "bj" + c
-    return "sz" + c
+    from viewer import security_master as SM
+    ex = SM.exchange_of(c)
+    pre = {SM.EXCHANGE_SSE: "sh", SM.EXCHANGE_SZSE: "sz", SM.EXCHANGE_BSE: "bj"}.get(ex, "sz")
+    return pre + c
 
 
 def _fetch(codes, batch=60):

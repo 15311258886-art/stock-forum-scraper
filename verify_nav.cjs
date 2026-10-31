@@ -44,7 +44,10 @@ function pickBrowser() {
   await page.setViewport({ width: 1600, height: 1000 });
   const errors = [];
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
-  page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
+  page.on("console", (m) => {
+    // 只排除 browser 对 <meta> 投递 CSP 的固有提示（与 JS 逻辑无关），其余照收
+    if (m.type() === "error" && !/frame-ancestors/.test(m.text())) errors.push("console.error: " + m.text());
+  });
 
   await page.goto(URL, { waitUntil: "domcontentloaded", timeout: 30000 });
   await new Promise((r) => setTimeout(r, 3500));
@@ -52,16 +55,26 @@ function pickBrowser() {
   // ② + ③ 结构体检
   const cats = await page.evaluate(() => NAV.map((c) => {
     const items = itemsOfCat(c);
-    return { key: c.key, label: c.label, n: items.length, tabs: items.map((i) => i.tab) };
+    return {
+      key: c.key, label: c.label, n: items.length, tabs: items.map((i) => i.tab),
+      // 平铺/折叠拆分：收敛是否生效看这两个数，不看总数
+      main: items.filter((i) => !i.fold && !i.child).length,
+      fold: items.filter((i) => i.fold).length,
+      // 静态项（NAV 里写死的）与运行时动态项（知识轨道 / KB 固定子板块）必须分开数：
+      // 「43 个 tab 一个不少」说的是静态项；动态项取决于 kb_sources.yaml，不能当锚点。
+      staticN: c.items.length,
+    };
   }));
 
   // 2026-10-12（P1 部分）：复盘成长是**盘后**动作 → 左栏用「盘后」分隔线把它与盘中项隔开
+  // 2026-11-01（P1-2 导航收敛 7 类 → 6 组）：分隔线现在标的是 `pinned` 的「数据与系统」，
+  // 不再是 learn（复盘成长）—— 前者是「盘后/出问题时才看」，后者已并入「策略与实证」。
   const sepOk = await page.evaluate(() => {
     const items = [...document.querySelectorAll("#sidenav .nav-item")];
     const sep = document.querySelector("#sidenav .rail-sep");
     return !!sep && sep.textContent.trim() === "盘后" &&
-      items.length > 0 && items[items.length - 1].dataset.cat === "learn" &&
-      items.every((it) => it.dataset.cat !== "learn" || it === items[items.length - 1]);
+      items.length > 0 && items[items.length - 1].dataset.cat === "system" &&
+      items.every((it) => it.dataset.cat !== "system" || it === items[items.length - 1]);
   });
 
   // ④ 逐个子标签：容器存在且成为唯一 active 面板
@@ -80,35 +93,23 @@ function pickBrowser() {
   }, flat);
 
   // ⑤ 旧深链接迁移
+  // 2026-11-01（P1-2）：期望值不再手写 —— 7 类并成 6 组后，任何一张手抄的「旧→新」表都会过期，
+  // 而且过期时给出的红是假红（面板其实到对了，只是类名换了）。改为**现算**：
+  // 旧类名 + tab 拼出来的 hash，最终必须落在 `#<TAB_HOME[tab]>/<tab>`，且**tab 一字不变**。
+  // 这样"落错面板"照样抓得到，但"类名搬家"不会再被误报。
   const mig = await page.evaluate(async () => {
-    const cases = [
-      ["#research/lhb", "#money/lhb"],
-      ["#research/lhb_sectors", "#money/lhb_sectors"],
-      ["#research/stocks", "#money/stocks"],
-      ["#research/sentiment", "#money/sentiment"],
-      ["#research/topics", "#info/topics"],
-      ["#research/overseas_sentiment", "#info/overseas_sentiment"],
-      ["#research/geo_events", "#info/geo_events"],
-      ["#enhance/moneyflow", "#money/moneyflow"],
-      ["#enhance/news", "#info/news"],
-      ["#enhance/research", "#opinion/research"],
-      ["#enhance/screener", "#watch/screener"],
-      ["#enhance/valuation", "#watch/valuation"],
-      ["#enhance/multiquote", "#watch/multiquote"],
-      ["#trade/niusan", "#players/niusan"],
-      ["#trade/players", "#players/players"],
-      ["#extref/extref_soft", "#opinion/extref_soft"],
-      ["#watch/watch", "#watch/watch"],
-      ["#learn/strategy_lab", "#learn/strategy_lab"],
-    ];
+    const OLD = ["overview", "money", "info", "opinion", "watch", "research", "learn", "trade", "extref", "enhance"];
+    const tabs = Object.keys(TAB_HOME);
+    const cases = [];
+    for (const tab of tabs) for (const old of OLD) cases.push(["#" + old + "/" + tab, "#" + TAB_HOME[tab] + "/" + tab]);
     const out = [];
     for (const [from, expect] of cases) {
       location.hash = from;
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 40));
       out.push({ from, got: location.hash, expect, ok: location.hash === expect });
     }
     // 复位到默认页
-    location.hash = "#overview/dashboard";
+    location.hash = "#today/today";
     await new Promise((r) => setTimeout(r, 200));
     return out;
   });
@@ -118,11 +119,13 @@ function pickBrowser() {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     for (let i = 0; i < 40 && !(typeof KB !== "undefined" && KB.tracks); i++) await wait(500);
     const loaded = typeof KB !== "undefined" && !!KB.tracks;
-    const items = itemsOfCat(NAV.find((c) => c.key === "learn"));
+    // 2026-11-01：知识轨道所在组已从 learn 改名 strategy（DYN_CATS 的 key）；从 DYN_CATS 现取，别再写死。
+    const dynCat = NAV.find((c) => DYN_CATS[c.key]);
+    const items = itemsOfCat(dynCat);
     const dynTabs = items.filter((i) => /^learn_/.test(i.tab) && i.tab !== "learn_tracks");
     const out = [];
     for (const it of dynTabs) {
-      selectNav("learn", it.tab, false);
+      selectNav(dynCat.key, it.tab, false);
       await wait(400);
       const el = document.getElementById("p-" + it.tab);
       const act = document.querySelector(".panel.active");
@@ -136,7 +139,7 @@ function pickBrowser() {
   const cold = await browser.newPage();
   const coldErrors = [];
   cold.on("pageerror", (e) => coldErrors.push("pageerror: " + e.message));
-  await cold.goto(URL + "#research/topics", { waitUntil: "domcontentloaded", timeout: 30000 });
+  await cold.goto(URL + "#research/lhb", { waitUntil: "domcontentloaded", timeout: 30000 });
   await new Promise((r) => setTimeout(r, 3000));
   const coldRes = await cold.evaluate(() => ({
     hash: location.hash, cat: CURRENT.cat, tab: CURRENT.tab,
@@ -161,31 +164,38 @@ function pickBrowser() {
   await browser.close();
 
   // ---- 断言 ----
-  // 2026-10-12 更新到当前信息架构（8 个大类：leaders「行业龙头」已于 10-08 入列；
-  // 体验审计又给 overview/info/players/watch 各加了一个置顶「结论页」）。
+  // 2026-11-01（P1-2 导航收敛）：一级导航由 7 类改为 6 组，且**每组的项数不再手抄**。
+  // 手抄项数是这张表以前最容易腐烂的地方：往 NAV 加一个 tab，这里就红一次，
+  // 而红的原因和"导航坏了"完全无关。故只固定「组 key + 组名 + 顺序」，项数交给 TOTAL。
   const EXPECT = [
-    ["overview", "今日总览", 4],
-    ["money", "钱往哪走", 5],
-    ["info", "消息与外围", 10],
-    ["players", "别人怎么做", 7],
-    ["opinion", "别人怎么看", 6],
-    ["watch", "我的票", 7],
-    ["leaders", "行业龙头", 1],
+    ["today", "今日交易计划"],
+    ["mine", "我的持仓与自选"],
+    ["market", "市场与题材"],
+    ["stock", "个股研究"],
+    ["strategy", "策略与实证"],
+    ["system", "数据与系统"],
   ];
-  const structOk = cats.length === 8 &&
-    EXPECT.every((e, i) => cats[i].key === e[0] && cats[i].label === e[1] && cats[i].n === e[2]) &&
-    cats[7].key === "learn" && cats[7].label === "复盘成长" && cats[7].n >= 2;
-  // info 是「信息过载重灾区」（报告 P0-D）、learn 含动态知识轨道 —— 两类放宽上限
-  const sizeOk = cats.every((c) => c.n <= 10 || c.key === "learn");
+  const TOTAL = 43;   // 静态 tab 总数锚点（少一个就是少一个面板）
+  const totalNow = cats.reduce((s, c) => s + c.staticN, 0);   // 只数静态项（锚点 43）
+  const totalAll = cats.reduce((s, c) => s + c.n, 0);          // 含动态轨道，仅供参考
+  const structOk = cats.length === EXPECT.length &&
+    EXPECT.every((e, i) => cats[i].key === e[0] && cats[i].label === e[1]) &&
+    totalNow === TOTAL;
+  // 每组「平铺 ≤4 个主项」是收敛生效的判据（system 只有 1 项，无平铺压力）
+  const sizeOk = cats.every((c) => c.n === 1 || (c.main >= 1 && c.main <= 4));
   const panelsOk = panels.length === flat.length && panels.length > 0 &&
     panels.every((p) => p.exists && p.activeId === "p-" + p.tab && p.activeCount === 1);
   const migOk = mig.length > 0 && mig.every((m) => m.ok);
   const dynOk = dyn.loaded ? (dyn.n > 0 && dyn.out.every((d) => d.exists && d.activeId === "p-" + d.tab)) : true;
-  const coldOk = coldRes.hash === "#info/topics" && coldRes.activeId === "p-topics" &&
-    coldRes2.hash === "#watch/screener" && coldRes2.activeId === "p-screener" && coldErrors.length === 0;
+  // 冷启动（旧书签直接打开）：hash 会被扶正到 tab 的新归属组，面板必须是同一个
+  // 冷启动（旧书签直接打开）：hash 被扶正到 tab 的新归属组，**面板必须是同一个**。
+  // 用 lhb / screener 两个仍然在导航里的 tab 做样本（原样本 topics 已于 2026-10 停止抓取、撤下导航）。
+  const coldOk = coldRes.activeId === "p-lhb" && /^#(today|mine|market|stock|strategy|system)\/lhb$/.test(coldRes.hash) &&
+    coldRes2.activeId === "p-screener" && /^#(today|mine|market|stock|strategy|system)\/screener$/.test(coldRes2.hash) &&
+    coldErrors.length === 0;
   const pass = errors.length === 0 && structOk && sizeOk && sepOk && panelsOk && migOk && dynOk && coldOk;
   console.log("CHECKS=" + JSON.stringify({ structOk, sizeOk, sepOk, panelsOk, migOk, dynOk, coldOk,
-    noErrors: errors.length === 0, tabCount: flat.length, dynTrackCount: dyn.n, dynLoaded: dyn.loaded }));
+    noErrors: errors.length === 0, tabCount: flat.length, totalNow, totalAll, dynTrackCount: dyn.n, dynLoaded: dyn.loaded }));
   console.log(pass ? "NAV_PASS" : "NAV_FAIL");
   process.exit(pass ? 0 : 2);
 })().catch((e) => { console.log("CRASH: " + (e && e.message)); process.exit(1); });

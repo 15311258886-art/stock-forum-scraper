@@ -97,13 +97,28 @@ except Exception:  # noqa: BLE001
 
 
 # ---------------------------------------------------------------- 数据获取
+def _mkt_prefix(code: str) -> str:
+    """新浪 symbol 的市场前缀（sh / sz / bj）—— 唯一来源 security_master.exchange_of()。
+
+    2026-11-01：原实现是
+        ``pre = "sh" if code[0] in "659" else ("bj" if code[0] in "48" else "sz")``
+    这和腾讯行情那个「920 段拼成 sh、返回空、静默拿不到行情」是同型 bug：
+    920 段首字符是 '9'，"659" 不命中、"48" 不命中，直接落到默认 "sz"，
+    新浪返回空数组（HTTP 200、无异常），于是北交所**一只日线都抓不到**，
+    而且表现是"这只票没有 K 线"，很容易被当成"新股/无数据"。
+    """
+    from viewer import security_master as SM
+    ex = SM.exchange_of(code)
+    return {SM.EXCHANGE_SSE: "sh", SM.EXCHANGE_SZSE: "sz", SM.EXCHANGE_BSE: "bj"}.get(ex, "sz")
+
+
 def fetch_kline(code: str, datalen: int, adj: str = ADJ) -> list[dict]:
     """新浪日线。code 为 6 位数字。
 
     2026-10-15 P0-2 / DEF-006：默认抓**后复权(hfq)**，保证多年回测收益率口径自洽
     （不复权会因分红/送转出现人为跳空，扭曲策略收益）。adj='' 表示不复权（仅调试）。
     """
-    pre = "sh" if code[0] in "659" else ("bj" if code[0] in "48" else "sz")
+    pre = _mkt_prefix(code)
     url = ("https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/"
            f"CN_MarketData.getKLineData?symbol={pre}{code}&scale=240&ma=no&datalen={datalen}"
            + (f"&adj={adj}" if adj else ""))
@@ -1466,6 +1481,54 @@ def ensure_tables(con: sqlite3.Connection) -> None:
 
 
 # ---------------------------------------------------------------- 主流程
+_PRODUCT_UNIVERSE_CACHE: dict = {}
+
+
+def _product_universe() -> set:
+    """「产品口径」可选股票集合 —— 默认**剔北交所**（含 920 段）。
+
+    2026-11-01：删掉散落在 `_liquid_from_kline` 与 `_keep` 里的 ``c[0] in "036"``
+    白名单式前缀判断。那条规则有三个问题：
+
+      1. **剔北交所是产品选择，不是数据缺失。** 北交所涨跌幅 30%、流动性与主板量级不同，
+         本回测的"次日收盘成交 / 一字板撤单"假设对它不成立，所以不纳入标的池 ——
+         但宇宙里那 350 只是**真实存在且有行情**的，不能因为"回测不用"就把它们从
+         取码环节抹掉（这正是上一轮「全 A 宇宙不完整」的病灶形态）。
+      2. **写死代码段的白名单会静默失效。** 920 段是 2023 年才启用的新段，
+         `c[0] in "036"` 天然把它挡在外面 —— 结果对，理由错，换个场景就变成漏数据。
+      3. **口径必须唯一。** 谁属于哪个板块只在 `viewer/security_master.py` 里定义，
+         本文件不许再抄第二份。
+
+    返回：可选代码集合。主表不可用时**拒绝降级跑一份"含北交所"的回测**（fail-closed），
+    因为那种污染无法从结果里看出来，会表现为"策略更赚钱"。
+    """
+    if DB in _PRODUCT_UNIVERSE_CACHE:
+        return _PRODUCT_UNIVERSE_CACHE[DB]
+    try:
+        from viewer import security_master as SM
+    except Exception as e:  # noqa: BLE001
+        raise SystemExit("[strategy_sim][FATAL] 无法导入 security_master（%s），"
+                         "拒绝在板块口径不明的情况下产出回测结果" % e)
+    con = None
+    try:
+        con = sqlite3.connect("file:%s?mode=ro" % DB, uri=True)
+        codes = set(SM.stock_codes(con, include_bse=False))
+    except SM.SecurityMasterMissing as e:
+        raise SystemExit("[strategy_sim][FATAL] security_master 缺失（%s）。"
+                         "修复：python tools/build_security_master.py --sync-universe" % e)
+    except Exception as e:  # noqa: BLE001
+        raise SystemExit("[strategy_sim][FATAL] 读取 security_master 失败（%s），"
+                         "拒绝降级为'不过滤北交所'（该污染在结果里看不出来）" % e)
+    finally:
+        if con is not None:
+            con.close()
+    if not codes:
+        raise SystemExit("[strategy_sim][FATAL] security_master.stock_codes(include_bse=False) "
+                         "为空，无法确定标的池")
+    _PRODUCT_UNIVERSE_CACHE[DB] = codes
+    return codes
+
+
 def _liquid_from_kline(limit: int) -> list:
     """从本地日线全库（data/kline_daily.db）算近 60 交易日平均成交额，流动性降序返回。
 
@@ -1497,11 +1560,13 @@ def _liquid_from_kline(limit: int) -> list:
             con.close()
     except Exception:  # noqa: BLE001 —— 日线库缺失/损坏，交给上层继续降级
         return []
+    # 剔北交所 = 产品选择（本回测的成交假设不适用于 30% 涨跌幅），不是数据缺失。
+    # 口径唯一来源见 `_product_universe()`；这里不再写 `c[0] in "036"` 代码段白名单。
+    allowed = _product_universe()
     out = []
     for c, _amt in rows:
         s = str(c or "").strip()
-        # 与 selection._bad_code 同口径：剔北交所（4/8/9 开头，含 920xxx）
-        if len(s) == 6 and s.isdigit() and s[0] in "036":
+        if len(s) == 6 and s.isdigit() and s in allowed:
             out.append(s)
     return out
 
@@ -1550,8 +1615,12 @@ def universe(limit: int):
             # 回测可以拒绝跑，但不可以悄悄跑一份"含 ST"的结果。
             raise SystemExit("[strategy_sim][FATAL] 剔除池不可用，拒绝产出含 ST 的回测：%s" % _e)
 
+    # 剔北交所 = 产品选择（见 `_product_universe()` 的说明），不是数据缺失；
+    # 板块口径只在 security_master 里定义，此处不再写代码段白名单。
+    allowed = _product_universe()
+
     def _keep(cands):
-        return [c for c in cands if len(c) == 6 and c.isdigit() and c[0] in "036"]
+        return [c for c in cands if len(c) == 6 and c.isdigit() and c in allowed]
 
     codes: list = []
     src = "none"

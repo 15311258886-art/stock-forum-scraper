@@ -34,6 +34,11 @@ credentials*.yml
 浏览器profile/
 *.deepseek_key
 .tushare_token
+# 2026-11-01 P1-5：DPAPI 密文凭据 + 加密凭据归档目录。
+#   密文用 Windows DPAPI 按「当前用户 + 本机」绑定（见 viewer/secrets_dpapi.py），
+#   换机器/换用户解不开；但它仍然是凭据，**绝不能入库**（一旦被别的方式读出就是明文等价）。
+*.dpapi
+viewer/secrets/
 
 # ── 生成物报告（运行期产出，非源码；.gitkeep 占位仍纳入）──
 reports/*.json
@@ -96,6 +101,13 @@ viewer/*.db.bak-*
 *.pid
 viewer/.server.pid
 
+# 启动器（launch_viewer.py）的运行期产物：每次都变，且只对本机那一刻有意义
+#   .launcher.lock              单实例锁（首字节锁 + holder PID/时间戳）
+#   launcher_status.json        上次启动跑到哪一步（诊断用，见 launch_viewer.py::_stage）
+.launcher.lock
+viewer/data/launcher_status.json
+viewer/data/launcher_status.json.tmp
+
 # ── 运行期 K 线缓存（2026-10-31 盘点：viewer/data/ 下 5,661 个 kline_*.json，合计 2.2 GB）──
 # 这些是**可重建**的行情缓存，不是源码。原规则只挡了 `*_cache.json`，
 # 而这类文件名是 `kline_<hash>.json`，一条都没被挡住 —— 一次 `git add -A`
@@ -149,3 +161,49 @@ data/*.tmp
 .browser-profile/
 shots/
 artifacts/
+
+# UI 端到端门禁产物（生成本地报告/截图，不入库）
+tests/e2e/_report.json
+tests/e2e/_shots/
+tests/e2e/_*.log
+tests/e2e/_scratch_*.cjs
+
+# ── P0-1 单位契约上线后新增的行情/资金流磁盘缓存（2026-11-01 清场）──
+# 命名是 `<类别>_<16位hash>.json`，一个标的文件一个条目，24 小时滚动失效。
+# 属可重建缓存：删掉只是下一次多打一次外网请求，不入库。
+viewer/data/quote_*.json
+viewer/data/moneyflow_*.json
+viewer/data/news_*.json
+viewer/data/kronos_payload.json
+viewer/data/quant_payload.json
+viewer/data/etf_payload.json
+viewer/data/dragon_tier.json
+viewer/data/bottleneck_kb.json
+viewer/data/selfpick_recalc_report.json
+viewer/data/ai_brief_*.json
+viewer/data/lowbox/
+viewer/data/variants/
+viewer/data/warehouse/
+data/snapshots/
+viewer/static/fund_masters/index.json.prebak
+viewer/static/fund_masters/snapshots/
+
+# ── 本轮整改的探测产物（根目录临时文件，任务结束即弃）──
+#   after/baseline/dom_*/bt_*/focus_*/logincheck.json  各家验证脚本的中间输出
+#   *.txt 若干（ls/env/git 状态的转存）
+#   校验口径：文件名不带日期、内容每次重跑都变、无任何下游读取 → 一律不入库
+/after.json
+/baseline.json
+/dom_before.json
+/dom_after.json
+/dom_after_restart.json
+/bt_1014_p1.json
+/bt_1015_p1.json
+/focus_p1_2_result.json
+/logincheck.json
+/.probe_ls.txt
+/check_env.txt
+/git_status.txt
+/node_check.txt
+/nul
+viewer/server_dy8.out

@@ -25,6 +25,7 @@ import logging
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -34,6 +35,21 @@ from pathlib import Path
 from types import SimpleNamespace
 
 logger = logging.getLogger(__name__)
+
+# 2026-11-01 P1-5：雪球 cookie 改走 `viewer.secrets_dpapi`（DPAPI 密文优先，明文回退）。
+# 为什么用 try/except 而不是裸 import：本模块在 `scraper/` 下，可能被
+#   (a) 工程根入口以 `scraper.browser_fetch` 导入（此时工程根在 sys.path 上），
+#   (b) 也可能被 `python scraper/browser_fetch.py` 直接跑（此时 sys.path[0] 是 `scraper/`，
+#       **工程根不在**）。裸 `from viewer import ...` 在 (b) 下会 ImportError。
+#   Cookie 是渲染抓取的硬依赖，**绝不能让加密改造的 import 失败把整条采集带崩** ——
+#   导入失败就 `_secrets = None`，退回改造前的明文直读，行为完全不变。
+try:
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _PROJECT_ROOT not in sys.path:
+        sys.path.insert(0, _PROJECT_ROOT)
+    from viewer import secrets_dpapi as _secrets
+except Exception:  # noqa: BLE001
+    _secrets = None
 
 # —— 本机已验证可用路径（可用环境变量覆盖）——
 NODE_EXE = os.environ.get("XQ_NODE_EXE") or (
@@ -189,27 +205,48 @@ server.listen(PORT, '127.0.0.1', () => { console.error('XQ_BROWSER_SERVER_UP:' +
 def _load_cookies() -> list:
     """读取雪球 cookie 文件（Netscape .txt 或 JSON .json），返回 puppeteer page.setCookie 可用的列表。
 
-    查找顺序：环境变量 XQ_COOKIE_FILE → 工程根 cookies.txt / cookies.json。
+    查找顺序（2026-11-01 P1-5 起）：环境变量 XQ_COOKIE_FILE
+      → 受管凭据 `cookies.txt`（**DPAPI 密文 `cookies.txt.dpapi` 优先，明文回退**）
+      → 工程根 cookies.json → 相对路径 cookies.txt / cookies.json。
+    第 3 档是改造前的老路径，刻意原样保留（cookie 也可能只存在 cookies.json）。
     2026-09-25：雪球接口要求登录态（search.json 返回 error_code 400016），
     匿名 token 已不够，必须注入登录 cookie 才能拿到数据。
     """
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 工程根
-    cands = []
+    text = None
+    path = None
+    # ① 环境变量显式指定 → 尊重它，不参与"受管凭据"（用户已经明确给了路径，就按他的来）
     envf = os.environ.get("XQ_COOKIE_FILE")
-    if envf:
-        cands.append(envf)
-    cands += [
-        os.path.join(root, "cookies.txt"),
-        os.path.join(root, "cookies.json"),
-        "cookies.txt",
-        "cookies.json",
-    ]
-    path = next((c for c in cands if c and os.path.exists(c)), None)
-    if not path:
-        return []
-    try:
-        text = open(path, encoding="utf-8", errors="ignore").read()
-    except OSError:
+    if envf and os.path.exists(envf):
+        try:
+            with open(envf, encoding="utf-8", errors="ignore") as _fh:
+                text = _fh.read()
+            path = envf
+        except OSError:
+            text = None
+    # ② 受管凭据（P1-5）：`secrets_dpapi.load` 优先读 `<工程根>/cookies.txt.dpapi`，
+    #    缺失/解不开时回退 `<工程根>/cookies.txt` 明文（并打一条**限频** WARNING 提醒迁移）。
+    #    这一步刻意排在 `cookies.json` **之前** —— 沿用原查找顺序
+    #    （cookies.txt 优先于 cookies.json），不改变"哪一份 cookie 生效"。
+    if text is None and _secrets is not None:
+        managed = _secrets.load("cookies.txt")
+        if managed is not None:
+            text = managed
+            path = "cookies.txt（受管：DPAPI 密文优先，明文回退）"
+    # ③ 原兜底路径**原样保留**：工程根 cookies.json / 相对路径 cookies.txt、cookies.json。
+    #    为什么不能删：改造前 cookie 也可能只存在于 cookies.json，砍掉这一档等于砍功能。
+    if text is None:
+        for c in (os.path.join(root, "cookies.json"), "cookies.txt", "cookies.json"):
+            if not c or not os.path.exists(c):
+                continue
+            try:
+                with open(c, encoding="utf-8", errors="ignore") as _fh:
+                    text = _fh.read()
+                path = c
+                break
+            except OSError:
+                continue
+    if text is None:
         return []
     out = []
     stripped = text.strip()

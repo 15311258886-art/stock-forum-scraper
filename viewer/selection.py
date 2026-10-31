@@ -71,6 +71,11 @@ from collections import defaultdict
 # 语义不同可以，来源不同不行 —— 所以数字搬走，解释留在 params.py 里。
 from viewer.kernel import params as _PARAMS
 
+# 2026-11-01（P0「全 A 股宇宙不完整」）：取码与板块判定统一收口到 security_master。
+# 之前本文件自己写 `code[:2]=="92"` / `code[:2] in ("30","68")` 这类前缀表，
+# 结果白名单漏了整块北交所却无人发现 —— 一个判据只许有一处实现。
+from viewer import security_master as SM
+
 log = logging.getLogger("selection")
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -158,14 +163,41 @@ def _kline_conn() -> sqlite3.Connection | None:
 
 
 def _names(conn: sqlite3.Connection) -> dict:
+    """代码 → (简称, 板块)。2026-11-01 换源：改读 security_master（权威口径）。
+
+    原来读 a_shares_universe —— 那张表漏收整块北交所，且混着 2 只可转债 + 1 只 ETF。
+    主表建好后这里是唯一正确源：非股票已被剔除，名称也已还原成非除权简称。
+    """
     out = {}
     try:
-        for code, name, board in conn.execute(
-                "SELECT code,name,board FROM a_shares_universe"):
-            out[code] = (name or "", board or "")
-    except Exception:  # noqa: BLE001
-        pass
+        for row in SM.load(conn):
+            out[row["code"]] = (row["name"] or "", row["board"] or "")
+    except Exception:  # noqa: BLE001 —— 主表未建时不能静默给空池，见 _allowed_codes
+        log.warning("[selection] security_master 不可用，名称/板块标注将为空")
     return out
+
+
+def _allowed_codes(conn: sqlite3.Connection) -> set:
+    """候选池的合法代码集（**显式**声明了两个产品选择，不再靠前缀猜）。
+
+    1. `include_bse=False` —— 本池**有意排除北交所**（30% 涨跌幅 + 流动性差，
+       与主线选股的风险模型不同）。这是**产品选择，不是数据缺失**；
+       以前用 `code[:2]=="92" or code[:1] in ("4","8")` 实现，那样既漏了 920 段
+       之外的写法，也让"为什么没有北交所"变得查不出来。
+    2. `exclude_delist_suspects=True` —— 买入候选不能包含退市整理期标的
+       （它们还能交易，但不能推荐）。见 security_master.stock_codes 的硬规矩。
+
+    主表缺失时抛 `SecurityMasterMissing`（由 refresh_pool 转成明确的 ok=False），
+    **绝不返回空集合** —— 空池会让"今天没有机会"看起来像正常业务状态。
+    """
+    return set(SM.stock_codes(conn, include_bse=False,
+                              exclude_delist_suspects=True))
+
+
+def _bad_name(name: str) -> bool:
+    """ST / 空名。退市标记由 security_master 的 delist 证据负责，这里不再按名字猜。"""
+    u = (name or "").upper().replace(" ", "")
+    return ("ST" in u) or (not name)
 
 
 def _fund(conn: sqlite3.Connection) -> dict:
@@ -180,16 +212,6 @@ def _fund(conn: sqlite3.Connection) -> dict:
     return out
 
 
-def _bad_code(code: str) -> bool:
-    """北交所流动性太差、科创/创业涨跌幅规则不同，池子统一排除北交所。"""
-    return code[:2] == "92" or code[:1] in ("4", "8")
-
-
-def _bad_name(name: str) -> bool:
-    u = (name or "").upper().replace(" ", "")
-    return ("ST" in u) or ("退" in u) or (not name)
-
-
 def _amp(seg) -> float | None:
     """250 日振幅 =（区间最高−最低）/ 区间均价。"""
     if not seg:
@@ -202,8 +224,22 @@ def _amp(seg) -> float | None:
 
 
 def refresh_pool(conn: sqlite3.Connection, keep_days: int = 60) -> dict:
-    """算今日「低波池」。读最近 600 根日线，约 10~15 秒。"""
+    """算今日「低波池」。读最近 600 根日线，约 10~15 秒。
+
+    取码口径（2026-11-01 收口）：合法代码集来自 `security_master`（见 `_allowed_codes`），
+    有意排除北交所（产品选择）+ 排除退市整理期标的（不能推荐）。
+    主表缺失时**直接返回 ok=False**，不产出空池 —— 空池会让"今天没有机会"
+    看起来像正常业务状态。
+    """
     ensure_schema(conn)
+    try:
+        allowed = _allowed_codes(conn)
+    except Exception as e:  # noqa: BLE001 —— 含 SecurityMasterMissing
+        log.error("[selection] 取码失败，拒绝产出空池：%s", e)
+        return {"ok": False, "error": "security_master 不可用：%s" % e}
+    if not allowed:
+        log.error("[selection] 候选集为空，拒绝产出空池（security_master 未填充？）")
+        return {"ok": False, "error": "候选代码集为空，请先跑 tools/build_security_master.py"}
     kc = _kline_conn()
     if kc is None:
         return {"ok": False, "error": "日线库不可用"}
@@ -241,7 +277,9 @@ def refresh_pool(conn: sqlite3.Connection, keep_days: int = 60) -> dict:
         if amt < MIN_AMT:
             return
         nm, board = names.get(code, ("", ""))
-        if _bad_code(code) or _bad_name(nm):
+        # 合法性判定统一走 security_master（含"排除北交所"与"排除退市整理期"两个
+        # 显式产品选择），不再用 code 前缀猜 —— 前缀表散落在各处正是本轮的病根。
+        if code not in allowed or _bad_name(nm):
             return
         v20 = sum(vl[-20:]) / 20.0
         vr = (vl[-1] / v20) if v20 > 0 else 1.0
@@ -317,12 +355,20 @@ def count_pool_candidates(conn) -> dict:
 
 
 # ------------------------------------------------------------------ 证据回测
+# 涨停判定阈值 = 该板块的涨跌停幅度 − 容差（前复权后价格有分位舍入，必须留容差）。
+# 板块归属由 security_master.board_of() 判定 —— 那是全项目唯一允许写代码段规则的地方；
+# 本文件以前自带一份 ("30","68") / ("43","83","87","88","92") 的表，和 units 里的
+# price_limit_pct 是两份口径，302（创业板新段）那种新代码一出现就会两边不一致。
+_BOARD_ZT_THR = {
+    SM.BOARD_CHINEXT: 0.198,   # 创业板 ±20%
+    SM.BOARD_STAR: 0.198,      # 科创板 ±20%
+    SM.BOARD_BSE: 0.295,       # 北交所 ±30%
+}
+_ZT_THR_DEFAULT = 0.098        # 主板 ±10%（判不出板块时按最严处理：宁可少认涨停）
+
+
 def _zt_thr(code: str) -> float:
-    if code[:2] in ("30", "68"):
-        return 0.198
-    if code[:3] in ("43", "83", "87", "88", "92"):
-        return 0.295
-    return 0.098
+    return _BOARD_ZT_THR.get(SM.board_of(code), _ZT_THR_DEFAULT)
 
 
 def _mean(xs):

@@ -559,6 +559,11 @@ class Database:
                 _cols = [r["name"] for r in c.execute(f"PRAGMA table_info({_t})").fetchall()]
             except sqlite3.OperationalError:
                 continue  # 表可能尚未由对应采集脚本建出，跳过不阻塞迁移
+            if not _cols:
+                # 2026-11-01 修：PRAGMA table_info 对**不存在的表**返回空列表而不是抛错，
+                # 所以上面那个 continue 永远走不到 —— 于是空库（首次部署 / VIEWER_DB 指向
+                # 新文件 / 单元测试）会在这里 ALTER 一个不存在的表并崩掉整个 Database()。
+                continue
             if "disclose_at" not in _cols:
                 c.execute(f"ALTER TABLE {_t} ADD COLUMN disclose_at TEXT DEFAULT ''")
                 c.commit()
@@ -1545,20 +1550,46 @@ class Database:
         self.conn.commit()
 
     def all_symbols(self) -> list[str]:
-        """库中出现过的全部股票代码。
+        """库中出现过的全部**股票**代码（供名称回填 / 兜底取码）。
 
         ⚠️ 2026-10-31 换源：原实现是 stock_mentions ∪ trades ∪ positions ——
         三张表**全部是论坛抓取产物**，论坛 2026-10-30 停抓后已被清空，
         留在原处会让本函数永久返回空列表（而它有真实消费方：
         stock_names.backfill_missing 的默认代码集、/api/posts 的兜底）。
-        现改为从「仍在日更的官方宇宙」取：a_shares_universe（全A报价快照日更）
-        ∪ stock_names（名称表，含退市/历史代码），两者都是交易所口径、不依赖任何爬虫。
+        当时改成 a_shares_universe ∪ stock_names。
+
+        ⚠️ 2026-11-01 再换源（P0「全 A 股宇宙不完整」）：`a_shares_universe` 漏收
+        整块北交所（328 只 920 段），任何信它"是全量"的取码都会静默丢一个板块。
+        权威口径已收口到 `security_master`，本函数改为：
+            security_master.stock_codes()   ← 含北交所，非股票已被剔除
+            ∪ stock_names(仅股票)            ← 兜住历史/已退市代码（名称回填需要）
+        与旧口径相比**剔除**了 111024/113710（可转债）、513050（ETF）——
+        名称回填不该给债券/ETF 建股票名，这是修复不是回归；
+        股票代码一个不少（旧口径 5,240 只 ⊂ 新口径），另多出 000004 等只在工商表里的。
         """
-        rows = self.conn.execute(
-            "SELECT code FROM a_shares_universe WHERE code IS NOT NULL AND code<>'' "
-            "UNION SELECT code FROM stock_names WHERE code IS NOT NULL AND code<>''"
-        ).fetchall()
-        return sorted({r["code"] for r in rows})
+        codes = set()
+        try:
+            from . import security_master as SM
+            codes.update(SM.stock_codes(self.conn))
+        except Exception:  # noqa: BLE001 —— 主表还没建（新库/首次部署）时回落到下面的旧源
+            pass
+        try:
+            from . import units as U
+            for code, name in self.conn.execute(
+                    "SELECT code, name FROM stock_names "
+                    "WHERE code IS NOT NULL AND code <> ''"):
+                if U.stock_kind(code, name or "") == U.KIND_STOCK:
+                    codes.add(code)
+        except Exception:  # noqa: BLE001
+            pass
+        if not codes:
+            # 双源都不可用（极端情况）：退回旧的并集，至少不让调用方拿到空列表。
+            rows = self.conn.execute(
+                "SELECT code FROM a_shares_universe WHERE code IS NOT NULL AND code<>'' "
+                "UNION SELECT code FROM stock_names WHERE code IS NOT NULL AND code<>''"
+            ).fetchall()
+            return sorted({r["code"] for r in rows})
+        return sorted(codes)
 
     def upsert_person(self, name, role="author"):
         self.conn.execute(

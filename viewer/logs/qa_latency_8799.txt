@@ -1,0 +1,10 @@
+===== LATENCY TEST @ port 8799 (13:28:31) =====
+code=200 time=0.014703s
+code=200 time=1.241415s
+code=200 time=0.130784s
+code=200 time=0.482950s
+code=200 time=0.018978s
+code=200 time=0.193553s
+code=200 time=0.281759s
+code=200 time=0.001533s
+===== DONE =====

@@ -102,3 +102,21 @@
 - 红线扫描（致锐宇/Zhiruiyu/ZRY）零命中
 
 > 我们此前翻车的"import 漏前缀 / JOBS 漏注册 / score 误填 / 剔除池误塞博主噪声"全部被上述检查覆盖。smoke 不过 = 不准合入。
+
+---
+
+## 八、存储成本（P1-4 · 2026-11-01）
+
+**实测账单**：`viewer/app.db` 文件 8.8 GB + `app.db-wal` 15 MB ≈ **8.9 GB**。其中 7.3 GB 是 `stock_indicators_daily`（2010→今，1,316 万行 × 58 列）。
+
+**但即时查询根本不碰历史**：查看器/选股/评估只取最近 260 个交易日，实测 **10.4% 行数 / 约 763 MB**；2010→去年那 90% 只在季度回测时才整段扫一遍。
+
+**所以方向是冷热分离**（最近 260 日留 SQLite 保低延迟，历史因子转 Parquet/DuckDB 只在回测时按列读）。为什么这个方向对、迁移的前置条件（要改哪几个文件）、依赖与口径一致性风险、以及本轮为什么不做，全部见 **`docs/storage_plan.md`**。
+
+**本轮只清冗余索引，未迁移任何数据。** 清掉的是 `idx_sid_code_date ON stock_indicators_daily(code, date)` —— 它与主键 `(code, date)` 的自动索引逐页完全相同（同为 97,134 页 / 379.4 MB），等于同一份索引存了两遍。`DROP INDEX` 耗时 0.30 s，`freelist_count` 1 → 97,135。
+
+> **删索引后 `du` 不变是正常的** —— SQLite 把 379 MB 挂进 freelist 复用，要真正归还操作系统必须 `VACUUM`（需约 9 GB 空闲 + 长时间锁库），本轮明确不做。**判断空间是否回收看 `PRAGMA freelist_count`，不要看 `du`。**
+
+配套的两个工具：`tools/storage_report.py`（谁占了多少、哪些索引是前缀冗余候选、统计是否过期、缓存是否超期，`--json` 可机读，退出码 `3`=发现冗余索引 / `4`=发现超期缓存）、`tools/ensure_indexes.py`（索引的唯一注册表，含冗余索引回滚 DDL 与 `--check` 哨兵）。
+
+**为什么 `viewer/indicators.py` 里那行建索引必须物理删除、而不是"知道就行"**：`CREATE INDEX IF NOT EXISTS` 既不报错也不提示，留着它就会在每次因子日更重算时把 379 MB 悄悄建回来，这轮的节省会在第二天自动失效。

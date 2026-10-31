@@ -33,6 +33,18 @@ COOKIE_FILE = os.path.join(BASE, 'eastmoney_cookie.txt')
 CACHE = os.path.join(BASE, 'etf_track_error_cache.json')
 URL_TMPL = 'https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=trackerr&code={code}&rt={rt}'
 
+# 2026-11-01 P1-5：凭据读取改走 viewer.secrets_dpapi —— 优先 `<名>.dpapi`（Windows DPAPI 密文），
+#   缺失/解不开时回退项目根同名明文（回退时 `secrets_dpapi.load` 会打一条限频 WARNING）。
+# 为什么 try/except：本脚本同样有"直接跑"与"被 viewer/etf.py 导入"两种入口，
+#   Cookie 是抓取硬依赖，绝不能让"加密改造的 import 失败"把整条采集带崩 ——
+#   导入失败就退回改造前的明文直读，行为完全不变。
+try:
+    if BASE not in sys.path:
+        sys.path.insert(0, BASE)
+    from viewer import secrets_dpapi as _secrets
+except Exception:  # noqa: BLE001
+    _secrets = None
+
 # B 方案：场内 ETF → 同指数联接/指数基金映射（东财 F10 不返场内 ETF 跟踪误差时作近似代理）
 try:
     from etf_link_map import ETF_LINK_MAP
@@ -47,25 +59,47 @@ def _f(x):
         return None
 
 
+def _read_cookie_text() -> str | None:
+    """读取东财 cookie 文本：优先 DPAPI 密文，回退项目根明文；都没有返回 None。
+
+    回退是**刻意**的：加密迁移没做完之前不能让线上采集断掉；
+    回退由 `secrets_dpapi` 打一条限频 WARNING 作为迁移提醒。
+    """
+    if _secrets is not None:
+        txt = _secrets.load('eastmoney_cookie.txt')
+        if txt is not None:
+            return txt
+    if os.path.exists(COOKIE_FILE):
+        try:
+            with open(COOKIE_FILE, encoding='utf-8') as fh:
+                return fh.read()
+        except OSError:
+            return None
+    return None
+
+
 def load_cookie() -> str | None:
     env = os.environ.get('EASTMONEY_COOKIE')
     if env:
         return env
-    if os.path.exists(COOKIE_FILE):
-        txt = open(COOKIE_FILE, encoding='utf-8').read().strip()
-        # Netscape 格式（tab 分隔）转 k=v
-        if '\t' in txt:
-            out = []
-            for line in txt.splitlines():
-                line = line.rstrip('\n')
-                if not line.strip() or line.startswith('#'):
-                    continue
-                p = line.split('\t')
-                if len(p) >= 7:
-                    out.append('%s=%s' % (p[5], p[6]))
-            return '; '.join(out) if out else None
-        return txt or None
-    return None
+    raw = _read_cookie_text()
+    if raw is None:
+        return None
+    txt = raw.strip()
+    if not txt:
+        return None
+    # Netscape 格式（tab 分隔）转 k=v
+    if '\t' in txt:
+        out = []
+        for line in txt.splitlines():
+            line = line.rstrip('\n')
+            if not line.strip() or line.startswith('#'):
+                continue
+            p = line.split('\t')
+            if len(p) >= 7:
+                out.append('%s=%s' % (p[5], p[6]))
+        return '; '.join(out) if out else None
+    return txt or None
 
 
 def _universe() -> list:

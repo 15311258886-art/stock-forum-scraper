@@ -36,6 +36,10 @@ import urllib.request
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, "viewer", "app.db")
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+# 2026-11-01：交易所/板块口径不再在本文件里抄一份段表，统一走 security_master。
+from viewer import security_master as SM  # noqa: E402
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 UT = "fa5fd1943c7b386f172d6893dbfba10b"
@@ -57,12 +61,24 @@ def _num(v):
 
 
 def _secucode(code: str) -> str:
-    code = str(code).strip().zfill(6)
-    if code[0] in "659":
-        return code + ".SH"
-    if code[:2] in ("43", "83", "87", "88", "92") or code[0] in "48":
-        return code + ".BJ"
-    return code + ".SZ"
+    """东财 datacenter 的 secucode 后缀（.SH / .SZ / .BJ）—— 交易所归属委托主表。
+
+    2026-11-01：这里原本是**第三份**代码段前缀表（``code[0] in "659"`` → .SH，
+    ``code[:2] in ("43","83","87","88","92")`` 或 ``code[0] in "48"`` → .BJ）。
+    和腾讯行情那个「920 段被拼成 sh、返回空、不报错」的 bug 同一类：
+    写死段表，新代码段一启用就悄悄错，而错了的表现是**接口返回空**，
+    看起来像"这只票没有股东数据"。现在唯一来源是 `security_master.exchange_of()`。
+
+    EXCHANGE_OTHER（既非股票段也非债券/ETF 段，如老三板 400xxx）按深市兜底 ——
+    这类代码不在 security_master 宇宙里，本脚本也不会去抓（见 collect_codes）。
+    """
+    s = str(code).strip().zfill(6)
+    ex = SM.exchange_of(s)
+    if ex == SM.EXCHANGE_SSE:
+        return s + ".SH"
+    if ex == SM.EXCHANGE_BSE:
+        return s + ".BJ"
+    return s + ".SZ"
 
 
 def _get(report: str, flt: str, sort_columns: str, sort_types: str,
@@ -256,18 +272,24 @@ def collect_codes(con: sqlite3.Connection) -> list[str]:
     try:
         from viewer.universe_filter import all_ashares, get_exclusion_pool
         ex, _, _ = get_exclusion_pool()
+        # 2026-11-01：原实现是 `if c[0] not in "036": continue` —— 又一份代码段白名单。
+        # 剔北交所是**产品选择**（先覆盖沪深主战场，北交所股东数据后续再补），
+        # 不是"北交所没有股东数据"，更不该靠首字符猜：920 段 2023 年才启用，
+        # `c[0] in "036"` 恰好把它挡住，看着对、理由错，换段就漏。
+        # 口径唯一来源 = security_master.stock_codes(include_bse=False)。
+        allowed = set(SM.stock_codes(con, include_bse=False))
         have = {str(r[0]).strip() for r in
                 con.execute("SELECT DISTINCT symbol FROM stock_holder_num")}
         for c in all_ashares():
             c = str(c or "").strip()
             if len(c) != 6 or not c.isdigit():
                 continue
-            if c[0] not in "036":        # 剔北交所（与 selection._bad_code 同口径）
+            if c not in allowed:
                 continue
             if c in ex or c in have:
                 continue
             codes.append(c)
-    except Exception:  # noqa: BLE001 —— universe_filter 不可用时退回旧口径
+    except Exception:  # noqa: BLE001 —— universe_filter/主表不可用时退回旧口径（②）
         pass
     # ② 兜底：原口径（持仓 + 龙虎榜），保证老票继续增量更新
     for sql in ("SELECT DISTINCT symbol FROM positions WHERE symbol IS NOT NULL AND TRIM(symbol)<>''",

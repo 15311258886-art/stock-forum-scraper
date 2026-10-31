@@ -74,7 +74,16 @@ def ensure_tables(con: sqlite3.Connection):
         code TEXT PRIMARY KEY, name TEXT, date TEXT,
         buy_score REAL, sell_score REAL,
         buy_reasons TEXT, sell_reasons TEXT)""")
-    con.execute("CREATE INDEX IF NOT EXISTS idx_sid_code_date ON stock_indicators_daily(code, date)")
+    # 2026-11-01（P1-4 存储成本）**移除** 原第 77 行：
+    #     CREATE INDEX IF NOT EXISTS idx_sid_code_date ON stock_indicators_daily(code, date)
+    # 原因：它与上表的主键自动索引 sqlite_autoindex_stock_indicators_daily_1
+    # （PRIMARY KEY (code, date)）逐页完全相同 —— 同为 97,134 页 / 397,860,864 B（379.4 MB），
+    # sqlite_stat1 也同为 "1402740 237 1"。等于同一份索引存了两遍，白占 379 MB。
+    # 已 DROP，并验证过主键索引能完全顶替它（五条代表性查询的计划形状与耗时不变）。
+    # 注意：`CREATE INDEX IF NOT EXISTS` 不报错也不提示，所以这行留着就会在每次因子重算时
+    # 把 379 MB 悄悄建回来 —— 这是它必须被删掉、而不只是"知道就行"的原因。
+    # 若确需重建（万一某条查询退化成全表扫）：见 tools/ensure_indexes.py 顶部的回滚 DDL，
+    # 并先把 tools/ensure_indexes.py 的 REDUNDANT_INDEXES 里对应条目去掉，否则巡检会一直报警。
     con.commit()
 
 

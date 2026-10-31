@@ -31,6 +31,7 @@ from __future__ import annotations
 import subprocess  # noqa: F401  —— 用于确认 DEVNULL 等常量仍可用
 import logging
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -112,6 +113,15 @@ class _FakeBrake:
     def bind_pid(self, lease, pid):  # noqa: ARG002
         self.pids.append(int(pid))
 
+    # 2026-11-01：`Brake` 接口新增的两个成员 —— 收尾路径（`_job_settle`）会调
+    # `mark_settled`，supervisor 线程会调 `heartbeat`。桩对象必须补齐，
+    # 否则收尾会抛 AttributeError，本文件会以"与退避无关"的方式全红。
+    def mark_settled(self, job):  # noqa: ARG002
+        self.settled = getattr(self, "settled", 0) + 1
+
+    def heartbeat(self, job, pid=None):  # noqa: ARG002
+        return True
+
     def should_log(self, job, gap: float = 120.0):  # noqa: ARG002
         return True
 
@@ -125,6 +135,25 @@ def _clear_state(S) -> None:
     S._JOB_LAST_OK.pop(JOB, None)
     S._JOB_WARNED.discard(JOB)
     S._JOB_KILL_PENDING.discard(JOB)
+    # 2026-11-01：收尾幂等键也必须清 —— 留着上一轮的 proc，收尾会被判成"已做过"，
+    # 用例就会在"什么都没发生"的情况下变红/变绿。
+    S._JOB_SETTLED.pop(JOB, None)
+
+
+def _wait_settled(S, job: str = JOB, timeout: float = 3.0) -> None:
+    """等 supervisor 线程把这一轮收尾落地（收尾是异步的，断言不能抢跑）。
+
+    2026-11-01 变更：收尾改由 `_job_supervisor` 守护线程在子进程退出后**立刻**驱动，
+    不再等"同一 job 下次被启动"。所以这些用例必须显式等它完成，
+    否则断言的就不是行为，而是线程调度运气。
+    """
+    end = time.time() + timeout
+    while time.time() < end:
+        with S._JOB_SETTLE_LOCK:
+            if S._JOB_SETTLED.get(job) is not None:
+                return
+        time.sleep(0.01)
+    raise AssertionError("子进程收尾没有在 %.1fs 内发生（supervisor 没生效）" % timeout)
 
 
 @pytest.fixture()
@@ -133,13 +162,20 @@ def sv(monkeypatch, tmp_path):
     from viewer import server as S
 
     saved = {name: dict(getattr(S, name))
-             for name in ("_JOB_PROCS", "_JOB_LAST", "_JOB_LAST_OK")}
+             for name in ("_JOB_PROCS", "_JOB_LAST", "_JOB_LAST_OK", "_JOB_SETTLED")}
     saved_warned = set(S._JOB_WARNED)
     saved_kill = set(S._JOB_KILL_PENDING)
 
     monkeypatch.setattr(S, "ROOT", str(tmp_path))   # sched-*.log 落 tmp，不污染 viewer/logs
     _clear_state(S)
     yield S
+
+    # 2026-11-01：收尾在线程里跑，必须在 monkeypatch 撤销**之前** join 掉，
+    # 否则线程会带着恢复后的生产 `BRAKE`/`ROOT` 继续收尾（污染进程级状态）。
+    import threading
+    for t in threading.enumerate():
+        if t.name.startswith("job-supervisor-"):
+            t.join(timeout=10)
 
     for name, value in saved.items():
         getattr(S, name).clear()
@@ -191,17 +227,20 @@ def test_restarts_after_backoff_window_expires(sv, monkeypatch):
     # ① 首次启动：成功放行（子进程后来非零退出）
     assert sv._spawn_offproc(JOB) is True
     assert len(spawns) == 1
-    assert JOB in sv._JOB_PROCS
 
-    # ② 下一 tick：发现退出码 1 → 记失败、摘记录、当场不重开
-    assert sv._spawn_offproc(JOB) is False
-    assert len(spawns) == 1, "失败后不当场重开（交给退避窗口）"
+    # ② 子进程退出后由 supervisor 立刻收尾（2026-11-01 起不再等下一次再入）：
+    #    记失败、归还租约、摘掉死记录。这里显式等它落地，断言才不依赖线程调度运气。
+    _wait_settled(sv)
     assert JOB not in sv._JOB_PROCS, (
         "失败分支没有摘掉 _JOB_PROCS —— 下个 tick 会再撞这条死记录，退避窗口被无限后推")
     assert fails == ["exit=1"], "应只记一次失败：%r" % (fails,)
     assert brake.released >= 1, "失败分支必须归还闸租约，否则写闸会被永久占死"
 
-    # ③ 时间推进 999s（> _OFFPROC_GAP 默认 600s）、退避窗口已过期 → 必须能再起一个
+    # ③ 收尾之后同一 tick 内调一次：不得当场重开（交给退避窗口）
+    assert sv._spawn_offproc(JOB) is False
+    assert len(spawns) == 1, "失败后不当场重开（交给退避窗口）"
+
+    # ④ 时间推进 999s（> _OFFPROC_GAP 默认 600s）、退避窗口已过期 → 必须能再起一个
     sv._JOB_LAST[JOB] -= 999
     assert sv._spawn_offproc(JOB) is True
     assert len(spawns) == 2, "退避窗口过期后没有重试 —— 退避从『有界等待』退化成『永久停摆』"
@@ -250,6 +289,7 @@ def test_success_branch_keeps_record_and_last_ok(sv, monkeypatch):
 
     assert sv._spawn_offproc(JOB) is True
     assert sv._spawn_offproc(JOB) is False         # 观察退出码 0
+    _wait_settled(sv)                              # 收尾是 supervisor 线程驱动的，等它落地
     assert len(spawns) == 1
     assert fails == [], "成功不该记失败：%r" % (fails,)
     assert JOB in sv._JOB_PROCS, "成功分支不该摘记录（_JOB_LAST_OK 记账依赖它）"
@@ -281,18 +321,25 @@ def test_dead_record_would_freeze_the_job_forever(sv, monkeypatch):
 
 # ---------------------------------------------------------------- 5. 结构护栏
 def test_failure_branch_is_the_only_place_that_pops():
-    """静态检查：`_JOB_PROCS.pop` 只出现在失败分支（成功分支不许有）。
+    """静态检查：`_JOB_PROCS.pop` 只出现在**失败**分支（成功分支不许有）。
 
     用源码里的相对位置判断，避免"某天有人顺手在成功分支也加一行 pop"这种回归。
+
+    2026-11-01 变更：这段收尾逻辑从 `_spawn_offproc` 内联搬到了独立的
+    `_job_settle()` —— 因为现在有三条路径会收尾（supervisor 线程 / 每 tick 的
+    `_reap_finished_jobs` / 再入分支），必须**一份实现**。判据本身不变，只是被检查的
+    函数换了；另外多查一条：全文件只允许一处 `_JOB_PROCS.pop(`（不许有第二份收尾实现）。
     """
     import inspect
 
     from viewer import server as S
 
-    src = inspect.getsource(S._spawn_offproc)
+    src = inspect.getsource(S._job_settle)
     fail_branch = src.index("_JOB_LAST_OK.pop(job, None)")      # 失败分支起点
     pop_at = src.index("_JOB_PROCS.pop(job, None)")
     ok_branch = src.index("_JOB_LAST_OK[job] = time.time()")    # 成功分支
     assert fail_branch < pop_at < ok_branch, (
         "`_JOB_PROCS.pop` 必须落在失败分支内、成功分支之前")
-    assert src.count("_JOB_PROCS.pop(") == 1, "`_JOB_PROCS.pop` 只应出现一次（失败分支）"
+    assert inspect.getsource(S).count("_JOB_PROCS.pop(") == 1, (
+        "`_JOB_PROCS.pop` 只应出现一次（`_job_settle` 的失败分支）—— "
+        "出现第二处就说明有第二份收尾实现，幂等假设不成立了")

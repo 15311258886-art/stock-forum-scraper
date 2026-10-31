@@ -26,6 +26,20 @@ COOKIE_FILE = os.path.join(BASE, 'jisilu_cookie.txt')
 CACHE = os.path.join(BASE, 'jisilu_etf_cache.json')
 URL = 'https://www.jisilu.cn/data/etf/etf_list/'
 
+# 2026-11-01 P1-5：凭据读取改走 viewer.secrets_dpapi —— 优先 `<名>.dpapi`（Windows DPAPI 密文），
+#   缺失/解不开时回退项目根同名明文（回退时 `secrets_dpapi.load` 会打一条限频 WARNING）。
+# 为什么用 try/except 包住：本脚本有两个入口方式 —— 被 `viewer/etf.py` 当模块导入（工程根在
+#   sys.path 上），以及被直接 `python etf_jisilu.py` 跑（此时 sys.path[0] 是工程根，也在）。
+#   但只要有第三种调用方式没把工程根放进 sys.path，裸 `from viewer import ...` 就会 ImportError，
+#   而 Cookie 是抓取的硬依赖 —— 绝不能让"加密改造的 import 失败"把整条采集带崩。
+#   导入失败 → `_secrets = None` → 退回改造前的明文直读，行为完全不变，只是少了加密保护。
+try:
+    if BASE not in sys.path:
+        sys.path.insert(0, BASE)
+    from viewer import secrets_dpapi as _secrets
+except Exception:  # noqa: BLE001
+    _secrets = None
+
 
 def _f(x):
     try:
@@ -34,21 +48,42 @@ def _f(x):
         return None
 
 
+def _read_cookie_text() -> str | None:
+    """读取 jisilu cookie 文本：优先 DPAPI 密文，回退项目根明文；都没有返回 None。
+
+    回退是**刻意**的：加密迁移没做完之前（读取点改造 ≠ 文件已加密），
+    不能让"多了一层加密"把线上采集改停。回退由 `secrets_dpapi` 打一条限频 WARNING
+    作为迁移提醒（同一进程同一天只一条，避免每抓一轮刷一行把日志淹掉）。
+    """
+    if _secrets is not None:
+        txt = _secrets.load('jisilu_cookie.txt')
+        if txt is not None:
+            return txt
+    if os.path.exists(COOKIE_FILE):
+        try:
+            with open(COOKIE_FILE, encoding='utf-8') as fh:
+                return fh.read()
+        except OSError:
+            return None
+    return None
+
+
 def load_cookie() -> str | None:
     env = os.environ.get('JISILU_COOKIE')
     if env:
         return env
-    if os.path.exists(COOKIE_FILE):
-        out = []
-        for line in open(COOKIE_FILE, encoding='utf-8'):
-            line = line.rstrip('\n')
-            if not line.strip() or line.startswith('#'):
-                continue
-            p = line.split('\t')
-            if len(p) >= 7:
-                out.append('%s=%s' % (p[5], p[6]))
-        return '; '.join(out)
-    return None
+    text = _read_cookie_text()
+    if text is None:
+        return None
+    out = []
+    for line in text.splitlines():
+        line = line.rstrip('\n')
+        if not line.strip() or line.startswith('#'):
+            continue
+        p = line.split('\t')
+        if len(p) >= 7:
+            out.append('%s=%s' % (p[5], p[6]))
+    return '; '.join(out)
 
 
 def fetch(progress=None) -> dict | None:

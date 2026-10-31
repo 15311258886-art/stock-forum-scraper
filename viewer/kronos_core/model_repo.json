@@ -1,0 +1,8 @@
+{
+  "model_repo": "NeoQuasar/Kronos-mini",
+  "tokenizer_repo": "NeoQuasar/Kronos-Tokenizer-base",
+  "revision": "main",
+  "max_context": 512,
+  "weights_dir": "weights",
+  "mirror": "https://hf-mirror.com"
+}

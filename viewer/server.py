@@ -29,6 +29,7 @@ import urllib.parse
 import urllib.request
 import concurrent.futures as cf
 import contextlib
+import gzip
 import hmac
 import ctypes
 import _thread
@@ -66,6 +67,8 @@ from viewer.kernel.brake import BRAKE  # noqa: E402
 from viewer.kernel.brake import backoff_blocked as BRAKE_backoff_wait  # noqa: E402
 from viewer.kernel.brake import backoff_fail as BRAKE_backoff_fail  # noqa: E402
 from viewer.kernel.brake import backoff_ok as BRAKE_backoff_ok  # noqa: E402
+# 2026-11-01：任务画像（类别/写域）只从 brake 取一份，health 的 blocked_by 需要它。
+from viewer.kernel.brake import profile as BRAKE_profile  # noqa: E402
 
 # 2026-10-07 智能选股增强：screener_extra 在 viewer/ 下，确保可 import（无论 server 被谁拉起）
 sys.path.insert(0, str(ROOT / "viewer"))
@@ -170,6 +173,9 @@ import selection as SELECTION  # noqa: E402  2026-10-30 选股方向：短线形
 import executability as EXECUTABILITY  # noqa: E402  2026-10-31 执行可行性：四字段 → 可行/不可行 + 容量区间
 import cost_calib as COST_CALIB  # noqa: E402  2026-10-31 决策⑤：成本档位标定位（只出建议，不改参数）
 from viewer.kernel import cost_basis as COST_BASIS  # noqa: E402  2026-10-31 决策①：两套成本口径并列展示
+# 2026-11-01 证据硬门禁（测评 P0-2）：「信号来源 → 实证裁决」的唯一映射处。
+# server 只调用它，不自己写 status 判断 —— 否则判定就会分叉成两套。
+from viewer import evidence_gate as evidence_gate  # noqa: E402
 from viewer import health as HEALTH  # noqa: E402  2026-10-31 决策⑤：任务运行记录 + 数据新鲜度
 import units as UNITS  # noqa: E402  2026-10-31 单位量纲自证（volume 手/股混存 + 涨跌停幅度）
 from viewer.kernel import params as KPARAMS  # noqa: E402  2026-10-31 参数注册表（阈值唯一来源）
@@ -208,6 +214,153 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 DB = Database()
 INGEST = Ingestor(DB)
 PORT = int(os.environ.get("VIEWER_PORT", "8765"))
+
+
+# ── 2026-11-01 P2「首屏 JS 传输量 < 300KB」：静态文本资源 gzip ─────────────────────
+# 为什么用 gzip 而不是代码分割：验收量的是**网络字节数**，不是源码字节数。
+#   `app.js` 是 1.21MB 单文件，文本压缩率约 4.5x → 约 270KB，加压缩即达标；
+#   拆代码要引入打包器（本项目没有），风险高、收益不确定。
+#
+# 为什么选「进程内缓存压缩结果」而不是每次现压：
+#   app.js 1.21MB 压一次约 40ms，首屏要拉 app.js + app.css + index.html，
+#   每次刷新白付 50~60ms。缓存键用 (绝对路径, mtime_ns, size) ——
+#   文件一改 mtime 必变，缓存**自动**失效，不需要任何手工失效逻辑。
+#   （这也是选 mtime 而不是"启动时压一次"的原因：查看器长期不重启，
+#     后者会把旧内容一直发出去 —— 正是本项目 2026-09-28 踩过的"改了界面还是旧的"。）
+_GZIP_LEVEL = 6
+_GZIP_MIN_BYTES = 1024        # 太小：gzip 头 ~18 字节 + 基本无收益，不值得协商
+_GZIP_CACHE_MAX_BYTES = 64 * 1024 * 1024   # 硬顶 64MB（app.js 压后 ~0.27MB，够放几百个资源）
+# 按 MIME 判定「值得压」：text/* 与下面这几个文本型。
+# **刻意不含** image/*（svg 除外）、font/*、video/*、audio/* —— 它们本身已是压缩格式，
+#   再压通常更大（还白烧 CPU）。
+_COMPRESSIBLE_TYPES = frozenset({
+    "application/javascript", "application/json", "application/xml", "image/svg+xml",
+})
+# 路由把未知扩展名一律当 text/html（见 `_do_GET` 的 /static/ 分支：只认 .css/.js，其余全 html），
+# 所以再加一层**魔数兜底**：真图片/字体即使被当成文本，也不会被拿去压。
+# 宁可少压一个，也不要给浏览器塞坏流。RIFF 同时覆盖 webp/wav（首 4 字节相同，够用）。
+_BINARY_MAGIC = (
+    b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff", b"GIF87a", b"GIF89a",
+    b"RIFF", b"wOF2", b"wOFF", b"\x00\x01\x00\x00", b"PK\x03\x04",
+)
+_GZIP_CACHE: dict = {}          # (abs_path, mtime_ns, size) -> gzip bytes（插入序即淘汰序）
+_GZIP_CACHE_BYTES = 0
+_GZIP_CACHE_LOCK = threading.Lock()
+
+
+def _media_type(ctype: str) -> str:
+    """`application/javascript; charset=utf-8` → `application/javascript`。
+
+    ⚠️ 必须剥掉 `; charset=...` 再比 MIME。旧实现用
+    `ctype in ("application/javascript", "application/json")` 直接比整串，
+    而本服务下发的 ctype **恒带** `; charset=utf-8` → 这条比较永远为假，
+    于是 `app.js`（1.21MB，正是验收要量的那个文件）从未被压缩过；
+    `text/css` 因为走 `startswith("text/")` 才侥幸生效。
+    """
+    return (ctype or "").split(";", 1)[0].strip().lower()
+
+
+def _is_compressible(ctype: str, data: bytes) -> bool:
+    """这个响应值不值得**尝试** gzip（压完更大时由 `_gzip_cached` 再否决一次）。"""
+    if len(data) <= _GZIP_MIN_BYTES:
+        return False
+    media = _media_type(ctype)
+    if not (media.startswith("text/") or media in _COMPRESSIBLE_TYPES):
+        return False
+    return not any(data.startswith(m) for m in _BINARY_MAGIC)
+
+
+def _gzip_cached(real: Path, data: bytes, st=None):
+    """gzip 压缩并缓存；同一 `(路径, mtime_ns, size)` 只压一次。
+
+    `st` 可传入调用方已取到的 `os.stat_result`，省一次 stat（`_send_file` 里已经取过）。
+    返回压缩后的 bytes；返回 `None` 表示「压了不会更小，原样发」。
+    """
+    global _GZIP_CACHE_BYTES
+    if st is None:
+        try:
+            st = real.stat()
+        except OSError:
+            return None
+    key = (str(real), st.st_mtime_ns, st.st_size)
+    with _GZIP_CACHE_LOCK:
+        hit = _GZIP_CACHE.get(key)
+        if hit is not None:
+            return hit
+    packed = gzip.compress(data, _GZIP_LEVEL)
+    if len(packed) >= len(data):
+        return None                      # 压了更大 → 不压，也不占缓存
+    with _GZIP_CACHE_LOCK:
+        if key not in _GZIP_CACHE:       # 双检：并发下别人可能已经放好了
+            # 同一文件的**旧版本**立刻淘汰：app.js 改一次就是 0.27MB，
+            # 留着旧版本等于按"改代码次数"线性涨内存。
+            for old_key in [k for k in _GZIP_CACHE if k[0] == key[0]]:
+                _GZIP_CACHE_BYTES -= len(_GZIP_CACHE.pop(old_key))
+            _GZIP_CACHE[key] = packed
+            _GZIP_CACHE_BYTES += len(packed)
+            while _GZIP_CACHE_BYTES > _GZIP_CACHE_MAX_BYTES and _GZIP_CACHE:
+                _, evicted = _GZIP_CACHE.pop(next(iter(_GZIP_CACHE)))  # 淘汰最早插入的
+                _GZIP_CACHE_BYTES -= len(evicted)
+        return _GZIP_CACHE.get(key, packed)
+
+
+def _gzip_cache_clear() -> None:
+    """清空压缩缓存（测试用；生产不需要，失效靠 mtime）。"""
+    global _GZIP_CACHE_BYTES
+    with _GZIP_CACHE_LOCK:
+        _GZIP_CACHE.clear()
+        _GZIP_CACHE_BYTES = 0
+
+
+# ── 2026-11-01 P2：ETag + 304 —— 让「重复访问」不再重下正文 ─────────────────────
+# **`no-cache` ≠ 必须重传正文。** 这两件事被混在一起，是"代码天天改"的场景下最容易
+# 被放弃优化的地方：
+#   · `no-cache` 管的是**要不要用缓存副本**（必须回源校验，答"能用旧的了吗"）；
+#   · ETag/304 管的是**回源时要不要重发正文**（校验结果为"没变"就只回几十字节的头）。
+# 本项目 `app.js` 1.25MB、`Cache-Control: no-cache, must-revalidate` 是正确的（代码天天改，
+# 不能让浏览器用旧版），但**每次 F5 都重下 402KB** 完全没必要 —— 加上 ETag 之后，
+# 浏览器带 `If-None-Match` 来问，服务端比对一致就回 `304`（零正文）。
+_ETAG_GZIP_SUFFIX = "-gz"
+
+
+def _make_etag(st, gzip_variant: bool) -> str:
+    """由 `(mtime_ns, size)` 现算 ETag —— **每次请求现算，不用启动时快照**。
+
+    为什么用 mtime 而不是内容 sha1：本服务每次请求都已经把文件读进内存了，
+    但 sha1 要扫 1.25MB（~3ms/次），而 mtime_ns 是免费的、且**文件一改必变**。
+    风险是"内容没变但 mtime 变了"→ 多一次 200 全量传输（仅性能损失，不会发错内容）；
+    反过来"内容变了 mtime 没变"在正常写文件时不会发生（写操作必定更新 mtime）。
+    ⚠️ 用 mtime 就**绝不能**在启动时算一次存起来：查看器长期不重启，
+       那样会把旧 ETag 一直发出去，等于让浏览器永远用旧内容 —— 比不做还糟。
+
+    `gzip_variant` 参与 ETag：同一份文件的 identity 与 gzip 是两个不同的representation，
+    共用同一个 ETag 时，持有未压缩副本的客户端发 `If-None-Match` 也会命中，
+    共享缓存（按 `Vary: Accept-Encoding` 分桶）就可能把两个桶搞混。
+    """
+    tag = "%x-%x" % (int(getattr(st, "st_mtime_ns", 0)), int(getattr(st, "st_size", 0)))
+    return '"%s%s"' % (tag, _ETAG_GZIP_SUFFIX if gzip_variant else "")
+
+
+def _etag_matches(if_none_match: str, etag: str) -> bool:
+    """`If-None-Match` 比对：支持 `*`、逗号多值、`W/` 弱前缀。
+
+    弱前缀要去掉再比：RFC 9110 对 GET/HEAD 的 `If-None-Match` 用**弱比较**，
+    即 `W/"x"` 与 `"x"` 视为相同（浏览器/代理常见的正当行为）。
+    """
+    raw = (if_none_match or "").strip()
+    if not raw:
+        return False
+    if raw == "*":
+        return True
+    want = (etag or "").strip().strip('"')
+    for part in raw.split(","):
+        cand = part.strip()
+        if cand.startswith("W/"):
+            cand = cand[2:].strip()
+        if cand.strip('"') == want:
+            return True
+    return False
+
 
 
 def _parse_dt_loose(s: str):
@@ -1317,7 +1470,75 @@ def api_today_decision(force: bool = False) -> dict:
     外面套 dashboard 同款 SWR：新鲜缓存直接回 / 重启读盘快照（标 _stale + _cache_age）/
     后台单飞重算。`force=True`（前端手动刷新，`?force=1` / `?refresh=1` / 带 `t=`）可穿透。
     """
-    return _swr_serve("today_decision", _today_decision_compute, ttl=1800, force=force)
+    return _td_ensure_gate_fields(
+        _swr_serve("today_decision", _today_decision_compute, ttl=1800, force=force))
+
+
+def _td_ensure_gate_fields(d: dict) -> dict:
+    """给旧快照补齐证据门禁字段（2026-11-01 P0-2）。
+
+    为什么必须补：`_swr_serve` 的 TTL 是 1800s，且**会读盘上快照** —— 改完结构后
+    第一次命中缓存/快照拿到的还是旧结构（没有 signal_state / opportunities_watch），
+    前端会以为「今天没有机会」或反过来把无实证的老机会当可执行上屏。
+    两种错都不能接受，所以这里按**当前**门禁规则补算一遍：
+
+      · 旧 opportunities 里没有任何 evidence 字段 → 无法证明它们是可执行的，
+        一律降级进 opportunities_watch（理由：未纳入证据账本）。
+        「无法证明」在这条链路上的含义就是「不许当机会」，这是 fail-closed 的方向。
+      · signal_state / evidence_gate 缺失时按补算结果生成，并打 `_derived=True`
+        便于排查「这条是现算的还是缓存里就有的」。
+    """
+    if not isinstance(d, dict):
+        return d
+    if "signal_state" in d and "opportunities_watch" in d and "evidence_gate" in d:
+        return d
+    out = dict(d)  # 浅拷贝：不原地改缓存里那个 dict（否则缓存会被污染成"半新半旧"）
+    legacy = out.get("opportunities")
+    legacy = list(legacy) if isinstance(legacy, list) else []
+    if "opportunities_watch" not in out:
+        out["opportunities_watch"] = [
+            evidence_gate.annotate(it if isinstance(it, dict) else {}, "legacy_snapshot")
+            for it in legacy
+        ]
+        # 旧结构里没有证据字段 → 一条都不许留在「可执行」里
+        out["opportunities"] = []
+    if "evidence_gate" not in out:
+        out["evidence_gate"] = evidence_gate.summary(out.get("opportunities_watch"))
+    if "signal_state" not in out:
+        _exec = out.get("opportunities") if isinstance(out.get("opportunities"), list) else []
+        _watch = out.get("opportunities_watch") or []
+        out["signal_state"] = {
+            "executable_count": len(_exec),
+            "watch_count": len(_watch),
+            "blocked_count": int(((out.get("evidence_gate") or {}).get("items")
+                                  or {}).get("blocked") or 0),
+            "verdict": "有" if _exec else "无",
+            "as_of": out.get("data_date"),
+            "_derived": True,
+        }
+    return out
+
+
+
+#: 四支柱 pillar 键 → 证据门禁 source_key。
+#: 只映射**登记过**的四支柱；quant_self / self_learn 这类别的 pillar 故意不在表里 ——
+#: 它们会落到 "pillar_xxx" 这种未登记来源，被门禁判 watch 并在界面上写「未纳入证据账本」。
+#: 这正是我们要的效果：新增一个会往首页塞票的支柱而没在 evidence_gate.SOURCES 里登记，
+#: 它在界面上会自己暴露出来，不需要谁记得去检查。
+_PILLAR_SRC = {
+    "policy_funnel": "pillar_policy_funnel",
+    "dip_revert": "pillar_dip_revert",
+    "t1_surf": "pillar_t1_surf",
+    "resonance": "pillar_resonance",
+}
+
+
+def _pillar_source_key(pillar) -> str:
+    """四支柱入选票 → 证据门禁的来源键。未登记的 pillar 退回 `pillar_<key>`（会被判 watch）。"""
+    k = str(pillar or "").strip()
+    if k in _PILLAR_SRC:
+        return _PILLAR_SRC[k]
+    return "pillar_%s" % (k or "unknown")
 
 
 def _today_decision_compute() -> dict:
@@ -1326,6 +1547,13 @@ def _today_decision_compute() -> dict:
     log = logging.getLogger(__name__)
     out: dict = {"ok": True, "generated_at": gen,
                  "directions": [], "opportunities": [], "risks": [],
+                 # 2026-11-01 证据硬门禁（测评 P0-2）：机会再分三档 ——
+                 #   opportunities      只放 executable（有实证、方向为正、扣费后仍为正）
+                 #   opportunities_watch 放 watch（无实证/证据不足），前端默认折叠
+                 #   blocked 的**不上屏**，只在 evidence_gate / signal_state 里计数
+                 # 字段名 opportunities 保持不变（老前端/老深链不会崩），只是内容变严格。
+                 "opportunities_watch": [],
+                 "evidence_gate": {}, "signal_state": {},
                  "mywatch": {"total": 0, "unread": 0, "alerts": [], "near": []},
                  "data_date": None, "verdict": "", "verdict_tone": "mixed", "basis": ""}
 
@@ -1365,13 +1593,18 @@ def _today_decision_compute() -> dict:
 
     for it in scored[:3]:
         r = it["row"]
-        out["directions"].append({
+        _dir_item = {
             "sector": r["sector"], "net_yi": round(it["net"] / 1e8, 2),
             "onlist_n": it["n_on"], "leader_code": r["leader_code"],
             "leader_name": r["leader_name"], "leader_pct": it["lp"],
             "stage": it["stage"], "level": it["level"], "score": it["score"],
             "t1_avg": _num(r["t1_avg"]),
-        })
+        }
+        # 方向卡也要挂证据徽章（2026-11-01 P0-2）：方向本身来自板块资金流聚合，账本里
+        # **没有**「板块净流入 → T+N 超额」这条 claim，所以只能给「无实证」灰标。
+        # 刻意走 evidence_gate，避免前端自己写一句「这块没问题」—— 事实上我们不知道。
+        _dir_item["evidence"] = evidence_gate.annotate(_dir_item, "sector_flow")["evidence"]
+        out["directions"].append(_dir_item)
 
     # ---- 1.5) ETF 融合信号回灌（A 栏日 K + B 栏投顾数据 → 四卡化学反应） ----
     try:
@@ -1430,7 +1663,14 @@ def _today_decision_compute() -> dict:
     except Exception as e:  # noqa: BLE001
         log.warning("today_decision 信息面失败: %s", e)
 
-    # ---- 2) 机会：主线「可推进」名单（梯队里尚未涨停的同方向票），跨方向去重取前 6 ----
+    # ---- 2) 机会：先收集**原始候选**（不做任何上屏判断），再由 2.5 的证据门禁统一裁决 ----
+    #
+    # 2026-11-01 测评 P0-2：原来这里直接往 out["opportunities"] 里塞，等于「有候选 = 有
+    # 机会」。但这一版的主来源是龙虎榜梯队里尚未涨停的同方向票，而账本 `lhb_turnover`
+    # 明确写着 T+5 超额 −0.91%（t=−11.28，4077 个交易日）—— 用一条显著为负的信号给用户
+    # 打「能上车的」标签，是这轮被打回的直接原因。现在改为先收集成 (_item, source_key)
+    # 对，统一过 evidence_gate，**没有任何一条能绕过门禁直接出现在首页**。
+    _raw_opps: list = []   # [(item_dict, source_key)]
     seen: set = set()
     for it in scored:
         for t in _jl(it["row"]["tiers_json"]):
@@ -1439,47 +1679,117 @@ def _today_decision_compute() -> dict:
             if not code or code in seen or pct is None or pct >= 9.8:
                 continue
             seen.add(code)
-            out["opportunities"].append({
+            _raw_opps.append(({
                 "symbol": code, "name": t.get("name") or "", "sector": it["row"]["sector"],
                 "pct": pct, "note": "同题材尚未大涨（主线「可推进」名单）",
-            })
-            if len(out["opportunities"]) >= 6:
+            }, "mainline_tier"))
+            if len(_raw_opps) >= 6:
                 break
-        if len(out["opportunities"]) >= 6:
+        if len(_raw_opps) >= 6:
             break
 
     # 备用机会源（2026-10-15 换源）：改用**四支柱**入选票补位。
     # 原实现读旧引擎 prediction_item 核心池、并标注"每日预测·核心" —— 那是旧引擎内容
     # 露在「今日决策」页上；按进哥"界面上把旧引擎消除"，改为新引擎（四支柱）。
     # 排序优先 A 政策漏斗 → C 超跌修复 → B 竞价冲浪 → D 共振，避免 D 的重复票抢占名额。
-    if len(out["opportunities"]) < 4:
+    # 注：这里的 4/6 仍是「候选池」口径（补位几只），与门禁后的展示档位无关 ——
+    # 补位票在门禁里一律是 watch（四支柱没有 claim），所以不会凭空多出「可执行机会」。
+    def _pillar_candidates(limit: int) -> list:
+        """取四支柱入选票作为候选（跨源去重、按政策漏斗→超跌→竞价→共振排序）。
+
+        抽成局部函数是因为它要在两处用到：①原有的「不足 4 条才补位」；
+        ②门禁把所有候选都挡掉之后再补一次（只为「观察区」留料，绝不进可执行区）。
+        两处的查询口径必须完全一致，否则会出现「同一只票在两条路径里排序不同」。
+        """
+        got: list = []
+        if limit <= 0:
+            return got
         try:
             prow = DB.conn.execute(
                 "SELECT MAX(run_date) AS d FROM pillar_item").fetchone()
             pdate = prow["d"] if prow else None
-            if pdate:
-                rows = DB.conn.execute(
-                    "SELECT i.symbol, i.name, i.pillar, r.title FROM pillar_item i "
-                    "LEFT JOIN pillar_run r ON r.run_date=i.run_date AND r.pillar=i.pillar "
-                    "WHERE i.run_date=? ORDER BY CASE i.pillar "
-                    "  WHEN 'policy_funnel' THEN 1 WHEN 'dip_revert' THEN 2 "
-                    "  WHEN 't1_surf' THEN 3 ELSE 4 END, i.rank", (pdate,)).fetchall()
-                for p in rows:
-                    if len(out["opportunities"]) >= 6:
-                        break
-                    code = str(p["symbol"] or "")
-                    if not code or code in seen:
-                        continue
-                    seen.add(code)
-                    _ptitle = str(p["title"] or p["pillar"] or "")
-                    _ptitle = _ptitle.split("·")[-1].strip() or str(p["pillar"] or "")
-                    out["opportunities"].append({
-                        "symbol": code, "name": p["name"] or "", "sector": "",
-                        "pct": None,
-                        "note": "四支柱·%s（%s）" % (_ptitle, pdate),
-                    })
+            if not pdate:
+                return got
+            rows = DB.conn.execute(
+                "SELECT i.symbol, i.name, i.pillar, r.title FROM pillar_item i "
+                "LEFT JOIN pillar_run r ON r.run_date=i.run_date AND r.pillar=i.pillar "
+                "WHERE i.run_date=? ORDER BY CASE i.pillar "
+                "  WHEN 'policy_funnel' THEN 1 WHEN 'dip_revert' THEN 2 "
+                "  WHEN 't1_surf' THEN 3 ELSE 4 END, i.rank", (pdate,)).fetchall()
+            for p in rows:
+                if len(got) >= limit:
+                    break
+                code = str(p["symbol"] or "")
+                if not code or code in seen:
+                    continue
+                seen.add(code)
+                _ptitle = str(p["title"] or p["pillar"] or "")
+                _ptitle = _ptitle.split("·")[-1].strip() or str(p["pillar"] or "")
+                got.append(({
+                    "symbol": code, "name": p["name"] or "", "sector": "",
+                    "pct": None,
+                    "note": "四支柱·%s（%s）" % (_ptitle, pdate),
+                }, _pillar_source_key(p["pillar"])))
         except Exception as e:  # noqa: BLE001
             log.warning("today_decision 四支柱补位失败: %s", e)
+        return got
+
+    if len(_raw_opps) < 4:
+        _raw_opps.extend(_pillar_candidates(6 - len(_raw_opps)))
+
+    # ---- 2.5) 证据硬门禁（2026-11-01 测评 P0-2 的核心改动）----
+    # 每条候选都必须经过 evidence_gate.annotate（唯一映射处），按裁决分三档：
+    #   executable → opportunities（首页「今日可执行机会」）
+    #   watch      → opportunities_watch（首页折叠的「观察/待验证」）
+    #   blocked    → 丢弃，只在计数里留痕（首页显示「已屏蔽 N 条」）
+    _gated: list = []
+
+    def _gate(pairs: list) -> None:
+        """过门禁并分流。**任何候选都只能从这里进 out**，没有旁路。"""
+        for _item, _skey in pairs:
+            try:
+                _ann = evidence_gate.annotate(_item, _skey)
+            except Exception as e:  # noqa: BLE001 —— 门禁自身出错时**不放行**（fail-closed）
+                log.warning("today_decision 证据门禁异常，该条按观察处理: %s", e)
+                _ann = dict(_item)
+                _ann["source"] = _skey
+                _ann["evidence"] = {"tier": evidence_gate.TIER_WATCH, "level": "no_evidence",
+                                    "label": "证据不足 · 回撤未测", "source": _skey,
+                                    "reason": "门禁异常，按证据不足处理（宁可少放，不可错放）",
+                                    "invalidate": "—", "sample": "—", "excess": "—",
+                                    "t": None, "net": None, "mdd": None}
+            _gated.append(_ann)
+            _tier = ((_ann.get("evidence") or {}).get("tier") or evidence_gate.TIER_WATCH)
+            if _tier == evidence_gate.TIER_EXECUTABLE:
+                out["opportunities"].append(_ann)
+            elif _tier == evidence_gate.TIER_WATCH:
+                out["opportunities_watch"].append(_ann)
+            else:
+                # blocked：不上屏。留一条 INFO 日志，便于事后核对「今天为什么少了几条」。
+                log.info("证据门禁屏蔽 %s(%s) ← %s：%s", _ann.get("name"), _ann.get("symbol"),
+                         _skey, ((_ann.get("evidence") or {}).get("reason") or "")[:120])
+
+    _gate(_raw_opps)
+
+    # 全被挡掉时的补位（2026-11-01）：主线候选一旦全部命中负面实证，两张卡都空了 ——
+    # 用户看到的是「什么都没有」，但四支柱那边其实每天都有票。所以再补一次，
+    # **只喂观察区**（四支柱无 claim，恒为 watch）。这不是为了让页面好看：
+    # 「有票但还不能买」与「什么都没有」是两条不同的信息，前者更有用。
+    if not out["opportunities"] and not out["opportunities_watch"]:
+        _gate(_pillar_candidates(5))
+
+    out["evidence_gate"] = evidence_gate.summary(_gated)
+    _n_exec = len(out["opportunities"])
+    _n_watch = len(out["opportunities_watch"])
+    _n_block = int(((out["evidence_gate"].get("items") or {}).get("blocked")) or 0)
+    # signal_state：首页一句话/空态文案只吃这里的数字，**前端不许自己算、不许自己编**。
+    out["signal_state"] = {
+        "executable_count": _n_exec,
+        "watch_count": _n_watch,
+        "blocked_count": _n_block,
+        "verdict": "有" if _n_exec > 0 else "无",
+        "as_of": out.get("data_date"),
+    }
 
     # ---- 3) 风险：板块资金净流出 / 上榜次日跑输 + 情绪看空·分歧个股 ----
     sdate = None
@@ -1603,6 +1913,12 @@ def _today_decision_compute() -> dict:
         tone = "bull"
     else:
         parts.append("今日暂无可确认的主攻方向")
+    # 2026-11-01 P0-2：一句话结论同样不许暗示「今天有能上车的票」。
+    # 门禁筛完为空就直说，并给出被筛掉的条数 —— 这一句是用户最先读到的，它比卡片更容易被当成结论。
+    _ss = out.get("signal_state") or {}
+    if not _ss.get("executable_count"):
+        parts.append("今日无可执行机会（%d 条信号被证据门禁筛除）"
+                     % int(_ss.get("blocked_count") or 0))
     if risks:
         r0 = risks[0]
         t0 = r0.get("tone")
@@ -1622,7 +1938,11 @@ def _today_decision_compute() -> dict:
     out["verdict"] = "；".join(parts) + "。"
     out["verdict_tone"] = tone
     out["basis"] = ("口径：方向=主线研判（sector_chain，资金强度+龙头强度+共振广度+分支延伸）；"
-                    "机会=主线「可推进」名单（同题材尚未涨停）或每日预测核心；"
+                    # 2026-11-01 P0-2：机会卡不再是「有候选就上屏」，而是「过证据门禁才上屏」。
+                    # 口径说明必须同步改，否则用户读到的仍是旧规则（这正是审计发现的"文档一套、代码一套"）。
+                    "机会=主线「可推进」名单（同题材尚未涨停）或四支柱入选，"
+                    "且必须通过证据门禁：有实证、方向为正、扣费后仍为正才算「可执行」；"
+                    "无实证/证据不足降级为「观察/待验证」；命中已证伪或显著负面实证的直接屏蔽；"
                     "风险=板块资金净流出 + 近 24 小时帖子情绪里被看空/分歧的个股；"
                     "我的票=关注池到价提醒。"
                     "融合信号：ETF 行业净申赎/涨跌（集思录+新浪）对方向卡做「资金确认」、跨境 ETF 对风险卡做"
@@ -5626,8 +5946,13 @@ def _worth_from_klines(code: str, klines: list, days: int):
         ent = (screener._float_map([code]) or {}).get(code)
         if not ent:
             return None
-        ev = screener._turnover_eval(bars, ent[0], ent[1], days,
-                                     to_scale=screener._to_scale_of(code, ent))
+        # 单位显式传下去（2026-10-31）：api_kline 出口已把 K 线量统一归一到「股」
+        # （见 _normalize_kline_volume），旧 payload 没有 volume_unit 字段时同样是股
+        # （新浪/东财历史上一直给股）。曾经这里靠「K 线量是手」的隐含假设，
+        # 让 to_scale 把主板换手率放大 100 倍（600519 算成 47.87%，真实 0.48%）。
+        vol_unit = "share" if all(k.get("volume_unit") in (None, "share")
+                                  for k in klines) else None
+        ev = screener._turnover_for(code, bars, ent, days, vol_unit=vol_unit)
         return ev.get("score") if ev else None
     except Exception:  # noqa: BLE001
         return None
@@ -8295,6 +8620,197 @@ _DECLINE_CACHE: dict[tuple, tuple[float, dict]] = {}
 _DECLINE_TTL = 3600
 
 
+# ---------------------------------------------------------------------------
+# K 线成交量单位归一（2026-10-31 测评 P0：K 线「599.27 万手」实为「599.27 万股」）
+#
+#   事故：600519/2026-10-30，行情区「5.99 万手」（对）与抽屉 K 线区「599.27 万手」
+#   相差 100 倍 —— 同一个 5,992,729 是**股**，前端只有「手」一套格式化函数。
+#   根因不在格式化，而在**接口边界没声明单位**：各源单位本来就不统一，
+#   实测同一天 600519 新浪/本地库给股、腾讯给手，所以必须由后端归一 + 显式声明。
+#
+#   判定只认两种证据（都与单位无关地来自外部真实数据）：
+#     ① self_proof  —— 该行自带**真实**成交额 amount（元），amount/close 应为股数；
+#     ② spot_anchor —— 同一天的真实成交量（股）锚点（新浪/腾讯的 amount 是估算值，
+#                      close×volume，拿它自证恒得比值 1，等于自己证明自己）。
+#   两条都判不出 → volume 置空 + 标 unknown，由前端显示「单位未标注」。
+#   **绝不按默认倍数换算**：错 100 倍的数字比「不知道」危险得多。
+# ---------------------------------------------------------------------------
+_ANCHOR_CACHE: dict[tuple[str, str], tuple[float, float | None]] = {}
+_ANCHOR_TTL = 600.0          # 正证据缓存 10 分钟
+_ANCHOR_TTL_MISS = 60.0      # 负证据（取不到）只缓存 1 分钟，网络恢复后能尽快补上
+_AUTO_ANCHOR = object()      # 哨兵：让 _normalize_kline_volume 自己去取锚点
+
+
+def _anchor_from_snapshot(code: str, date: str) -> float | None:
+    """本地全市场快照里该股该日的真实成交量（股）。离线可读，且自身可自证单位。
+
+    快照列自己就混着两种单位（实测 600519=手、688981=股），所以这里同样走
+    infer_volume_unit 自证，不假定任何一边。
+    """
+    try:
+        row = _ro_conn().execute(
+            "SELECT volume, amount, close FROM stock_daily_snapshot "
+            "WHERE code=? AND trade_date=?", (code, date)).fetchone()
+    except Exception:  # noqa: BLE001 —— 表缺失/库被锁只是「没有证据」，不是错误
+        return None
+    if not row:
+        return None
+    return UNITS.volume_to_shares(row["volume"], row["amount"], row["close"])
+
+
+def _anchor_from_sina_hq(symbol: str, date: str) -> float | None:
+    """新浪实时 hq 里该股该日的真实成交量（股）。
+
+    必须校验日期：锚点只在「同一交易日」时才是证据，否则拿今天的量去证明
+    上周的量算哪门子证明。
+    """
+    try:
+        market, code, _ = _em_secid(symbol)
+        sym = _tx_prefix(code, market) + code
+    except Exception:  # noqa: BLE001
+        return None
+    txt = _get_text(f"https://hq.sinajs.cn/list={sym}", "https://finance.sina.com.cn/",
+                    timeout=3, retries=0, encoding="gbk")
+    if not txt or "=" not in txt:
+        return None
+    f = txt.split("=", 1)[1].strip().strip(";").strip('"').split(",")
+    if len(f) < 32 or str(f[30])[:10] != date:
+        return None
+    return UNITS.volume_to_shares(f[8], f[9], f[3])
+
+
+def _volume_anchor_shares(symbol: str, date: str) -> float | None:
+    """某交易日的真实成交量（股）锚点：本地快照优先（离线可用）→ 新浪实时。"""
+    if not symbol or not date:
+        return None
+    try:
+        code = _em_secid(symbol)[1]
+    except Exception:  # noqa: BLE001
+        code = str(symbol)
+    key = (code, str(date)[:10])
+    now = time.time()
+    hit = _ANCHOR_CACHE.get(key)
+    if hit and now - hit[0] < (_ANCHOR_TTL if hit[1] is not None else _ANCHOR_TTL_MISS):
+        return hit[1]
+    val = _anchor_from_snapshot(code, key[1])
+    if val is None:
+        val = _anchor_from_sina_hq(symbol, key[1])
+    _ANCHOR_CACHE[key] = (now, val)
+    return val
+
+
+def _series_unit(symbol: str, rows: list, amount_is_real: bool) -> tuple[str | None, str]:
+    """判一条（同粒度的）K 线序列的量单位 → (unit, 证据来源)。"""
+    if not rows:
+        return None, "none"
+    if amount_is_real:
+        u = UNITS.kline_series_unit(rows)
+        if u:
+            return u, "self_proof"
+    anchor = _volume_anchor_shares(symbol, str(rows[-1].get("date") or ""))
+    u = UNITS.infer_unit_by_anchor(rows[-1].get("volume"), anchor)
+    if u:
+        return u, "spot_anchor"
+    return None, "none"
+
+
+def _apply_volume_unit(rows: list, unit: str | None, source: str) -> None:
+    """就地把序列的量归一到「股」并逐根标注单位；判不出则置空 + 标 None。
+
+    volume_native / volume_native_unit 保留源值与源单位（对账要看它），
+    但 volume 这个字段只允许放**已归一**的值：错 100 倍的数不许留在语义字段里。
+    """
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        if "volume_native" not in r:
+            r["volume_native"] = r.get("volume")
+        r["volume_native_unit"] = unit
+        r["volume_unit_source"] = source
+        if unit is None:
+            r["volume"] = None
+            r["volume_unit"] = None
+        else:
+            r["volume"] = UNITS.kline_volume_to_shares(r.get("volume_native"), unit)
+            r["volume_unit"] = "share"
+
+
+def _normalize_daily_volume(symbol: str, rows: list, amount_is_real: bool) -> None:
+    """日线粒度上先归一，**再**聚合周/月。
+
+    顺序不能反：周/月量是日线量之和，先聚合成周线再判单位时，单日锚点和汇总值
+    对不上，必然判不出（或判错）。新浪/本地库都是从日线聚合出来的，所以在这里归一。
+    """
+    _apply_volume_unit(rows, *_series_unit(symbol, rows, amount_is_real))
+
+
+def _sync_kline_current(payload: dict) -> None:
+    """把 current（= 最新一根的快照）的量与单位对齐到已归一的 rows，并给出派生字段。
+
+    current.volume 过去直接抄了源值，归一后必须跟着改，否则「行情区同步价量」
+    又从另一个字段漏出未归一的数。
+    """
+    cur = payload.get("current")
+    rows = payload.get("klines") or []
+    unit = payload.get("volume_unit")
+    if not isinstance(cur, dict):
+        return
+    if rows and rows[-1].get("date") == cur.get("date"):
+        cur["volume"] = rows[-1].get("volume")
+    cur["volume_unit"] = unit
+    v = cur.get("volume")
+    if unit == "share" and isinstance(v, (int, float)):
+        cur["volume_shares"] = float(v)
+        cur["volume_hand"] = round(float(v) / 100.0, 2)
+    else:
+        cur["volume_shares"] = None
+        cur["volume_hand"] = None
+
+
+def _normalize_kline_volume(payload: dict, anchor=_AUTO_ANCHOR) -> dict:
+    """K 线出口统一归一：volume → 股，并在 payload 与每根行上**显式声明单位**。
+
+    四个出口（东财 / 腾讯 / 新浪 / 本地库）都必须过这一层，逻辑只此一份。
+    幂等：源头已在日线层归一（行自带 volume_unit）时只补顶层声明，不重复换算。
+    """
+    if not isinstance(payload, dict):
+        return payload
+    rows = list(payload.get("klines") or [])
+    payload["volume_asof"] = (str(rows[-1].get("date") or "") if rows
+                              else str(payload.get("last_date") or ""))
+    if rows and all(r.get("volume_unit") == "share" for r in rows):
+        payload["volume_unit"] = "share"
+        payload["volume_unit_source"] = next(
+            (r.get("volume_unit_source") for r in rows if r.get("volume_unit_source")),
+            "pre_normalized")
+        payload["volume_unit_unknown"] = False
+        _sync_kline_current(payload)
+        return payload
+    if not rows:
+        payload.setdefault("volume_unit", None)
+        _sync_kline_current(payload)
+        return payload
+    unit, source = None, "none"
+    if not payload.get("amount_est"):
+        # amount_est 的源（新浪/腾讯）amount = close × volume，比值恒为 1，不能当证据。
+        unit = UNITS.kline_series_unit(rows)
+        source = "self_proof" if unit else "none"
+    if unit is None and (payload.get("period") or "day") == "day":
+        # 周/月的量是汇总值，单日锚点和它对不上 —— 只有日线能用锚点。
+        anchor_shares = anchor
+        if anchor_shares is _AUTO_ANCHOR:
+            anchor_shares = _volume_anchor_shares(str(payload.get("symbol") or ""),
+                                                  str(rows[-1].get("date") or ""))
+        unit = UNITS.infer_unit_by_anchor(rows[-1].get("volume"), anchor_shares)
+        source = "spot_anchor" if unit else "none"
+    _apply_volume_unit(rows, unit, source)
+    payload["volume_unit"] = "share" if unit else None
+    payload["volume_unit_source"] = source
+    payload["volume_unit_unknown"] = unit is None
+    _sync_kline_current(payload)
+    return payload
+
+
 def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
     klt = {"day": "101", "week": "102", "month": "103"}.get(period, "101")
     sym = (symbol or "").strip().lower()
@@ -8348,7 +8864,7 @@ def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
         return None
     last = rows[-1]
     prev = rows[-2]["close"] if len(rows) >= 2 else last["open"]
-    return {
+    return _normalize_kline_volume({
         "symbol": symbol, "code": d.get("code") or code, "name": d.get("name") or "",
         "period": period, "market": market, "count": len(rows), "klines": rows,
         "adjust": "qfq", "source": f"东方财富 push2his（前复权 · {len(rows)} 根）",
@@ -8357,7 +8873,7 @@ def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
             "high": last["high"], "low": last["low"], "prev_close": prev,
             "volume": last["volume"], "amount": last["amount"], "date": last["date"],
         },
-    }
+    })
 
 
 def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: int = 2,
@@ -8371,10 +8887,13 @@ def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: 
                           full_history=full_history)
     if not rows:
         return None
+    # 日线粒度先归一（腾讯 K 线 amount 是估算值，只能用锚点判单位）
+    if period == "day":
+        _normalize_daily_volume(symbol, rows, amount_is_real=False)
     last = rows[-1]
     prev = rows[-2]["close"] if len(rows) >= 2 else last["open"]
     span = ("全历史 %d 根" if full_history else "近 %d 根") % len(rows)
-    return {
+    return _normalize_kline_volume({
         "symbol": symbol, "code": code, "name": "", "period": period,
         "market": market, "count": len(rows), "klines": rows, "adjust": "qfq",
         "full_history": bool(full_history),
@@ -8384,7 +8903,7 @@ def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: 
         "current": {"price": last["close"], "pct": last["pct"], "open": last["open"],
                     "high": last["high"], "low": last["low"], "prev_close": prev,
                     "volume": last["volume"], "amount": last["amount"], "date": last["date"]},
-    }
+    })
 
 
 def _slice_kline(payload: dict, limit: int, offset: int) -> dict:
@@ -8494,6 +9013,9 @@ def _kline_from_local_db(symbol: str, period: str = "day") -> dict | None:
         date = f"{ds[0:4]}-{ds[4:6]}-{ds[6:8]}"
         bars.append({"date": date, "open": o, "close": c, "high": h, "low": l,
                      "volume": v, "amount": None})
+    # 库内没有 amount（无法自证），只能靠同一天的真实成交量锚点判单位；
+    # 同样必须在聚合周/月**之前**做。
+    _normalize_daily_volume(symbol, bars, amount_is_real=False)
     maxd = rows[-1][0]
     if period in ("week", "month"):
         bars = _aggregate_daily_to_period(bars, period)
@@ -8507,7 +9029,7 @@ def _kline_from_local_db(symbol: str, period: str = "day") -> dict | None:
         prev = b["close"]
     last = bars[-1]
     prev_close = bars[-2]["close"] if len(bars) >= 2 else last["open"]
-    return {
+    return _normalize_kline_volume({
         "symbol": symbol, "code": code, "name": "",
         "period": period, "market": market, "count": len(bars), "klines": bars,
         "adjust": "local", "source": f"本地库 kline_daily.db（截至 {int(maxd):08d} · 非实时）",
@@ -8517,7 +9039,7 @@ def _kline_from_local_db(symbol: str, period: str = "day") -> dict | None:
             "high": last["high"], "low": last["low"], "prev_close": prev_close,
             "volume": last["volume"], "amount": None, "date": last["date"],
         },
-    }
+    })
 
 
 def _aggregate_daily_to_period(bars: list, period: str) -> list:
@@ -8536,12 +9058,17 @@ def _aggregate_daily_to_period(bars: list, period: str) -> list:
             cur_key = k
             cur = {"date": b["date"], "open": b["open"], "close": b["close"],
                    "high": b["high"], "low": b["low"], "volume": b["volume"],
-                   "amount": None}
+                   "amount": None, "volume_unit": b.get("volume_unit"),
+                   "volume_unit_source": b.get("volume_unit_source")}
         else:
             cur["close"] = b["close"]
             cur["high"] = max(cur["high"], b["high"])
             cur["low"] = min(cur["low"], b["low"])
-            cur["volume"] += b["volume"]
+            # 任一日子线判不出单位 → 汇总同样不可信，置 None（别把缺失当 0 相加）
+            if cur.get("volume") is None or b.get("volume") is None:
+                cur["volume"] = None
+            else:
+                cur["volume"] += b["volume"]
             cur["date"] = b["date"]  # 取区间内最后一天作为 bar 日期
     if cur is not None:
         groups.append(cur)
@@ -8610,6 +9137,10 @@ def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 
     if payload.get("klines"):
         payload.setdefault("first_date", payload["klines"][0].get("date", ""))
         payload.setdefault("last_date", payload["klines"][-1].get("date", ""))
+    # 2026-10-31：磁盘 L2 缓存（1h TTL）里可能躺着修复前写入、没有单位声明的 payload，
+    # 直接下发等于把「猜单位」的坑留着。这里补一次归一（幂等，已有单位则只补顶层字段）。
+    if payload.get("klines") and "volume_unit" not in payload:
+        _normalize_kline_volume(payload)
     _KLINE_CACHE[key] = (now, payload)
     return _slice_kline(payload, limit, offset)
 
@@ -9094,6 +9625,8 @@ def _sina_kline_rows(symbol: str, period: str, timeout: int = 15, retries: int =
     if not rows:
         return None
     rows.sort(key=lambda x: x["date"])
+    # 日线层先归一到股，再做周/月聚合（顺序反了就对不上单日锚点；见 _normalize_daily_volume）
+    _normalize_daily_volume(symbol, rows, amount_is_real=False)
     rows = _agg_kline(rows, period)
     for i, r in enumerate(rows):
         base = rows[i - 1]["close"] if i > 0 else r["open"]
@@ -9125,13 +9658,20 @@ def _agg_kline(rows: list[dict], period: str) -> list[dict]:
     out: list[dict] = []
     for k in order:
         grp = buckets[k]
-        vol = sum((g.get("volume") or 0) for g in grp)
+        # 量：任一日子线判不出单位（volume=None）时，汇总值同样不可信 → 整根置 None，
+        # 而不是把缺失当 0 相加（那会得到一个「偏小」的假数）。
+        vol = None if any(g.get("volume") is None for g in grp) else sum(g["volume"] for g in grp)
         amts = [g.get("amount") for g in grp if g.get("amount") is not None]
-        out.append({
+        agg = {
             "date": grp[-1]["date"], "open": grp[0]["open"], "close": grp[-1]["close"],
             "high": max(g["high"] for g in grp), "low": min(g["low"] for g in grp),
             "volume": vol, "amount": (round(sum(amts), 2) if amts else None), "pct": None,
-        })
+        }
+        # 单位随日线继承：周/月的量是同日线单位的求和，混单位求和算出的是个无意义的数
+        if grp[0].get("volume_unit"):
+            agg["volume_unit"] = grp[0]["volume_unit"]
+            agg["volume_unit_source"] = grp[0].get("volume_unit_source")
+        out.append(agg)
     return out
 
 
@@ -9143,7 +9683,7 @@ def _sina_kline_result(symbol: str, period: str, timeout: int = 15, retries: int
     _, code, _ = _em_secid(symbol)
     last = rows[-1]
     prev = rows[-2]["close"] if len(rows) >= 2 else last["open"]
-    return {
+    return _normalize_kline_volume({
         "symbol": symbol, "code": code, "name": "", "period": period,
         "count": len(rows), "klines": rows, "adjust": "raw",
         "full_history": True,   # 新浪始终返回全历史
@@ -9153,7 +9693,7 @@ def _sina_kline_result(symbol: str, period: str, timeout: int = 15, retries: int
         "current": {"price": last["close"], "pct": last["pct"], "open": last["open"],
                     "high": last["high"], "low": last["low"], "prev_close": prev,
                     "volume": last["volume"], "amount": last["amount"], "date": last["date"]},
-    }
+    })
 
 
 # --- 备用行情源：腾讯（公开、稳定）
@@ -9266,6 +9806,34 @@ def _is_trading_now() -> bool:
         return True
 
 
+def _declare_quote_volume_unit(quote: dict) -> dict:
+    """给行情快照的成交量**显式声明单位**，并派生出「股 / 手」两个口径（2026-10-31）。
+
+    为什么不能图省事写死 "hand"：实测 2026-10-30，同一批源对科创板返回的是**股**
+    （688981：29,998,989 股），对主板返回的是**手**（600519：59,927 手）——
+    写死任何一边都会让另一边的成交量错 100 倍。快照自带真实 amount（元）与价格
+    （元/股），所以仍然用 infer_volume_unit 自证；判不出就标 None，
+    由前端显示「单位未标注」，不猜。
+
+    注意：**不改动 volume 字段本身的数值与语义**（下游还有别的消费方），
+    只新增单位声明与派生字段。
+    """
+    vol = quote.get("volume")
+    unit = UNITS.infer_volume_unit(vol, quote.get("amount"),
+                                   quote.get("price") or quote.get("prev_close"))
+    quote["volume_unit"] = unit
+    if unit == "share" and isinstance(vol, (int, float)):
+        quote["volume_shares"] = float(vol)
+        quote["volume_hand"] = round(float(vol) / 100.0, 2)
+    elif unit == "hand" and isinstance(vol, (int, float)):
+        quote["volume_shares"] = float(vol) * 100.0
+        quote["volume_hand"] = float(vol)
+    else:
+        quote["volume_shares"] = None
+        quote["volume_hand"] = None
+    return quote
+
+
 def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
     """腾讯快照 → 归一化 {name, quote, valuation}（无 ROE 等财务项，财务仍取东财 F10）。
 
@@ -9288,7 +9856,7 @@ def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
     mv_f, mv_t = _num(g("float_mv_yi")), _num(g("total_mv_yi"))
     return {
         "name": parts[1] or "",
-        "quote": {
+        "quote": _declare_quote_volume_unit({
             "price": _num(g("price")), "change": _num(g("change")), "pct": _num(g("pct")),
             "open": _num(g("open")), "high": _num(g("high")), "low": _num(g("low")),
             "prev_close": _num(g("prev_close")), "volume": _num(g("volume")),
@@ -9296,7 +9864,7 @@ def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
             "turnover": _num(g("turnover")), "amplitude": _num(g("amplitude")),
             "volume_ratio": _num(g("volume_ratio")),
             "time": _fmt_time_tx(g("time")), "list_date": "",
-        },
+        }),
         "valuation": {
             "pe_ttm": _num(g("pe_ttm")), "pe_dyn": _num(g("pe_dyn")),
             "pe_static": _num(g("pe_static")), "pb": _num(g("pb")),
@@ -9370,18 +9938,18 @@ def _tencent_kline(code: str, market: str, period: str, timeout: int = 12, retri
 
 def _em_quote_norm(q) -> tuple[dict, dict]:
     """东财 push2 原始字段 → 归一化 (quote, valuation)。"""
-    quote = {
+    quote = _declare_quote_volume_unit({
         "price": _num(q.get("f43")), "change": _num(q.get("f169")), "pct": _num(q.get("f170")),
         "open": _num(q.get("f46")), "high": _num(q.get("f44")), "low": _num(q.get("f45")),
         "prev_close": _num(q.get("f60")),
-        "volume": _num(q.get("f47")),         # 成交量（手）
+        "volume": _num(q.get("f47")),         # 成交量（口径见 volume_unit，别假定是手）
         "amount": _num(q.get("f48")),         # 成交额（元）
         "turnover": _num(q.get("f168")),      # 换手率 %
         "amplitude": _num(q.get("f171")),     # 振幅 %
         "volume_ratio": _num(q.get("f50")),   # 量比
         "list_date": str(q.get("f189") or ""),  # 上市日期 YYYYMMDD
         "time": _fmt_time_em(q.get("f86")),     # 行情时间
-    }
+    })
     valuation = {
         "pe_ttm": _num(q.get("f164")), "pe_dyn": _num(q.get("f162")),
         "pe_static": _num(q.get("f163")), "pb": _num(q.get("f167")),
@@ -9503,6 +10071,10 @@ def _quote_upstream(key: str, force: bool = False) -> dict:
         "source": f"{src_quote} + 东方财富 F10 财务指标"
                   + (" + 分红送配（近 12 个月）" if dv else "")
                   + (" + F10 公司概况（主营 / 简介）" if org else ""),
+        # 2026-10-31：行情量的单位在**接口边界**声明，前端不再猜。
+        # 科创板实测是股、其余是手（见 _declare_quote_volume_unit），所以这里是
+        # 自证结果而不是常量；判不出为 None。
+        "volume_unit": quote.get("volume_unit"),
         "quote": quote,
         "valuation": valuation,
         "dividend": dv,
@@ -10658,6 +11230,38 @@ _JOB_KILL_PENDING: set = set()   # 已发送 terminate、等待下一 tick 升�
 # 这也是 person_scores 停在 09-26、evolve 停在 10-22 的可能成因之一。
 _JOB_META: dict = {}   # 子进程成功退出后由父进程落盘的"已完成"标记（2026-10-31：blogger_perf 已随博主线下线移除）
 
+# ── 2026-11-01 P0：子进程收尾状态机 + 租约心跳（修「租约泄漏」，别再改回去）────────────
+# 事故：hotspots 00:35:25 跑完（实际 61.2s），此后一小时多 lhb_daily / bili_scan /
+#   resonance_build / selfpick_build / evolve_daily 全被「写域 app 被 hotspots 占用」挡住。
+# 根因：唯一的 BRAKE.release 在 _spawn_offproc 的「上一轮已结束」分支里 —— 也就是**只有
+#   同一 job 下次被尝试启动时**才归还。job 进入 _OFFPROC_GAP 冷却（hotspots 600s）或当天
+#   已跑完不再被调度触发时，没人 release，写域被一个死进程占住，直到 brake 的兜底过期。
+# 修法三条，互不替代：
+#   ① `_job_settle()`：唯一收尾入口（release → 退避记账 → 状态标记），按 (job, proc) 幂等；
+#   ② `_job_supervisor()`：每个子进程配一个 daemon 线程，退出后**立刻**调 ①，
+#      存活期间每 ~5s 发一次租约心跳（brake 据此判断"还有人监管这个子进程"）；
+#   ③ `_reap_finished_jobs()`：调度 tick 入口全量扫一遍，兜住 ② 万一没跑起来的极端情况。
+_JOB_SETTLE_LOCK = threading.RLock()   # 保护 _JOB_PROCS / _JOB_SETTLED / _JOB_KILL_PENDING
+# job -> 已收尾的那个 proc 对象。用**对象身份**而不是 job 名做幂等键：
+#   同一个 job 会有很多轮进程，按 job 名做幂等会把下一轮的成功/失败记到上一轮头上。
+#   这里持有 proc 的强引用，所以对象不会被回收、身份不会复用 —— `is` 比较是安全的。
+_JOB_SETTLED: dict = {}
+# supervisor 的**退出检测**间隔（秒）。子进程退出 → 最多这么久之内完成收尾。
+# 为什么是 0.25s 而不是"看起来更省"的 2s：收尾延迟直接等于「写域多被占多久」。
+# 实测一次 python -c pass 的退出检测在 2s 间隔下要 1.78s 才归还租约 —— 而本次 P0 的
+# 验收口径是「子进程退出后 1 秒内同域任务能拿到租约」。一次 poll() 是廉价的系统调用，
+# 并发上限只有 1~2 个重活，4 次/秒的代价可以忽略。
+# 不用 proc.wait() 是因为它会**阻塞到进程退出**，同一线程就没机会发心跳了。
+_SUPERVISE_POLL_SEC = 0.25
+# supervisor 的**心跳**间隔（秒）。只需远小于 brake 的心跳超时（默认 300s）：
+# 心跳只证明「父进程还在监管这个子进程」，与退出检测的精度无关，所以不必跟着 0.25s 抖。
+_SUPERVISE_HB_SEC = 5.0
+# 最近一次「被闸挡住」的原因（job -> (时刻, BRAKE.why() 的人话)），供 /api/health 的 blocked_by。
+# 为什么单独记一份：`BRAKE.why()` 是**当场查询**，而 health 要回答的是
+# 「此刻还有谁因为写域被谁挡着」—— 把每次 acquire 失败的原因留痕即可，不需要 health 去猜。
+_BRAKE_BLOCK_REASON: dict = {}
+_BRAKE_BLOCK_REASON_TTL = 600.0   # 10 分钟内没再被挡过，就不再算「当前被挡」
+
 # 2026-10-29：单任务超时上限（秒）。依据实测单轮耗时给出，留 1.5~2 倍余量。
 # 为什么要这个：刹车闸保证"同时只跑一个"，但如果那**一个**永远不结束，
 # 闸就从"防雪崩"变成"堵死"——实测 predictor_daily 从 17:15 跑到 18:00 无进度输出，
@@ -10788,82 +11392,194 @@ def _subproc_env() -> dict:
     return env
 
 
+def _job_settle(job: str, proc, via: str = "tick") -> bool:
+    """对**已退出**的子进程做一次性收尾；返回 True 表示「坑位已归还，可以继续启动流程」。
+
+    这是全项目**唯一**的子进程收尾实现。supervisor 线程、调度 tick 的
+    `_reap_finished_jobs()`、以及 `_spawn_offproc` 开头的「上一轮已结束」分支
+    三条路径都走它 —— 一份实现，三处触发，所以必须**幂等**。
+
+    幂等键是 `(job, proc)` 的**对象身份**（`_JOB_SETTLED[job] is proc`），不是 job 名：
+      · 重复 `BRAKE.release` 本身无害（`pop(job, None)`）；
+      · 但重复 `BRAKE_backoff_fail` 有害 —— 退避阶梯 60→300→900→1800 会被一次次往后推，
+        实测后果就是 2026-10-30 那次「一次失败 = 当天永久停摆」。
+    用对象身份而不是 `lease.settled` 的原因：租约在 release 时就没了，收尾时手上只有
+    proc；而 proc 对象在 `_JOB_SETTLED` 里被强引用着，`is` 比较永远可靠。
+
+    成功分支**保留** `_JOB_PROCS[job]`（历史约定：`_daily_job` 靠 `_JOB_LAST_OK` 补写
+    "当日已完成"标记，`tools/` 侧与回归测试也依赖这条记录）。为了不因此让下一轮
+    `_spawn_offproc` 又走一遍「上一轮已结束」分支（会造成重复告警/重复退避），
+    幂等键已经挡住了：见 `_JOB_SETTLED`。
+    """
+    with _JOB_SETTLE_LOCK:
+        if _JOB_SETTLED.get(job) is proc:
+            return True                 # 这一轮已经收过尾（supervisor 或上一 tick），直接放行
+        _JOB_SETTLED[job] = proc
+
+        rc = getattr(proc, "returncode", None)
+        if rc is None:
+            # returncode 理论上是 poll()/wait() 写进去的；读不到就按失败处理 ——
+            # 宁可多退避一次，也不能把"不知道结果"记成"成功"（那会误写"当日已完成"）。
+            try:
+                rc = proc.poll()
+            except Exception:  # noqa: BLE001
+                rc = -1
+        elapsed = time.time() - (_JOB_LAST.get(job) or time.time())
+
+        _JOB_KILL_PENDING.discard(job)
+        # ① 归还坑位：**无论成败**。这一步以前只发生在"同一 job 下次被启动"时，
+        #    于是 job 冷却/当天跑完后就再也不归还 —— 这就是 P0 事故的机制本身。
+        BRAKE.mark_settled(job)     # 供 /api/health 观测（紧随其后就 pop，纯信息性）
+        BRAKE.release(job)
+
+        if rc:
+            # ② 失败：撤销"今天已完成"的依据，记一次退避，摘掉死记录（让下一 tick 能走正常路径）
+            _JOB_LAST_OK.pop(job, None)
+            wait = BRAKE_backoff_fail(job, "exit=%s" % rc)
+            if job not in _JOB_WARNED:      # 同一次失败只告警一次（重复收尾已在上面被挡住）
+                _JOB_WARNED.add(job)
+                logging.warning("[sched] 子进程 %s 退出码 %s（耗时 %.1fs，详见 "
+                                "viewer/logs/sched-%s.log），按退避策略 %.0fs 内不再重试"
+                                "｜租约已归还（%s）",
+                                job, rc, elapsed, job, wait, via)
+            if _JOB_PROCS.get(job) is proc:
+                _JOB_PROCS.pop(job, None)
+            return False
+
+        # ③ 成功：清告警、清退避、记 _JOB_LAST_OK（日更任务据此补写当日标记）
+        _JOB_WARNED.discard(job)
+        BRAKE_backoff_ok(job)
+        _JOB_LAST_OK[job] = time.time()
+        logging.info("[sched] 子进程 %s 正常结束（耗时 %.1fs）｜租约已归还（%s）",
+                     job, elapsed, via)
+        mk = _JOB_META.get(job)
+
+    # 落盘放在锁外：sqlite 写可能等锁，绝不能让它拖住 supervisor/调度线程的字典操作。
+    if mk:
+        try:
+            DB.set_meta(mk, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        except Exception:  # noqa: BLE001
+            pass
+    return True
+
+
+def _enforce_job_timeout(job: str, proc) -> None:
+    """超时熔断：先 terminate（体面退出），下轮若仍活着再 kill。
+
+    抽成独立函数是因为它现在有**两个**调用点：`_spawn_offproc` 的再入分支
+    与每 tick 的 `_reap_finished_jobs()`。后者是 2026-11-01 补的 —— 原来的熔断也
+    只在"同一 job 下次被启动"时才检查，与租约泄漏是同一个病灶。
+    注意：**此处不释放租约** —— 进程真死透（`poll()` 不再返回 None）才归还坑位，
+    否则闸会误以为坑空出来，放第二个任务进来跟僵死进程抢同一份写锁。
+    """
+    started = _JOB_LAST.get(job) or 0
+    limit = _JOB_TIMEOUT.get(job, _DEFAULT_JOB_TIMEOUT)
+    if not started or (time.time() - started) <= limit:
+        return
+    with _JOB_SETTLE_LOCK:
+        killing = job in _JOB_KILL_PENDING
+    if killing:
+        try:
+            proc.kill()
+        except Exception:  # noqa: BLE001
+            pass
+        # 故意**不**从 _JOB_KILL_PENDING 摘掉：kill 也可能失败，保持这个标记
+        # 让下一 tick 继续 kill，直到它真的死透（收尾时才 discard）。
+        logging.error("[brake] %s 超过 %ds 仍未退出，强制 kill（疑似卡死），租约暂不归还",
+                      job, limit)
+        return
+    try:
+        proc.terminate()
+    except Exception:  # noqa: BLE001
+        pass
+    with _JOB_SETTLE_LOCK:
+        _JOB_KILL_PENDING.add(job)
+    logging.error("[brake] %s 已运行 %.0f 分钟超过上限 %ds，发送终止信号",
+                  job, (time.time() - started) / 60.0, limit)
+    # 只在这一步记一次退避：旧实现在每 tick 的再入分支里都记一次，把窗口无限后推。
+    BRAKE_backoff_fail(job, "timeout")
+
+
+def _job_supervisor(job: str, proc, pid: int | None) -> None:
+    """子进程守护线程（daemon）：等它退出 → 立刻原子收尾；存活期间给租约发心跳。
+
+    为什么必须有它（P0 事故的直接修法）：收尾若只挂在"同一 job 下次被启动"上，
+    该 job 一旦进入 `_OFFPROC_GAP` 冷却（hotspots 600s）或当天跑完不再被调度，
+    写域就被一个已死进程永久占住 —— 实测一个多小时里 5 个任务全部空转。
+
+    它同时是心跳的**唯一**发送方：心跳代表「父进程还在监管这个子进程」。
+    因此它自己绝不允许静默死掉 —— 整个函数体裹在 try/except 里，
+    任何异常都要留下日志（下一 tick 的 `_reap_finished_jobs` 会兜底收尾）。
+    """
+    try:
+        last_hb = 0.0
+        while True:
+            rc = proc.poll()
+            if rc is not None:
+                break
+            now_hb = time.time()
+            if now_hb - last_hb >= _SUPERVISE_HB_SEC:
+                # 心跳失败（租约已被回收）不重要：说明有人已经替我们收过尾了。
+                BRAKE.heartbeat(job, pid)
+                last_hb = now_hb
+            time.sleep(_SUPERVISE_POLL_SEC)
+        _job_settle(job, proc, via="supervisor")
+    except Exception:  # noqa: BLE001
+        logging.exception("[sched] %s 的收尾守护线程异常（租约可能泄漏，"
+                          "下一个调度 tick 的 _reap_finished_jobs 会兜底）", job)
+
+
+def _reap_finished_jobs() -> int:
+    """调度 tick 入口：扫一遍**全部**在跑作业，把已退出的就地收尾。返回收尾条数。
+
+    为什么不能只靠 supervisor：线程是很轻的东西，但它也可能因为环境原因没起来
+    （线程创建失败、进程刚重启时的历史记录、以及 2026-11-01 之前就已经躺在
+    `_JOB_PROCS` 里的记录）。一个 tick（10s）内全量兜底，成本是 N 次 poll()，可忽略。
+    顺带把「超时熔断」也在这里执行 —— 它原来同样只在"同 job 再入"时才被检查。
+    """
+    with _JOB_SETTLE_LOCK:
+        snapshot = list(_JOB_PROCS.items())
+    settled = 0
+    for job, proc in snapshot:
+        try:
+            if proc.poll() is None:
+                _enforce_job_timeout(job, proc)
+                continue
+            with _JOB_SETTLE_LOCK:
+                already = _JOB_SETTLED.get(job) is proc
+            _job_settle(job, proc, via="tick")
+            if not already:
+                settled += 1
+        except Exception:  # noqa: BLE001 —— 单个 job 收尾异常不能连累其它 job
+            logging.exception("[sched] 回收子进程 %s 失败（已忽略，下轮再试）", job)
+    return settled
+
+
 def _spawn_offproc(job: str, logname: str | None = None) -> bool:
     """把某个重活交给子进程执行；同一任务同一时刻只允许一个子进程在跑。
 
     2026-10-29 重构：本函数是**所有**调度重活的唯一出口，因此全局刹车闸（kernel.brake）
     挂在这里一处即可覆盖全部任务 —— 不再逐个任务打补丁。
     闸的作用：全局并发配额 + 写域互斥 + 失败退避；拿不到许可就跳过本轮（绝不阻塞）。
+
+    2026-11-01（P0 租约泄漏）：收尾不再只发生在本函数的再入分支里 ——
+    子进程一启动就配 `_job_supervisor` 守护线程，退出即刻 `_job_settle`；
+    这里的「上一轮已结束」分支保留，但改成调用同一份 `_job_settle`（幂等），
+    用于兜住父进程重启前的历史记录和 supervisor 来不及跑的极端时序。
     """
     try:
-        prev = _JOB_PROCS.get(job)
+        with _JOB_SETTLE_LOCK:
+            prev = _JOB_PROCS.get(job)
         if prev is not None:
             if prev.poll() is None:
-                # 2026-10-29：超时熔断（本轮新增，补上刹车闸最后一块）。
-                # 没有它的话，一个卡死的任务会**永久占住写域**：实测 predictor_daily 从
-                # 17:15 跑到 18:00 仍无任何进度输出，期间 pillars/lhb/blogger/bili/
-                # resonance/selfpick/evolve 七个任务全在排队 —— 闸从"防雪崩"变成了"堵死"。
-                # 策略：先 terminate（体面退出，给它清理句柄的机会），下轮若仍活着再 kill。
-                # 注意：**此处不释放租约** —— 进程真死透（poll 非 None）才归还坑位，
-                # 否则闸会误以为坑空出来，放第二个任务进来跟僵死进程抢同一份写锁。
-                started = _JOB_LAST.get(job) or 0
-                limit = _JOB_TIMEOUT.get(job, _DEFAULT_JOB_TIMEOUT)
-                if started and (time.time() - started) > limit:
-                    if job in _JOB_KILL_PENDING:
-                        try:
-                            prev.kill()
-                        except Exception:  # noqa: BLE001
-                            pass
-                        logging.error("[brake] %s 超过 %ds 仍未退出，已强制杀死（疑似卡死）",
-                                      job, limit)
-                        _JOB_KILL_PENDING.discard(job)
-                    else:
-                        try:
-                            prev.terminate()
-                        except Exception:  # noqa: BLE001
-                            pass
-                        _JOB_KILL_PENDING.add(job)
-                        logging.error("[brake] %s 已运行 %.0f 分钟超过上限 %ds，发送终止信号",
-                                      job, (time.time() - started) / 60.0, limit)
-                    BRAKE_backoff_fail(job, "timeout")
-                return False                      # 上一轮还没跑完 → 跳过（天然防叠进程）
-            # 上一轮已结束 → 释放闸内租约（无论成败，坑位都必须归还）
-            BRAKE.release(job)
-            _JOB_KILL_PENDING.discard(job)
-            if prev.returncode:
-                _JOB_LAST_OK.pop(job, None)     # 失败：撤销"今天已完成"的依据，避免误判
-                wait = BRAKE_backoff_fail(job, "exit=%s" % prev.returncode)
-                if job not in _JOB_WARNED:      # 同一次失败只告警一次，别每 10s 刷屏
-                    logging.warning("[sched] 子进程 %s 上次退出码 %s（详见 viewer/logs/sched-%s.log），"
-                                    "按退避策略 %.0fs 内不再重试",
-                                    job, prev.returncode, job, wait)
-                    _JOB_WARNED.add(job)
-                # 2026-10-30 修复（严重 · 一次失败 = 当天永久停摆）：
-                # 旧实现**从不 pop** `_JOB_PROCS[job]`，于是这一条死记录永远留在表里、且
-                # `prev.returncode` 恒为真 → 此后**每个 tick（10s）**都重新进这个分支：
-                #   ① 反复 `BRAKE_backoff_fail` 把退避窗口一次次往后推（60→300→900→1800 封顶）；
-                #   ② 立刻 return False → 永远走不到函数后段 `BRAKE_backoff_wait` 的门控，
-                #      **退避窗口即使过期也没有任何路径能重试**，`MAX_TRIES` 形同虚设。
-                # 直连 `_spawn_offproc` 的任务（lhb_daily / predictor_daily / pillars_daily /
-                # bili_scan / resonance_build…）没有 `_daily_job` 的 `backoff_wait > 0` 提前
-                # return 这层保护，一旦某轮非零退出就**直到服务重启都不会再启动**。
-                # 修法：失败分支把这条记录摘掉，下一次 tick 走 `prev is None` 的正常路径
-                # → 落到 `wait = BRAKE_backoff_wait(job)` 门控：退避仍然生效，但**窗口过期后能重试**。
-                # ⚠️ 只在失败分支摘；成功分支必须留着（它还要靠 `_JOB_LAST_OK[job]` 让
-                #    `_daily_job` 补写"当日已完成"标记），且 `BRAKE.release(job)` 已在上面执行过
-                #    （`Brake.release` 是 `self._leases.pop(job, None)`，对重复/未知 job 幂等）。
-                _JOB_PROCS.pop(job, None)
-                return False                    # ← 失败后不当场重开，交给退避窗口
-            else:
-                _JOB_WARNED.discard(job)
-                BRAKE_backoff_ok(job)
-                _JOB_LAST_OK[job] = time.time()   # 成功退出：日更任务据此补写当日标记
-                mk = _JOB_META.get(job)
-                if mk:
-                    try:
-                        DB.set_meta(mk, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                    except Exception:  # noqa: BLE001
-                        pass
+                # 上一轮还没跑完：顺手做超时熔断，然后跳过（天然防叠进程）
+                _enforce_job_timeout(job, prev)
+                return False
+            # 上一轮已结束 → 收尾（supervisor 通常已经做过；这里兜历史记录与竞态）
+            # `_job_settle` 内部按 (job, proc) 身份幂等：重复 release 无害，
+            # 重复 backoff_fail 会被挡住（那才是真正有害的那一半）。
+            if not _job_settle(job, prev, via="reentry"):
+                return False              # 新一轮失败 → 交给退避窗口，不当场重开
 
         # 失败退避窗口内 → 不进池、不重试（消灭「每 10 秒刷一轮异常」的正反馈）
         wait = BRAKE_backoff_wait(job)
@@ -10877,38 +11593,79 @@ def _spawn_offproc(job: str, logname: str | None = None) -> bool:
         # 全局准入：并发配额 + 写域互斥（拿不到就跳过本轮，绝不等）
         lease = BRAKE.acquire(job)
         if lease is None:
+            # 留痕给 /api/health 的 blocked_by：为什么被挡、谁占着。**不受日志限频影响**
+            # （限频只管日志，健康接口要靠这份记录回答"现在还有谁在等写域"）。
+            try:
+                why = BRAKE.why(job)
+            except Exception:  # noqa: BLE001
+                why = "unknown"
+            with _JOB_SETTLE_LOCK:      # health 会并发读这份 dict，避免"迭代中改大小"
+                _BRAKE_BLOCK_REASON[job] = (time.time(), why)
             # 限频：同一任务 120 秒内只记一条，避免每 10 秒 tick 刷屏掩盖真正的错误
             if BRAKE.should_log(job):
-                logging.info("[brake] %s 本轮跳过：%s", job, BRAKE.why(job))
+                logging.info("[brake] %s 本轮跳过：%s", job, why)
             return False
+        with _JOB_SETTLE_LOCK:
+            _BRAKE_BLOCK_REASON.pop(job, None)     # 放行了 → 它不再"被挡"
         log_dir = os.path.join(ROOT, "viewer", "logs")
         os.makedirs(log_dir, exist_ok=True)
         fh = open(os.path.join(log_dir, "sched-%s.log" % (logname or job)), "a",
                   encoding="utf-8", errors="replace")
-        fh.write("\n=== %s %s ===\n" % (job, time.strftime("%Y-%m-%d %H:%M:%S")))
-        fh.flush()
-        _JOB_WARNED.discard(job)
         try:
-            # 2026-10-29：后台重活**降优先级**（BELOW_NORMAL）。
-            # 实测证据：predictor_daily 单轮曾跑满 42 分钟，期间 /api/watch_list 要等 28.7 秒。
-            # 并发闸只能防"多个任务同时抢"，防不了"单个任务把机器占满"。
-            # 降优先级后，Windows 调度器会优先把 CPU 给你的浏览器与 HTTP 请求线程 ——
-            # 后台任务跑得久一点无所谓（反正是日更、有快照兜底），前台不能卡。
-            _BELOW_NORMAL = 0x00004000   # BELOW_NORMAL_PRIORITY_CLASS
-            _flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | _BELOW_NORMAL
-            proc = subprocess.Popen(
-                [sys.executable, os.path.join(ROOT, "tools", "sched_job.py"), job],
-                cwd=str(ROOT), stdout=fh, stderr=fh, stdin=subprocess.DEVNULL,
-                env=_subproc_env(),
-                creationflags=_flags)
-        except Exception:
-            BRAKE.release(job)          # 起不来必须归还坑位，否则闸会被永久占住
-            raise
-        _JOB_PROCS[job] = proc
+            fh.write("\n=== %s %s ===\n" % (job, time.strftime("%Y-%m-%d %H:%M:%S")))
+            fh.flush()
+            _JOB_WARNED.discard(job)
+            try:
+                # 2026-10-29：后台重活**降优先级**（BELOW_NORMAL）。
+                # 实测证据：predictor_daily 单轮曾跑满 42 分钟，期间 /api/watch_list 要等 28.7 秒。
+                # 并发闸只能防"多个任务同时抢"，防不了"单个任务把机器占满"。
+                # 降优先级后，Windows 调度器会优先把 CPU 给你的浏览器与 HTTP 请求线程 ——
+                # 后台任务跑得久一点无所谓（反正是日更、有快照兜底），前台不能卡。
+                _BELOW_NORMAL = 0x00004000   # BELOW_NORMAL_PRIORITY_CLASS
+                _flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | _BELOW_NORMAL
+                proc = subprocess.Popen(
+                    [sys.executable, os.path.join(ROOT, "tools", "sched_job.py"), job],
+                    cwd=str(ROOT), stdout=fh, stderr=fh, stdin=subprocess.DEVNULL,
+                    env=_subproc_env(),
+                    creationflags=_flags)
+            except Exception:
+                BRAKE.release(job)      # 起不来必须归还坑位，否则闸会被永久占住
+                raise
+        finally:
+            # 2026-11-01 句柄泄漏修复：父进程这份日志句柄**用完立刻关**。
+            # 为什么可以关：Windows 的 CreateProcess 已把句柄**复制**进子进程，
+            #   子进程持有它自己那一份继续写日志；父进程 close 只减自己的引用计数，
+            #   不会把子进程的日志掐断（这一点与 fork 语义不同，别按 Unix 直觉判断）。
+            # 为什么必须关：原实现从头到尾没有 close，**每起一个子进程泄漏一个句柄**。
+            #   每个日更任务一天几十轮、查看器长期不重启，句柄数只会单调上涨；
+            #   Windows 上句柄不属于"内存压力会自动回收"的东西，涨到上限就是
+            #   "打开文件失败/进程起不来"，而且报错点离真正原因很远（极难排查）。
+            # 为什么放在 finally：原来 `Popen` 抛异常的那条路径同样在漏 —— 那条路
+            #   更常见于"子进程起不来"的故障期，恰恰是进程最脆弱、最怕再叠麻烦的时候。
+            try:
+                fh.close()
+            except Exception:  # noqa: BLE001
+                logging.exception("[sched] %s 的日志句柄关闭失败（不影响本轮）", job)
+        # 先 bind_pid（心跳要校验 pid），再登记 proc，最后才起守护线程 ——
+        # 顺序反了会出现"supervisor 已经在心跳，而租约还没有 pid"的空窗。
         BRAKE.bind_pid(lease, proc.pid)
+        with _JOB_SETTLE_LOCK:
+            _JOB_PROCS[job] = proc
+            # ⚠️ 这里**不能** pop `_JOB_SETTLED[job]`。旧进程的 supervisor 可能刚睡醒
+            # （它 poll 到已退出），若幂等键被清空，它会把「归还租约」再做一次 ——
+            # 而归还的是**新租约**，等于亲手制造一次新的泄漏。
+            # 幂等键按 proc 身份比较，留着旧值天然挡住这种迟到收尾。
         _JOB_LAST[job] = now
         logging.info("[brake] %s 放行（pid=%s，%s/%s）", job, proc.pid,
                      lease.kind, lease.domain)
+        # 2026-11-01 P0：子进程一启动就配守护线程 —— 退出即刻归还租约，
+        # 存活期间给租约发心跳。起线程失败也**不影响**本轮放行（还有 tick 兜底）。
+        try:
+            threading.Thread(target=_job_supervisor, args=(job, proc, proc.pid),
+                             name="job-supervisor-%s" % job, daemon=True).start()
+        except Exception:  # noqa: BLE001
+            logging.exception("[sched] %s 的守护线程起不来（本轮照跑，"
+                              "收尾交给下一个调度 tick 的 _reap_finished_jobs）", job)
         return True
     except Exception:  # noqa: BLE001
         BRAKE.release(job)
@@ -11440,6 +12197,18 @@ def _scheduler_loop() -> None:
         try:
             time.sleep(_SCHED_WAKE)   # 每 ~10s 唤醒检查一次
             tick0 = time.time()
+            # ── 2026-11-01 P0：tick 入口先全量回收已退出的子进程 ────────────────────
+            # 为什么放在**最前面**：`_job_supervisor` 才是主路径（子进程一退出就收尾），
+            # 但它是线程，可能没起来（历史记录 / 线程创建失败 / 父进程刚重启）。
+            # 放在这里有两个必要性质：① 一个 tick（10s）内一定兜住；② 回收发生在
+            # 本 tick 的 acquire 之前，所以这一 tick 就能把写域放给排队中的任务，
+            # 而不是白等一轮。事故现场正是"租约在跑完那一刻没归还"，早一轮就少一轮空转。
+            try:
+                _reaped = _reap_finished_jobs()
+                if _reaped:
+                    logging.info("[sched] 本轮回收已结束的子进程 %d 个（租约已归还）", _reaped)
+            except Exception:  # noqa: BLE001
+                logging.exception("[sched] 回收子进程异常（已忽略，下轮再试）")
             slow: list = []
             skipped: list = []
             # ── 2026-10-30：整轮让路（这是「点开个股一直转圈」的真正根因之一）──────────
@@ -11687,6 +12456,81 @@ def api_executability(codes, aum, n_hold, hold_days, fee_bp) -> dict:
                                   fee_bp=fee_bp, names=names)
 
 
+def _brake_leases_view() -> dict:
+    """/api/health 的 `leases` 段：谁占着闸、占多久、心跳还新鲜吗、谁被挡住了。
+
+    2026-11-01：这段是**为那次 P0 事故补的观测面**。当时的问题是"日志里明明写着
+    hotspots 已经跑完，写域却被它占着一个多小时" —— 而系统没有任何一个地方能让人
+    一眼看到「租约还在、pid 已死」。所以这里把三样东西并排给出：
+      · 租约本身（job / pid / started_at / last_heartbeat / age / heartbeat_age / kind / domain）；
+      · 该租约对应的**子进程是否还活着**（`proc_alive`，从 `_JOB_PROCS` 推）；
+      · `blocked_by`：此刻因写域/配额被挡住的任务与挡住它的那个 job。
+    只新增字段，不改 health 既有结构。
+    """
+    st = BRAKE.status()
+    running = st.get("running") or []
+    with _JOB_SETTLE_LOCK:
+        procs = dict(_JOB_PROCS)
+        settled = dict(_JOB_SETTLED)
+        block_reasons = list(_BRAKE_BLOCK_REASON.items())
+    for it in running:
+        proc = procs.get(it.get("job"))
+        if proc is None:
+            it["proc_alive"] = None            # 没有对应的子进程记录（请求线程/进程内任务）
+            it["proc_returncode"] = None
+        else:
+            try:
+                it["proc_alive"] = proc.poll() is None
+            except Exception:  # noqa: BLE001
+                it["proc_alive"] = None
+            it["proc_returncode"] = getattr(proc, "returncode", None)
+        it["proc_settled"] = settled.get(it.get("job")) is proc and proc is not None
+
+    # 谁被挡住：从调度侧留下的"最近一次被挡原因"推。写域占用者从当前租约反查，
+    # 这样即便 why() 的文案改过，holder 也不会跟着失真。
+    holder_by_domain: dict = {}
+    for it in running:
+        dom = it.get("domain") or ""
+        if dom:
+            holder_by_domain.setdefault(dom, it.get("job"))
+    now = time.time()
+    blocked_by: list = []
+    for job, rec in block_reasons:
+        try:
+            ts, why = rec
+        except Exception:  # noqa: BLE001
+            continue
+        age = now - float(ts)
+        if age > _BRAKE_BLOCK_REASON_TTL:
+            continue                           # 太久没再被挡过 → 不算"当前"
+        _kind, domain = BRAKE_profile(job)
+        holder = holder_by_domain.get(domain) or ""
+        blocked_by.append({
+            "job": job,
+            "domain": domain,
+            "holder": holder,
+            "blocked_by_domain": bool(holder),
+            "reason": str(why),
+            "checked_sec_ago": int(age),
+        })
+    blocked_by.sort(key=lambda r: -r["checked_sec_ago"])
+    return {
+        "ok": True,
+        "items": running,
+        "running_count": len(running),
+        "quota": st.get("quota"),
+        "by_kind": st.get("by_kind"),
+        "heartbeat_timeout_sec": st.get("heartbeat_timeout_sec"),
+        "abs_max_sec": st.get("abs_max_sec"),
+        "blocked_by": blocked_by,
+        "describe": {
+            "heartbeat_age_sec": "距上次心跳的秒数；超过 heartbeat_timeout_sec 即判定失联并回收",
+            "proc_alive": "该租约对应子进程是否还活着（null=没有子进程记录）",
+            "blocked_by": "当前因写域/配额排队中的任务；holder 是占着写域的那个 job",
+        },
+    }
+
+
 def api_health() -> dict:
     """/api/health —— 任务运行记录 + 数据新鲜度（决策⑤）。
 
@@ -11698,12 +12542,23 @@ def api_health() -> dict:
     `level` 有四个值，`unknown` **不等于正常** —— 判不出就说不知道，
     这是本项目反复强调的同一条原则（不要用默认值把未知盖住）。
     内部 60 秒缓存：新鲜度按交易日变，轮询面板不需要每次重扫 1.7 亿行。
+
+    2026-11-01（P0 租约泄漏）：新增 `leases` 段（见 `_brake_leases_view`）。
+    它**不进** 60 秒缓存 —— 锁状态必须实时，否则"租约还在不在"这个问题的答案会滞后。
     """
     try:
-        return HEALTH.overall()
+        out = dict(HEALTH.overall())
     except Exception as e:  # noqa: BLE001
         logging.exception("api_health 失败")
         return {"ok": False, "error": "health_failed", "detail": str(e)}
+    try:
+        out["leases"] = _brake_leases_view()
+    except Exception as e:  # noqa: BLE001
+        # 观测段自己坏掉不能把整个 health 拖垮（前端靠它判"系统是否正常"）
+        logging.exception("api_health 的 leases 段失败")
+        out["leases"] = {"ok": False, "error": str(e)[:200],
+                         "items": [], "blocked_by": []}
+    return out
 
 
 def api_cost_basis() -> dict:
@@ -12104,6 +12959,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.end_headers()
+        if getattr(self, "_head_mode", False):
+            return                      # HEAD：头已发完，body 一律不写（见 do_HEAD）
         try:
             self.wfile.write(body)
         except (ConnectionAbortedError, BrokenPipeError, OSError):
@@ -12207,40 +13064,112 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             self._send_json({"error": "not found"}, code=404)
             return
-        # 2026-10-17 性能：文本类静态资源（app.js 973KB / app.css 284KB）gzip 压缩，传输量降到约 1/4。
-        #   仅当客户端 Accept-Encoding 含 gzip 且压缩后更小才启用；不改变 no-cache 校验语义，
-        #   故改完界面 F5 仍可见最新，不会回归「改了不刷新」的老问题。
+        # 2026-10-17 性能：文本类静态资源 gzip 压缩，传输量降到约 1/4。
+        # 2026-11-01 修正 + 强化（P2 首屏 JS 传输量 < 300KB），三处改动：
+        #   ① MIME 判定改走 `_media_type()` 剥掉 `; charset=...`
+        #      —— 旧写法 `ctype in ("application/javascript", ...)` 因为整串带 charset
+        #      **永远为假**，`app.js` 其实一直没被压过（实测 1,214,382 字节原样下发）；
+        #   ② 压缩结果进进程内缓存（键含 mtime_ns），静态文件不变时零成本；
+        #   ③ `Vary: Accept-Encoding` 改成**只要资源可压就发**（不论本次是否真的压了）
+        #      —— 响应体是否压缩取决于请求头，Vary 必须如实声明；只在压缩时发，
+        #      中间缓存会把"未压缩"那一份当成对所有客户端都有效。
         #   ⚠️ 2026-10-17 修复（双击打不开 · ERR_INVALID_HTTP_RESPONSE 根因）：
         #   send_header 必须一律在 send_response 之后调用——BaseHTTPRequestHandler 的
         #   _headers_buffer 是按调用顺序累积的，先 send_header 再 send_response 会把状态行
         #   塞进响应头中间，浏览器收到「首行不是 HTTP/1.x」→ 直接判无效响应。
-        _ae = (self.headers.get("Accept-Encoding") or "")
-        _is_text = ctype.startswith("text/") or ctype in ("application/javascript", "application/json")
+        _ae = (self.headers.get("Accept-Encoding") or "").lower()
+        try:
+            _st = real.stat()          # 一次 stat 同时喂给 ETag 与压缩缓存
+        except OSError:
+            _st = None
+        _compressible = _is_compressible(ctype, data)
+        _wants_gzip = _compressible and "gzip" in _ae
+        _etag = _make_etag(_st, _wants_gzip) if _st is not None else None
+
+        # ── 2026-11-01 ETag/304：**必须放在压缩之前** ─────────────────────────────
+        # 顺序不能反：命中 304 时一个字节正文都不会发，先压缩等于白烧 30ms CPU 再丢掉。
+        if _etag is not None and _etag_matches(self.headers.get("If-None-Match"), _etag):
+            self.send_response(304)
+            self.send_header("ETag", _etag)
+            if _compressible:
+                self.send_header("Vary", "Accept-Encoding")   # 304 也要保留 Vary
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+            # 安全头在 304 上**同样要发**：有些中间层/客户端以 304 自身的响应头为准，
+            # 缺了就等于把一份已缓存的页面变成"无防护页面"（点击劫持防护凭空消失）。
+            # nginx 里对应的写法是 `add_header ... always`，道理一样。
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            if ctype.startswith("text/html"):
+                self.send_header("Content-Security-Policy", "frame-ancestors 'self'")
+            # 304 一律无正文。显式给 `Content-Length: 0`，让 keep-alive 的成帧不含糊
+            # （规范上 304 本来就不该带 body，但"给个 0"比"靠对端自己猜"更稳）。
+            # 刻意**不**发 Content-Encoding：304 表达的是"你缓存里那份仍然有效"这个结论，
+            # 不携带任何实体，标上 gzip 只会让日志与排查更难读。
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         _gzipped = False
-        if _is_text and "gzip" in _ae and len(data) > 1024:
-            import gzip as _gzip
-            _c = _gzip.compress(data, 6)
-            if len(_c) < len(data):
-                data = _c
+        if _wants_gzip:
+            _packed = _gzip_cached(real, data, _st)
+            if _packed is not None:
+                data = _packed
                 _gzipped = True
         self.send_response(200)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Length", str(len(data)))   # 压缩后**必须重算**，不能沿用原长
+        if _etag is not None:
+            # ETag 必须出现在 200 上，否则浏览器永远学不会发 If-None-Match —— 304 就永远用不上。
+            self.send_header("ETag", _etag)
         if _gzipped:
             self.send_header("Content-Encoding", "gzip")
+        if _compressible:
             self.send_header("Vary", "Accept-Encoding")
         # 2026-09-28：静态文件禁用缓存（no-cache = 每次都回源校验，但仍可 304 复用）。
         #   原先一个缓存头都不发，WebView2/Chrome 会对 app.js / app.css 做启发式缓存，
         #   结果「后端与源码都改了、界面还是旧的」，非得 Ctrl+Shift+R 硬刷才生效。
         #   本地服务重传几百 KB 代价可忽略，换成每次校验，普通 F5 就能看到最新界面。
         self.send_header("Cache-Control", "no-cache, must-revalidate")
-        # 2026-10-21：启用本地令牌时，仅在 HTML 页面下发 SameSite Cookie，供同源写接口校验。
-        if _LOCAL_TOKEN and ctype.startswith("text/html"):
-            self.send_header(
-                "Set-Cookie",
-                "local_token=%s; Path=/; SameSite=Lax; Max-Age=86400" % _LOCAL_TOKEN,
-            )
+        # ── 2026-11-01 P1-5 安全加固①：点击劫持防护必须走**响应头** ──────────────
+        # 为什么不能只靠 meta：`index.html` 的 <meta http-equiv="Content-Security-Policy">
+        # 里写了 `frame-ancestors 'none'`，但按 CSP 规范**这条指令在 meta 里被浏览器忽略**
+        # （Chrome 控制台原文：The Content Security Policy directive 'frame-ancestors'
+        # is ignored when delivered via a <meta> element）。也就是说那条防线看起来有、
+        # 实际没有 —— 这比不写更危险，因为它让人以为已经防住了。
+        #
+        # ⚠️ 取值是 'self' / SAMEORIGIN，**不是** 'none' / DENY。实测证据（别改回去）：
+        #   本应用自己会内嵌一个**同源** iframe —— `viewer/static/app.js:14674`
+        #   `<iframe src="/static/fund_masters/index.html">`（基金经理策略面板）。
+        #   `frame-ancestors 'none'` / `X-Frame-Options: DENY` 连**同源**嵌套也一并禁掉，
+        #   后果是该面板直接空白（静默白屏，控制台一句 "Refused to frame" 埋在日志里）。
+        #   威胁模型是"外部站点把我的页面套进 iframe 做点击劫持"，'self' 已经完整覆盖：
+        #   外部页面的 origin 不是本服务，一样被拒。
+        #
+        # ⚠️ 这里**只补 frame-ancestors 一条**，绝不把 meta 里那一大串搬过来：
+        #   响应头与 meta 同时存在时浏览器取**交集**，一旦漏了 'unsafe-inline'（本应用
+        #   内联脚本/onclick 极多）整个界面会静默白屏。分工：meta 管 script/style/connect，
+        #   响应头只管"能不能被嵌套"。
+        self.send_header("X-Frame-Options", "SAMEORIGIN")   # 老浏览器兜底（与 CSP 同义）
+        if ctype.startswith("text/html"):
+            # 只对 HTML 下发 CSP：加在 JSON/JS/CSS 上没有任何防护意义，只会让排查者困惑。
+            self.send_header("Content-Security-Policy", "frame-ancestors 'self'")
+            # 2026-11-01 P1-5 安全加固②：本地令牌 Cookie 收紧。
+            # 取证：全仓 `grep -rn "local_token|document.cookie" viewer/static/` 命中 0 处
+            #   —— 前端 JS **从不读**这个 Cookie，它只由后端 `_token_ok()` 校验
+            #   （server.py `_parse_cookie(self.headers.get("Cookie"))`）。
+            #   故加 HttpOnly 不影响任何功能，只是让 XSS 拿不到它。
+            # SameSite：本项目是本地单页应用，没有跨站跳转/嵌入需求 —— 用 Strict。
+            #   （原 Lax 在"从外部链接点进来"时仍会带上 Cookie，Strict 收紧这一档。）
+            # 浏览器对同源 fetch/XHR 默认带 Cookie（credentials 默认 same-origin），
+            # 所以前端一处不用改。
+            if _LOCAL_TOKEN:
+                self.send_header(
+                    "Set-Cookie",
+                    "local_token=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400"
+                    % _LOCAL_TOKEN,
+                )
         self.end_headers()
+        if getattr(self, "_head_mode", False):
+            return                      # HEAD：头已发完，body 一律不写（见 do_HEAD）
         self.wfile.write(data)
 
     def _archive_fm_snapshot(self, rel: str) -> None:
@@ -12287,6 +13216,26 @@ class Handler(BaseHTTPRequestHandler):
                 idx_file.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
         except Exception:  # noqa: BLE001
             logging.exception("共识快照存档失败（非致命，跳过）")
+
+    def do_HEAD(self):
+        """HEAD：与 GET **完全相同**的状态行与响应头，只是不写 body。
+
+        为什么补这一条（2026-11-01 P1-5 安全验收时发现）：
+          `BaseHTTPRequestHandler` 没有默认的 HEAD 实现，本服务此前对 HEAD 一律回
+          **501 Unsupported method**。后果有两个：
+            ① 任何 `curl -I` / 监控探活 / 反代健康检查都拿不到响应头，看不到
+               `Content-Security-Policy`、`X-Frame-Options`、`Cache-Control` 这些
+               安全与缓存决策 —— "改了但验不到"，正是这一轮点击劫持防护最容易漏掉的一环；
+            ② 501 的响应也走 `send_error`，body 是 HTML 错误页，健康检查会把它当故障。
+        做法：置 `_head_mode` 后直接复用 GET 的整条管线（路由/缓存/404 语义完全一致），
+        由 `_send_json` / `_send_file` 两处唯一的 body 写出点各自跳过写 body。
+        **刻意不另写一套路由** —— 两套路由必然漂移，最后"GET 有头、HEAD 没有"。
+        """
+        self._head_mode = True
+        try:
+            self.do_GET()      # 复用 try/except 兜底与访问日志；副作用仅"_LAST_REQ_TS 被刷新"
+        finally:
+            self._head_mode = False
 
     def do_GET(self):
         global _LAST_REQ_TS

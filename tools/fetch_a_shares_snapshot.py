@@ -29,6 +29,16 @@
 单位约定（落库与 CSV 一致）：价格=元；成交量=手(1手=100股)；成交额/市值=元；
     换手率/涨跌幅/涨额=% 数值；市盈率/市净率=倍。
 
+2026-11-01（P0「全 A 股宇宙不完整」）两处改动：
+    1. **只落股票**（`_only_stocks`）：行情源把 2 只可转债 + 1 只 ETF 当股票塞进来过，
+       下游每处都要各自防御。现在用 `units.stock_kind()` 在入口拦掉，源头治理。
+    2. **板块判定委托 `security_master.board_of()`**：本脚本原有的前缀表漏了 920 段
+       （判成"其它"），且与 units / selection 的表是三份口径。
+
+已知缺口（不在本脚本能力内）：东财 clist 的北交所列表目前只回 8x 段，
+    920 段要靠"按代码批量请求"的源（tools/fetch_a_shares_tencent.py）补 ——
+    它的候选代码来自 security_master，已含 350 只北交所。
+
 注意：沙箱无出网，本脚本在「有网环境（用户本机）」才真正拉数；此处仅保证语法/逻辑正确。
 """
 import io
@@ -44,6 +54,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 SNAP_DIR = os.path.join(ROOT, "data", "snapshots")
 CHECKPOINT = os.path.join(SNAP_DIR, "_a_shares_snap_checkpoint.json")
+
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+# 2026-11-01：板块/交易所判定与"这是不是股票"都委托公共模块，本脚本不再自带前缀表。
+from viewer import security_master as SM  # noqa: E402
+from viewer import units as U  # noqa: E402
 
 EM_URL = "https://push2.eastmoney.com/api/qt/clist/get"
 # 默认过滤：沪深京全 A（沪市 m:1、深市 m:0；主板 t:2/t:6、创业板 t:80/t:23、科创板 t:23、北交所 t:81/t:21）
@@ -88,21 +105,38 @@ COLMAP = [
 
 
 def _board_of(code: str):
-    """由代码前缀推断板块/交易所（东财列表不直接给板块名，前缀最可靠）。"""
+    """由代码段推断板块/交易所。
+
+    2026-11-01（P0）：本函数原来是第四份前缀表（688→科创板、8/4→北交所…），
+    漏了 920 段（判成"其它"），而且和 units / selection 的表互相不一致。
+    现在统一委托 `security_master.board_of/exchange_of` —— 那是全项目唯一允许
+    写代码段规则的地方。
+    """
     if not code or len(code) != 6 or not code.isdigit():
         return ("未知", "未知")
-    h = code[0]
-    if h in ("6",):
-        if code.startswith("688"):
-            return ("科创板", "上交所")
-        return ("沪市主板", "上交所")
-    if h in ("0", "3"):
-        if code.startswith("30"):
-            return ("创业板", "深交所")
-        return ("深市主板", "深交所")
-    if h in ("8", "4"):
-        return ("北交所", "北交所")
-    return ("其它", "其它")
+    board = SM.board_of(code)
+    return (board, SM.exchange_zh(SM.exchange_of(code, board)))
+
+
+def _only_stocks(rows):
+    """只保留 kind=stock 的行（2026-11-01 P0 的源头治理）。
+
+    为什么必须在这里过滤：a_shares_universe / stock_daily_snapshot / stock_names
+    三张表都是本脚本写的，抓到什么就落什么。之前行情源把 2 只可转债（111024、
+    113710）和 1 只 ETF（513050）当股票塞了进来，于是下游每一处都要各自防御。
+    现在从源头只放股票进去 —— 判据用 `units.stock_kind()`（代码段+名称双重，
+    不依赖数据库，新上市代码也能判），非股票一律不进库。
+    """
+    keep, dropped = [], []
+    for r in rows:
+        if U.stock_kind(r.get("code"), r.get("name") or "") == U.KIND_STOCK:
+            keep.append(r)
+        else:
+            dropped.append((r.get("code"), r.get("name")))
+    if dropped:
+        print("[snapshot] 已剔除非股票 %d 只（%s）"
+              % (len(dropped), ", ".join("%s/%s" % c for c in dropped[:6])), flush=True)
+    return keep
 
 
 def _coerce(v):
@@ -321,6 +355,8 @@ def run(date_override=None, fs=None, pz=PAGE_SIZE, no_csv=False, dry_run=False, 
         total, items = _fetch_all(fs, pz, max_pages=max_pages)
         parsed = [_parse_item(it) for it in items]
         parsed = [r for r in parsed if r]
+        # 只放股票进库（转债/ETF/基金在源头就被拦住，见 _only_stocks）
+        parsed = _only_stocks(parsed)
         rows = parsed  # 全量覆盖（幂等），不使用续传增量以避免重复
         if dry_run:
             print("[snapshot][dry-run] 拟落库 %d 条，EM total=%d" % (len(rows), total), flush=True)

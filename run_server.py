@@ -16,4 +16,7 @@ if str(ROOT) not in sys.path:
 import launch_viewer  # noqa: E402
 
 if __name__ == "__main__":
-    launch_viewer.main()
+    # 必须把 main() 的退出码透传出去：launch_viewer 用 2/3/4/5 区分
+    # 「端口被别的程序占着 / 健康校验超时 / 拉子进程失败 / 版本不符」，
+    # 直接裸调 main() 会让所有这些失败在调用方看来都是"成功"。
+    sys.exit(launch_viewer.main())

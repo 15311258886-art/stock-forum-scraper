@@ -1,4 +1,15 @@
 /**
+ * ⚠️ 已废弃（2026-11-01）：选择器已漂移，`.tab[data-tab]` 在当前 DOM 中不存在。
+ *    请用 tests/e2e/run.cjs。保留本文件仅为对照历史断言项。
+ *
+ * 漂移点（实测）：当前导航是两级结构 `#sidenav .nav-item[data-cat]` +
+ * `#subnav .sub-tab[data-tab]`（viewer/static/app.js paintSubnav），
+ * 本文件第 85 行的 `page.click('.tab[data-tab="${t}"]')` 会在第一个 tab 就抛
+ * "No node found for selector"，因此整份回归实际上一行断言都没跑到。
+ * 另：首次访问的 #firstRunMask（全屏挡板）也会吞掉真实鼠标点击。
+ * 新版覆盖了哪些、没覆盖哪些，见 tests/e2e/README.md 的「新旧覆盖对照」。
+ *
+ * 历史说明（原文保留）：
  * UI 全面回归（真实 Chromium + 真实布局矩形）—— 只读，不点任何写接口按钮
  *
  * 覆盖：
@@ -9,7 +20,7 @@
  *   5) 响应式 1024x700 / 1440x1000：无横向溢出 + 顶栏按钮 elementFromPoint 可命中
  *   6) 长文本压力
  *
- * 用法：NODE_PATH=... node tests/ui_full_regression.js [端口]
+ * 用法：NODE_PATH=... node tests/ui_full_regression.js [端口]   ← 已不可用，见文件头
  * 产出：tools/_qa_ui_regression.txt, tools/shots_ui/*.png
  */
 const puppeteer = require("puppeteer-core");

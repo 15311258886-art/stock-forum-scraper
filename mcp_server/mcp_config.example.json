@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "stock-forum": {
+      "command": "C:\\Users\\野比&大熊\\.workbuddy\\binaries\\python\\versions\\3.13.12\\python.exe",
+      "args": [
+        "F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\mcp_server\\launch.py",
+        "--db",
+        "F:\\AI Agent部署知识库\\2026-09-22-11-49-42\\stock-forum-scraper\\viewer\\app.db"
+      ]
+    }
+  }
+}

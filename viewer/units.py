@@ -130,6 +130,86 @@ def snapshot_volume_unit_stats(conn, trade_date=None):
     return stat
 
 
+# ── K 线成交量单位（2026-10-31 测评 P0）──────────────────────────────────────────
+#
+# ## 事故
+#
+# 600519 / 2026-10-30：行情区显示「5.99 万手」（对，来自东财 spot f47=59,927 手），
+# 抽屉 K 线区却显示「599.27 万手」——同一个数字 5,992,729 被当成手格式化，差了 100 倍。
+# 根因不是格式化写错，而是**接口边界没声明单位**：K 线各源给的单位本来就不统一
+# （2026-10-30 实测：新浪 K 线 / 本地库 / 东财 push2his 给「股」，腾讯 K 线对主板给「手」，
+#  而腾讯与东财对科创板（688）又给「股」），
+# 前端只有「手」一套格式化函数，只能猜，猜错就是 100 倍且不报错。
+#
+# ## 所以这里做两件事
+#
+# 1. `kline_row_unit` / `kline_series_unit`：沿用上面 `infer_volume_unit` 的自证思路，
+#    用 K 线行自带的 `amount`（元）/ `close`（元/股）/ `volume` 判定该行到底是股还是手；
+#    整条序列取**最近 N 根的众数**——同一接口同一只票单位不会跳变，逐根判会让
+#    同一张图里混着两种刻度。
+# 2. `infer_unit_by_anchor`：给「amount 是估算值」的源留的第二条证据链。新浪/腾讯/本地库
+#    的 K 线 amount 由「收盘价 × 成交量」算出，拿它自证恒得比值 1（自己证明自己），
+#    不能作为证据；那就换一个**独立**锚点：同一天的真实成交量（股），
+#    与 K 线 volume 相差 ≈1 倍是股、≈100 倍是手。
+#
+# 两条链都判不出时返回 None，由调用方把 volume 置空并显式标注 unknown——
+# **绝不回退某个默认倍数**：宁可显示「单位未标注」，也不给一个错 100 倍的数。
+KLINE_UNIT_WINDOW = 20          # 取最近多少根有 amount 的行投票
+_ANCHOR_TOL = 0.02              # 锚点比对容差（2%：四舍五入到手的成交量差不到这个量级）
+
+
+def kline_row_unit(row) -> str | None:
+    """单根 K 线自证单位（"share" / "hand" / None）。
+
+    要求该行的 `amount` 是**真实成交额**。若 amount 是「收盘价 × 成交量」估算出来的，
+    比值恒为 1，这里会返回 "share"，但那只是自己的影子 —— 调用方必须先判断
+    `payload["amount_est"]`，估算源请走 `infer_unit_by_anchor`。
+    """
+    if not isinstance(row, dict):
+        return None
+    return infer_volume_unit(row.get("volume"), row.get("amount"), row.get("close"))
+
+
+def kline_series_unit(rows, window: int = KLINE_UNIT_WINDOW) -> str | None:
+    """一条 K 线序列的单位：最近 window 根里能自证的那些行投票取众数。
+
+    票数打平（各 1 票）或一票都没有 → None，语义是「判不出」，不是「按默认处理」。
+    """
+    if not rows:
+        return None
+    tail = list(rows)[-max(1, int(window or KLINE_UNIT_WINDOW)):]
+    tally = {"share": 0, "hand": 0}
+    for r in tail:
+        u = kline_row_unit(r)
+        if u:
+            tally[u] += 1
+    if tally["share"] == tally["hand"]:
+        return None
+    return "share" if tally["share"] > tally["hand"] else "hand"
+
+
+def infer_unit_by_anchor(volume, anchor_shares, tol: float = _ANCHOR_TOL) -> str | None:
+    """用「同一交易日的真实成交量（股）」反推 volume 的单位。
+
+    anchor_shares 必须是**股**（调用方负责先自证锚点自身的单位）。
+    volume 与它 ≈1 倍 → 该序列原本就是股；≈1/100 倍 → 原本是手；其它 → 判不出。
+    """
+    v = _num(volume)
+    a = _num(anchor_shares)
+    if not v or v <= 0 or not a or a <= 0:
+        return None
+    if abs(v - a) / a <= tol:
+        return "share"
+    if abs(v * 100.0 - a) / a <= tol:
+        return "hand"
+    return None
+
+
+def kline_volume_to_shares(volume, unit: str | None):
+    """按已判定的单位把 K 线量换成「股」。unit 为 None 时返回 None（不回退倍数）。"""
+    return volume_to_shares(volume, unit=unit)
+
+
 # ── 标的类型判定（定义性规则，非数据猜测）────────────────────────────────────────
 #
 # 2026-10-31（决策④）：为什么要有这一层。

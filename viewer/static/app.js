@@ -530,11 +530,11 @@ function drawerJumpChips() {
     `<a class="dchip" href="javascript:void(0)" onclick="closeDrawer();selectNav('${cat}','${tab}',true);return false;">${esc(label)}</a>`;
   return `<div class="drawer-jump" role="navigation" aria-label="跳转">
       <span class="dchip-lbl">看 ${esc(DRAWER_SYMBOL)}：</span>
-      ${chip("lhb", "money", "游资龙虎榜")}
-      ${chip("moneyflow", "money", "资金流向")}
-      ${chip("resonance", "overview", "多源共振")}
-      ${chip("strategy_lab", "learn", "策略回测")}
-      ${chip("lhb_sectors", "money", "板块动向")}
+      ${chip("lhb", "market", "游资龙虎榜")}
+      ${chip("moneyflow", "market", "资金流向")}
+      ${chip("resonance", "today", "多源共振")}
+      ${chip("strategy_lab", "strategy", "策略回测")}
+      ${chip("lhb_sectors", "market", "板块动向")}
     </div>`;
 }
 
@@ -2173,12 +2173,35 @@ function siMoney(v) {            // 元 → 亿 / 万亿
   if (a >= 1e4) return (n / 1e4).toFixed(2) + " 万";
   return n.toFixed(2);
 }
-function siVol(v) {              // 手 → 万手 / 亿手
+/* 成交量格式化：**必须**由调用方声明单位（2026-10-31 测评 P0）。
+   事故：600519 行情区「5.99 万手」（对，q.volume 单位=手）与抽屉 K 线区「599.27 万手」
+   相差 100 倍 —— 同一个 5,992,729 其实是**股**，而这里过去无条件按「手」格式化。
+   所以本函数不再有默认单位：unit 只认 "hand" / "share"，
+   其它一律输出「—（单位未标注）」——宁可说不知道，也不给一个错 100 倍的数。
+   unit 优先取后端 payload 里自证出来的 volume_unit，取不到才用调用点已知语义兜底。 */
+function siVol(v, unit) {
   if (v === null || v === undefined || v === "" || isNaN(v)) return "—";
   const n = Number(v), a = Math.abs(n);
-  if (a >= 1e8) return (n / 1e8).toFixed(2) + " 亿手";
-  if (a >= 1e4) return (n / 1e4).toFixed(2) + " 万手";
-  return n.toFixed(0) + " 手";
+  const base = unit === "share" ? "股" : (unit === "hand" ? "手" : null);
+  if (!base) return "—（单位未标注）";
+  if (a >= 1e8) return (n / 1e8).toFixed(2) + " 亿" + base;
+  if (a >= 1e4) return (n / 1e4).toFixed(2) + " 万" + base;
+  return n.toFixed(0) + " " + base;
+}
+// 向后兼容的包装：调用点写清语义，避免漏传第二个参数时静默退化成「单位未标注」
+function siVolHand(v) { return siVol(v, "hand"); }
+function siVolShare(v) { return siVol(v, "share"); }
+/* 取单位：**字段缺失**（老缓存）才用调用点已知语义兜底；
+   字段存在但为 null 表示「后端判不出单位」，必须如实显示单位未标注，不许兜底猜。 */
+function volUnitOf(o, fallback) {
+  if (!o || o.volume_unit === undefined) return fallback;
+  return o.volume_unit;
+}
+/* K 线专用：行/current 上的单位优先 → payload 顶层 → 最后才是「K 线量=股」的已知语义 */
+function klineVolUnit(o, payload) {
+  if (o && o.volume_unit !== undefined) return o.volume_unit;
+  if (payload && payload.volume_unit !== undefined) return payload.volume_unit;
+  return "share";
 }
 /* 2026-09-30 晚：个股 F10 块 —— 公司简介 + 持股结构（机构/散户）+ 股东户数。
    同时填充抽屉与诊断页里所有 .stk-profile-card / .stk-holders 容器（class 选择器，
@@ -2395,7 +2418,7 @@ function renderStockQuote(d) {
       item("昨收", siNum(q.prev_close)),
       item("最高", siNum(q.high), vsPre(q.high)),
       item("最低", siNum(q.low), vsPre(q.low)),
-      item("成交量", siVol(q.volume)),
+      item("成交量", siVol(q.volume, volUnitOf(q, "hand"))),
       item("成交额", siMoney(q.amount)),
       item("换手率", siPctPlain(q.turnover)),
       item("振幅", siPctPlain(q.amplitude)),
@@ -2675,7 +2698,7 @@ function renderKlineSnap(d) {
       <div><span>${per ? per + "低" : "最低"}</span><b>${siNum(c.low)}</b></div>
       <div><span>${per ? per + "收" : "收/最新"}</span><b>${siNum(c.price)}</b></div>
       <div><span>${prevLbl}</span><b>${siNum(c.prev_close)}</b></div>
-      <div><span>成交量</span><b>${siVol(c.volume)}</b></div>
+      <div><span>成交量</span><b>${siVol(c.volume, klineVolUnit(c, d))}</b></div>
       <div><span>成交额</span><b>${amtTxt}</b></div>
       <div><span>数据日</span><b>${esc((c.date || "").slice(0, 10))}</b></div>
     </div>
@@ -2717,7 +2740,7 @@ function renderKlineRecent(d) {
       <td class="num">${siNum(r.low)}</td>
       <td class="num">${siNum(r.close)}</td>
       <td class="num ${cls}">${siPct(r.pct)}</td>
-      <td class="num">${siVol(r.volume)}</td>
+      <td class="num">${siVol(r.volume, klineVolUnit(r, d))}</td>
     </tr>`;
   }).join("");
   el.innerHTML = `<div class="kr-title">最近 15 根 ${per}K 线明细（自上而下 = 由近及远；涨跌幅为${per}涨跌）</div>
@@ -2775,7 +2798,7 @@ function bindKlineInteractions() {
       tip.hidden = false;
       tip.innerHTML = `<b>${esc(r.date)}</b><br>开 ${siNum(r.open)} 高 ${siNum(r.high)}<br>`
         + `低 ${siNum(r.low)} 收 ${siNum(r.close)}<br>`
-        + `<span class="${up ? "bull" : "bear"}">${sign}${siNum(r.pct)}%</span> 量 ${siVol(r.volume)}`;
+        + `<span class="${up ? "bull" : "bear"}">${sign}${siNum(r.pct)}%</span> 量 ${siVol(r.volume, klineVolUnit(r))}`;
       const x = KLINE_PAD.l + g.slot * idx + g.slot / 2;
       const tw = tip.offsetWidth || 160;
       let left = x + 12;
@@ -3531,7 +3554,12 @@ function loadLhb(date, windowDays) {
   if (date) q.push("date=" + encodeURIComponent(date));
   if (windowDays) q.push("window_days=" + windowDays);
   return api("/api/lhb" + (q.length ? "?" + q.join("&") : ""))
-    .then((d) => { LHB.data = d; LHB.sel = null; LHB.selDept = null; renderLhb(); });
+    .then((d) => {
+      LHB.data = d; LHB.sel = null; LHB.selDept = null;
+      // 2026-11-01：面板不可见时只留数据不留节点（首屏少 1958 个 DOM 节点）。
+      // 进入 lhb 的那一刻由 selectNav → flushPaint("lhb") 补画。
+      deferPaint("lhb", renderLhb);
+    });
 }
 /* 涨跌色：必须用 .bull/.bear —— app.css 里只有这两个是全局红/绿（A 股口径 红涨绿跌）。
    原先这里写的是 .up/.down，而 .up/.down 只对个别元素作用域生效，导致颜色一直没显示出来。*/
@@ -3839,12 +3867,20 @@ function loadDashboard() {
     });
 }
 
-/* ================= 今日决策首页（2026-10-12 体验审计 P0-A） =================
+/* ================= 今日决策首页（2026-10-12 体验审计 P0-A；2026-11-01 P1-2 补五要素）========
    报告《查看器体验审计与改造方案》第 0 步：把「今日看板」里已有的**一句话结论**写法
-   推广成全站首页 —— 打开软件一屏只答四件事：① 今天该盯哪个方向 ② 哪些票能上车
-   ③ 哪里在退潮/要躲 ④ 我自己的关注池今天有什么动静。不用再进二级菜单。
-   数据全部来自后端 /api/today_decision（复用既有口径，不新造引擎），前端只负责摆版式。 */
+   推广成全站首页 —— 打开软件一屏先答五件事（顺序按交易决策习惯排）：
+     ① 当前市场状态（进攻/防守/空仓）
+     ② 最多 3 个高置信方向
+     ③ 明确风险/回避名单
+     ④ 我的票的触发与失效条件
+     ⑤ 数据健康度与最后更新时间
+   数据全部来自后端既有接口（/api/today_decision + /api/harvest + /api/health），
+   前端不新造引擎、不推算"看起来合理"的数字 —— 推不出来就写「状态未判定 / 未知」。 */
 const TODAY = { data: null };
+/* 首页第①⑤要素的运行态：市场状态来自 /api/harvest（局面等级），
+   数据健康来自 /api/health。两者都只读、都在页面渲染后异步补，失败不影响四卡。 */
+const TD_STATUS = { market: null, health: null, loaded: false, busy: false };
 // 2026-10-15：近期热点（/api/hotspots）从 loadAll 首屏挪为「进入面板才拉」后的状态与加载器。
 // 状态对象与 TODAY 同级声明（早于任何 selectNav 调用，无 TDZ 风险）。
 const HOTSPOTS = { data: null, loading: false };
@@ -4517,12 +4553,284 @@ function airRenderHist() {
     <div class="air-card-bd air-hist">${rows}</div></div>`;
 }
 
+/* ============================================================================
+ * 证据硬门禁徽章（2026-11-01 测评 P0-2）
+ * ----------------------------------------------------------------------------
+ * 问题：首页「② 今日机会」卡的副标题原文是「能上车」+「的」，主要来源是龙虎榜梯队里
+ * 尚未涨停的票，而项目自己的实证账本（viewer/evidence.py）写着龙虎榜高换手 T+5 超额
+ * −0.91%、t=−11.28 —— 产品在拿一条显著为负的信号给人打「能上车」的标签。
+ * 现在后端（viewer/evidence_gate.py）先裁决再上屏，前端只负责**如实展示**三件事：
+ *   ① 这条凭哪条实证进来的（标签 + 样本 + 超额 + 扣费后 + 回撤 + 失效条件）
+ *   ② 不能执行的那条**为什么**不能执行（evidence.reason，人话）
+ *   ③ 空态必须写出理由与条数 —— 数字全部来自后端 signal_state / evidence_gate，
+ *      前端**一个数都不许自己算、不许自己编**。
+ * 配色遵循全站约定：红=涨/正、绿=跌/负；已证伪与负面实证用红棕色警示（#8B3A2E），
+ * 无实证/证据不足用灰 —— 绝不用绿色表示「好」。
+ * ========================================================================== */
+
+/** 后端给的是数字或 null；null/undefined/NaN 一律渲染「—」（不许出现 null/undefined）。 */
+function tdEvPct(v) {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (isNaN(n)) return "—";
+  return (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+}
+
+/** 证据徽章的配色：只有「可用实证」允许用红色（A 股红=正），负面/证伪一律红棕，无实证灰。 */
+function tdEvColor(tier) {
+  if (tier === "executable") return "var(--bull, #C81E1E)";
+  if (tier === "blocked") return "#8B3A2E";
+  return "var(--muted, #6B7280)";
+}
+function tdEvBg(tier) {
+  if (tier === "executable") return "rgba(200,30,30,.07)";
+  if (tier === "blocked") return "rgba(139,58,46,.09)";
+  return "rgba(107,114,128,.09)";
+}
+
+/**
+ * 证据徽章。compact=true 只渲染「标签」（方向卡、行内小标用）；
+ * 完整档渲染六项硬要求：标签 + 样本 + 超额 + 扣费后 + 回撤 + 失效条件。
+ * 缺字段一律显示「—」，不显示 null / undefined / 空白。
+ */
+function tdEvidenceBadge(ev, opts) {
+  opts = opts || {};
+  if (!ev) return "";
+  const tier = ev.tier || "watch";
+  const color = tdEvColor(tier);
+  const bg = tdEvBg(tier);
+  const label = ev.label_short || ev.label || "—";
+  const head = `<b style="color:${color}">${esc(label)}</b>`;
+  // border-left 用实色竖条：徽章读起来像一条"裁决"，而不是又一个彩色按钮。
+  const baseStyle = `display:inline-flex;flex-wrap:wrap;gap:6px;align-items:baseline;`
+    + `background:${bg};border-left:3px solid ${color};border-radius:4px;padding:1px 7px;`
+    + `font-size:11.5px;line-height:1.7;color:var(--muted,#6B7280)`;
+  if (opts.compact) {
+    return `<span class="td-ev-tag" style="${baseStyle}" title="${escAttr(ev.reason || "")}">${head}</span>`;
+  }
+  const parts = [
+    `样本 ${esc(ev.sample || "—")}`,
+    // excess 后端已是 "T+5 超额 -0.91%" 这样的整句；没有 claim 时是「—」，
+    // 这时补上「超额」二字，避免出现孤零零一个破折号（读者不知道那是什么的缺失）。
+    (ev.excess && ev.excess !== "—") ? esc(ev.excess) : "超额 —",
+    `扣费后 ${tdEvPct(ev.net)}`,
+    `回撤 ${ev.mdd === null || ev.mdd === undefined ? "—" : tdEvPct(ev.mdd)}`,
+    `失效：${esc(ev.invalidate || "—")}`,
+  ];
+  return `<span class="td-ev" style="${baseStyle};margin-top:3px">${head}<span>${parts.join(" · ")}</span></span>`;
+}
+
+/**
+ * 「今日无可执行机会」的空态。**必须写出理由**，不能只写「暂无」。
+ * 每一行的名字、理由、条数都直接取后端字段：
+ *   evidence_gate.blocked_details[].name / .reason   ← 哪条来源命中了什么实证
+ *   signal_state.blocked_count / watch_count / executable_count
+ */
+function tdOppEmptyHtml(d) {
+  d = d || {};
+  const ss = d.signal_state || {};
+  const eg = d.evidence_gate || {};
+  const nExec = Number(ss.executable_count || 0);
+  const nWatch = Number(ss.watch_count || 0);
+  const nBlock = Number(ss.blocked_count || 0);
+  const lineStyle = "padding:2px 2px;font-size:12.5px;color:var(--muted,#6B7280);line-height:1.7";
+  const lines = [`<div class="td-empty" style="padding:10px 2px 4px;font-weight:700;color:var(--text,#1A1A1A)">当前可交易信号数为 ${nExec}</div>`];
+  toArr(eg.blocked_details).forEach((b) => {
+    lines.push(`<div class="td-empty" style="${lineStyle}">· ${esc(b.name || b.source || "—")}：${esc(b.reason || "—")}</div>`);
+  });
+  if (nBlock > 0) {
+    lines.push(`<div class="td-empty" style="${lineStyle};color:#8B3A2E">· 以上 ${nBlock} 条已屏蔽（负面实证不上屏）</div>`);
+  }
+  if (nWatch > 0) {
+    lines.push(`<div class="td-empty" style="${lineStyle}">· 另有 ${nWatch} 条候选无实证支撑，已降级为「观察 / 待验证」，见下方折叠区</div>`);
+  }
+  if (nBlock === 0 && nWatch === 0) {
+    lines.push(`<div class="td-empty" style="${lineStyle}">· 今日候选池为空（数据日 ${esc(d.data_date || "—")}），没有可评估的信号</div>`);
+  }
+  return lines.join("");
+}
+
+/* ============================================================================
+ * 首页第①要素：当前市场状态（进攻 / 防守 / 空仓）—— 2026-11-01 P1-2
+ * ----------------------------------------------------------------------------
+ * 只用**已经存在且被测过**的判定，不在这里新造一个模型：
+ *   · 局面等级 `/api/harvest` → phase.level（判定规则在 viewer/harvest.py:_phase）
+ *       1 = 健康（封板质量好、赚钱效应扩散）  → 进攻
+ *       2 = 过热 / 拉锯（接力拉满或无方向）    → 防守
+ *       3 = 杀跌 / 派发（亏钱效应扩散）        → 空仓
+ *   · 没有数据 / 接口失败 → 「状态未判定」，并写明缺的是哪一路数据。
+ *     **绝不**用"方向卡有几张""可执行机会几条"之类的代理变量凑一个状态出来 ——
+ *     那是把结论倒推成原因，比不显示更糟。
+ * 为什么 3 映射成「空仓」而不是「防守」：level 3 的两种局面（杀跌、派发）动作都是"不动手"，
+ * 区别只在是跌出来的还是炸出来的；写成"防守"会让人以为还能少量参与。
+ * ========================================================================== */
+const TD_PHASE_WORD = { 1: "进攻", 2: "防守", 3: "空仓" };
+function tdPhaseTone(word) {
+  if (word === "进攻") return { color: "var(--bull, #C81E1E)", bg: "rgba(200,30,30,.07)" };
+  if (word === "防守") return { color: "var(--warn, #B45309)", bg: "rgba(180,83,9,.09)" };
+  if (word === "空仓") return { color: "var(--muted, #6B7280)", bg: "rgba(107,114,128,.10)" };
+  return { color: "var(--muted, #6B7280)", bg: "rgba(107,114,128,.06)" };
+}
+
+/** ① 市场状态条。返回整条 HTML（渲染进 #td-status）。 */
+function tdMarketStateHtml(d) {
+  d = d || {};
+  const m = TD_STATUS.market;
+  const box = (inner) => `<div class="td-card td-c-state"><div class="td-hd"><b>① 当前市场状态</b>`
+    + `<span class="td-hd-sub">先进攻/防守/空仓，再谈买什么</span></div>`
+    + `<div class="td-body" style="padding:10px 14px">${inner}</div></div>`;
+  if (!TD_STATUS.loaded) {
+    return box(`<div class="td-empty">状态判定中…（读局面等级）</div>`);
+  }
+  if (!m || m.ok === false) {
+    // 判不出来就明说，并交代缺的是哪一路 —— 不写「正常」，不猜。
+    const why = (m && (m.error || m.reason)) ? String(m.error || m.reason) : "局面数据没取到";
+    return box(`<div class="td-empty"><b>状态未判定</b> —— ${esc(why)}。`
+      + `局面等级来自 /api/harvest（regime_daily 任务落库），任务没跑或库空时本项只能留空。</div>`);
+  }
+  const ph = m.phase || {};
+  const pos = m.position || {};
+  const lvl = Number(ph.level);
+  const word = TD_PHASE_WORD[lvl] || "状态未判定";
+  const tone = tdPhaseTone(word);
+  const nExec = (d.signal_state || {}).executable_count;
+  const execLine = (nExec == null)
+    ? ""
+    : ` · 今日可执行机会 <b>${Number(nExec)}</b> 条`;
+  return box(`
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:10px">
+      <span style="font-size:20px;font-weight:800;color:${tone.color};background:${tone.bg};
+        border-left:4px solid ${tone.color};border-radius:6px;padding:2px 14px">${esc(word)}</span>
+      <span style="font-size:13px;color:var(--text,#1A1A1A)">局面：<b>${esc(ph.tag || "—")}</b>
+        <span class="muted">（harvest 等级 ${lvl || "—"} · 数据日 ${esc(m.asof || "—")}）</span>${execLine}</span>
+      ${pos.note ? `<span class="muted" style="font-size:12.5px">位置：${esc(pos.note)}</span>` : ""}
+    </div>
+    ${ph.desc ? `<div class="muted" style="margin-top:6px;font-size:12.5px;line-height:1.7">${esc(ph.desc)}</div>` : ""}
+    <div class="muted" style="margin-top:6px;font-size:11.5px;line-height:1.7">
+      映射规则：局面等级 1 健康 → 进攻 / 2 过热·拉锯 → 防守 / 3 杀跌·派发 → 空仓。
+      等级本身由 viewer/harvest.py 按涨停家数、跌停家数、炸板率的历史分位判定，本页只做映射，不改它的结论。</div>`);
+}
+
+/* ============================================================================
+ * 首页第⑤要素：数据健康度与最后更新时间 —— 2026-11-01 P1-2
+ * ----------------------------------------------------------------------------
+ * 数据来源：/api/health（viewer/health.py：任务运行记录 + 各数据域新鲜度）。
+ * 纪律：
+ *   · 拿不到就写「未知」，**不写「正常」** —— 空白冒充健康是最容易骗过自己的一种错；
+ *   · 每个数字都标明它是哪一个字段（数据日 / 最旧域 / 任务数 / 失败数），不合并成一句"一切正常"；
+ *   · 「停更」用 freshness 的最旧域 + level 判，不自己拿 today.data_date 跟今天比 ——
+ *     今天是周末还是节假日前端不知道，自己比会把休市日判成停更。
+ * ========================================================================== */
+const TD_HEALTH_LEVEL = { fresh: "新鲜", warn: "偏旧", stale: "陈旧", degraded: "降级", broken: "中断" };
+function tdHealthLevelText(lv) {
+  const k = String(lv || "").toLowerCase();
+  return TD_HEALTH_LEVEL[k] ? `${TD_HEALTH_LEVEL[k]}（${esc(k)}）` : "未知";
+}
+
+function tdHealthHtml() {
+  const h = TD_STATUS.health;
+  const items = [];
+  if (!TD_STATUS.loaded) {
+    items.push(`数据健康：读取中…`);
+  } else if (!h || h.ok === false) {
+    items.push(`<b style="color:var(--warn,#B45309)">数据健康：未知</b>（/api/health 没返回，无法判断管道是否在转）`);
+  } else {
+    const lv = h.level;
+    const fr = h.freshness || {};
+    const worst = fr.worst;
+    const its = toArr(fr.items);
+    const oldest = its.length
+      ? its.reduce((a, x) => ((Number(x.lag) || 0) > (Number(a.lag) || 0) ? x : a))
+      : null;
+    const jobs = (h.jobs || {});
+    const jl = toArr(jobs.jobs);
+    const nFail = jl.filter((j) => j.broken || Number(j.consec_fail) > 0).length;
+    const okTone = String(lv || "").toLowerCase() === "fresh" ? "var(--bear,#15803D)" : "var(--warn,#B45309)";
+    items.push(`数据健康：<b style="color:${okTone}">${tdHealthLevelText(lv)}</b>`);
+    if (oldest) {
+      items.push(`最旧域：${esc(oldest.label || oldest.key || "—")} 截至 <b>${esc(oldest.last || "—")}</b>`
+        + `（滞后 ${esc(String(oldest.lag ?? "—"))} 个交易日${worst ? " · 总体 " + esc(tdHealthLevelText(worst)) : ""}）`);
+    }
+    if (jobs.n_jobs != null) {
+      items.push(`任务 ${esc(String(jobs.n_jobs))} 个 · 失败 <b style="color:${nFail ? "var(--bull,#C81E1E)" : "inherit"}">${nFail}</b> 个`
+        + `${nFail ? "（详见「数据与系统 · 系统健康」）" : ""}`);
+    } else {
+      items.push(`任务：未知`);
+    }
+  }
+  return `<div class="td-healthbar" id="td-health" style="margin-top:12px;padding:9px 14px;border-radius:10px;
+      background:var(--panel,#fff);border:1px solid var(--border,#e5e0d5);font-size:12.5px;
+      color:var(--muted,#6B7280);line-height:1.8">
+      <b style="color:var(--text,#1A1A1A)">数据健康</b> · 数据日 <b>${esc((TODAY.data || {}).data_date || "—")}</b> ·
+      ${items.join(" · ")}
+      <a href="#system/health" onclick="selectNav('system','health',true);return false;" style="margin-left:6px">展开「系统健康」›</a>
+    </div>`;
+}
+
+/** 只补两条状态带，不重绘四卡（避免二次渲染把已经展开的折叠区合上）。 */
+function paintTdStatus() {
+  const a = $("#td-status");
+  if (a) a.innerHTML = tdMarketStateHtml(TODAY.data || {});
+  const b = $("#td-health");
+  if (b) {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = tdHealthHtml();
+    const fresh = wrap.firstElementChild;
+    if (fresh) b.replaceWith(fresh);
+  }
+}
+function paintTdHealth() {
+  const b = $("#td-health");
+  if (!b) return;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = tdHealthHtml();
+  const fresh = wrap.firstElementChild;
+  if (fresh) b.replaceWith(fresh);
+}
+
+function loadTodayStatus() {
+  if (TD_STATUS.busy) return;
+  TD_STATUS.busy = true;
+  const pMarket = api("/api/harvest").catch(() => null);
+  const pHealth = api("/api/health").catch(() => null);
+  Promise.all([pMarket, pHealth]).then(([mk, hl]) => {
+    TD_STATUS.market = mk;
+    TD_STATUS.health = hl;
+    TD_STATUS.loaded = true;
+    TD_STATUS.busy = false;
+    paintTdStatus();
+    paintTdHealth();
+  });
+}
+
+/* ④ 我的票：触发条件的**否定**就是失效条件（2026-11-01 P1-2）。
+   关注池表（watch_items）里没有 stop 字段，所以这里不编一个止损价 ——
+   只做一件可判定的事：价格反向穿越目标价，这条到价提醒的前提就不成立了。
+   above 提醒（突破确认）的失效 = 跌回目标价以下；below 提醒（低吸）的失效 = 升回目标价以上。
+   没有目标价/没有方向 → 如实写「未设」。 */
+function tdInvalidateText(target, dir) {
+  if (target == null || target === "") return "未设（关注池无目标价）";
+  const t = String(target);
+  if (dir === "above") return `跌回 ${t} 以下`;
+  if (dir === "below") return `升回 ${t} 以上`;
+  return "未设（关注池无提醒方向）";
+}
+
 function renderToday() {
   const box = $("#p-today");
   if (!box) return;
   const d = TODAY.data;
   if (!d || d.ok === false) { box.innerHTML = `<div class="empty">正在汇总今日决策…</div>`; return; }
   const dirs = toArr(d.directions), opps = toArr(d.opportunities), risks = toArr(d.risks);
+  // 2026-11-01 P0-2：机会卡分三档 —— opportunities 只放「可执行」，opportunities_watch
+  // 放「观察/待验证」，blocked 由后端丢弃且只在 signal_state.blocked_count 里留痕。
+  // 老快照（无 signal_state）时退回用 opportunities 实际条数，行为与老版本一致。
+  const watchItems = toArr(d.opportunities_watch);
+  const sigState = d.signal_state || {};
+  const execN = sigState.executable_count == null ? opps.length : Number(sigState.executable_count);
+  const hasExec = execN > 0;
+  const oppTitle = hasExec ? "③ 今日可执行机会" : "③ 今日无可执行机会";
+  const oppSub = hasExec ? "满足全部条件才成立" : "空仓也是一种判断";
   const mw = d.mywatch || { total: 0, unread: 0, alerts: [], near: [] };
   const tone = d.verdict_tone || "mixed";
   const codeA = (code, name) => codeLink(code, { text: name || code, cls: "td-sym" });
@@ -4540,17 +4848,38 @@ function renderToday() {
     <div class="td-row">
       <span class="td-rank lv-${escAttr(x.level || "cool")}">${i + 1}</span>
       <span class="td-main"><b>${esc(x.sector)}</b>
-        <span class="td-sub">净买 <b>${x.net_yi}</b> 亿 · ${esc(x.stage)} · 上榜 ${x.onlist_n} 家</span>${x.etf_confirm ? `<span class="etf-conf-badge" style="margin-left:6px;color:${x.etf_confirm.level === '强' ? '#0a7d3b' : x.etf_confirm.level === '中' ? '#0E7490' : x.etf_confirm.level === '弱' ? '#b42318' : '#888'};font-weight:600">· ETF${esc(x.etf_confirm.level)}</span>` : ""}</span>
+        <span class="td-sub">净买 <b>${x.net_yi}</b> 亿 · ${esc(x.stage)} · 上榜 ${x.onlist_n} 家</span>${x.etf_confirm ? `<span class="etf-conf-badge" style="margin-left:6px;color:${x.etf_confirm.level === '强' ? '#0a7d3b' : x.etf_confirm.level === '中' ? '#0E7490' : x.etf_confirm.level === '弱' ? '#b42318' : '#888'};font-weight:600">· ETF${esc(x.etf_confirm.level)}</span>` : ""}
+        <span class="td-sub">${tdEvidenceBadge(x.evidence, { compact: true })}</span></span>
       ${x.leader_code ? `<span class="td-side">龙头 ${codeA(x.leader_code, x.leader_name)}</span>` : ""}
     </div>`).join("") : `<div class="td-empty">今日暂无明确主攻方向（数据日 ${esc(d.data_date || "—")}）。</div>`;
 
-  // ② 机会（主线「可推进」名单 / 每日预测核心）—— 副行必须嵌在 td-main 内，
+  // ② 机会（主线「可推进」名单 / 四支柱补位）—— 副行必须嵌在 td-main 内，
   //    否则它会变成 flex 行的第二个 item 被推到最右侧（与方向/风险卡不对齐）。
+  //    2026-11-01 P0-2：这里只剩**过了证据门禁**的条目；一行一条证据徽章，六项必显。
   const oppHtml = opps.length ? opps.map((x) => `
     <div class="td-row">
       <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
-        <span class="td-sub">${tdRowMetaBadge("opportunity", x)}${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span></span>
-    </div>`).join("") : `<div class="td-empty">主线暂无可推进名单。</div>`;
+        <span class="td-sub">${tdRowMetaBadge("opportunity", x)}${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span>
+        <span class="td-sub">${tdEvidenceBadge(x.evidence)}</span></span>
+    </div>`).join("") : tdOppEmptyHtml(d);
+
+  // ②-b 观察/待验证（默认折叠）：无实证/证据不足的候选**不删**，但必须标明为什么不能执行。
+  //     删掉它们等于把「有票但还不能买」这条信息抹掉，用户会误以为今天连线索都没有。
+  const watchRows = watchItems.map((x) => {
+    const ev = x.evidence || {};
+    return `
+    <div class="td-row">
+      <span class="td-main">${codeA(x.symbol, x.name)}${x.pct != null ? `<span class="td-pct ${tdCls(x.pct)}">${tdPct(x.pct)}</span>` : ""}
+        <span class="td-sub">${esc(x.sector || "")}${x.sector ? " · " : ""}${esc(x.note || "")}</span>
+        <span class="td-sub">${tdEvidenceBadge(ev)}</span>
+        <span class="td-sub" style="color:#8B3A2E">为什么不能执行：${esc(ev.reason || "—")}</span></span>
+    </div>`;
+  }).join("");
+  const watchFold = watchItems.length ? `
+    <details class="td-watch-fold" style="margin-top:8px;border-top:1px dashed var(--border,#e5e0d5);padding-top:6px">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--muted,#6B7280)">观察 / 待验证 ${watchItems.length} 条 —— 无实证或证据不足，不能执行</summary>
+      ${watchRows}
+    </details>` : "";
 
   // ③ 风险（板块资金净流出 / 龙虎榜净卖出 / 上榜次日跑输 / 情绪看空·分歧）
   const riskHtml = risks.length ? risks.map((x) => `
@@ -4560,22 +4889,28 @@ function renderToday() {
     </div>`).join("") : `<div class="td-empty">今日无明确风险信号。</div>`;
 
   // ④ 我的票（到价触发优先，其次接近目标价的）
+  //    2026-11-01 P1-2：补「失效条件」——《报告》原话是「只说触发、不说失效，等于只给了半边规则」。
+  //    失效条件不是新拍的止损价，而是**触发条件的否定**（见 tdInvalidateText 的说明）。
   const alertRows = toArr(mw.alerts).map((a) => `
     <div class="td-row">
       <span class="td-main">${codeA(a.symbol, a.name)}
-        <span class="td-sub">${wtAlertRuleText(a.rule)}目标价 ${esc(String(a.target_price))} · 触发价 ${a.price == null ? "—" : esc(String(a.price))}</span></span>
+        <span class="td-sub">${wtAlertRuleText(a.rule)}目标价 ${esc(String(a.target_price))} · 触发价 ${a.price == null ? "—" : esc(String(a.price))}</span>
+        <span class="td-sub">失效：${esc(tdInvalidateText(a.target_price, a.rule))}</span></span>
       <span class="td-side">${esc(String(a.triggered_at || "").slice(0, 16))}</span>
     </div>`).join("");
   const nearRows = toArr(mw.near).map((n) => `
     <div class="td-row">
       <span class="td-main">${codeA(n.symbol, n.name)}
-        <span class="td-sub">现价 ${esc(String(n.last_price))} · 目标 ${esc(String(n.target_price))} · 距 ${n.dist_pct >= 0 ? "+" : ""}${esc(String(n.dist_pct))}%</span></span>
+        <span class="td-sub">现价 ${esc(String(n.last_price))} · 目标 ${esc(String(n.target_price))} · 距 ${n.dist_pct >= 0 ? "+" : ""}${esc(String(n.dist_pct))}%</span>
+        <span class="td-sub">失效：${esc(tdInvalidateText(n.target_price, n.dir))}</span></span>
     </div>`).join("");
   const watchHtml = (alertRows || nearRows || `<div class="td-empty">关注池今日无到价提醒。</div>`);
 
   const _tdHist = tdIsHistorical(d);   // A2 硬隔离：数据日落后于今天 → 结论整体归入历史背景
   box.innerHTML = `
     ${tdHistoryBackground(d)}
+    <!-- ① 当前市场状态：放在最前 —— 「该不该动手」先于「买什么」 -->
+    <div id="td-status" data-historical="${_tdHist ? "true" : "false"}">${tdMarketStateHtml(d)}</div>
     <div class="td-verdict tone-${escAttr(tone)}" data-historical="${_tdHist ? "true" : "false"}">
 <span class="td-v-tag">今日一句话</span>
       <b class="td-v-text">${esc(d.verdict || "—")}</b>
@@ -4583,22 +4918,22 @@ function renderToday() {
     </div>
     <div class="td-grid" data-historical="${_tdHist ? "true" : "false"}">
       <div class="td-card td-c-dir">
-        <div class="td-hd"><b>① 今日方向</b><span class="td-hd-sub">钱在买什么</span><span class="td-hd-meta">${dirMeta}</span></div>
+        <div class="td-hd"><b>② 今日方向</b><span class="td-hd-sub">钱在买什么</span><span class="td-hd-meta">${dirMeta}</span></div>
         <div class="td-body">${dirHtml}</div>
         <div class="td-foot"><a href="#overview/dashboard" onclick="selectNav('overview','dashboard',true);return false;">展开「今日看板」完整研判 ›</a></div>
       </div>
       <div class="td-card td-c-opp">
-        <div class="td-hd"><b>② 今日机会</b><span class="td-hd-sub">能上车的</span><span class="td-hd-meta">${oppMeta}</span></div>
-        <div class="td-body">${oppHtml}</div>
+        <div class="td-hd"><b>${oppTitle}</b><span class="td-hd-sub">${oppSub}</span><span class="td-hd-meta">${oppMeta}</span></div>
+        <div class="td-body">${oppHtml}${watchFold}</div>
         <div class="td-foot"><a href="#watch/rate" onclick="selectNav('watch','rate',true);return false;">展开「入手概率」全市场榜 ›</a></div>
       </div>
       <div class="td-card td-c-risk">
-        <div class="td-hd"><b>③ 今日风险</b><span class="td-hd-sub">要躲的坑</span><span class="td-hd-meta">${riskMeta}</span></div>
+        <div class="td-hd"><b>④ 今日风险</b><span class="td-hd-sub">要躲的坑</span><span class="td-hd-meta">${riskMeta}</span></div>
         <div class="td-body">${riskHtml}</div>
         <div class="td-foot"><a href="#money/lhb_sectors" onclick="selectNav('money','lhb_sectors',true);return false;">展开「板块动向」研判 ›</a></div>
       </div>
       <div class="td-card td-c-watch">
-        <div class="td-hd"><b>④ 我的票提示</b><span class="td-hd-sub">关注池 ${mw.total} 只${mw.unread ? ` · 未读 ${mw.unread}` : ""}</span><span class="td-hd-meta">${watchMeta}</span></div>
+        <div class="td-hd"><b>⑤ 我的票提示</b><span class="td-hd-sub">关注池 ${mw.total} 只${mw.unread ? ` · 未读 ${mw.unread}` : ""}</span><span class="td-hd-meta">${watchMeta}</span></div>
         <div class="td-body">${watchHtml}</div>
         <div class="td-foot"><a href="#watch/watch_alerts" onclick="selectNav('watch','watch_alerts',true);return false;">展开「到价提醒」 ›</a></div>
       </div>
@@ -4614,9 +4949,13 @@ function renderToday() {
       <div id="td-etf-fusion" class="td-etf-fusion"></div>
     </details>
     <details class="td-basis"><summary>口径说明（这些结论是怎么来的）</summary><div class="td-basistxt">${esc(d.basis || "")}</div></details>
+    <!-- ⑤ 数据健康：放在最后 —— 它不参与判断，但决定上面四条能不能信。
+         「数据停了」和「今天没机会」在页面上长得几乎一样，这一条就是把两者分开的东西。 -->
+    ${tdHealthHtml()}
   `;
   renderQuantRefMount();
   renderEtfFusion();
+  loadTodayStatus();   // ① 市场状态 + ⑤ 数据健康：异步补，失败不影响四卡
 }
 
 /* M6（2026-10-16）：今日决策页里把「量化信号」作为参考证据流插入（第三路信号，与四支柱/共振对称）。
@@ -7510,6 +7849,75 @@ function refreshAcquirePanels() {
   if (CURRENT.tab === "archive") renderArchivePanel();
 }
 
+/* ---------- 2026-11-01 P1-2 第 3 项：隐藏面板的首绘延迟（DOM 瘦身） ----------
+   先测量再动手。实测脚本按容器分组打点（`node verify_dom_weight.cjs`），#today/today 首屏：
+     总节点 12840，其中**可见只有 547**、隐藏 12293（95.7%），且集中度极高：
+       #p-overseas_sentiment 5164（热点子视图 2733 + 舆情子视图 2426）
+       #p-lhb                1958
+       #p-geo_events         1237
+       #p-summary            1203
+     前三个面板合计 8359 个节点（65%）—— 用户在这一屏**一个都看不见**：
+     它们画进的是 `display:none` 的容器，浏览器仍旧要建节点、算样式、占内存。
+   做法（最小改动，只改"什么时候画"，不改"画什么"）：
+     ① 数据照旧在首屏并行拉 —— 不把网络等待搬到用户点开那一刻
+        （尤其 /api/overseas_hotspots 是纯 Python 聚合的重接口，晚拉更伤）；
+     ② 首绘推到「面板第一次可见」，由 selectNav 统一 flush。
+   为什么挂在 selectNav：它是**唯一**能让面板变可见的入口 —— 点左栏、点横条、
+   改 hash、深链接、showTab() 全都会走到它。挂在别处必然漏一条路径，
+   而漏掉的表现是"点进去永远显示 正在加载数据…"，不报错、不 404。
+   ⚠️ 不要把这里的 flush 挪成 setTimeout：那只是把节点晚几百毫秒建出来，总量一分没少。 */
+const DEFER_PAINT = { pending: Object.create(null), tabs: [] };
+
+/* 有些面板要"先有壳才能往里画"（海外舆情：两个子视图共用 ensureOverseasShell 建的外壳）。
+   两个 fetch 谁先回来不确定，所以壳必须由 flush 来保证，而不是靠 thunk 的注册顺序。 */
+const DEFER_PREP = {
+  overseas_sentiment: () => { try { ensureOverseasShell(); } catch (e) { /* 壳建失败时下面各 thunk 自己会报 */ } },
+};
+
+/**
+ * 数据已到：若面板正可见就立刻画，否则登记到关掉再画。
+ * @param {string} tab 面板 tab key（= #p-<tab>）
+ * @param {Function} fn 真正的绘制函数（闭包捕获已到达的数据）
+ * @returns {boolean} true = 已立即绘制；false = 已推迟
+ */
+function deferPaint(tab, fn) {
+  if (!tab || typeof fn !== "function") return false;
+  if (CURRENT && CURRENT.tab === tab) {   // 用户正看着它：推迟没有意义
+    fn();
+    return true;
+  }
+  if (!DEFER_PAINT.pending[tab]) {
+    DEFER_PAINT.pending[tab] = [];
+    if (DEFER_PAINT.tabs.indexOf(tab) < 0) DEFER_PAINT.tabs.push(tab);
+  }
+  DEFER_PAINT.pending[tab].push(fn);
+  return false;
+}
+
+/**
+ * 面板即将可见：把登记过的绘制补上（顺序 = 登记顺序，幂等：画完即清）。
+ * @param {string} tab
+ * @returns {number} 本次真正执行的绘制数（0 表示没欠账）
+ */
+function flushPaint(tab) {
+  const list = DEFER_PAINT.pending[tab];
+  if (!list || !list.length) return 0;
+  delete DEFER_PAINT.pending[tab];
+  const prep = DEFER_PREP[tab];
+  if (prep) prep();
+  let n = 0;
+  list.forEach((fn) => {
+    try { fn(); n++; } catch (e) { reportLoadError("面板首绘 " + tab, e); }
+  });
+  return n;
+}
+
+/** 诊断用：当前还欠着哪些面板的首绘（不参与业务逻辑，只给验证脚本/控制台看）。 */
+function deferredPaintState() {
+  return DEFER_PAINT.tabs.filter((t) => DEFER_PAINT.pending[t] && DEFER_PAINT.pending[t].length);
+}
+window.deferredPaintState = deferredPaintState;
+
 function loadAll() {
   // 与各面板并行拉取刷新状态；renderX 尾部会调用 applyFreshness() 兜底重算时效标记。
   loadRefreshStatus().then(refreshAcquirePanels);
@@ -7535,6 +7943,9 @@ function loadAll() {
   // 撤掉后首屏少 6 个请求、约 1.5MB 流量，落地更快也更诚实（不再假装有"他人操作"）。
   // 对应面板已从 NAV 撤下；后端路由与 renderX 函数保留，源恢复时一处加回。
   // 龙虎榜是**活链路**（lhb_daily 每日 18:00 更新），仍保留首屏延迟预热。
+  // 龙虎榜是**活链路**（lhb_daily 每日 18:00 更新），首屏仍提前 2.5s 预热取数；
+  // 但 2026-11-01 起只取数不画（1958 个节点，面板不可见时画出来纯属浪费）——
+  // 首绘交给 selectNav 的 flushPaint，进入分支里那段 `if (LHB.data) renderLhb()` 是同一入口。
   if (!LHB.data) setTimeout(() => loadLhb().catch((e) => reportLoadError("游资龙虎榜", e)), 2500);
   api("/api/sentiment").then(renderSentiment).catch((e) => reportLoadError("舆论情绪", e));
   // 2026-10-15（性能修复 · 「面板随机卡 20~30 秒」的真根因之一）：
@@ -7542,9 +7953,14 @@ function loadAll() {
   // 把整个服务的 API 线程一起冻住**（与 blogger_perf 回算同一类病）。
   // 它此前在 loadAll 首屏就发 —— 首屏那几秒所有接口全被它拖死。现改为**进入「近期热点」面板才拉**
   // （见 selectNav 的 topics 分支），并给后端加 TTL 缓存 + 启动预热，让真正点进去时命中缓存。
-  api("/api/overseas_sentiment").then(renderOverseasSentiment).catch((e) => reportLoadError("美股港股舆情", e));
-  api("/api/overseas_hotspots").then((x) => renderOverseasHotspots(toArr(x))).catch((e) => reportLoadError("近期热点(国外驱动)", e));
-  api("/api/geo_events").then(renderGeoEvents).catch((e) => reportLoadError("国际局势", e));
+  // 2026-11-01（P1-2 第 3 项）：下面三条原先"数据到就画"。它们的面板（海外舆情 / 国际局势）
+  // 不在首屏可见，画进去的是 5164 + 1237 个看不见的节点 —— 改为数据照收、首绘推迟到可见时。
+  api("/api/overseas_sentiment").then((d) => deferPaint("overseas_sentiment", () => renderOverseasSentiment(d))).catch((e) => reportLoadError("美股港股舆情", e));
+  api("/api/overseas_hotspots").then((x) => {
+    const arr = toArr(x);
+    deferPaint("overseas_sentiment", () => renderOverseasHotspots(arr));
+  }).catch((e) => reportLoadError("近期热点(国外驱动)", e));
+  api("/api/geo_events").then((d) => deferPaint("geo_events", () => renderGeoEvents(d))).catch((e) => reportLoadError("国际局势", e));
   // 2026-10-15 P2-1：原「全球政策雷达 / 科技前沿突破」两独立面板已合并进「国际局势」单一面板，
   // 由 paintGeoInto 的 in-panel 分类筛选条（全部/政策/科技）切换，无需再按 panel 单独请求。
   // 2026-09-27 新增一级分类「自选池」：关注池 + 到价提醒（一次拉取，两面板各自渲染）
@@ -9843,135 +10259,98 @@ const EXECP = { data: null, busy: false, aum: "", nh: "", days: "", fee: "", cod
 // ① 成本口径表：纯静态定义，加载一次即可（不随输入变化）
 const COSTB = { data: null, loading: false };
 
+/* ================= 一级导航：7 类 → 6 组（2026-11-01 测评 P1-2「产品聚焦」） =================
+
+   体检结论是「导航分七类，每类平均 6 个入口，一屏放不下，等于没有分类」。
+   这次按**交易动作**收敛成 6 组，每组只平铺 2~4 个主项，其余进「研究工具（N）」折叠区。
+
+     ① today     今日交易计划   开盘到收盘只在这一组里完成（决策/复盘/看板/汇总/提示/大势/选股）
+     ② mine      我的持仓与自选 关注池 / 到价提醒 / 入手概率 + 选股与产业链研究（折叠）
+     ③ market    市场与题材     龙虎榜 / 板块动向 / 消息面 + 资金流·情绪·外围（折叠）
+     ④ stock     个股研究       按股看：研报评级 / 快讯公告 / 个股诊断
+     ⑤ strategy  策略与实证     开源情报 / 信号回测 / 公告实证 + 策略模板·方法教学·知识轨道（折叠）
+     ⑥ system    数据与系统     系统健康（数据日、停更判定、任务失败数）
+
+   **三条铁律（改这张表前先读）**
+   1. 不删 tab：43 个静态入口一个不少（+ learn_* 动态轨道与 8 个固定子板块由 itemsOfCat 并回）。
+   2. tab 标识一个字不改：`tab:` 是深链接与面板容器 `#p-<tab>` 的唯一键，改名等于删面板。
+   3. 深链接不失效：旧 `#overview/dashboard`、`#money/lhb` 靠 LEGACY_CAT + TAB_HOME 两层扶正
+      （TAB_HOME 现在由 NAV **现算**，不再手工登记 —— 手工表迟早会漏，漏了就是「面板打不开」）。
+
+   `fold: true` = 进「研究工具」折叠区（默认收起）。收起不等于删除，点开就有，
+   当前 tab 落在折叠区时该区自动展开（否则用户看不见自己在哪）。
+
+   ⚠️ 顺序有约束：每组**第一项必须是非 fold、非 child 的主项** —— `firstRealTab()` 用它做
+   「点左栏大类」的落地点，也是 renderNav 里计数与高亮的基准。 */
 const NAV = [
-  // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
-  { key: "overview", label: "今日总览", icon: "◎", items: [
-    { group: "当日结论" },
-    // 今日决策 为主项，今日看板/汇总/我的提示 归拢其下（视觉聚合，tab 仍平铺，深链接不变）
+  // ① 今日交易计划（原「今日总览」）—— 盘中所有决策动作都在这组里闭环。
+  { key: "today", label: "今日交易计划", icon: "◎", items: [
+    // 今日决策为主项，复盘/看板/汇总/我的提示 挂其右侧（tab 仍平铺，深链接不变）
     { tab: "today", label: "今日决策", lead: true, mg: "decision" },
-    // 2026-10-29 进哥需求：AI 复盘 —— 紧挨今日决策放，一眼能对比
-    // 「规则引擎公式算的」vs「大模型读完信息包+我的知识库之后判断的」。
     { tab: "ai_review", label: "AI 复盘", child: true, mg: "decision" },
     { tab: "dashboard", label: "今日看板", child: true, mg: "decision" },
     { tab: "summary", label: "今日汇总", child: true, mg: "decision" },
     { tab: "watch_brief", label: "我的提示", child: true, mg: "decision" },
-    { group: "当日信号" },
-    // 2026-10-31 进哥需求：先看「局」，再选票。不预测点位，只识别阶段与必亏动作。
     { tab: "harvest", label: "大势研判" },
-    // ⚠️ 2026-10-31 进哥反馈「资金风向跟资金动向不是一个意思吗」—— 原来这里挂着一个
-    //   「资金风向」，而左栏一级分类叫「资金动向」，一字之差、内容也确实是同一批龙虎榜资金
-    //   （lhb_weather 读的正是 lhb_sector_focus，即「板块动向」那张表）。
-    //   处置：本项**迁入「资金动向」组**、改名「资金温度」，作为「板块动向」的子视图，
-    //   让"按板块看明细"与"按日看温度"落进同一个入口；旧深链 #overview/lhb_weather
-    //   由 selectNav 的 TAB_HOME 自动扶正，不会失效。
-    // 2026-10-30 进哥需求：短线（今天买明天卖）与中长期（底部持有）两个方向。
-    // 实测结果与直觉相反，面板如实呈现正反对照，不给安慰性结论。
     { tab: "selection", label: "选股方向" },
-    // 2026-10-31 进哥需求（测评 P1-A）：名单出来了不等于买得进。四字段 → 能不能装下。
-    { tab: "executability", label: "执行可行性" },
-    // 2026-10-30 进哥需求：GitHub 上的量化规则在我们的数据上重测。
-    // 定位是「方法论校验」，不是又一个荐股源 —— 只回答"这个说法成立吗"。
-    { tab: "oss", label: "开源情报" },
-    { tab: "prediction", label: "每日预测" },
-    { tab: "resonance", label: "多源共振" },
-    // 2026-10-21 dy9 进哥拍板：低分卡归因做成一级功能（只做排除，不做推荐）
-    { tab: "avoid", label: "避雷名单" },
-    { tab: "quant", label: "量化信号" },
-    { tab: "etf", label: "ETF基金" },
-    { group: "外部环境" },
-    // 全球大盘/海外舆情/国际局势 从「消息与外围」迁入（它们是盘面/外围，不是资讯）
-    { tab: "global_market", label: "全球大盘", lead: true, mg: "overseas" },
-    { tab: "overseas_sentiment", label: "海外舆情", child: true, mg: "overseas" },
-    { tab: "geo_events", label: "国际局势", child: true, mg: "overseas" }] },
-  // ② 资金动向（原「钱往哪走」）：资金 + 人气，改名使命名语域统一（名词短语、首字可定位）
-  { key: "money", label: "资金动向", icon: "¥", items: [
-    { tab: "lhb", label: "游资龙虎榜" },
-    // 2026-10-31：「板块动向」升为主项、「资金温度」作子项 —— 同一张 lhb_sector_focus，
-    //   一个看"板块明细"、一个看"逐日温度曲线"，是同一个东西的两个切面。
-    //   原来它们分居两个一级分类（一个在「资金动向」、一个在「今日总览·当日信号」并叫「资金风向」），
-    //   属于典型的"同一份数据两个入口、两个名字"。
-    { tab: "lhb_sectors", label: "板块动向", lead: true, mg: "lhbflow" },
-    { tab: "lhb_weather", label: "资金温度", child: true, mg: "lhbflow" },
-    { tab: "moneyflow", label: "资金流向" },
-    { tab: "industry-leaders", label: "龙头全景" },
-    { group: "人气" },
-    // ⚠️ 2026-10-31：本组原有「讨论热度」(stocks) 与「板块热度」(plate_heat) 两项，已随论坛停抓撤下。
-    //   两者 100% 依赖 posts / stock_mentions（板块热度另一路豆包语料停在 2026-10-11），
-    //   源停之后它们只会把旧帖反复重算成"今天的注意力"，属于用死数据生成活结论。
-    //   渲染函数与面板容器保留（不删代码，便于源恢复时一处加回）。
-    { tab: "bili_sentiment", label: "市场情绪", lead: true, mg: "mood" },
-    { tab: "sentiment", label: "舆论情绪", child: true, mg: "mood" }] },
-  // ③ 消息政策（原「消息与外围」）：只装资讯与政策，边界清晰。外围/情绪已迁出到今日总览/资金动向。
-  { key: "info", label: "消息政策", icon: "◈", items: [
-    { tab: "info_brief", label: "消息面汇总" },
-    // ⚠️ 2026-10-31：「近期热点」(topics) 已撤下 —— hotspots 算法是「拿词库关键词扫 posts 原文」，
-    //   论坛停抓后扫不到新帖，只剩 10-29 之前的历史热度冒充"近期"。容器与 renderTopics 保留。
-    { tab: "news", label: "个股快讯公告" },
-    { tab: "policy", label: "政策风向" }] },
-  // ④ 他人操作（原「别人怎么做」）—— 2026-10-31 整类**下线并撤出导航**。
-  //   本类 7 个面板（牛散追踪/选手与渠道/相关人物/正在操作股票/资金共识/共同持仓/近5日买入）
-  //   全部读论坛抓取产物：trades（选手实时成交）、positions（**2021-06-20 的集思录晒盘快照**）、
-  //   persons/person_scores/public_records、posts ⋈ stock_mentions（共识/共同持仓）。
-  //   论坛 2026-10-30 全停后它们永久停更；其中 positions 尤其不能留 —— 五年前别人晒的仓位
-  //   被当成"选手正在操作"展示，比空白更有害。数据与表已同步清空（见 DECISIONS.md D16）。
-  //   代码不删（后端 /api/players 等路由与前端 renderX 全部保留），源恢复时把本段加回即可。
-  // ⑤ 他人观点（原「别人怎么看」）：观点——机构/社区/研报怎么评价。改名为与「他人操作」对仗。
-  { key: "opinion", label: "他人观点", icon: "◇", items: [
-    { tab: "research", label: "研报评级" },
-    // 2026-10-29 进哥拍板：博主荐股 / 外部荐股验证 / 当红参赛股 三页已**物理删除**
-    // （不只是摘导航，代码也删了）。荐股口径降级为「资金动向 · 板块热度」，只谈板块不谈票。
-    // 本类下现仅存「研报评级」——机构研报是另一种信源，不属博主荐股，故保留。
-  ] },
-  // 2026-09-27 新增一级分类「自选池」：自己的关注/自选池（股票 + 基金），可分组（**组名可自定义**）、
-  // 标目标价、到价提醒。数据来自独立模块 watchlib.py（表 watch_*，零 JOIN、零外部关联）。
-  // ⑥ 我的票：我自己的——自选、提醒、选股、诊股（原「自选池」+ 「增强功能」的选股/诊股/多资产）
-  // ⑥ 我的票：自己有的票（持仓管理）+ 还没票时找票（选股发现）。今日提示已迁到「今日总览」。
-  { key: "watch", label: "我的票", icon: "★", items: [
-    { group: "持仓管理" },
+    { tab: "executability", label: "执行可行性", fold: true },
+    { tab: "prediction", label: "每日预测", fold: true },
+    { tab: "resonance", label: "多源共振", fold: true },
+    { tab: "avoid", label: "避雷名单", fold: true },
+    { tab: "quant", label: "量化信号", fold: true },
+    { tab: "etf", label: "ETF基金", fold: true }] },
+  // ② 我的持仓与自选（原「我的票」）—— 自己的钱在哪儿、什么时候动。
+  { key: "mine", label: "我的持仓与自选", icon: "★", items: [
     { tab: "watch", label: "关注池" },
     { tab: "watch_alerts", label: "到价提醒" },
-    { tab: "diag", label: "个股诊断" },
-    { tab: "multiquote", label: "多资产" },
-    { group: "选股发现" },
-    { tab: "screener", label: "智能选股" },
-    // 长期低位/突破雷达 是同一套形态筛选的两端，归拢到「低位突破」主项
-    { tab: "lowbox", label: "低位突破", lead: true, mg: "lowbox" },
-    { tab: "lowbox_bottom", label: "长期底部埋伏", child: true, mg: "lowbox" },
-    { tab: "lowbox_radar", label: "突破雷达", child: true, mg: "lowbox" },
     { tab: "rate", label: "入手概率" },
-    { group: "产业链研究" },
-    { tab: "bottleneck", label: "瓶颈猎手", lead: true, mg: "chain" }] },
-  // 2026-09-29：「增强功能」类已**解散**，六项按维度归位——资金流向→钱往哪走、资讯公告→消息与外围、
-  // 研报评级→别人怎么看、智能选股/估值诊股/多资产→我的票。后端独立模块（emapi + moneyflow/screener/
-  // valuation/research/multiquote/newsfeed）与面板容器原样保留，前端懒加载逻辑（selectNav 末尾）零改动。
-  // 2026-09-26：原「知识获取」(acquire) 与「跟我学习」(learn) 两个一级分类**合并为一个**
-  // （显示名 2026-09-29 由「学习中心」易名为「复盘成长」；内部 key 仍沿用 learn，深链接 learn_* 前缀不变）。
-  // 原「知识获取」下的 数据源 / 原始存档 / 抓取与登录记录 三项已**从导航撤下**：
-  // 它们是抓取管道的运维信息，看盘时无用；数据照常采集落库（refresh_status / raw_pages 不变），
-  // 面板与渲染函数（#p-sources / #p-archive / #p-fetchlog 及 renderXPanel）一并保留，
-  // 需要复原时把这三项加回下面 items 即可，后端无需改动。
-  // 2026-10-12 体验审计 P1（部分）：复盘/学习是**盘后**动作，盘中用不到却占一级导航 →
-  // 打上 pinned 标记，renderNav 会把它沉到左栏最底部、并用「盘后」分隔线与盘中决策项隔开。
-  // 2026-10-27 P4 收尾：信号 alpha 回测实证可视化。独立一级「信号实证」最干净——
-  // 非盘中决策、也非知识库动态轨道（DYN_CATS），items 原样生效，不污染首屏与其他大类。
-  { key: "research", label: "信号实证", icon: "⚙", items: [
+    { tab: "screener", label: "智能选股", fold: true },
+    // 长期低位/突破雷达 是同一套形态筛选的两端，归拢到「低位突破」主项
+    { tab: "lowbox", label: "低位突破", fold: true, lead: true, mg: "lowbox" },
+    { tab: "lowbox_bottom", label: "长期底部埋伏", fold: true, child: true, mg: "lowbox" },
+    { tab: "lowbox_radar", label: "突破雷达", fold: true, child: true, mg: "lowbox" },
+    { tab: "bottleneck", label: "瓶颈猎手", fold: true },
+    { tab: "multiquote", label: "多资产", fold: true }] },
+  // ③ 市场与题材（原「资金动向」+「消息政策」+ 外围三件）—— 钱和消息，都是"外面发生的事"。
+  //   原「消息政策」已解散并入本组：消息面汇总/政策风向 与资金同属"今天市场上发生了什么"。
+  { key: "market", label: "市场与题材", icon: "¥", items: [
+    { tab: "lhb", label: "游资龙虎榜" },
+    // 「板块动向」主项 +「资金温度」子项：同一张 lhb_sector_focus 的两个切面
+    { tab: "lhb_sectors", label: "板块动向", lead: true, mg: "lhbflow" },
+    { tab: "lhb_weather", label: "资金温度", child: true, mg: "lhbflow" },
+    { tab: "info_brief", label: "消息面汇总" },
+    { tab: "moneyflow", label: "资金流向", fold: true },
+    { tab: "industry-leaders", label: "龙头全景", fold: true },
+    // 市场情绪/舆论情绪 成对折叠：源停抓后它们只做留档（见 DECISIONS.md）
+    { tab: "bili_sentiment", label: "市场情绪", fold: true, lead: true, mg: "mood" },
+    { tab: "sentiment", label: "舆论情绪", fold: true, child: true, mg: "mood" },
+    { tab: "policy", label: "政策风向", fold: true },
+    { tab: "global_market", label: "全球大盘", fold: true, lead: true, mg: "overseas" },
+    { tab: "overseas_sentiment", label: "海外舆情", fold: true, child: true, mg: "overseas" },
+    { tab: "geo_events", label: "国际局势", fold: true, child: true, mg: "overseas" }] },
+  // ④ 个股研究（原「他人观点」+ 个股类入口）—— 看点一只票该去哪儿。
+  { key: "stock", label: "个股研究", icon: "◇", items: [
+    { tab: "research", label: "研报评级" },
+    { tab: "news", label: "个股快讯公告" },
+    { tab: "diag", label: "个股诊断", fold: true }] },
+  // ⑤ 策略与实证（原「信号实证」+「复盘成长」）—— 「这套方法到底成不成立」。
+  //   两个旧类合并的原因：它们回答的是同一个问题，只是对象不同 ——
+  //   信号实证验"因子里有没有 alpha"、复盘成长沉淀"方法本身"。分开放会让人以为
+  //   「回测」和「策略模板」是两件事。
+  //   ⚠️ 本组挂了动态知识轨道（DYN_CATS），itemsOfCat 会把 learn_* 与固定子板块并回来。
+  { key: "strategy", label: "策略与实证", icon: "⚙", items: [
+    { tab: "oss", label: "开源情报" },
     { tab: "backtest", label: "信号回测" },
-    // 2026-10-31 进哥需求（「图表或更清晰的元素少了一点」）：
-    // 把 115.8 万条公告跑出来的事件研究做成图表 —— 回答"公告里的利好/利空标签哪些是真的"。
-    // 与「信号回测」同类但不重叠：信号回测验的是"因子有没有 alpha"，
-    // 本面板验的是"事件本身有没有方向"。数据纯静态（static/ann_event_data.js），零请求。
     { tab: "ann_event", label: "公告实证" },
-    // 2026-10-31 决策⑤：任务有没有在成功、数据停在哪一天。
-    // 放本组而不新开一级导航 —— 它与上面两项同一性质（验证系统本身靠不靠谱），
-    // 区别只是验的对象从「因子有没有 alpha」变成「管道还在不在转」。
-    { tab: "health", label: "系统健康" },
-  ] },
-  { key: "learn", label: "复盘成长", icon: "✎", pinned: true, items: [
-    // ⚠️ 本类子项由两个来源动态生成（见 itemsOfCat 的 learn 分支），此处 items 仅为占位。
-    { tab: "strategy_lab", label: "策略回测" },
-    { tab: "learn_tracks", label: "轨道管理" },
-  ] },
+    { tab: "strategy_lab", label: "策略回测", fold: true },
+    { tab: "learn_tracks", label: "学习轨道管理", fold: true }] },
+  // ⑥ 数据与系统（原「信号实证 · 系统健康」独立出来）—— 盘后/出问题时才看，但必须一眼能找。
+  //   为什么单独成组而不留在「策略与实证」：前五组回答"买什么"，这一组回答"数据能不能信"，
+  //   两者的失效方式不同（前者判断错，后者管道停），混在一起会让「数据停了」被当成「今天没机会」。
+  { key: "system", label: "数据与系统", icon: "◍", pinned: true, items: [
+    { tab: "health", label: "系统健康" }] },
 ];
+
 // 2026-10-17 架构重排：取「首个有效 tab」（跳过 group 占位与 child 子项）。
 // 分组标题（group）和视觉归拢子项（child）不能当首项/默认落地点。
 function firstRealTab(items) {
@@ -9987,11 +10366,18 @@ function catOf(tab) { return NAV.find((c) => c.items.some((i) => i.tab === tab))
    子类移到内容区顶部横向平铺（见 paintSubnav），逐个点选更顺手。
    renderNav() 只绑事件、不写 hash、不切面板，故可被异步数据随时安全调用（无递归风险）。 */
 /* tab 的「家」—— 记录每个 tab 实际归属的一级分类，供 selectNav 做深链纠偏。
-   只在 tab 搬过家时需要登记；没登记的按 URL 里的分类走。 */
-const TAB_HOME = {
-  // 2026-10-31：原「今日总览 · 资金风向」并入「资金动向」组，改名「资金温度」。
-  lhb_weather: "money",
-};
+
+   2026-11-01（P1-2 导航收敛）：这张表改为**由 NAV 现算**，不再手工登记。
+   原因是手工表必然漏：7 类并成 6 组后 43 个 tab 里有 40 个换了家，
+   靠人手往这里加 40 行，漏一行就是「旧书签打开是另一个面板」而且没人会发现。
+   现算表还顺带保证了「同一事实只有一份来源」—— NAV 改了，这里自动跟着改。 */
+const TAB_HOME = (() => {
+  const m = {};
+  NAV.forEach((c) => c.items.forEach((i) => { if (i.tab) m[i.tab] = c.key; }));
+  return m;
+})();
+/* 反向表：tab → 所属分类的中文名（审计/测试用，避免各处再自己 find 一遍）。 */
+function homeCatOf(tab) { return TAB_HOME[tab] || ""; }
 
 function renderNav() {
   const side = $("#sidenav");
@@ -12680,7 +13066,7 @@ function dgKlineSnap(d) {
       <div><span>${per ? per + "高" : "最高"}</span><b>${siNum(c.high)}</b></div>
       <div><span>${per ? per + "低" : "最低"}</span><b>${siNum(c.low)}</b></div>
       <div><span>${per ? per + "收" : "收/最新"}</span><b>${siNum(c.price)}</b></div>
-      <div><span>成交量</span><b>${siVol(c.volume)}</b></div>
+      <div><span>成交量</span><b>${siVol(c.volume, klineVolUnit(c, d))}</b></div>
       <div><span>数据日</span><b>${esc((c.date || "").slice(0, 10))}</b></div>
     </div>
     <div class="ks-src">数据源：${esc(d.source || "新浪")}${d.adjust === "raw" ? " · <b>新浪日线·不复权</b>（除权日跳空属正常，非复权缺口）" : " · 前复权"}</div>`;
@@ -12858,7 +13244,7 @@ function dgKlineBind() {
       tip.hidden = false;
       tip.innerHTML = `<b>${esc(r.date)}</b><br>开 ${siNum(r.open)} 高 ${siNum(r.high)}<br>`
         + `低 ${siNum(r.low)} 收 ${siNum(r.close)}<br>`
-        + `<span class="${up ? "bull" : "bear"}">${sign}${siNum(r.pct)}%</span> 量 ${siVol(r.volume)}`;
+        + `<span class="${up ? "bull" : "bear"}">${sign}${siNum(r.pct)}%</span> 量 ${siVol(r.volume, klineVolUnit(r))}`;
       const x = KLINE_PAD.l + g.slot * idx + g.slot / 2;
       const tw = tip.offsetWidth || 160;
       let left = x + 12;
@@ -13721,34 +14107,62 @@ function paintSubnav(cat, tab) {
   const bar = $("#subnav");
   if (!bar) return;
   const items = itemsOfCat(cat);
-  const out = [];
-  for (let k = 0; k < items.length; k++) {
-    const i = items[k];
-    if (i.group) {
-      // 分组标题：不可点小标题 + 左侧虚线分隔，纯视觉锚点（不计入 tab 校验）
-      out.push(`<span class="sub-group" style="display:inline-flex;align-items:center;height:28px;margin:0 6px 0 2px;padding:0 10px 0 12px;color:#9aa4b2;font-size:12px;letter-spacing:1px;border-left:1px dashed rgba(255,255,255,.22);white-space:nowrap;">${esc(i.group)}</span>`);
-      continue;
-    }
-    if (i.child) continue; // 子项随其主项（lead）一起渲染，避免重复与错位
-    if (i.lead) {
-      // 主项 + 紧随其后的同 mg 子项：用一个浅底簇视觉归拢，主项加粗、子项缩进挂在右侧
-      out.push(`<span class="sub-cluster" style="display:inline-flex;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:2px 5px;margin:0 3px;">`);
-      out.push(`<a class="sub-tab sub-lead${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}" style="font-weight:600;">${esc(i.label)}</a>`);
-      for (let j = k + 1; j < items.length; j++) {
-        const c = items[j];
-        if (c.group || !c.child) break;          // 遇到下一个分组或主项即停止收拢
-        if (c.mg === i.mg) {
-          out.push(`<a class="sub-tab sub-child${c.tab === tab ? " active" : ""}" data-tab="${escAttr(c.tab)}" title="${escAttr(TAB_HINTS[c.tab] || c.label)}" href="#${escAttr(cat.key)}/${escAttr(c.tab)}" style="font-size:12px;padding-left:11px;margin-left:3px;border-left:1px solid rgba(255,255,255,.18);opacity:.95;">${esc(c.label)}</a>`);
-        } else break;
+
+  /* 2026-11-01 P1-2：横条分「平铺主项」与「研究工具（N）」折叠区。
+     动机：13 项平铺的横条等于没有分类，眼睛找不到落点；但删项又会让面板消失。
+     折叠是唯一同时满足「少」和「全」的做法 —— 默认收起，点开就在。
+     ⚠️ 当前 tab 若在折叠区里，必须自动展开：否则用户点进「公告实证」后，
+        横条上看不见自己在哪一项，会以为跳错了页。 */
+  const renderList = (list, inFold) => {
+    const out = [];
+    for (let k = 0; k < list.length; k++) {
+      const i = list[k];
+      if (i.group) {
+        // 分组标题：不可点小标题 + 左侧虚线分隔，纯视觉锚点（不计入 tab 校验）
+        out.push(`<span class="sub-group" style="display:inline-flex;align-items:center;height:28px;margin:0 6px 0 2px;padding:0 10px 0 12px;color:#9aa4b2;font-size:12px;letter-spacing:1px;border-left:1px dashed rgba(255,255,255,.22);white-space:nowrap;">${esc(i.group)}</span>`);
+        continue;
       }
-      out.push(`</span>`);
-    } else {
-      // 普通独立子项（无 lead/child/group 标记）
-      out.push(`<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`);
+      // 子项随其主项（lead）一起渲染，避免重复与错位。
+      // 但折叠区里的"领头子项"例外：它的主项在平铺区、不在这里，跳过就永远看不见了。
+      if (i.child && !inFold) continue;
+      if (i.lead) {
+        // 主项 + 紧随其后的同 mg 子项：用浅底簇视觉归拢，主项加粗、子项缩进挂在右侧
+        out.push(`<span class="sub-cluster" style="display:inline-flex;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:2px 5px;margin:0 3px;">`);
+        out.push(`<a class="sub-tab sub-lead${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}" style="font-weight:600;">${esc(i.label)}</a>`);
+        for (let j = k + 1; j < list.length; j++) {
+          const c = list[j];
+          if (c.group || !c.child) break;          // 遇到下一个分组或主项即停止收拢
+          if (c.mg === i.mg) {
+            out.push(`<a class="sub-tab sub-child${c.tab === tab ? " active" : ""}" data-tab="${escAttr(c.tab)}" title="${escAttr(TAB_HINTS[c.tab] || c.label)}" href="#${escAttr(cat.key)}/${escAttr(c.tab)}" style="font-size:12px;padding-left:11px;margin-left:3px;border-left:1px solid rgba(255,255,255,.18);opacity:.95;">${esc(c.label)}</a>`);
+          } else break;
+        }
+        out.push(`</span>`);
+      } else {
+        // 普通独立子项（无 lead/child/group 标记）
+        out.push(`<a class="sub-tab${i.tab === tab ? " active" : ""}" data-tab="${escAttr(i.tab)}" title="${escAttr(TAB_HINTS[i.tab] || i.label)}" href="#${escAttr(cat.key)}/${escAttr(i.tab)}">${esc(i.label)}</a>`);
+      }
     }
+    return out.join("");
+  };
+
+  const mainItems = items.filter((i) => !i.fold);
+  const foldItems = items.filter((i) => i.fold);
+  let html = renderList(mainItems, false);
+  if (foldItems.length) {
+    const nFold = foldItems.filter((i) => i.tab).length;         // 只数真 tab，不数分组标题
+    const hasActive = foldItems.some((i) => i.tab && i.tab === tab);
+    html += `<details class="sub-fold"${hasActive ? " open" : ""}`
+      + ` style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;">`
+      + `<summary title="本组其余面板（默认收起；收起不等于删除，点开即用）" `
+      + `style="cursor:pointer;list-style:none;display:inline-flex;align-items:center;height:28px;padding:0 12px;`
+      + `border-radius:8px;font-size:12.5px;color:#cfd6df;background:rgba(255,255,255,.06);`
+      + `border:1px dashed rgba(255,255,255,.28);white-space:nowrap;">研究工具（${nFold}）</summary>`
+      + `<span class="sub-fold-body" style="display:inline-flex;align-items:center;flex-wrap:wrap;">`
+      + renderList(foldItems, true)
+      + `</span></details>`;
   }
-  bar.innerHTML = out.join("") +
-    // 带知识库轨道的分类（学习中心）横条右端保留知识库上下文（状态 chip + 立即吸取）
+  bar.innerHTML = html +
+    // 带知识库轨道的分类横条右端保留知识库上下文（状态 chip + 立即吸取）
     (DYN_CATS[cat.key]
       ? `<span class="subnav-spacer"></span>` +
         `<span class="chip-s chip-fresh" id="kbStateChip" title="知识库吸取状态">知识库：读取中…</span>` +
@@ -13781,31 +14195,35 @@ function selectNav(catKey, tabKey, push) {
   // 别的一级分类下。若深链接里的分类与轨道实际归属不符（典型：轨道换了 group 之后，
   // 旧书签仍停在原分类），以实际归属为准重定向 —— 否则会出现"面板内容对了、顶部横条
   // 还是另一个分类"的错位。轨道列表未加载时不纠（待其回来后再走一次）。
-  // 注：2026-09-26 合并后只剩 learn 一个分类，本段为将来拆分的兼容保留。
+  // 2026-11-01：分组 key 与 NAV key 不再同名（learn → strategy），故先把 yaml 的 group
+  // 翻译成挂着它的导航分类，再比。直接拿 group 去 NAV.some 会永远为假 → 纠偏静默失效。
   const _dk = docKeyOfTab(tabKey);
   if (/^learn_/.test(String(tabKey || "")) && tabKey !== "learn_tracks" && KB.tracks) {
     const _t = toArr(KB.tracks.docs).find((x) => x.doc_key === _dk);
-    const _g = _t ? (_t.group || "learn") : null;
-    if (_g && _g !== cat.key && NAV.some((c) => c.key === _g)) {
+    const _g = _t ? (_t.group || trackGroupOf(cat.key)) : null;
+    const _gCat = _g ? (NAV.some((c) => c.key === _g) ? _g : catOfTrackGroup(_g)) : "";
+    if (_gCat && _gCat !== cat.key) {
       // 把 hash 一并扶正：否则地址栏与实际视图长期不一致，一刷新又回到错的分类。
       // 用 replaceState 不触发 hashchange（避免与下面的递归调用打转）。
-      try { history.replaceState(null, "", "#" + _g + "/" + tabKey); } catch (e) { /* 忽略：无 history 环境 */ }
-      selectNav(_g, tabKey, false);
+      try { history.replaceState(null, "", "#" + _gCat + "/" + tabKey); } catch (e) { /* 忽略：无 history 环境 */ }
+      selectNav(_gCat, tabKey, false);
       return;
     }
   }
   const items = itemsOfCat(cat);
-  // 动态轨道（「学习中心」下的子项）由 kb_sources.yaml 在**运行时**决定：
+  // 动态轨道（知识轨道子项）由 kb_sources.yaml 在**运行时**决定：
   // 首次深链接进入时轨道列表还没拉回来，items 里自然没有这个 tab。若一律按"未知就纠回首项"
   // 处理，用户点「基础常识」会被静默换成该分类的第一项（看着像点了没反应/跑错板块）。
   // 故 learn_* 一律放行，真正的轨道是否存在由 ensureKbDocFor 自己兜底。
   const relaxed = !!DYN_CATS[cat.key] && /^learn_/.test(String(tabKey || ""));
   const tab = (tabKey && (items.some((i) => i.tab === tabKey) || relaxed)) ? tabKey : firstRealTab(items);
-  // 「点左栏大类」落到"本类首项"：tabKey 为空即"首项意图"。对动态轨道分类，若轨道还没拉回来，
-  // 上面 items[0] 是占位项（策略回测）而非真实首项（基础常识）。记下待办，待 loadKbTracks
-  // 把轨道拉回后兑现到真实首项；若轨道已到，则 tab 已是真实首项，清掉待办。
+  // 2026-11-01：这条待办**停用**。它当年是给「点左栏大类 → 落到占位项（策略回测）→ 等轨道
+  // 回来再改落基础常识」用的。现在 itemsOfCat 把 NAV 静态主项排在最前、轨道放进折叠区，
+  // 首项已是「开源情报」这种确定的主项，没有"占位"一说了；继续挂着反而会把用户
+  // 从「开源情报」莫名弹到某条知识轨道上。保留 pendingFirstTrack 的消费代码做兜底，
+  // 但不再置位（置 null = 明确"没有待兑现的跳转"）。
   if (!tabKey && DYN_CATS[cat.key]) {
-    KB.pendingFirstTrack = KB.tracks ? null : cat.key;
+    KB.pendingFirstTrack = null;
   }
   // 「返回来路」记账（2026-09-30）：必须放在 CURRENT 被覆盖**之前**读到来路页，且在 push 早退
   // 之前完成（push 流程早退后由 hashchange 二次回调接手渲染，来路此时已记好）。进入 diag 时把
@@ -13952,8 +14370,12 @@ function selectNav(catKey, tabKey, push) {
   // 游资龙虎榜：进入该子板块时按需（重）渲染 —— 双保险。
   // 面板已补进 index.html；这里再兜一层，确保「先拿到数据、后面板才创建」的时序也不会白屏。
   if (tab === "lhb") {
-    if (LHB.data) renderLhb();
-    else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+    // 2026-11-01：首绘可能被 deferPaint 推迟到「本次进入」（面板不可见时不画）。
+    // flushPaint 返回 >0 说明已经画过了，就不再重复画一遍（1958 个节点白建一次）。
+    if (flushPaint("lhb") === 0) {
+      if (LHB.data) renderLhb();
+      else loadLhb().catch((e) => reportLoadError("游资龙虎榜", e));
+    }
   }
   // 板块动向：独立视角，进入时按需（重）渲染
   if (tab === "lhb_sectors") {
@@ -14030,6 +14452,10 @@ function selectNav(catKey, tabKey, push) {
     if (tab === "integrate" && window.DOUYIN) window.DOUYIN.renderIntegration();
   if (tab === "dy_reso" && window.DOUYIN) window.DOUYIN.renderResonance();
   if (tab === "funnel" && window.DOUYIN) window.DOUYIN.renderFunnel();
+  // 2026-11-01（P1-2 第 3 项）：本面板的首绘若在数据到达时被推迟过，就在**这里**补上。
+  // 放在函数末尾而不是开头，是为了让上面那些"进入即拉/进入即画"的分支先跑完 ——
+  // 它们里面也可能再登记一次（如 lhb），末尾统一 flush 能保证同一份数据只画一次。
+  flushPaint(tab);
 }
 
 /* ================= 信号回测实证（P4 · 2026-10-27 收尾） =================
@@ -14364,13 +14790,21 @@ function renderGlobalMarket() {
 }
 
 
-/* ===== 2026-09-29 导航重构：旧深链接自动迁移 =====
-   旧 7 类（总览/行情研判/实盘选手/外部参考/自选池/增强功能/学习中心）→ 新 7 类。
-   迁移策略「按 tab 反查新归属」：tab key 与一级类解耦且全局唯一，故只要旧 hash 里的 tab 还在，
-   就能用它反查出新类名——这天然覆盖了"一个旧类被拆到多个新类"的情况（如 #research/lhb → #money/lhb、
-   #research/topics → #info/topics、#enhance/moneyflow → #money/moneyflow）。
-   类名未变（overview/watch/learn）或本就不认识的一律原样放行，交给原逻辑处理。 */
-const LEGACY_CAT = { research: "money", trade: "players", extref: "opinion", enhance: "watch" };
+/* ===== 导航重构：旧深链接自动迁移 =====
+   两条迁移线叠在一起，都是"旧类名 → 新类名"，只用于**没有 tab 的纯类名深链**；
+   带 tab 的一律先走「按 tab 反查新归属」（见 migrateHashRaw 第二分支），
+   因为一个旧类经常被拆到多个新组（如旧 overview 拆进 today/market）。
+
+   ⚠️ `research` 有歧义，历史上当过两个意思：
+      2026-09-29 之前 =「行情研判」(→ money)，2026-10-27 起 =「信号实证」(→ strategy)。
+   这里取**最近的含义**（strategy）；带 tab 的旧链接不受影响（tab 反查优先）。 */
+const LEGACY_CAT = {
+  // 2026-11-01 P1-2：7 类 → 6 组
+  overview: "today", money: "market", info: "market", opinion: "stock",
+  watch: "mine", research: "strategy", learn: "strategy",
+  // 2026-09-29 的更早一层（旧 7 类：总览/行情研判/实盘选手/外部参考/自选池/增强功能/学习中心）
+  trade: "mine", extref: "stock", enhance: "mine",
+};
 // 2026-09-29「个股诊断」合并：估值诊股(valuation) 与 个股资金流(stock 模式) 合并为 diag
 const LEGACY_TAB = { valuation: "diag" };
 function migrateHashRaw(raw) {
@@ -14587,17 +15021,32 @@ const KB = {
 /* 「学习中心」的横向子类 = kb_sources.yaml 声明的各条知识轨道（按 order 排序）
    + 固定的「策略回测」「学习轨道管理」。 */
 /* 支持「动态轨道」的一级分类：轨道挂在哪一类下，由 kb_sources.yaml 的 group 字段决定
-   （缺省 learn）。2026-09-26 合并分类后只剩 learn 一个分类，但保留这套「配置决定归属」的
-   机制——将来若要再拆板块（例如把「基础常识」单独拎出去），改 yaml 的 group 一行即可，
-   无须改前端代码。tab 前缀仍统一用 learn_（内部标识稳定，深链接不会因为挪了位置就失效）。 */
-const DYN_CATS = { learn: "复盘成长" };
+   （缺省 learn）。tab 前缀仍统一用 learn_（内部标识稳定，深链接不会因为挪了位置就失效）。
+
+   2026-11-01 P1-2：原键 `learn`（「复盘成长」独立一类）已并入 `strategy`（策略与实证）——
+   两者回答的是同一个问题「这套方法到底成不成立」，只是对象不同（因子 vs 方法本身）。
+   但 kb_sources.yaml 里 9 条轨道的 `group` 仍写着 learn（那是**内容侧**的归属名，
+   改它要重建知识库，代价与收益完全不成比例）。于是「导航 key」与「内容 group」不再同名，
+   这里用 DYN_TRACK_GROUP 显式翻译一次。
+
+   ⚠️ 不翻译的后果很具体、而且不报错：tracksOfCat 按 group 过滤，键一改就一条轨道都拉不出来，
+   「策略与实证」下的知识轨道全部消失，页面上只是"少了几项"，没有任何异常。 */
+const DYN_CATS = { strategy: "复盘成长" };
+const DYN_TRACK_GROUP = { strategy: "learn" };   // 导航 key → kb_sources.yaml 里的 group 名
+function trackGroupOf(catKey) { return DYN_TRACK_GROUP[catKey] || catKey; }
+/** 反向：内容侧的 group 名 → 挂着它的导航分类 key（轨道被挪过板块时纠偏用）。 */
+function catOfTrackGroup(group) {
+  const k = Object.keys(DYN_CATS).find((c) => trackGroupOf(c) === group);
+  return k || "";
+}
 
 function tracksOfCat(catKey) {
   // order 由 kb_sources.yaml 提供（数值小的排前面，缺省 0，非法值按 0 处理）。
   // 为什么不直接用库内顺序：「基础常识」比「中短线炒股」晚吸取，靠库序会排到后面去，
   // 而用户明确要求「基础常识」在横条里排第一。故排序权交给配置（服务端 /api/kb/list 透出）。
+  const g = trackGroupOf(catKey);
   const all = toArr(KB.tracks && KB.tracks.docs)
-    .filter((d) => ((d.group || "learn") === catKey));
+    .filter((d) => ((d.group || g) === g));
   all.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));  // V8 排序稳定：同值保持原序
   return all.map((d) => ({
     tab: "learn_" + d.doc_key,
@@ -14605,40 +15054,57 @@ function tracksOfCat(catKey) {
     docKey: d.doc_key,
   }));
 }
+/* 挂动态轨道的分类下，那 8 个「一直在场」的固定子板块。
+   ⚠️ 它们从未写进 NAV（历史上的道理是"轨道没回来时用 fixed 当占位"），
+   所以它们不算 NAV 的 43 个静态入口，但**必须仍然可达** —— 导航收敛的验收线是
+   「43 个一个不少 + 原有的这些一个不少」。2026-11-01 起这 8 项统一进「研究工具」折叠区。 */
+const KB_FIXED_TABS = [
+  { tab: "fundmasters", label: "基金经理策略" },
+  // 2026-10-11 王总第三回合②：B站 UP 主按类分组框（点名开该人知识沉淀）
+  { tab: "bili_authors", label: "B站博主" },
+  // 2026-10-11 王总第三回合③：技术面/价值面两堆（3306/397 条）独立入口
+  { tab: "bili_techvalue", label: "技术·价值教学" },
+  // 2026-10-20 进哥：豆包「技术方法」独立面板（与上面 B站 面板并列，
+  // 但数据源、结构、交互都不同：B站是分类堆+方法卡片，豆包是 2701 条视频语料+搜索分页）。
+  { tab: "tech", label: "豆包技术方法" },
+  { tab: "integrate", label: "整合图谱" },
+  { tab: "dy_reso", label: "豆包×主力共振" },
+  // 2026-10-24 进哥：Kronos K线基础模型预测（开源基础模型概率预测，独立顶层 tab）
+  { tab: "kronos", label: "Kronos K线预测", tag: "AI基础模型" },
+  { tab: "funnel", label: "方法共振" },
+];
+
 /* 某个大类**当前实际**的子项列表。
-   为什么需要它：NAV 里写死的只是"轨道还没加载回来时的占位项"，真实轨道来自
-   kb_sources.yaml（运行时由 /api/kb/list 返回）。若校验 tabKey 时用静态 NAV.items，
-   `learn_<新doc_key>` 一律校验不通过 → 点进去会被"纠正"回首项。 */
+   为什么需要它：NAV 里写死的只是静态入口，真实轨道来自 kb_sources.yaml（运行时由 /api/kb/list 返回）。
+   若校验 tabKey 时用静态 NAV.items，`learn_<新doc_key>` 一律校验不通过 → 点进去会被"纠正"回首项。
+
+   2026-11-01 P1-2 重写（旧实现在这里踩过一个坑，值得写下来）：
+   旧代码是 `tracks.concat(fixed)` —— **整体重建**，于是写在 NAV.learn.items 里的静态项
+   （策略回测/轨道管理）会在轨道加载后被静默丢弃，只能靠 fixed 里再抄一遍来"救回来"。
+   两份清单写同一批 tab，改一处忘一处就少一个面板。现在改成**合并 + 去重**：
+   静态项（NAV 里的，平铺） → 动态轨道（折叠） → 固定子板块（折叠），按 tab 去重，
+   一份事实只有一处来源。 */
 function itemsOfCat(cat) {
   if (!cat) return [];
   if (!DYN_CATS[cat.key]) return cat.items;
   // 2026-10-11 王总第三回合②：B站 UP 主（bili_*）不再逐个占横条（"一人一横条很累、不清晰"），
   // 统一收进「B站博主」分组框（renderBiliAuthors 按类聚合），故从扁平横条里剔除。
-  const tracks = tracksOfCat(cat.key).filter((d) => !/^bili_/.test(d.docKey || ""));
-  // 学习中心：动态知识轨道（内容优先）在前，固定子板块在后。
-  // ⚠️ 陷阱（设计文档 §2 决策 5）：此分支用 tracks.concat(...) 重建子项，写在 NAV.learn.items
-  // 里的静态项会被**整体丢弃**。故固定子板块必须在此**显式并回**，否则轨道一加载回来，
-  // 「策略回测」「学习轨道管理」就从横条上消失（刷新后尤其明显）。轨道一条都没回来时仍用静态 cat.items 占位。
-  const fixed = [
-    { tab: "strategy_lab", label: "策略回测" },
-    { tab: "fundmasters", label: "基金经理策略" },
-    // 2026-10-11 王总第三回合②：B站 UP 主按类分组框（点名开该人知识沉淀）
-    { tab: "bili_authors", label: "B站博主" },
-    // 2026-10-11 王总第三回合③：技术面/价值面两堆（3306/397 条）独立入口
-    { tab: "bili_techvalue", label: "技术·价值教学" },
-    // 2026-10-20 进哥：豆包「技术方法」独立面板（选项 A —— 与上面 B站 面板并列，
-    // 但数据源、结构、交互都不同：B站是分类堆+方法卡片，豆包是 2701 条视频语料+搜索分页）。
-    { tab: "tech", label: "豆包技术方法" },
-    { tab: "integrate", label: "整合图谱" },
-    { tab: "dy_reso", label: "豆包×主力共振" },
-    { tab: "learn_tracks", label: "学习轨道管理" },
-    // 2026-10-24 进哥：Kronos K线基础模型预测（开源基础模型概率预测，独立顶层 tab，与上面并列）
-    { tab: "kronos", label: "Kronos K线预测", tag: "AI基础模型" },
-    { tab: "funnel", label: "方法共振" },
-  ];
-  // 固定子板块（策略回测 / 学习轨道管理）无论轨道是否加载回来都要在场：
-  // 无轨道时直接用 fixed（其已是静态 cat.items 的超集）。
-  return tracks.length ? tracks.concat(fixed) : fixed;
+  const tracks = tracksOfCat(cat.key)
+    .filter((d) => !/^bili_/.test(d.docKey || ""))
+    .map((t) => ({ ...t, fold: true }));
+  const seen = new Set();
+  const out = [];
+  const push = (it) => {
+    if (it.tab) {
+      if (seen.has(it.tab)) return;   // 同一 tab 只出现一次（NAV 与 fixed 可能重名）
+      seen.add(it.tab);
+    }
+    out.push(it);
+  };
+  cat.items.forEach(push);                                    // ① 静态主项：平铺在最左
+  tracks.forEach(push);                                       // ② 动态知识轨道：进折叠区
+  KB_FIXED_TABS.forEach((it) => push({ ...it, fold: true })); // ③ 固定子板块：进折叠区
+  return out;
 }
 /* 动态学习轨道面板在 index.html 里没有预置容器 → 首次进入时按需补一个。
    容器由 .main 改为 .content（2026-09-23 外壳改造后，.wrap/.layout/.main 已合并为 .shell/.content）。 */
@@ -15464,10 +15930,12 @@ function renderKbTracks() {
     const st = t.status === "never"
       ? `<span class="chip-s chip-fresh chip-untracked">尚未吸取</span>`
       : `<span class="chip-s chip-fresh ${freshCls(f.state)}" title="${escAttr(freshTitle(f))}">${freshLine(f, "学习内容")}</span>`;
+    // 2026-11-01：yaml 的 group（内容侧）与 NAV key（导航侧）不再同名，翻译后再取显示名
     const gk = t.group || "learn";
+    const gkCat = catOfTrackGroup(gk);
     return `<tr>
       <td><b>${esc(t.track || t.title || t.doc_key)}</b><div class="src-line">${esc(t.doc_key)}</div></td>
-      <td><span class="chip-s" title="由 kb_sources.yaml 的 group 决定；在横条内的排位由 order 决定（数值小的靠前）。两者都无需重建知识库">${esc(DYN_CATS[gk] || gk)}</span></td>
+      <td><span class="chip-s" title="由 kb_sources.yaml 的 group 决定；在横条内的排位由 order 决定（数值小的靠前）。两者都无需重建知识库">${esc(DYN_CATS[gkCat] || gk)}</span></td>
       <td>${esc(t.version || "—")} ${t.changed ? `<span class="chip-s chip-fresh chip-new" title="相对上一版内容已变化">有更新</span>` : ""}</td>
       <td>${t.node_count ?? 0}</td>
       <td>${esc(t.ingested_at || "—")}${t.prev_ingested_at ? `<div class="src-line">上一版 ${esc(t.prev_ingested_at)}</div>` : ""}</td>
@@ -19057,7 +19525,7 @@ function renderBiliAuthors() {
       $$("#p-bili_authors .ba-card[data-blogger]").forEach((btn) => {
         btn.onclick = () => {
           const dk = btn.dataset.dk;
-          if (dk) selectNav("learn", "learn_" + dk, true);
+          if (dk) selectNav("strategy", "learn_" + dk, true);
           else openBiliBloggerVideos(btn.dataset.blogger);
         };
       });

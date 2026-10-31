@@ -7,6 +7,16 @@
        本应用内联脚本/事件处理器极多（pywebview 桥 + 大量 onclick），故 script/style 保留 'unsafe-inline'；
        基线防护聚焦：禁 object/embed、锁 base-uri、防 iframe 嵌套（frame-ancestors）、connect 仅同源。
        若后续清理为外部脚本，可收紧 script-src 去掉 'unsafe-inline'。 -->
+  <!-- ⚠️ 2026-11-01 P1-5：下面这条 meta 里的 `frame-ancestors` **浏览器不认**。
+       按 CSP 规范，frame-ancestors 只对**响应头**生效，写在 <meta> 里会被忽略
+       （Chrome 控制台：directive 'frame-ancestors' is ignored when delivered via a
+       <meta> element）。真正生效的那一条由 HTTP 响应头下发，见
+       `viewer/server.py::Handler._send_file` 的 `Content-Security-Policy: frame-ancestors 'self'`
+       与 `X-Frame-Options: SAMEORIGIN`。
+       这里**故意保留** frame-ancestors 不删：删掉会让下一个读代码的人以为"防点击劫持没人管"，
+       而保留 + 这行注释能让人顺着找到真正的那一处。
+       为什么是 'self' 而不是 'none'：本页自己内嵌同源 iframe（app.js 的基金经理策略面板
+       /static/fund_masters/index.html），'none' 会把同源嵌套一起禁掉 → 该面板静默白屏。 -->
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" />
   <!-- 前端版本号唯一真源：/api/version 从这里解析；改 app.js/app.css 必须跟着加（见文件末尾脚注） -->

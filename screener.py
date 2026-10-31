@@ -8,11 +8,19 @@ CHANGE_RATE / TRADE_DATE。**该报表没有 ROE / 股息率字段**，故预设
 from __future__ import annotations
 import datetime as _dt
 import json as _json
+import math as _math
 import os as _os
 import threading as _threading
 import time as _time
 
 import emapi
+
+try:                                    # 常规：仓库根在 sys.path（pytest / 脚本直跑）
+    from viewer import units as UNITS
+    from viewer import security_master as SM
+except ImportError:                     # 退化：只有 viewer/ 在 sys.path（server 内运行）
+    import units as UNITS               # type: ignore[no-redef]
+    import security_master as SM        # type: ignore[no-redef]
 
 # ===== 参数化指标定义（2026-10-07 王总：阈值可调 + 合并持股档 + 质量指标扩充）=====
 # kind:
@@ -127,7 +135,8 @@ def _worth_scores(codes: list, days: int = 30) -> dict:
             continue
         ent = fmap.get(code) or (None, None, 0.0, 0.0)
         try:
-            ev = _turnover_eval(bars, ent[0], ent[1], days, to_scale=_to_scale_of(code, ent))
+            ev = _turnover_for(code, bars, ent, days,
+                               _meta.get("vol_units", {}).get(code))
         except Exception:  # noqa: BLE001
             ev = None
         if ev and ev.get("score") is not None:
@@ -476,13 +485,42 @@ def run(screen: str = "pe", limit: int = 40, params: dict = None) -> dict:
 
 import datetime as _dt
 import json as _json
+import logging as _logging
 import os as _os
 import re as _re
 import threading as _threading
 import time as _time
 from concurrent.futures import ThreadPoolExecutor as _TPE
 
-from extref.backtest import fetch_daily, _http_text, _prefix, TX_KLINE
+_log = _logging.getLogger("screener")
+
+from extref.backtest import fetch_daily, _http_text, TX_KLINE
+
+# ── 行情 symbol 市场前缀：唯一来源 security_master，本文件不再自带代码段表 ────────
+# 曾经这里复用 extref.backtest._prefix()，那是**又一张按代码段假定的表**
+# （sh: 60/68/90；bj: 4 开头/8 开头；其余 sz），和本文件刚删掉的那张「按代码前缀猜单位」
+# 的常量表同型。它不认 920 段（北交所 2023 起启用的新段）→ 920xxx 被拼成 sz920xxx 打腾讯，
+# 整批返回空 → 北交所取不到流通股本 → turnover_single('920819') 直接报「日K获取失败」。
+# 整治方式是"换口径来源"而不是"往表里补一个 92"——补段只是把同一个坑往后挪一次。
+_EXCHANGE_TX_PREFIX = {
+    SM.EXCHANGE_SSE: "sh",
+    SM.EXCHANGE_SZSE: "sz",
+    SM.EXCHANGE_BSE: "bj",
+}
+
+
+def _tx_prefix(code: str) -> str:
+    """腾讯/新浪行情的 symbol 市场前缀（sh / sz / bj）。
+
+    唯一的判定依据是 `security_master.exchange_of()`（板块规则的定义性来源）。
+    非股票代码（ETF/债券等）在 security_master 里是 OTHER，此时回落到 "sz" ——
+    与旧实现的行为一致，避免顺手改变无关代码段的表现。
+    """
+    try:
+        ex = SM.exchange_of(str(code or ""))
+    except Exception:  # noqa: BLE001  security_master 异常不应让整个面板挂掉
+        return "sz"
+    return _EXCHANGE_TX_PREFIX.get(ex, "sz")
 
 # ===== 多条件组合筛选 + 持股集中度（2026-10-07，王总需求）=====
 # ① 多选 AND：screen 参数支持逗号分隔（如 value,lowpb），把各条件的过滤表达式拼接即可；
@@ -737,7 +775,7 @@ def _fetch_tencent_full(code: str, bars: int) -> list:
     2026-09-30：主源 web.ifzq.gtimg.cn 本机时通时断（501），加 proxy.finance.qq.com
     同格式兜底（实测 2026-09-30 主源 501 时兜底正常出 141 根）。
     """
-    sym = _prefix(code) + code
+    sym = _tx_prefix(code) + code
     for base in (TX_KLINE, _TX_KLINE_ALT):
         try:
             url = "%s?param=%s,day,,,%d,qfq" % (base, sym, bars)
@@ -768,6 +806,158 @@ def _bars_fresh(ent: dict, target: str, days: int) -> bool:
     return all(len(b) >= 5 and b[4] is not None for b in bars[-3:])
 
 
+_KLINE_DAILY_DB = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                "data", "kline_daily.db")
+# 二级本地仓的停更守卫参数（见 _kline_daily_bars）
+_KL_STALE_MAX_DAYS = 3          # 落后超过 N 个交易日 → 判定「源已停更」
+_KL_STALE_WARN_GAP = 6 * 3600   # 同一告警 6 小时内只打一次，避免全市场扫描刷屏
+_KL_STALE_WARN_AT: dict = {}    # {tag: 上次打日志的 time.time()}
+
+
+def _warn_source_stale(last_date: str, days_behind: int, src: str) -> None:
+    """限频 WARNING：数据源停更必须有人喊，不能又一次变成「取不到数」的静默失败。"""
+    now = _time.time()
+    if now - float(_KL_STALE_WARN_AT.get(src) or 0.0) < _KL_STALE_WARN_GAP:
+        return
+    _KL_STALE_WARN_AT[src] = now
+    try:
+        _log.warning(
+            "%s 已停更：最后一根日线 %s，落后最近交易日 %d 个交易日（阈值 %d）。"
+            "北交所相关面板（换手榜/阴跌榜/低位箱体/单票换手）的数据将陆续失效。"
+            "修复：跑一次该库的日更；或把 92 段回补进 kbase（见 KNOWN_DEFECTS DEF-2026-013）。",
+            src, last_date or "?", days_behind, _KL_STALE_MAX_DAYS)
+    except Exception:  # noqa: BLE001  日志失败不该影响取数
+        pass
+
+
+def _stale_fields(meta: dict) -> dict:
+    """把二级本地仓的停更状态透传到面板 payload（三态，与全站「诚实三态」一致）。
+
+    True  → 北交所日线源已停更：本面板里北交所的票会陆续变成无数据，数值不可信；
+    False → 新鲜；
+    None  → 判不出（本轮没走二级库，或样本 <5 只不下结论）。
+
+    为什么要透传到 payload 而不只打日志：日志只有维护者看得到，用户看到的是
+    「北交所的票凭空少了」；带一个 `source_stale_hint` 才能让前端说清"数据源停了"。
+    """
+    info = (meta or {}).get("kline_daily") or {}
+    stale = info.get("source_stale")
+    hint = ""
+    if stale is True:
+        hint = ("北交所日线源 data/kline_daily.db 已停更：最后一根 %s，落后 %d 个交易日。"
+                "北交所相关数据不可信，请先修数据源。"
+                % (info.get("last_date") or "?", int(info.get("days_behind") or 0)))
+    return {"source_stale": stale, "source_stale_hint": hint}
+
+
+def _trading_days_behind(last_date: str, expect: str) -> int | None:
+    """last_date 落后 expect 多少个**交易日**（用 kbase 的交易日历；拿不到返回 None）。
+
+    用日历而不是自然日：跨国庆/春节时自然日会把 3 个交易日算成 9 天，误报停更。
+    """
+    try:
+        from viewer import kbase as _kb
+        cal = _kb.get_base().distinct_dates()
+    except Exception:  # noqa: BLE001
+        return None
+    n = 0
+    for d in cal:
+        if d <= last_date:
+            continue
+        if d > expect:
+            break
+        n += 1
+    return n
+
+
+def _kline_daily_bars(codes: list, keep_bars: int = 260) -> tuple[dict, dict]:
+    """二级本地仓：读 data/kline_daily.db 的日线（不复权，量=**股**）。
+
+    返回 `(bars_map, info)`：
+      · bars_map = {code: [(date, close, high, low, vol), ...]} 升序，元组口径与
+        `localfeed.bars_map` 完全一致，调用方（_load_bars_map）不需要区分来源；
+      · info = {"last_date": 最新一根的日期, "days_behind": 落后交易日数,
+                "source_stale": True / False / None}
+
+    `source_stale` 是**三态**（与全站「诚实三态」一致）：
+      · True  = 落后超过 _KL_STALE_MAX_DAYS 个交易日 → 源停更，面板必须标出来；
+      · False = 新鲜；
+      · None  = 判不出。批量太小时（<5 只）不下结论 —— 单只票可能是退市股，
+                它自己的最后一根本来就旧，拿它当「源停更」的证据会误报。
+
+    只在 kbase 缺该票时补位（见 _load_bars_map 里的口径论证）。任何异常一律返回
+    `({}, info)`：补位来源不可用不该让整个面板报错，更不该编数据。
+    """
+    info = {"last_date": "", "days_behind": 0, "source_stale": None}
+    codes = [str(c) for c in (codes or []) if c]
+    if not codes or not _os.path.exists(_KLINE_DAILY_DB):
+        return {}, info
+    keep = max(1, int(keep_bars or 260))
+    # 日期下界按「交易日 ≈ 自然日×0.7」反向放大 2 倍，宁可多读几十行也不要全表扫。
+    try:
+        min_d = int((_dt.datetime.now() - _dt.timedelta(days=keep * 2)).strftime("%Y%m%d"))
+    except Exception:  # noqa: BLE001
+        min_d = 0
+    out: dict[str, list] = {}
+    con = None
+    try:
+        import sqlite3 as _sq
+        con = _sq.connect("file:%s?mode=ro" % _KLINE_DAILY_DB.replace("\\", "/"),
+                          uri=True, timeout=10)
+        for i in range(0, len(codes), 400):        # 避开 SQLite 变量个数上限
+            chunk = codes[i:i + 400]
+            marks = ",".join("?" * len(chunk))
+            sql = ("SELECT code, d, c, h, l, v FROM kline "
+                   "WHERE code IN (%s) AND d >= ? ORDER BY code, d" % marks)
+            for code, d, c, h, low, v in con.execute(sql, chunk + [min_d]):
+                if c is None or v is None:
+                    continue
+                s = str(int(d)) if d else ""
+                if len(s) != 8:
+                    continue
+                date = "%s-%s-%s" % (s[:4], s[4:6], s[6:])
+                out.setdefault(code, []).append(
+                    (date, float(c),
+                     float(h) if h is not None else None,
+                     float(low) if low is not None else None,
+                     float(v)))
+    except Exception:  # noqa: BLE001
+        return {}, info
+    finally:
+        if con is not None:
+            try:
+                con.close()
+            except Exception:  # noqa: BLE001
+                pass
+    for code in list(out.keys()):
+        rows = out[code]
+        if not rows:
+            out.pop(code, None)
+            continue
+        if len(rows) > keep:
+            out[code] = rows[-keep:]
+    # ── 停更守卫：这份库是北交所日线的**唯一**来源，它停了必须有人喊 ──────────────
+    newest = ""
+    for rows in out.values():
+        if rows and rows[-1][0] > newest:
+            newest = rows[-1][0]
+    info["last_date"] = newest
+    if newest and len(codes) >= 5:
+        expect = _last_trade_date_local()
+        behind = _trading_days_behind(newest, expect)
+        if behind is None:                       # 日历拿不到 → 退化粗估（自然日/2）
+            try:
+                behind = max(0, (_dt.datetime.strptime(expect, "%Y-%m-%d") -
+                                 _dt.datetime.strptime(newest, "%Y-%m-%d")).days) // 2
+            except Exception:  # noqa: BLE001
+                behind = 0
+        info["days_behind"] = behind
+        info["source_stale"] = behind > _KL_STALE_MAX_DAYS
+        if info["source_stale"]:
+            _warn_source_stale(newest, behind, "data/kline_daily.db")
+    return out, info
+
+
 def _load_bars_map(pool: dict, days: int) -> tuple:
     """返回 (bars_map{code: [(date, close, high, low, vol)...]}, meta{...})。
 
@@ -787,11 +977,46 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
     # 之后永远从本地读 —— 不受外网限次、不会封号，也不再有"调不出来"。
     keep = max(int(days or 30) + 10, 120)
     bars_map = {}
+    # 量纲台账：{code: "share"/"hand"/None} —— 谁产出的 bars 谁负责声明单位（2026-10-31）
+    vol_units: dict[str, str | None] = {}
     try:
         from viewer import localfeed as _lf
         bars_map = _lf.bars_map(list(pool.keys()), keep_bars=keep)
+        # 本地仓 kbase 的 v 是**股**（与 data/kline_daily.db 同源同值，实测 600519
+        # 2026-10-30 = 5,992,729；换算 SUM(v*c) ≈ 全市场成交额也只在「股」口径下成立）。
+        for _c in bars_map:
+            vol_units[_c] = VOL_UNIT_SHARE
     except Exception:  # noqa: BLE001  本地仓不可用 → 完整退回旧链路（不阻断功能）
         bars_map = {}
+    # ── 2026-11-01 二级本地仓：data/kline_daily.db（补北交所 92 段）──────────────
+    # 事实：kbase.db 有 5239 只但**一条 92 段都没有**（北交所 2023 启用 920 段后未回补），
+    # 而 data/kline_daily.db 有 343 只 92 段（920819 实测 2268 根，2026-10-30
+    # v=4,377,779 股，与官方 f6 换算值完全一致）。于是全站的「本地仓」对北交所是空的
+    # —— 数据补进来了、功能还是断的：turnover_single('920819') 直接报「日K获取失败」。
+    #
+    # ⚠ 这里混用了两个日线库，请**不要**把它当 bug 顺手"修"成单库。为什么口径不冲突，
+    #   逐条论证如下（每一条都实测过，不是推断）：
+    #   ① **成交量口径相同**：两边 v 都是「股」且同源同值（600519 2026-10-30 两库都是
+    #      5,992,729；920819 是 4,377,779 = 官方 f6 43,778 手 ×100）。换手率 = 量/流通股本，
+    #      分子分母同口径，跨库不会引入倍数错。所以台账对两库都登记 VOL_UNIT_SHARE。
+    #   ② **价格口径不同**：kbase 存后复权（KBASE_ADJ="hfq"），kline_daily 存不复权
+    #      （600519 2026-10-30 close=1392.05 = 实时盘口价，是原始价）。
+    #   ③ **但下游只用比值，不用绝对价**：换手榜 = vol/流通股本；阴跌榜 = closes[-1]/closes[-6]；
+    #      低位箱体 = 区间分位 (last-lo)/(hi-lo)。全部是**同一只票内部**的比值，每只票的
+    #      复权常数因子在分子分母同时出现、整体约掉 —— 所以「A 票用 hfq、B 票用不复权」
+    #      不会造成跨票不可比，估值/比价类计算也不走这条路径。
+    #   ④ **不做跨库拼接**：同一只票只从**一个**库出（kbase 命中就绝不碰 kline_daily），
+    #      不存在把 hfq 与不复权的两根 bar 拼进同一条序列。
+    #   唯一残留风险：kline_daily 停更后北交所会再次静默断掉 —— 由 _kline_daily_bars 的
+    #   停更守卫（三态 source_stale + 限频 WARNING）负责喊出来，并透传到面板 payload。
+    # 纪律：只补 kbase 缺失的票，命中的一律不动 —— 不给已有数据制造第二份真相。
+    _miss = [c for c in pool if not bars_map.get(c)]
+    _kl_info = {"last_date": "", "days_behind": 0, "source_stale": None}
+    if _miss:
+        _extra, _kl_info = _kline_daily_bars(_miss, keep)
+        for _c, _rows in _extra.items():
+            bars_map[_c] = _rows
+            vol_units[_c] = VOL_UNIT_SHARE
     n_local = len(bars_map)          # 直读本地仓的票数（网络零请求）
     # 2026-10-29：本地仓覆盖率足够高时，**不再为少量缺口补网**。
     # 实测教训：本地 5240 / 全市场 5590，只剩 350 只（多为北交所/新股，腾讯源本来就取不到）
@@ -816,6 +1041,10 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
                                float(b[3]) if len(b) > 3 and b[3] is not None else None,
                                float(b[4]) if len(b) > 4 and b[4] is not None else None)
                               for b in ent["bars"][-_DECLINE_KEEP_BARS:]]
+            # 磁盘缓存的 bars 来自腾讯 qfq（满字段）或 fetch_daily（只有收盘价，量=None）。
+            # 腾讯的量**口径随板块变**（主板手、科创板股），缓存里也没记单位 →
+            # 这里如实声明「不知道」，由 _turnover_for 用官方快照自证。
+            vol_units.setdefault(code, None)
         elif _local_enough:
             continue                     # 本地仓覆盖足够 → 不为个别缺口补网（见上）
         elif _time.time() - _fail_table().get(code, 0) > _FAIL_COOLDOWN:
@@ -844,6 +1073,9 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
                     norm = [(str(b[0]), float(b[1]), b[2], b[3], b[4]) for b in bars]
                     bars_map[c] = norm
                     disk[c] = {"updated": target, "bars": norm, "full": bool(full)}
+                    # 腾讯满字段 → 单位随板块变（不声明，交由官方快照自证）；
+                    # fetch_daily 只有收盘价 → 量本来就是 None，单位无意义。
+                    vol_units.setdefault(c, None)
                     _fail_table().pop(c, None)
                     _fail_flush()      # 扫描周期结束统一落盘一次（清掉恢复成功的票）
                     n_fetched += 1
@@ -860,6 +1092,10 @@ def _load_bars_map(pool: dict, days: int) -> tuple:
             _decline_cache_save(disk)
     meta = {"target": target, "n_pool": len(pool), "n_cached": n_cached,
             "n_local": n_local,          # 直读本地仓的票数（网络零请求）
+            # 量纲台账：bars 的成交量单位由产出方声明（本地仓=股；腾讯缓存/网络=不知道）
+            "vol_units": vol_units,
+            # 二级本地仓（北交所日线的唯一来源）的停更状态：三态 True/False/None
+            "kline_daily": _kl_info,
             "n_fetched": n_fetched, "n_fail": len(failures), "failures": failures[:20]}
     return bars_map, meta
 
@@ -911,7 +1147,7 @@ def _float_map(codes: list, max_age_days: int = 7) -> dict:
         batches = [need[i:i + 60] for i in range(0, len(need), 60)]
 
         def _fetch_batch(batch):
-            syms = ",".join(_prefix(c) + c for c in batch)
+            syms = ",".join(_tx_prefix(c) + c for c in batch)
             try:
                 return _http_text(_TX_QT + syms, "https://gu.qq.com/", timeout=8)
             except Exception:  # noqa: BLE001
@@ -944,32 +1180,106 @@ def _float_map(codes: list, max_age_days: int = 7) -> dict:
     return out
 
 
-_SPU_FALLBACK_PREFIX = ("68",)  # 科创板 K 线量单位=股；其余按手（仅兜底路径用，标定路径单位自动抵消）
+# ── 换手率量纲：单位必须显式声明（2026-10-31 单位事故续修）────────────────────────
+#
+# 这里原来有一张按代码前缀（"68" 开头）假定「科创板 K 线量=股、其余=手」的常量表，本轮已删除。
+# 实测证明这条约定不成立，而且是**双向错**：
+#   · 本地仓 kbase（换手榜/阴跌榜/低位箱体的主数据源）存的是**股**；
+#   · 新浪日线、api_kline（已归一）也是**股**；
+#   · 腾讯 qfq 日线对主板/北交给**手**，对科创板（688981）却给**股**。
+# 于是按「手」标定的 to_scale 乘到「股」的 K 线量上 → 主板换手率被放大 100 倍。
+# 实测（2026-10-30）：600519 算出 to_today=47.87%（真实 0.48%，官方 f38=0.31%），
+# 场景还因此被误判成「出货」；688981 恰好 1.00 倍（它的单位本来就是股）。
+#
+# 修法：单位由**产出 bars 的那一方声明**，一路显式传下去（_load_bars_map → meta.vol_units
+# → _turnover_for → _turnover_eval）；声明不出来就用官方快照自证一次；仍判不出则返回
+# score=None + unit_unknown=True。**任何一环都不许「默认乘 100」。**
+VOL_UNIT_SHARE = "share"     # 股：本地仓 kbase / 新浪日线 / api_kline（出口已归一）
+VOL_UNIT_HAND = "hand"       # 手：腾讯 qfq 日线（主板 / 创业板 / 北交所）
 
 
-def _to_scale_of(code: str, ent: tuple) -> float | None:
-    """每 1 单位 K 线成交量对应的换手率（%），供 _turnover_eval 把 vol 直接换算成 %。
+def _units_per(vol_unit: str | None) -> float | None:
+    """1 个该单位等于多少股：股=1、手=100；不认识的单位 → None（不猜）。"""
+    if vol_unit == VOL_UNIT_SHARE:
+        return 1.0
+    if vol_unit == VOL_UNIT_HAND:
+        return 100.0
+    return None
 
-    标定路径：官方换手率/官方成交量（同源同快照），单位与流通股本口径误差自动抵消；
-    兜底路径：官方换手缺失时按「手/股 × 100 ÷ 流通股本」估。
+
+def _official_vol_shares(ent: tuple) -> float | None:
+    """官方快照换算出的「当日成交股数」估计（官方换手率 × 流通股本）。
+
+    官方成交量 f6 的单位随板块不同（主板=手、科创板=股），所以**不假定它**，
+    而是拿这个股数当锚点去反推它的单位（见 _to_scale_of）。
     """
-    fs, _fmv, to_rt, vol_rt = ent
-    if to_rt > 0 and vol_rt > 0:
-        return to_rt / vol_rt
+    fs, _fmv, to_rt, _vol_rt = ent or (None, None, 0.0, 0.0)
+    if not fs or fs <= 0 or not to_rt or to_rt <= 0:
+        return None
+    return to_rt / 100.0 * fs
+
+
+def _bars_vol_unit(bars: list, ent: tuple) -> str | None:
+    """产出方没声明单位时，用官方快照的「当日成交股数」当**量级锚点**反推这批 bars 的单位。
+
+    为什么是量级而不是相等：官方快照可能不是最后一根 bar 那一天（_float_map 磁盘缓存 7 天），
+    日间成交量差几倍很正常；而要判的两个假设之间差的是**整整 100 倍**，
+    所以在对数尺度上取更近的那个假设，并且要求拉开 1.2 个数量级才敢下结论，
+    否则返回 None —— 判不出就说不知道，绝不按某个默认倍数蒙。
+    """
+    if not bars or len(bars[-1]) <= 4:
+        return None
+    anchor = _official_vol_shares(ent)
+    v = bars[-1][4]
+    if not anchor or anchor <= 0 or not v or float(v) <= 0:
+        return None
+    r = float(v) / float(anchor)                  # 股假设下应 ≈1；手假设下应 ≈0.01
+    d_share = abs(_math.log10(r))
+    d_hand = abs(_math.log10(r) + 2.0)
+    if min(d_share, d_hand) > 1.2:                # 两个假设都不像 → 判不出
+        return None
+    return VOL_UNIT_SHARE if d_share < d_hand else VOL_UNIT_HAND
+
+
+def _to_scale_of(ent: tuple, vol_unit: str | None) -> float | None:
+    """每 1 单位（vol_unit）K 线成交量对应的换手率（%）。
+
+    **单位必须显式给出**（旧签名按代码前缀猜单位，主板因此错了 100 倍）。
+    标定优先「官方换手率 ÷ 官方成交股数」（同一快照，流通股本口径误差自动抵消），
+    官方量自身的单位也先自证；官方量缺失时按「流通股本」估。单位判不出 → None。
+    """
+    per = _units_per(vol_unit)
+    if per is None:
+        return None
+    fs, _fmv, to_rt, vol_rt = ent or (None, None, 0.0, 0.0)
+    rt_shares = _official_vol_shares(ent or (None, None, 0.0, 0.0))
+    if to_rt and to_rt > 0 and vol_rt and vol_rt > 0 and rt_shares:
+        rt_per = _units_per(UNITS.infer_unit_by_anchor(vol_rt, rt_shares))
+        if rt_per:
+            return (to_rt / (vol_rt * rt_per)) * per      # %/股 × 每股对应的本单位数
     if fs and fs > 0:
-        spu = 1.0 if str(code).startswith(_SPU_FALLBACK_PREFIX) else 100.0
-        return spu * 100.0 / fs
+        return per * 100.0 / fs                           # %/单位（按流通股本估）
     return None
 
 
 def _turnover_eval(bars: list, fs: float, fmv: float, days: int,
-                   to_scale: float | None = None) -> dict:
+                   to_scale: float | None = None, *, vol_unit: str | None) -> dict:
     """换手率策略五维评分（0~100）。bars 至少 days+1 根 (date,close,high,low,vol)。
 
-    to_scale=每 1 单位 K 线量对应的换手率%（_to_scale_of 标定）；缺失时退回
-    v×100÷流通股本 旧口径——该旧口径只对科创板（K线量=股）成立，主板/创业板
-    会偏小 100 倍（2026-09-30 实证修复，勿删 to_scale 参数）。
+    vol_unit：bars 里 vol 的单位（"share"/"hand"），**必填** —— 这是 2026-10-31 的教训：
+    靠「这个字段是手还是股」的隐含约定 + 代码前缀猜，主板整整错 100 倍
+    （600519 算成 47.87%，真实 0.48%，连带把场景误判成「出货」）。
+    单位判不出时不再默认乘 100，而是返回 score=None + unit_unknown=True，
+    让面板如实说「不知道」，而不是给一个看着像真的假分数。
     """
+    if _units_per(vol_unit) is None:
+        return {"to_today": None, "to_avg5": None, "pos_pct": None,
+                "scenario": "未知",
+                "hint": "成交量单位未知（不猜倍数；等数据源补单位声明后再评分）",
+                "score": None, "tier": 0, "tier_label": "—",
+                "grade": "—", "grade_desc": "成交量单位未知",
+                "advice": "单位判不出，暂不评分", "grade_cls": "",
+                "dim": None, "unit_unknown": True, "vol_unit": None}
     w = bars[-(days + 1):]
     closes = [b[1] for b in w]
     highs = [(b[2] if b[2] is not None else b[1]) for b in w]
@@ -978,7 +1288,8 @@ def _turnover_eval(bars: list, fs: float, fmv: float, days: int,
     if to_scale and to_scale > 0:
         tos = [(v * to_scale) for v in vols]
     else:
-        tos = [(v * 100.0 / fs) for v in vols] if (fs and fs > 0) else None
+        # 无标定值：按「本单位 → 股」显式换算再除以流通股本（不再写死 ×100）
+        tos = [(v * _units_per(vol_unit) / fs) for v in vols] if (fs and fs > 0) else None
     chgs = [closes[i] / closes[i - 1] - 1.0 for i in range(1, len(closes))]
 
     # ① 位置分位（近 days 日收盘高低区间）
@@ -1092,7 +1403,22 @@ def _turnover_eval(bars: list, fs: float, fmv: float, days: int,
         "grade_cls": GRADE_CLS.get(gname, ""),
         "dim": {"pos": s_pos, "scene": s_scene, "persist": s_persist,
                 "vp": s_vp, "stab": s_st},
+        # 量纲溯源：面板/接口能把「这个分数是按什么单位算的」说清楚（P0 单位的收尾）
+        "unit_unknown": False, "vol_unit": vol_unit,
     }
+
+
+def _turnover_for(code: str, bars: list, ent: tuple, days: int,
+                  vol_unit: str | None = None) -> dict:
+    """换手率评分统一入口：把「这批 bars 的成交量单位」显式带进来。
+
+    调用方优先用产出方声明的单位（_load_bars_map 的 meta.vol_units）；
+    声明不出来时才用官方快照自证一次；仍判不出就交给 _turnover_eval 标 unit_unknown。
+    这条链上任何一环都不许「默认乘 100」——那正是主板换手率错 100 倍的原因。
+    """
+    unit = vol_unit or _bars_vol_unit(bars, ent)
+    return _turnover_eval(bars, ent[0], ent[1], days,
+                          to_scale=_to_scale_of(ent, unit), vol_unit=unit)
 
 
 def decline_scan(pool: dict, days: int = 30, down: int = 25, limit: int = 80,
@@ -1144,8 +1470,8 @@ def decline_scan(pool: dict, days: int = 30, down: int = 25, limit: int = 80,
                 ent = fmap.get(r["code"]) or (None, None, 0.0, 0.0)
                 fs, fmv = ent[0], ent[1]
                 try:
-                    ev = _turnover_eval(bars_map[r["code"]], fs, fmv, days,
-                                        to_scale=_to_scale_of(r["code"], ent))
+                    ev = _turnover_for(r["code"], bars_map[r["code"]], ent, days,
+                                       meta.get("vol_units", {}).get(r["code"]))
                 except Exception:  # noqa: BLE001
                     ev = None
                 if ev:
@@ -1169,7 +1495,7 @@ def decline_scan(pool: dict, days: int = 30, down: int = 25, limit: int = 80,
                 "refresh": {"fetched": meta["n_fetched"], "cached": meta["n_cached"],
                             "fail": meta["n_fail"], "failures": meta["failures"]},
                 "tiers": [{"min": th, "tier": tv, "label": lbl} for th, tv, lbl in TIERS],
-                "basis": BASIS,
+                "basis": BASIS, **_stale_fields(meta),
                 "rows": rows, "reason": None}
 
 
@@ -1191,7 +1517,7 @@ def turnover_single(code: str, days: int = 30) -> dict:
     ent = _float_map([code]).get(code) or (None, None, 0.0, 0.0)
     fs, fmv = ent[0], ent[1]
     try:
-        ev = _turnover_eval(bars, fs, fmv, days, to_scale=_to_scale_of(code, ent))
+        ev = _turnover_for(code, bars, ent, days, meta.get("vol_units", {}).get(code))
     except Exception:  # noqa: BLE001
         ev = None
     if not ev:
@@ -1201,7 +1527,7 @@ def turnover_single(code: str, days: int = 30) -> dict:
         "partial": len(bars) < days + 1,
         "trade_date": meta.get("target"),
         "fmv_yi": round(fmv, 1) if fmv else None,
-        "basis": BASIS,
+        "basis": BASIS, **_stale_fields(meta),
     })
     return ev
 
@@ -1431,7 +1757,8 @@ def turnover_top(days: int = 30, limit: int = 30) -> dict:
             continue
         ent = fmap.get(code) or (None, None, 0.0, 0.0)
         try:
-            ev = _turnover_eval(bars, ent[0], ent[1], days, to_scale=_to_scale_of(code, ent))
+            ev = _turnover_for(code, bars, ent, days,
+                               meta.get("vol_units", {}).get(code))
         except Exception:  # noqa: BLE001
             ev = None
         if not ev or ev.get("score") is None:
@@ -1461,7 +1788,7 @@ def turnover_top(days: int = 30, limit: int = 30) -> dict:
             "tiers": [{"min": th, "tier": tv, "label": lbl} for th, tv, lbl in TIERS],
             "grades": [{"min": th, "grade": g, "cls": GRADE_CLS.get(g, ""),
                         "desc": d, "advice": a} for th, g, d, a in GRADE],
-            "basis": BASIS, "rows": rows, "reason": None}
+            "basis": BASIS, **_stale_fields(meta), "rows": rows, "reason": None}
 
 
 # ======================================================================

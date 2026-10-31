@@ -28,6 +28,8 @@ VIEWER = os.path.join(ROOT, "viewer")
 if VIEWER not in sys.path:
     sys.path.insert(0, VIEWER)
 
+from viewer import security_master as SM  # noqa: E402  板块口径唯一来源
+
 APP_DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 KLINE_DB = os.path.join(ROOT, "data", "kline_daily.db")
 KBASE_DB = os.path.join(ROOT, "viewer", "kbase.db")
@@ -40,7 +42,15 @@ def _ro(path):
 
 
 def _is_bj(code: str) -> bool:
-    return code[:2] == "92" or code[:1] in ("4", "8")
+    """北交所归属 —— 唯一来源 `security_master.board_of()`。
+
+    2026-11-01：原实现是 ``code[:2] == "92" or code[:1] in ("4", "8")``，
+    本仓库里的第三份北交所段表。它对 920 段确实判对了，但**判对是巧合，不是规则**：
+    43/83/87/88 靠首字符 "4"/"8" 命中，920 靠另一条 "92" 命中，
+    两条拼起来才等价于"北交所" —— 交易所再加一段（比如未来的 93x）就漏一段，
+    而且漏的表现是"报表少算几只"，没人会发现。
+    """
+    return SM.board_of(str(code or "")) == SM.BOARD_BSE
 
 
 def _is_st(name: str) -> bool:
@@ -183,6 +193,38 @@ def main() -> int:
                         % (latest, len(usable)) if latest >= 0.25 * len(usable)
                         else "FAIL 最新一天池子仅 %d 只，远小于可用宇宙 %d 只"
                              % (latest, len(usable))))
+
+    print()
+    print("=" * 78)
+    print("附 · 结构性状态（INFO，不影响退出码）")
+    print("=" * 78)
+    # kbase 与 kline_daily 的北交所差集。这是**结构性**状态（两库并存），不是一次
+    # 改动能修的：真正要修的是让 kbase 收录 92 段；在补完之前，取数层由
+    # `screener._kline_daily_bars()` 桥接（见 KNOWN_DEFECTS DEF-2026-013）。
+    # 定级 INFO 是刻意的：kbase 现在确实是 0 条，做成 FAIL 就是一条永远红的检查，
+    # 而永远红的检查等于没有检查 —— 它只会训练人忽略红色。
+    try:
+        kb = _ro(KBASE_DB)
+        if kb is None:
+            print("  INFO  kbase.db 不存在，跳过北交所差集检查")
+        else:
+            kb_bj = {c for c in (r[0] for r in kb.execute("SELECT DISTINCT code FROM kline"))
+                     if _is_bj(c)}
+            kl_bj = {c for c in (r[0] for r in kl.execute("SELECT DISTINCT code FROM kline"))
+                     if _is_bj(c)}
+            only = kl_bj - kb_bj
+            print("  INFO  北交所：kline_daily %d 只 / kbase %d 只 / 仅存在于 kline_daily %d 只"
+                  % (len(kl_bj), len(kb_bj), len(only)))
+            if only:
+                print("        → 这 %d 只的日线只能靠 screener._kline_daily_bars() 桥接。" % len(only))
+                print("          kbase 未收录 92 段是既有结构缺陷（DEF-2026-013），不是本轮可修项。")
+                print("          kline_daily 一旦停更，它们会静默变成「无数据」——")
+                print("          服务端已加停更守卫（WARNING + 面板 payload 的 source_stale 三态）。")
+            elif kb_bj:
+                print("        → 差集为空：kbase 已收录北交所，可以删掉这条桥接。")
+            kb.close()
+    except Exception as e:  # noqa: BLE001
+        print("  INFO  北交所差集检查跳过：%s" % str(e)[:120])
 
     if args.deep:
         print()
