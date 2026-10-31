@@ -636,9 +636,9 @@ total 15.5 万行时 g=22、22.5 万行时 g=23），而分母 `total` 线性增
 **凡涉及随回补变化的量，一律写"带时间戳的快照 + 复现命令"，不写恒定值。**
 
 **② NAV 阈值 40 → 38：旧口径**
-`ea292b6`（2026-10-30 03:24，D20「论坛/博主链路整体退役」）把「他人操作」类 7 面板 +
+`137fd4a`（2026-10-30 03:24，D20「论坛/博主链路整体退役」）把「他人操作」类 7 面板 +
 「讨论热度」「板块热度」「近期热点」共 10 个面板整体撤出 NAV：**NAV 由 46 降到 36**
-（`git show ea292b6^:viewer/static/app.js` vs `git show ea292b6:viewer/static/app.js` 可复核）；
+（`git show 137fd4a^:viewer/static/app.js` vs `git show 137fd4a:viewer/static/app.js` 可复核）；
 此后又新增 `harvest` / `oss` / `selection` 三个 → **现基线 39**。
 `test_nav_has_tabs` 却还按旧口径要求 `>= 40`。这是**有意变更**撞上写死的旧数字。
 处置：阈值 `>= 38`（当前基线 39，留 1 个余量），并在注释里写清基线来源与用途——
@@ -662,7 +662,7 @@ total 15.5 万行时 g=22、22.5 万行时 g=23），而分母 `total` 线性增
     stocks / plate_heat / topics`）是 D20 有意撤出 NAV、但**明确保留容器与渲染函数**的退役面板。
     D20 原文：「**渲染函数与后端路由全部保留**（不删代码），源恢复时把 NAV 里那几行加回即可。」
     → 进 `ORPHAN_ALLOW`，并按「他人操作类 7 个 / 论坛停抓后失源 3 个」分组注释、显式引用
-    `ea292b6` + D20，写明「有意撤出 NAV、容器保留、**不得当作待清理项**」。
+    `137fd4a` + D20，写明「有意撤出 NAV、容器保留、**不得当作待清理项**」。
     附带查实：这 10 个容器的渲染函数仍在（如 `renderCohold` / `renderPersons` / `renderNiusan`
     仍在引用 `#p-*`），`#p-smart_money` 还被「消息面汇总」`BRIEF_BOX.money` 复用——
     删容器不是清理垃圾，是**断别人的活链条**。
@@ -679,9 +679,9 @@ total 15.5 万行时 g=22、22.5 万行时 g=23），而分母 `total` 线性增
 | `/api/extref_*` | **8** | backtest / collect / manual_import / mcp_connect / refresh / signal_detail / signals / source_detail | `app.js` 里 `api/extref` 引用数 = 0，前后端一致退役 |
 
 合计 5+2+8 = **15**，与"仅消失 15"逐条对齐。
-**归因更正**：这三组路由不是在 `ea292b6` 里删的 —— `git log -S"api/blogger/facets" -- viewer/server.py`
-指向 **`826986d`**（"清理前存档点"），`extref` / `contest` 同属该提交；`ea292b6` 动的是 NAV
-与数据表。写"随 ea292b6 撤出"是不准确的，已按 commit 更正。
+**归因更正**：这三组路由不是在 `137fd4a` 里删的 —— `git log -S"api/blogger/facets" -- viewer/server.py`
+指向 **`8e9802a`**（"清理前存档点"），`extref` / `contest` 同属该提交；`137fd4a` 动的是 NAV
+与数据表。写"随 137fd4a 撤出"是不准确的，已按 commit 更正。
 （三类在 `server.py` 与 `app.js` 的引用数**同时为 0**，这是"真退役"而非"误删"的判据：
 只删后端不删前端会留 404 调用方，只删前端不删后端会留死路由。）
 新增 27 条是 10 月新功能（`ai_review` 4 条、`selection`、`oss`、`kronos` 3 条、`plate_heat`、
@@ -695,7 +695,7 @@ total 15.5 万行时 g=22、22.5 万行时 g=23），而分母 `total` 线性增
 
 **为什么这不是"让测试变绿"，而是"让契约跟上有意变更"。**
 契约测试的价值在于**「变化必须被解释」，不在于「永远变绿」**。这四条红灯对应的四次变化全都有
-决策记录（D9/D14/D20 + `ea292b6` + 10 月新功能上线），所以正确动作是把契约更新到新事实、
+决策记录（D9/D14/D20 + `137fd4a` + 10 月新功能上线），所以正确动作是把契约更新到新事实、
 并把"为什么"留在注释与本文档里，让下一个人能复核。反过来说：如果当时为了变绿去放宽断言、
 删断言或全局 skip，这四次变更今天就再也没人能追溯——**把红灯按掉的成本，永远低于它掩盖的成本**。
 
@@ -1640,7 +1640,7 @@ bili_scan 的结果按**交易日**去重，晚一小时扫不影响任何面板
   它的上一条是 `2026-10-29 23:51:46` —— **间隔正好 600s = 当时的 `_OFFPROC_GAP["blogger_daily"]`**。
   而产生这两条的进程是 `2026-10-29 23:51:04` 启动的那个（`server-20261029.log:7519`），
   它内存里的 `_sched_tasks()` 还带着 blogger（见 `backups/kernel-20261029/viewer/server.py:11074`）。
-- 之后 `server-20261030.log` 从 **00:14:53** 起（重启），提交 `826986d`（10-30 03:03:01）把
+- 之后 `server-20261030.log` 从 **00:14:53** 起（重启），提交 `8e9802a`（10-30 03:03:01）把
   blogger 从 server 调度表删掉；再往后 `sched-blogger_daily.log` 一条都没有。
 - `viewer/logs/blogger_daily.log` 停在 `2026-10-19 22:15:15` → 那之后所有触发都是 `skip: up_to_date`，从未真正落盘。
 - 结论：**触发源是 server 进程内调度线程，不是 Windows 计划任务**（本环境 `schtasks` 被安全策略拦截，
@@ -3096,6 +3096,61 @@ DOM 17 卡 = 5 完整 + 12 标题行；JS 报错 0。
 - **影响面与代价**：56 个文件被脚本改写（15 个补了 `import os`），全部 `py_compile` 通过；符号扫描 HIGH=0（唯一 LOW 集中在 `kronos_core/kronos.py`，该文件有星号导入，报告已标记 UNRELIABLE）。
 - **推翻条件**：若将来做「测试/演练全程隔离」，光靠环境变量还不够——`VIEWER_DB` 只在**导入时**求值，运行时 `monkeypatch` 环境变量对已导入模块无效（测试里应 `monkeypatch.setattr(模块, "APP_DB", ...)`）。若需要运行时切换库，必须把库路径改为**函数式求值**（`def app_db():`），那是一次更大的重构，届时本条"常量读环境变量"的约定应整体升级。
 - **遗留（未做）**：仓库仍跟踪 4 个运行时大文件（`data/decline_kcache.json` 32 MB、`data/*.gz` 40 MB、`predict_kcache.json` 14 MB、`fund_link_result.json` 9 MB）及 `extlib/` 下第三方二进制，仓库体积 857 MB。它们**在本次纳入管理之前就已被跟踪**，`.gitignore` 对已跟踪文件无效，需 `git rm --cached` 才能摘除（会改变仓库内容，需单独决策，本次未擅动）。
+
+## D59 仓库瘦身：历史重写剔除运行时数据（`.git` 869 MB → 67 MB）（2026-10-31）
+
+**背景**：D58 遗留项（仓库 857 MB）经进哥点头处置。但先做了一次体积分解，发现真实病因与 D58 的描述不同：
+
+| 位置 | 历史中未压缩占用 | 性质 |
+|---|---|---|
+| `viewer/app.db.bak-*`、`archive/db_backups/*` | **1650 MB** / 35 个 blob | 改库前的整库备份，最大单个 83 MB |
+| `data/*.gz`、`*_kcache.json`、`fund_link_result.json`、`data/bili_scan_*` | 375 MB / 20 个 blob | 抓取中间包与磁盘 TTL 缓存 |
+| `.browser-profile/`、`shots/`、`artifacts/` | 18 MB | 浏览器指纹与截图产物 |
+
+关键事实：**HEAD 里受控文件仅 153.8 MB，`.git` 却 869 MB** —— 差额全在历史里。
+所以 D58 遗留项里"`git rm --cached` 摘除"这个方案是**不够的**：那只清 HEAD，
+体积一分不降。要真瘦必须重写历史。
+
+**决策**：`git filter-branch --index-filter` 对全部 64 个提交做索引级重写，剔除上述路径。
+
+**为什么保留全部提交**：不加 `--prune-empty`。某些提交过滤后可能变空，但仍保留 ——
+提交数、提交信息、作者时间、分支、tag 全部不变，**时间线不断点**，
+决策记录里"某变更发生在哪天"这种可追溯性不受影响。
+
+**决策可追溯性（本条最关键的部分）**：`DECISIONS.md` 自身引用过 2 个 commit hash 做复核，
+重写会改变 hash。处置办法不是"改完了事"，而是：
+
+1. 重写前用 `git bundle create` 完整备份（`_repo_slim_backup_20261031/repo-before-slim-20261031.bundle`，378 MB，已验证可 clone）
+2. 从 bundle 解出旧历史只读副本，按 `(作者时间戳, 提交主题)` 双键匹配，生成 **64/64 全量新旧 hash 映射表**
+3. 映射表落盘 `docs/git-history-rewrite-20261031.md`，同时更新 `DECISIONS.md` 里全部 9 处 hash 引用（`ea292b6`→`137fd4a` 共 7 处、`826986d`→`8e9802a` 共 2 处）
+4. **逐条实测复核命令仍可执行**：
+   - `git show 137fd4a^:viewer/static/app.js` = 17290 行，`git show 137fd4a:viewer/static/app.js` = 17278 行 → 差异存在，D20 的 NAV 46→36 复核方法有效
+   - `git log -S"api/blogger/facets" -- viewer/server.py` 仍指向 `8e9802a` → 本条 D20 附近「这三组路由不是在退役提交里删的，而是在清理前存档点删的」**归因结论重写后依然成立**
+
+也就是说：重写只改变 hash 值，不改变任何提交的内容、顺序与因果关系。
+**决策记录里用 `git log -S` / `git show` 得出的论证，在新历史下可复现同样的结论** —— 这是可追溯性的实质，hash 只是索引。
+
+**结果**：
+
+| 指标 | 前 | 后 |
+|---|---|---|
+| `.git` | 869 MB | **67 MB**（-92.3%） |
+| pack | 857.3 MB | 65.4 MB |
+| 对象数 | 10222 | 4701 |
+| 提交数 / tag | 64 / 2 | 64 / 2（不变） |
+| 历史最大 blob | 83.3 MB | 2.8 MB |
+
+**工作区零损失**：被剔除的运行时文件在重写前已复制到仓库外（94.9 MB），重写后逐字节还原；
+另有 9 个运行时状态文件（含 `viewer/.alert_state.json`、`KNOWN_DEFECTS.json`、`tests/routes_snapshot.json`）
+用 `git stash` 隔离后恢复，避免重写过程中的 `reset --hard` 覆盖运行时最新值。
+
+**不做的事**：不改写工作区任何源码文件、不动 `archive/temp`（16.9 MB 历史存档）与
+`viewer/static/*.bak-*`（前端快照，有回滚价值）、不动 `extlib/`（第三方二进制，38.7 MB，属可复现性资产）。
+
+**推翻条件**：若将来需要与外部仓库同步，注意**重写后的 hash 与任何历史副本都不兼容**；
+同步前必须先确认对方引用的是哪一版 hash，并按 `docs/git-history-rewrite-20261031.md` 换算。
+本仓库当前**无远程**（`git remote -v` 为空），所以本次重写不存在与他人冲突的问题；
+**一旦将来加了远程，禁止再次重写历史**（会强制所有人重新 clone），届时只能靠 `.gitignore` 加新文件预防。
 
 ---
 

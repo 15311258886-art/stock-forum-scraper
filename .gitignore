@@ -137,3 +137,15 @@ viewer/data/*.log
 # 另有 data/*.gz 两个扫描中间包合计 40 MB。均属可重建缓存，不入库。
 *_kcache.json
 data/*.gz
+
+# ── 历史重写（D59）后需继续挡住的文件 ──
+# 这些文件 2026-10-31 前曾被 git 跟踪，已从全部历史中剔除；
+# 若不在此显式挡住，一次 `git add -A` 就会把它们重新塞回去（合计约 95 MB，且每天变化）。
+# 判定口径：可由程序重新生成、丢失不影响任何决策与回滚能力。
+fund_link_result.json
+data/bili_scan_*
+data/decline_kcache.json
+data/*.tmp
+.browser-profile/
+shots/
+artifacts/
