@@ -520,6 +520,21 @@ function panelTextInPage(sel) {
       };
       report.infos = INFO;
     }
+    /* ---------- 打印前的**硬断言**：摘要必须加得起来 ----------
+       为什么放在 finish() 里而不是只做一条断言：
+       断言能"发现"算术坏了，但只有这里能"阻止"它被当成一次合格运行 ——
+       一份加不起来的摘要说明统计口径本身坏了，此时任何一个"全过"都不可信。
+       不成立 → 强制 EXIT=1，并把三个数写进 notes 与 stdout（不让人去翻报告才知道）。 */
+    const smx = report.summary || {};
+    const closedN = (smx.passed || 0) + (smx.warned || 0) + (smx.failed || 0);
+    if (closedN !== smx.checks_total) {
+      smx.algebra = Object.assign({}, smx.algebra, { ok: false, closed: closedN });
+      smx.algebra_ok = false;
+      code = 1;
+      report.exit_code = 1;
+      NOTES.push(`⛔ 摘要算术不成立：通过 ${smx.passed} + 告警 ${smx.warned} + 失败 ${smx.failed} = ${closedN}` +
+        ` ≠ 总数 ${smx.checks_total} → 强制 EXIT=1（这一轮不能作为验收依据）`);
+    }
     try { fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), "utf8"); } catch (e) { console.error("写报告失败:", e.message); }
     if (extraNote) NOTES.push(extraNote);
     if (CFG.json) {
@@ -1147,63 +1162,165 @@ function panelTextInPage(sel) {
      * `if (tab === "dy_reso" && window.DOUYIN)` 这类守卫**静默跳过**，面板永远停在「正在加载数据…」；
      * 点别的 tab 再点回来就正常。**点击型回归永远抓不到它**，只有"直接带 hash 冷启动"能抓到。
      *
-     * 取样：枚举结果的第一个 / 中间 / 最后一个（不写死任何 tab 名，也不挑"看起来容易坏"的）。
-     * 判据三条：
+     * 取样分**两组**（缺任一组都不算覆盖）：
+     *   A. 通用取样：枚举结果的第一个 / 中间 / 最后一个 —— 不写死 tab 名，守"这一类"问题；
+     *   B. 已知缺陷回归：`dy_reso / funnel / tech / integrate / sentiment / industry-leaders /
+     *      bottleneck / screener / overseas_sentiment / geo_events / lowbox_bottom / lowbox_radar`
+     *      **写死名单**逐个冷启动 —— 守"这一个"缺陷确实修好了。理由见下方 B 段注释：
+     *      只跑 A，3 个取样很可能一个都没落在这批面板上，"3/3 通过"证明的就不是那个 bug。
+     * 判据三条（两组共用同一个 coldStart，保证尺子只有一把）：
      *   ① 面板有内容（iframe 感知）—— 冷启动渲了东西；
      *   ② 不仍停在「正在加载数据」占位 —— 有字但只是一句"正在加载"等于没渲；
      *   ③ 冷启动期间无 pageerror。
      * 等就绪用轮询（data-ready / 有内容 / 超时），不 sleep 死等。
      */
     if (!timedOut()) {
-      const picks = [];
-      if (nav.length) {
-        const idx = Array.from(new Set([0, Math.floor(nav.length / 2), nav.length - 1]));
-        for (const i of idx) picks.push(nav[i]);
-      }
-      const DEEP = [];
-      for (const it of picks) {
-        if (timedOut()) break;
-        CURRENT_TAB = `(deep) ${it.cat}/${it.tab}`;
+      /* 冷启动探一个面板：goto(#cat/tab) → 轮询到「有内容且不再是占位」→ 三条判据。
+         抽成函数是因为下面**两组**用例（通用取样 / 已知缺陷回归）必须用同一把尺子量；
+         各写一遍的话，迟早有一处悄悄少一条判据，那时两条绿断言证明的就不是同一件事了。 */
+      const coldStart = async (cat, tab, pollMs) => {
+        CURRENT_TAB = `(deep) ${cat}/${tab}`;
         const pErrs0 = pageErrs.length;
-        const url = `${PAGE_URL}#${it.cat}/${it.tab}`;
+        const url = `${PAGE_URL}#${cat}/${tab}`;
         let gotoErr = null;
         try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); } catch (e) { gotoErr = e.message; }
         /* 首启引导可能在新文档里再弹一次（不同 profile 状态下），不处理它不影响读文本，只影响点击 */
         let st = null;
-        const tEnd = nowMs() + 20000;
+        const tEnd = nowMs() + (pollMs || 20000);
         while (nowMs() < tEnd) {
-          await sleep(350);
+          await sleep(300);
           st = await page.evaluate(
-            `(function(){ return (${panelTextInPage.toString()})(${JSON.stringify("#p-" + it.tab)}); })()`
+            `(function(){ return (${panelTextInPage.toString()})(${JSON.stringify("#p-" + tab)}); })()`
           ).catch(() => null);
           if (!st) break;
           if ((st.ready || st.len > 0) && !/正在加载数据/.test(st.head)) break;
         }
         const stuck = !!st && /正在加载数据/.test(st.head);
         const pErr = pageErrs.length - pErrs0;
-        let ok = !!st && st.exists && st.len > 0 && !stuck && pErr === 0 && !gotoErr;
-        /* 冷启动失败时先分环境：服务在这一次 goto 前后掉线 → 浏览器错误页，不是产品缺陷 */
-        if (!ok) {
-          const reach = await httpJson("/api/version", undefined, 5000).catch(() => null);
-          if (!reach || reach.status !== 200) {
-            envSkip(`深链接冷启动 #${it.cat}/${it.tab}`, "打开页面时服务不可达（" +
-              (reach ? "HTTP " + reach.status : "连接失败") + "），本例未执行");
-            DEEP.push({ tab: it.cat + "/" + it.tab, ok: null, env_skip: true, url });
-            continue;
-          }
-        }
-        DEEP.push({
-          tab: it.cat + "/" + it.tab, ok, url, gotoErr,
+        const ok = !!st && st.exists && st.len > 0 && !stuck && pErr === 0 && !gotoErr;
+        return {
+          tab: cat + "/" + tab, ok, url, gotoErr,
           exists: !!st && st.exists, len: st ? st.len : 0, ready: !!st && st.ready,
           frame: !!st && st.frame, stuck, pageerr: pErr, head: st ? st.head : "",
-        });
-        rec("deep", `深链接冷启动 #${it.cat}/${it.tab} 直接打开就有内容`, ok,
-          `goto${gotoErr ? "失败:" + gotoErr.slice(0, 80) : "OK"} | 面板${st && st.exists ? "存在" : "缺失"}/${st ? st.len : 0}字` +
-          (st && st.frame ? "(iframe)" : "") + ` | ready=${!!st && st.ready} | 停在「正在加载」=${stuck} | pageerror ${pErr} | 首屏「${st ? st.head : ""}」`,
-          "「点出来正常」不等于「直接打开正常」：依赖后置脚本的面板在首屏会静默停在加载中，" +
-          "而分享链接/刷新/收藏夹全是冷启动路径 —— 点击型回归永远漏这一档", "fail");
+        };
+      };
+      /* 冷启动失败时先分环境：服务在这一次 goto 前后掉线 → 浏览器错误页，不是产品缺陷。
+         返回 true = 已记成「未执行」，调用方不要再记一条红。 */
+      const coldEnvSkip = async (label) => {
+        const reach = await httpJson("/api/version", undefined, 5000).catch(() => null);
+        if (!reach || reach.status !== 200) {
+          envSkip(label, "打开页面时服务不可达（" + (reach ? "HTTP " + reach.status : "连接失败") + "），本例未执行");
+          return true;
+        }
+        return false;
+      };
+      const deepDetail = (r) =>
+        `goto${r.gotoErr ? "失败:" + r.gotoErr.slice(0, 80) : "OK"} | 面板${r.exists ? "存在" : "缺失"}/${r.len}字` +
+        (r.frame ? "(iframe)" : "") + ` | ready=${r.ready} | 停在「正在加载」=${r.stuck} | pageerror ${r.pageerr}` +
+        ` | 首屏「${r.head}」`;
+      const DEEP_WHY = "「点出来正常」不等于「直接打开正常」：依赖后置脚本的面板在首屏会静默停在加载中，" +
+        "而分享链接/刷新/收藏夹全是冷启动路径 —— 点击型回归永远漏这一档";
+
+      /* ----- A. 通用取样：枚举结果的第一个 / 中间 / 最后一个 -----
+         不写死任何 tab 名，也不挑"看起来容易坏"的。这一组的价值在于覆盖面：
+         哪天别处又坏一个，随机取样有机会撞上。 */
+      const DEEP = [];
+      const picks = [];
+      if (nav.length) {
+        const idx = Array.from(new Set([0, Math.floor(nav.length / 2), nav.length - 1]));
+        for (const i of idx) picks.push(nav[i]);
+      }
+      for (const it of picks) {
+        if (timedOut()) break;
+        const r = await coldStart(it.cat, it.tab);
+        if (!r.ok && await coldEnvSkip(`深链接冷启动 #${r.tab}`)) {
+          DEEP.push({ ...r, ok: null, env_skip: true });
+          continue;
+        }
+        DEEP.push(r);
+        rec("deep", `深链接冷启动（通用取样）#${r.tab} 直接打开就有内容`, r.ok, deepDetail(r), DEEP_WHY, "fail");
       }
       report.deep = DEEP;
+
+      /* ----- B. 已知缺陷回归：后置脚本面板冷启动（**写死名单**） -----
+       * 为什么这里必须写死（与"不许写死 tab 名单去遍历导航"不矛盾，这是两件事）：
+       *   A 组守的是「这一类」问题能被动撞见 —— 价值在覆盖面；
+       *   B 组守的是「这一个」问题确实修好了 —— 价值在确定性。
+       *   只留 A 组时，3 个取样很可能一个都没落在这批面板上，于是"3/3 冷启动正常"
+       *   证明的是别的面板正常。这是最难发现的那类测试：**通过了，但测的不是那个东西**。
+       *
+       * 名单来源（按现盘核对，勿凭记忆改）。viewer/static/index.html 里排在
+       * app.js(:326) **之后**还有 5 个 <script>，它们提供的正是 app.js 早就引用过的全局：
+       *   screener_extra.js   → window.SC_EXTRA.init                  ← app.js:12019（renderScreener 末尾钩子）
+       *   industry_leaders.js → window.loadIndustryLeaders            ← app.js:14474
+       *   bottleneck.js       → window.loadBottleneck                 ← app.js:14476
+       *   douyin_corpus.js    → window.DOUYIN.renderTech / .renderIntegration
+       *                         / .renderResonance / .renderSentimentBox
+       *                                                               ← app.js:14485 / 14486 / 14487 / 3317
+       *   funnel.js           → window.DOUYIN.renderFunnel            ← app.js:14488
+       * 这些调用点全是 `if (window.X)` 形状的**静默守卫**：脚本还没到就跳过，不报错、不进 console。
+       * ⇒ 今后 index.html 若再加一个排在 app.js 之后的 <script>，**请往这张表补一条**，
+       *   否则那个面板的冷启动就重新回到"没人测"的状态。
+       * 另外 4 条是 2026-11-01 导航收敛时新拆出来的子面板（overseas_sentiment / geo_events /
+       * lowbox_bottom / lowbox_radar）：首绘走 deferPaint + ensureOverseasShell，与后置脚本
+       * 同属"首屏时序"这一类，一并钉住。
+       * `cat` 是兜底归属（枚举没给出时用）：有 NAV 静态项的 tab 会被页面自己的 TAB_HOME 扶正，
+       * KB_FIXED_TABS 那 4 个（tech/integrate/dy_reso/funnel）不在 NAV 里，必须写对（strategy）。 */
+      const POST_SCRIPT_TABS = [
+        { tab: "dy_reso", cat: "strategy", script: "douyin_corpus.js", global: "window.DOUYIN.renderResonance", at: "app.js:14487" },
+        { tab: "funnel", cat: "strategy", script: "funnel.js", global: "window.DOUYIN.renderFunnel", at: "app.js:14488" },
+        { tab: "tech", cat: "strategy", script: "douyin_corpus.js", global: "window.DOUYIN.renderTech", at: "app.js:14485" },
+        { tab: "integrate", cat: "strategy", script: "douyin_corpus.js", global: "window.DOUYIN.renderIntegration", at: "app.js:14486" },
+        { tab: "sentiment", cat: "market", script: "douyin_corpus.js", global: "window.DOUYIN.renderSentimentBox", at: "app.js:3317" },
+        { tab: "industry-leaders", cat: "market", script: "industry_leaders.js", global: "window.loadIndustryLeaders", at: "app.js:14474" },
+        { tab: "bottleneck", cat: "mine", script: "bottleneck.js", global: "window.loadBottleneck", at: "app.js:14476" },
+        { tab: "screener", cat: "mine", script: "screener_extra.js", global: "window.SC_EXTRA.init", at: "app.js:12019" },
+        { tab: "overseas_sentiment", cat: "market", script: "（导航收敛新子面板）", global: "deferPaint(overseas_sentiment)", at: "app.js:7979" },
+        { tab: "geo_events", cat: "market", script: "（导航收敛新子面板）", global: "deferPaint(geo_events)", at: "app.js:7984" },
+        { tab: "lowbox_bottom", cat: "mine", script: "（导航收敛新子面板）", global: "loadBottom", at: "app.js:14445" },
+        { tab: "lowbox_radar", cat: "mine", script: "（导航收敛新子面板）", global: "loadLowboxRadar", at: "app.js:14450" },
+      ];
+      if (CFG.quick) {
+        /* quick 只枚举 3 个 tab，用它去"找不到 ⇒ 名单失效"会误报；整段跳过并写明未覆盖。 */
+        NOTES.push("quick 模式：跳过后置脚本面板回归（A 组通用取样照跑）—— 这一档只有全量才算数");
+        report.deep_regression = [];
+      } else {
+        const REG = [];
+        const regMissing = [];
+        for (const e of POST_SCRIPT_TABS) {
+          if (timedOut()) break;
+          const hit = nav.find((x) => x.tab === e.tab);
+          const cat = (hit && hit.cat) || e.cat;
+          /* 轮询上限 15s：真·缺陷（停在「正在加载数据…」）会**立刻**停在那里，等再久也不会好；
+             这里的余量只是给"接口慢但正常"的面板留的（lowbox/bottleneck 这类要现算）。 */
+          const r = await coldStart(cat, e.tab, 15000);
+          if (!r.ok && await coldEnvSkip(`后置脚本回归 #${e.tab}`)) {
+            REG.push({ ...e, ...r, ok: null, env_skip: true });
+            continue;
+          }
+          if (!r.exists) {
+            /* 面板压根不存在 = 这条名单已经失效（tab 改名/下线），交给下面那条断言统一报红，
+               避免"面板缺失"被拆成一条失败 + 一条名单失效、两处都看着像产品缺陷。 */
+            regMissing.push(e.tab);
+            REG.push({ ...e, ...r, ok: null, missing: true });
+            continue;
+          }
+          REG.push({ ...e, ...r });
+          rec("deep", `冷启动回归 #${r.tab}（依赖后置脚本 ${e.script} → ${e.global}）直接打开就有内容`, r.ok,
+            deepDetail(r), DEEP_WHY + `；该面板的渲染入口是 ${e.at} 的 \`if (window.X)\` 静默守卫`, "fail");
+        }
+        report.deep_regression = REG;
+        /* 名单失效必须红：一条永远"找不到所以跳过"的回归清单，等于没有这段测试。 */
+        rec("deep", "后置脚本回归名单未失效（每条名单都真能打开出对应面板）", regMissing.length === 0,
+          `名单 ${POST_SCRIPT_TABS.length} 条，取不到面板 ${regMissing.length} 条` +
+          (regMissing.length ? `：${regMissing.join("、")}（可能已改名/下线，请更新 run.cjs 名单）` : ""),
+          "回归清单写死是有意的；但写死的清单若整体失效又没人发现，就会静默地什么都不测", "fail");
+        const regRan = REG.filter((x) => x.ok !== null);
+        rec("deep", "后置脚本回归确有执行（不许整段变空）", regRan.length > 0,
+          `实跑 ${regRan.length}/${POST_SCRIPT_TABS.length} 例` +
+          (REG.length > regRan.length ? `（未执行 ${REG.length - regRan.length} 例：环境不可达/名单失效）` : ""),
+          "「没跑」和「跑过且通过」在报告里必须长得不一样，否则空白会被读成绿灯", "fail");
+      }
       /* 收尾：回到干净首屏，后面的阶段（单位/抽屉）默认在"已经跑热"的页面上做 */
       try { await page.goto(PAGE_URL, { waitUntil: "domcontentloaded", timeout: 30000 }); await sleep(800); await dismissFirstRun(page); } catch (_) { /* ignore */ }
     } else {
@@ -2240,16 +2357,28 @@ function printHuman(R) {
     push("[watch] 未执行（--no-write 或预算不足）");
   }
 
-  /* 深链接冷启动 */
+  /* 深链接冷启动（两组分开打印：通用取样 / 后置脚本面板回归） */
   if (R.deep && R.deep.length) {
     const ran = R.deep.filter((d) => d.ok !== null);
     const bad = ran.filter((d) => !d.ok);
     const sk = R.deep.length - ran.length;
-    push(`[deep] 深链接冷启动 ${ran.length - bad.length}/${ran.length} 直接打开就有内容` +
+    push(`[deep] 通用取样 ${ran.length - bad.length}/${ran.length} 直接打开就有内容` +
       (sk ? `（${sk} 例未执行=环境中途不可达）` : "") +
       (bad.length ? `（问题: ${bad.map((d) => d.tab + (d.stuck ? " 停在加载中" : "")).join("、")}）` : ""));
   } else {
-    push("[deep] 未执行（预算不足）");
+    push("[deep] 通用取样未执行（预算不足）");
+  }
+  if (R.deep_regression && R.deep_regression.length) {
+    const ran = R.deep_regression.filter((d) => d.ok !== null);
+    const bad = ran.filter((d) => !d.ok);
+    push(`[deep] 后置脚本面板回归 ${ran.length - bad.length}/${ran.length} 直接打开就有内容（名单 ${R.deep_regression.length} 条，含 5 个后置脚本：` +
+      `douyin_corpus / funnel / industry_leaders / bottleneck / screener_extra）` +
+      (R.deep_regression.length - ran.length ? `（${R.deep_regression.length - ran.length} 例未执行）` : "") +
+      (bad.length ? `（问题: ${bad.map((d) => d.tab + (d.stuck ? " 停在加载中" : "")).join("、")}）` : ""));
+  } else if (CFG.quick) {
+    push("[deep] 后置脚本面板回归：quick 模式跳过（只有全量才算覆盖）");
+  } else {
+    push("[deep] 后置脚本面板回归未执行（预算不足）");
   }
 
   /* 环境中途不可用：单列一行，避免被读成"某条产品断言失败" */
