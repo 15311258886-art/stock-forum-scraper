@@ -23,8 +23,9 @@ import re
 import sqlite3
 import statistics
 from collections import defaultdict
+import os
 
-DB = "viewer/app.db"
+DB = os.environ.get("VIEWER_DB") or "viewer/app.db"
 H = 5          # 前向 5 个交易日
 MIN_DAY_N = 100  # 单日全市场样本少于该数则该日不做基准
 

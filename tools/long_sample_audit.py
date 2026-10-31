@@ -72,7 +72,7 @@ def main():
     args = ap.parse_args()
 
     want = [k.strip() for k in args.keys.split(",") if k.strip()]
-    conn = sqlite3.connect(os.path.join(ROOT, "viewer", "app.db"), timeout=60)
+    conn = sqlite3.connect(os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db"), timeout=60)
     t0 = time.time()
     rows, errs = [], []
     for c in CLAIMS:

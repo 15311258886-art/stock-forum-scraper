@@ -19,8 +19,9 @@
   python tools/integrate_corpus.py --dry-run    # 只打印统计不写库
 """
 import sqlite3, os, re, argparse, json
+import os
 
-DB = os.path.join(os.path.dirname(__file__), "..", "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(os.path.dirname(__file__), "..", "viewer", "app.db")
 
 # ---------------------------------------------------------------------------
 # 1) 技术域 → 高维主题轨道

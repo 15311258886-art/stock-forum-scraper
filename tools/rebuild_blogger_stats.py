@@ -26,7 +26,7 @@ if PROJ not in sys.path:
 
 import blogger_rebuild as rb  # noqa: E402
 
-DEFAULT_DB = os.path.join(PROJ, "viewer", "app.db")
+DEFAULT_DB = os.environ.get("VIEWER_DB") or os.path.join(PROJ, "viewer", "app.db")
 
 
 def _fmt(v):

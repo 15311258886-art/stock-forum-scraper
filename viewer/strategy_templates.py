@@ -120,7 +120,7 @@ def ensure_tables(con: sqlite3.Connection):
 def run(con=None, asof: str = None):
     own = con is None
     if con is None:
-        con = sqlite3.connect(os.path.join(ROOT, "viewer", "app.db"))
+        con = sqlite3.connect(os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db"))
     ensure_tables(con)
     t0 = time.time()
     updated = asof or ""

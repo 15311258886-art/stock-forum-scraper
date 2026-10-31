@@ -25,9 +25,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+import os
 
 ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = ROOT / "viewer" / "app.db"
+DB_PATH = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")

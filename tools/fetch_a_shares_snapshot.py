@@ -41,7 +41,7 @@ import urllib.request
 import urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 SNAP_DIR = os.path.join(ROOT, "data", "snapshots")
 CHECKPOINT = os.path.join(SNAP_DIR, "_a_shares_snap_checkpoint.json")
 

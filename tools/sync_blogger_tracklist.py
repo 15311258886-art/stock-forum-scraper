@@ -36,7 +36,7 @@ PROJ = os.path.dirname(HERE)
 
 # 抖音每日自动化跟踪目标清单（只读源，本脚本绝不写它）。
 DEFAULT_SRC = r"F:\AI Agent部署知识库\2026-10-07-14-13-22\.workbuddy\douyin\dy_targets.json"
-DEFAULT_DB = os.path.join(PROJ, "viewer", "app.db")
+DEFAULT_DB = os.environ.get("VIEWER_DB") or os.path.join(PROJ, "viewer", "app.db")
 
 DDL = """
 CREATE TABLE IF NOT EXISTS blogger_tracklist (

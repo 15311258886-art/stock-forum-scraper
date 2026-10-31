@@ -28,7 +28,7 @@ VIEWER = os.path.join(ROOT, "viewer")
 if VIEWER not in sys.path:
     sys.path.insert(0, VIEWER)
 
-APP_DB = os.path.join(ROOT, "viewer", "app.db")
+APP_DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 KLINE_DB = os.path.join(ROOT, "data", "kline_daily.db")
 KBASE_DB = os.path.join(ROOT, "viewer", "kbase.db")
 

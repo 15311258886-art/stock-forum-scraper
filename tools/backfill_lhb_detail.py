@@ -49,7 +49,7 @@ if BASE not in sys.path:
 
 import lhb_fetch as L                    # noqa: E402  抓取逻辑唯一真源
 
-DB = os.path.join(BASE, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(BASE, "viewer", "app.db")
 DETAIL_TABLES = ("lhb_seats", "lhb_depts", "lhb_inst")
 FETCHERS = {"lhb_seats": L.fetch_seats, "lhb_depts": L.fetch_depts, "lhb_inst": L.fetch_inst}
 RETRIES = 5                              # database is locked 时的退避重试

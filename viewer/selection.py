@@ -675,7 +675,8 @@ def text_block(conn: sqlite3.Connection) -> str:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    c = sqlite3.connect(os.path.join(_HERE, "app.db"))
+    # 2026-10-31：本地直跑时也认 VIEWER_DB，避免调试脚本误连生产库
+    c = sqlite3.connect(os.environ.get("VIEWER_DB") or os.path.join(_HERE, "app.db"))
     print(refresh_pool(c))
     print(refresh_evidence(c))
     import json

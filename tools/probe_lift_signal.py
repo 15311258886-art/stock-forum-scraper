@@ -36,7 +36,7 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 API = "https://datacenter-web.eastmoney.com/api/data/v1/get"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

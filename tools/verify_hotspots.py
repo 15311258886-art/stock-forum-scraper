@@ -14,7 +14,7 @@ if ROOT not in sys.path:
 import viewer.db as dbmod
 from viewer import hotspots as HS
 
-SRC = os.path.join(ROOT, "viewer", "app.db")
+SRC = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 DST_DIR = os.path.join(ROOT, ".iso_hot")
 DST = os.path.join(DST_DIR, "app.db")
 os.makedirs(DST_DIR, exist_ok=True)

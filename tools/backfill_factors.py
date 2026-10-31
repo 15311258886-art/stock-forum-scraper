@@ -32,7 +32,7 @@ import pandas as pd  # noqa: E402
 
 from viewer.indicators import compute_indicators, ensure_tables, IND_COLS  # noqa: E402
 
-APP_DB = os.path.join(ROOT, "viewer", "app.db")
+APP_DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 KLINE_DB = os.path.join(ROOT, "data", "kline_daily.db")
 
 

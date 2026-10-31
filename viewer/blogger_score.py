@@ -45,7 +45,7 @@ import time
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 FWD = 5                 # 与 blogger_perf.r5 同口径
 SHRINK_K = 8            # 收缩强度：n_days=8 时衰减一半

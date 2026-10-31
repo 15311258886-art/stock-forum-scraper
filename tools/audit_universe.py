@@ -50,7 +50,7 @@ if ROOT not in sys.path:
 
 from viewer import units as U  # noqa: E402
 
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 
 def _seg(code: str) -> str:

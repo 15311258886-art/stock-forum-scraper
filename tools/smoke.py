@@ -67,7 +67,7 @@ check("剔除理由白名单不含 blogger_noise", "blogger_noise" not in cfg.EX
 
 # ---- 3. 数据库健康 ----
 print("\n[3] 数据库健康（viewer/app.db）")
-con = sqlite3.connect(os.path.join(ROOT, "viewer", "app.db"))
+con = os.environ.get("VIEWER_DB") or sqlite3.connect(os.path.join(ROOT, "viewer", "app.db"))
 
 
 def cnt(t):

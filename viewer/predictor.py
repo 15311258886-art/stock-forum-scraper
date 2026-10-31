@@ -52,7 +52,7 @@ except Exception:  # noqa: BLE001
     STRATEGIES = []
 
 ENGINE_VER = "pred-v2.0"
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 KCACHE = os.path.join(ROOT, "predict_kcache.json")
 
 # ---- 可调参数 -------------------------------------------------------------

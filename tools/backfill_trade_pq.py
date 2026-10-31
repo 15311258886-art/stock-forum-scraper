@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from scraper.parsers.taoguba import TaogubaParser  # noqa: E402
 
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 APPLY = "--apply" in sys.argv
 
 

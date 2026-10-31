@@ -30,7 +30,7 @@ import sys
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 
 def _rank(v):

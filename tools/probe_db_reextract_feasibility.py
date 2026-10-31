@@ -7,13 +7,14 @@
 from __future__ import annotations
 import collections, json, os, sqlite3, sys
 from pathlib import Path
+import os
 
 os.environ.setdefault("NO_PROXY", "127.0.0.1,localhost")
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-DB = ROOT / "viewer" / "app.db"
+DB = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 URI = "file:%s?mode=ro" % str(DB).replace("\\", "/")
 
 from scraper.config import get_site, load_config  # noqa: E402

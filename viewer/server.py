@@ -11621,6 +11621,12 @@ def _hotspots_prewarm_impl() -> None:
 
 _SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# 2026-10-31 修复（隔离能力落地面）：库路径统一走 VIEWER_DB 覆写，与 viewer/db.py 的
+#   DB_PATH 同口径。此前 api_params / 自选诊断 / 权重分档 / 影子权重这 4 个接口直接拼
+#   `_SELF_DIR/app.db`，绕开了隔离能力 —— 即使设了 VIEWER_DB 把主库连接重定向到影子库，
+#   这几个接口仍然读写**生产库**，隔离演练时会留下去不掉的真数据。
+_APP_DB = os.environ.get("VIEWER_DB") or os.path.join(_SELF_DIR, "app.db")
+
 
 def api_params() -> dict:
     """/api/params —— 参数注册表自述 + 执行可行性假设清单。
@@ -11636,7 +11642,7 @@ def api_params() -> dict:
         logging.exception("api_params 失败")
         return {"ok": False, "error": str(e)[:200]}
     try:
-        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        con = sqlite3.connect(_APP_DB, timeout=15)
         try:
             out["volume_units"] = UNITS.snapshot_volume_unit_stats(con)
         finally:
@@ -11660,7 +11666,7 @@ def api_executability(codes, aum, n_hold, hold_days, fee_bp) -> dict:
     names = {}
     if cl:
         try:
-            con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+            con = sqlite3.connect(_APP_DB, timeout=15)
             try:
                 qs = ",".join("?" * len(cl))
                 for code, name in con.execute(
@@ -11724,7 +11730,7 @@ def api_cost_calib() -> dict:
     凑数的分档比没有分档更坏，因为它会被当成实测。
     """
     try:
-        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        con = sqlite3.connect(_APP_DB, timeout=15)
         try:
             s = COST_CALIB.stats(con)
         finally:
@@ -11743,7 +11749,7 @@ def api_shadow_weights(days: int = 20) -> dict:
     这个接口只做对比展示；切换与否由人按 switch_rule 判断。
     """
     try:
-        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        con = sqlite3.connect(_APP_DB, timeout=15)
         try:
             return predictor.load_shadow(con, days)
         finally:

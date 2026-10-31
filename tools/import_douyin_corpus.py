@@ -49,7 +49,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
-DB = os.path.join(PROJ, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(PROJ, "viewer", "app.db")
 
 # 源目录会搬家（2026-10-11 已踩过一次），故候选列表 + 取最新，不写死单一绝对路径。
 _DATA_DIRS = [

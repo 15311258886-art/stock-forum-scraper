@@ -32,7 +32,7 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 W_LEFT = 60      # 解禁前看 60 个交易日
 W_RIGHT = 20     # 解禁后看 20 个交易日

@@ -46,7 +46,7 @@ if ROOT not in sys.path:
 
 from viewer import pool_cap as _pc  # 生产同款行业上限逻辑
 
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 FWD = (5, 20)          # 前向窗口
 VOL_WIN = 60           # 年化波动率回看交易日
 ANN = 244.0

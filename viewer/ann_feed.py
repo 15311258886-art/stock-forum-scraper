@@ -44,7 +44,7 @@ import urllib.parse
 from datetime import date, datetime, timedelta
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 

@@ -120,7 +120,7 @@ import sqlite3
 from datetime import date as _date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(ROOT, "viewer", "app.db")
+DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 MAX_SCORE = 18                      # 5+4+2+3+3+1+0（长样本重标定：只重新分配，满分随样本纪律微调）
 LEVEL_HIGH = 7                      # 满分 18 的约 39%，与历次改版保持同一比例

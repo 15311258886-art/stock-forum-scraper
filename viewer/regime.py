@@ -56,7 +56,7 @@ import time
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 
 WINDOW = 20          # 回看交易日（约一个月）
 HIST = 250           # 分位阈值的回看窗口（约一年）

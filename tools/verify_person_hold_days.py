@@ -22,7 +22,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
-PROD_DB = ROOT / "viewer" / "app.db"
+PROD_DB = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 ISO_DIR = ROOT / ".iso_person"
 ISO_DB = ISO_DIR / "app.db"
 PYTHON = ROOT / ".venv" / "Scripts" / "python.exe"

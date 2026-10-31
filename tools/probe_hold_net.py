@@ -26,8 +26,9 @@ import sqlite3
 import statistics
 from bisect import bisect_left
 from collections import defaultdict
+import os
 
-DB = "viewer/app.db"
+DB = os.environ.get("VIEWER_DB") or "viewer/app.db"
 H = 5                 # 前向/回看窗口（交易日）
 MATCH_PP = 2.0        # 配对容差：前期涨幅差 ≤2 个百分点
 START = "2026-08-01"

@@ -13,11 +13,12 @@ from __future__ import annotations
 import sqlite3
 import sys
 from pathlib import Path
+import os
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-DB = ROOT / "viewer" / "app.db"
+DB = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 
 from overseas.sources import load_overseas_config  # noqa: E402
 

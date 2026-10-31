@@ -25,8 +25,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from viewer.stock_names import BUILTIN  # noqa: E402
+import os
 
-DB_PATH = ROOT / "viewer" / "app.db"
+DB_PATH = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 OUT_PATH = ROOT / "scraper" / "stock_names_full.json"
 EXTRA_PATH = ROOT / "scraper" / "stock_name_map.json"
 

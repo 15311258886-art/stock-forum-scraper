@@ -35,7 +35,7 @@ BASE = "http://127.0.0.1:8765"
 HERE = os.path.dirname(os.path.abspath(__file__))
 ALERT_LOG = os.path.join(HERE, "alerts.log")
 STATE_F = os.path.join(HERE, ".alert_state.json")
-DB_F = os.path.join(HERE, "app.db")  # 只读校验 trades 真实性
+DB_F = os.environ.get("VIEWER_DB") or os.path.join(HERE, "app.db")  # 只读校验 trades 真实性
 
 # ---- 抓取管道阈值 ----
 ERR_THRESHOLD = 10      # 交易窗口内当日累计失败 >= 此值 -> 高错误率告警

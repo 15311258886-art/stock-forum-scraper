@@ -29,7 +29,7 @@ from collections import deque
 from datetime import date as _date
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(BASE, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(BASE, "viewer", "app.db")
 
 (C_CODE, C_DATE, C_CLOSE, C_MA20, C_MA60, C_MACDH, C_PMACDH,
  C_KDJK, C_KDJD, C_PKDJK, C_PKDJD, C_BIAS6, C_RSI6, C_VR, C_ATR,

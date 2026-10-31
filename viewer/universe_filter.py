@@ -58,7 +58,7 @@ except Exception:  # noqa: BLE001
 
 logger = logging.getLogger(__name__)
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.db")
+_DB_PATH = os.environ.get("VIEWER_DB") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.db")
 
 # 理由中文标签（前端展示用）。注意：blogger_noise 已于 2026-10-26 弃用（改时效 overlay）。
 REASON_LABELS = {

@@ -54,7 +54,7 @@ from datetime import datetime
 # ---------------------------------------------------------------- 路径 / 依赖
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根
 sys.path.insert(0, BASE)
-DB = os.path.join(BASE, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(BASE, "viewer", "app.db")
 SEED = os.path.join(BASE, "public_records_seed.json")
 EXPORT_DIR = os.path.join(BASE, "exports")
 

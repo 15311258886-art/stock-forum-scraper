@@ -24,9 +24,10 @@ from scraper.config import get_site, load_config  # noqa: E402
 from scraper.parsers.taoguba import TaogubaParser  # noqa: E402
 from scraper.parsers.xueqiu import XueqiuParser  # noqa: E402
 from scraper import bot_filter  # noqa: E402
+import os
 
 CORPUS = r"F:\AI Agent部署知识库\2026-10-07-14-13-22\.workbuddy\douyin\采集数据\players_posts.jsonl"
-DB = ROOT / "viewer" / "app.db"
+DB = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 
 TGB_TPL = (
     '<div class="topic-new"><a href="/blog/1"><span>{author}</span></a></div>'

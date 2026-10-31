@@ -3068,12 +3068,34 @@ DOM 17 卡 = 5 完整 + 12 标题行；JS 报错 0。
 - **结论 2（测试污染生产表，根因是库路径漏配 `VIEWER_DB`）**：`tools/sched_job.py::main()` 的 `finally` 无条件调 `viewer.health.record_job_run()`，而 `viewer/health.py` 的 `APP_DB` 硬编码 `viewer/app.db`，**不读 `VIEWER_DB`**（`viewer/db.py` 早在 2026-09-22 已改可覆写，health.py 未跟进）。故 `tests/test_kline_daily_exitcode.py::test_sched_job_maps_ok_false_to_rc1` 每跑一次就往生产 `job_runs` 写 3 行 `ok=0, error="ok=False {'ok': False, 'err': 'x'}"`，已累积 18 条 —— **这正是本次排查初期把 kline_daily 误判成真故障的原因**（该 job 生产侧实际正常）。修法：`APP_DB` 改读 `VIEWER_DB`（未设时行为逐字不变）；该用例内 `monkeypatch` 重定向到 `tmp_path`，并在用例里断言临时库确实收到 3 行（证明"隔离了"而非"把写入弄丢了"）。不在 conftest 做全局 autouse 重定向 —— conftest 明确声明无 fixture 副作用，以免干扰 `test_boot.py` 的 import 副作用断言。
 - **证据（都不是"看代码猜"）**：① 对 `git show HEAD` 的修复前版本用 symtable 递归扫，独立复现出**恰好这 4 处**（hashlib@mine_rules、log@api_global_market、logger@api_board_flow_range、logger@api_board_flow_dates），证明缺陷真实且修复覆盖完整；② 新旧代码 A/B 差分注入异常：旧版抛 `NameError`、新版返回 `{"ok": false}` 并正常出日志，6/6 PASS；③ `evolve_daily` 实跑 `rc=0, 13.9s`，`job_runs` 由 26 连败在 `id=257` 处转为 `ok=1`，且用 `sha1(cond_text)` 复算出的 `R2859445F` 与 `evo_rule` 存库值一致（证明 hashlib 那行真执行出值）；④ 测试隔离后生产库 `max(id)` 与全表行级差集均无变化，同时临时库实收 3 行；⑤ 回归 98 passed / 1 skipped / 0 failed，`test_boot.py` 2 passed。
 - **生效状态（重要）**：`evolve.py`、`health.py` 的改动由子进程/新进程加载，**已生效**；`server.py` 那 3 处跑在常驻进程里，**需重启 8765 才生效**（`/api/version` 的 build_id 与磁盘现算值不一致即为证据）。因属潜伏缺陷且生产从未触发，不为此专门打断服务，随下次重启自然生效。
-- **遗留（未做，待进哥拍板）**：
-  1. `job_runs` 里 18 条 `err='x'` 历史假记录**未删**（删生产数据需明确授权）。它们会污染健康面板「连续失败 N 次」的统计。
-  2. 硬编码 `viewer/app.db` 而**不读 `VIEWER_DB`** 的位置全仓约 **122 处**（`predictor.py`/`selection.py`/`avoid.py`/`ann_feed.py`/`lift.py` 等日更链路模块最值得优先）。本次只堵 `job_runs` 这一个显形点，未扩大整改。
-  3. `viewer/health.py` **未纳入 git 版本控制**（`git ls-files` 无此文件，全仓未跟踪文件 295 个）→ 该文件改动无回滚点，属仓库治理问题，非本次引入。
-  4. 「未定义全局名」扫描器（symtable + 字节码双实现，196/354 文件 0 可疑）目前只在临时目录，未沉淀为 `tools/check_undefined_globals.py` 的常驻体检项。
+- **遗留（未做，待进哥拍板）—— 四项均已由 D58 闭环（2026-10-31 晚）**：
+  1. `job_runs` 里 18 条 `err='x'` 历史假记录**未删**（删生产数据需明确授权）。它们会污染健康面板「连续失败 N 次」的统计。→ **D58 已删（先备份、条件收紧、保留 26 条真实失败记录）**。
+  2. 硬编码 `viewer/app.db` 而**不读 `VIEWER_DB`** 的位置全仓约 **122 处**（`predictor.py`/`selection.py`/`avoid.py`/`ann_feed.py`/`lift.py` 等日更链路模块最值得优先）。本次只堵 `job_runs` 这一个显形点，未扩大整改。→ **D58 已改 65 处（60 常量 + 5 直连），4 处按语义有意排除**。
+  3. `viewer/health.py` **未纳入 git 版本控制**（`git ls-files` 无此文件，全仓未跟踪文件 295 个）→ 该文件改动无回滚点，属仓库治理问题，非本次引入。→ **D58 已纳入（260 源码文件基线 commit `248c4aa`）**。
+  4. 「未定义全局名」扫描器（symtable + 字节码双实现，196/354 文件 0 可疑）目前只在临时目录，未沉淀为 `tools/check_undefined_globals.py` 的常驻体检项。→ **D58 已沉淀，带 11 条自测**。
 - **推翻条件**：若重构为多进程/多库部署，`APP_DB` 必须有唯一真源（建议收敛到 `viewer/db.py` 的 `DB_PATH`），届时本条"读 `VIEWER_DB`"的局部做法应升级为全局约定；清理 18 条假记录前须先确认健康统计口径（是否已有按 `error` 过滤的逻辑），避免删后口径漂移。
+
+---
+
+## D58 隔离能力全域落地 + 仓库纳入版本管理 + 体检工具常驻（2026-10-31）
+- **背景**：D57 留下 4 项待决（18 条假记录、122 处硬编码、health.py 未入 git、扫描器未沉淀），进哥逐项拍板「删 / 整改 / 沉淀 / 按你的判断纳入管理」。本条记录四项的执行口径与实证。
+- **决定 1（重启）**：`server.py` 的 3 处 except 修复与本次库路径改动均为进程内常量，需重启才生效。现已重启，`/api/version` 的 `build_id` 由 `452f558c5497` → `33f80a102b28`（与磁盘现算一致），首页与 `/api/params`、`/api/health`、`/api/kb/doc` 均 HTTP 200。**重启前先做了 `job_runs` 全表备份**（`backups/job_runs_backup_20261031-232448.json`，259 行）。
+- **决定 2（删除 18 条测试假记录）**：删除条件收紧为「`job='kline_daily' AND ok=0 AND error 含 'err': 'x'` AND id 在清单内」，先备份再删（`backups/job_runs_kline_fake_*.json` 存原行）。结果：`job_runs` 260 → 242 行，`kline_daily` 剩 36 行**全部 ok=1**，假记录归零。**保留 26 条 evolve_daily 的真实失败记录**——那是真实发生过的 hashlib 故障，有诊断价值，且健康面板"连续失败 N 次"在 id=257 处已自然中断。
+- **决定 3（库路径全域接入 `VIEWER_DB`）**：
+  - 范围：**60 处模块级常量 + 5 处函数内直连点**，覆盖 `viewer/`（10 个模块）与 `tools/`（46 个脚本）。
+  - 写法统一为 `os.environ.get("VIEWER_DB") or <原表达式>`（Path 型再包一层 `Path(...)`）。**不新建公共路径模块**：`viewer/` 内部采用裸模块名互相导入（`import predictor as SS`），新增包初始化会引入循环导入风险，而每文件一行就地改的语义最直白，也与 `health.py`/`db.py` 现有写法一致。
+  - **有意排除 4 处**（写进代码注释）：`tools/db_backup.py` 的 `DB_PATH`（备份工具的语义就是"备份那个生产库"，随环境漂移会备份错库）、`tools/migrate_dedupe.py` 的 `LIVE_DB`（明确指线上库，用于与候选库比对）、`tools/verify_hotspots.py` 的 `DST`、`tools/verify_person_hold_days.py` 的 `ISO_DB`（后两者本就是临时/隔离库路径）。
+  - **未设 `VIEWER_DB` 时行为逐字不变**——这是本次改动的硬约束，也是"能否安全全量铺开"的前提。
+- **决定 4（检测工具常驻）**：`tools/check_undefined_globals.py` 入库，双引擎（symtable 递归 + 字节码 `LOAD_GLOBAL`）交叉验证，带 11 条 `--selftest` 用例。检出 `from x import *` 时主动把报告标记为 UNRELIABLE，避免假阴性被当成"干净"。可作提交前体检：`python tools/check_undefined_globals.py viewer tools tests`。
+- **决定 5（仓库纳入管理）**：260 个源码文件（viewer/tools/tests 的 .py、前端 js/css/html、docs 的 md、config 的 yaml）纳入基线（commit `248c4aa`）。同时 `.gitignore` 补 4 类**写得过窄、实际一条没挡住**的规则（commit `e9940c5`）：`*.bak-*`（73 个前端快照 40 MB）、`kronos_core/weights/`（31 MB）、`*_kcache.json`（原规则只匹配下划线写法 `*_cache.json`，实际是 46 MB 的无下划线写法）、`data/*.gz`（40 MB）。
+- **证据（都是实测，不是推断）**：
+  1. **静态全覆盖**：AST 逐个顶层赋值核验 → 已接入 60 处、有意排除 4 处、**未接入 0 处**（唯一报点 `ensure_indexes.py` 的 `INDEXES` 是索引定义列表，属误报）。
+  2. **运行时实证**：设 `VIEWER_DB` 指向临时库后真实导入 22 个模块，读各自路径常量逐字比对 → **13 处全部指向隔离库，0 处指向生产**；另 9 个模块走 `P.DB_PATH` 间接引用，随 predictor 一起隔离。
+  3. **零污染验证**：跑完 69 个核心测试 → 生产 `job_runs` 仍 247 行 / `max(id)` 265，新增 0；再跑**全量 360 个测试** → 依然 247 行 / 265，kline 假记录 0。**修复前每跑一次 pytest 必写 3 行**。
+  4. **回归**：全量 `360 passed / 1 skipped / 0 failed`（skip 那条需 `QUANT_PARITY_ALL=1` 才跑的全量等价性比对，与本次无关）。
+- **影响面与代价**：56 个文件被脚本改写（15 个补了 `import os`），全部 `py_compile` 通过；符号扫描 HIGH=0（唯一 LOW 集中在 `kronos_core/kronos.py`，该文件有星号导入，报告已标记 UNRELIABLE）。
+- **推翻条件**：若将来做「测试/演练全程隔离」，光靠环境变量还不够——`VIEWER_DB` 只在**导入时**求值，运行时 `monkeypatch` 环境变量对已导入模块无效（测试里应 `monkeypatch.setattr(模块, "APP_DB", ...)`）。若需要运行时切换库，必须把库路径改为**函数式求值**（`def app_db():`），那是一次更大的重构，届时本条"常量读环境变量"的约定应整体升级。
+- **遗留（未做）**：仓库仍跟踪 4 个运行时大文件（`data/decline_kcache.json` 32 MB、`data/*.gz` 40 MB、`predict_kcache.json` 14 MB、`fund_link_result.json` 9 MB）及 `extlib/` 下第三方二进制，仓库体积 857 MB。它们**在本次纳入管理之前就已被跟踪**，`.gitignore` 对已跟踪文件无效，需 `git rm --cached` 才能摘除（会改变仓库内容，需单独决策，本次未擅动）。
 
 ---
 

@@ -54,7 +54,7 @@ import argparse
 from datetime import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-APP_DB = os.path.join(ROOT, "viewer", "app.db")
+APP_DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 KL_DB = os.path.join(ROOT, "data", "kline_daily.db")
 
 _ST_RE = re.compile(r"ST|\*ST|退|警示|风险")

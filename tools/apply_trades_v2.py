@@ -37,9 +37,10 @@ import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
+import os
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = ROOT / "viewer" / "app.db"
+DEFAULT_DB = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 DEFAULT_STAGING = Path(
     r"F:\AI Agent部署知识库\2026-10-07-14-13-22\.workbuddy\douyin\采集数据\trades_v2_staging.jsonl"
 )

@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 REGIME_CN = {"up": "强势", "range": "震荡", "down": "弱势"}
 REGIMES = ("up", "range", "down")
 MIN_EFF_WINDOWS = 20      # 有效独立窗口少于这个数，不写进权重

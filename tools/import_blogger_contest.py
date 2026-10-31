@@ -31,7 +31,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
-DB = os.path.join(PROJ, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(PROJ, "viewer", "app.db")
 
 SRC_DIR = r"F:\AI Agent部署知识库\博主数据查看台\public\data"
 

@@ -24,7 +24,7 @@ import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(ROOT, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(ROOT, "viewer", "app.db")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 if os.path.join(ROOT, "viewer") not in sys.path:

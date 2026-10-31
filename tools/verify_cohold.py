@@ -32,7 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-SRC = ROOT / "viewer" / "app.db"
+SRC = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 PORT = 8794
 fails: list[str] = []
 

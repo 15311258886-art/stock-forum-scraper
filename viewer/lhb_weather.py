@@ -64,7 +64,7 @@ import numpy as np
 import pandas as pd
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = os.path.join(BASE, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(BASE, "viewer", "app.db")
 KLINE_DB = os.path.join(BASE, "data", "kline_daily.db")
 TABLE = "lhb_weather_daily"
 

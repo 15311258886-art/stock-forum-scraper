@@ -29,8 +29,9 @@ import sqlite3
 import statistics
 from bisect import bisect_left
 from collections import defaultdict
+import os
 
-DB = "viewer/app.db"
+DB = os.environ.get("VIEWER_DB") or "viewer/app.db"
 
 HORIZONS = (1, 3, 5, 10)
 

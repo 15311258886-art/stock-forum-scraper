@@ -9,10 +9,11 @@
 from __future__ import annotations
 import sqlite3
 from pathlib import Path
+import os
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGING = ROOT / "viewer" / "plate_members_staging.db"
-LIVE = ROOT / "viewer" / "app.db"
+LIVE = Path(os.environ.get("VIEWER_DB") or (ROOT / "viewer" / "app.db"))
 
 
 def main() -> int:

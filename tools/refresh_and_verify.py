@@ -10,9 +10,10 @@ import sqlite3
 import time
 import urllib.request
 from pathlib import Path
+import os
 
 BASE = "http://127.0.0.1:8765"
-DB = Path(__file__).resolve().parent.parent / "viewer" / "app.db"
+DB = Path(os.environ.get("VIEWER_DB") or (Path(__file__).resolve().parent.parent / "viewer" / "app.db"))
 PLACEHOLDER = ("example.local", "example.com", "example.org", "example.net", "localhost")
 
 

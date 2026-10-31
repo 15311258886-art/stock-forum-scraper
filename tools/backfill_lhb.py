@@ -39,7 +39,7 @@ sys.path.insert(0, BASE)
 
 import lhb_fetch as L  # noqa: E402  复用已验证的字段映射/建表/写入
 
-DB = os.path.join(BASE, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(BASE, "viewer", "app.db")
 KLINE_DB = os.path.join(BASE, "data", "kline_daily.db")
 PAGE_SIZE = 500
 MAX_FAIL_STREAK = 3

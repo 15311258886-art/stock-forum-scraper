@@ -26,8 +26,9 @@ from __future__ import annotations
 import statistics
 import sqlite3
 from collections import defaultdict
+import os
 
-DB = "viewer/app.db"
+DB = os.environ.get("VIEWER_DB") or "viewer/app.db"
 HS = (1, 3, 5, 10)
 MIN_DAY_N = 100
 

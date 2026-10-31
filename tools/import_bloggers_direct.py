@@ -55,7 +55,7 @@ except ImportError:  # pragma: no cover —— 运行环境缺依赖时给出可
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
-DB = os.path.join(PROJ, "viewer", "app.db")
+DB = os.environ.get("VIEWER_DB") or os.path.join(PROJ, "viewer", "app.db")
 
 # ---- 源路径：**多候选 + 取最新**（2026-10-12 加） ----
 # 事故背景：2026-10-11 另一个 agent 的工作目录整体搬进 `豆包每日抓取\`，Excel 从知识库根目录

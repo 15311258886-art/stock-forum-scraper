@@ -18,8 +18,9 @@ import sqlite3
 import statistics
 from bisect import bisect_left
 from collections import defaultdict
+import os
 
-DB = "viewer/app.db"
+DB = os.environ.get("VIEWER_DB") or "viewer/app.db"
 START = "2026-08-01"
 H = 5                      # 统一检验 T+5（决策周期）
 
