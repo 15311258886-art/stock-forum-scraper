@@ -30,6 +30,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -60,6 +61,11 @@ RULE_ADOPT_OOS = 0.0      # 晋升「已采纳」要求样本外平均超额 > �
 RECENT_DAYS = 20          # 衰减检测的「近期」窗口（交易日）
 TREND_EPS = 1.0           # 近远期超额差 > 此值才判上升/衰减（百分点）
 DIMS = ["blogger", "strategy", "senti", "engine"]
+# 2026-10-30 P1-b 埋点：本模块的样本 `y` 固定是「信号日次日买入、持有 5 个交易日」的
+#   超额（见 `_build_rows` 里 bi=i0+1 → fut=b[bi+5]）。`evo_weight.by_state_json` 里的
+#   per-state 权重就是在这个口径上学出来的。**这个数字必须能被下游读到**，否则
+#   "用哪个持有期的 IC 学的权重"只存在于注释里，改口径时无法察觉。
+FIT_HORIZON = 5
 AUX_DIMS = ["lhb"]        # 只做诊断展示（进哥：龙虎榜作印证不作预判），不进共振权重
 DIM_LABEL = {"blogger": "博主声量", "strategy": "战法命中", "senti": "论坛舆情",
              "engine": "主引擎交叉", "lhb": "龙虎榜印证"}
@@ -346,15 +352,22 @@ def build_train_set(con: sqlite3.Connection) -> dict:
                       "senti": sn, "engine": float(eng), "lhb": lhb},
             })
     mkt_of = {}
+    basis_n = {}
     try:
-        mkt_of = {r["trade_date"]: r["state"] for r in
-                  con.execute("SELECT trade_date,state FROM market_state_log")}
+        # 2026-10-30 P1-a：`market_state_log` 有两个写入方（pillars / resonance），
+        #   同一列两种规则。这里显式把 basis 读出来并在返回体里报数 —— 只报告，不改变
+        #   任何分组口径（`by_state` 仍按 state 分，重量级结论等 P1-b 再议）。
+        from viewer import state_basis as _SB
+        for _x in _SB.rows(con):
+            mkt_of[_x["trade_date"]] = _x["state"]
+            basis_n[_x["basis"]] = basis_n.get(_x["basis"], 0) + 1
     except Exception:  # noqa: BLE001
         pass
     for r in rows:
         r["mkt"] = mkt_of.get(r["date"], "未知")
     return {"ok": True, "rows": rows, "sample_dates": sample_dates,
-            "codes": len(codes), "strat_codes": len(strat_daily)}
+            "codes": len(codes), "strat_codes": len(strat_daily),
+            "state_basis": basis_n}
 
 
 # ================================================================ ① 权重自学习

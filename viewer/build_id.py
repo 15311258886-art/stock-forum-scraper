@@ -35,6 +35,12 @@ KEY_FILES = (
     "viewer/static/index.html",
     "viewer/static/app.js",
     "viewer/static/app.css",
+    # 2026-10-30：节奏改造后，这两个文件改了不重启同样不生效，但不在指纹里 →
+    #   桌面图标的「自动重启」判断不出来，会继续跑旧代码。
+    #   rhythm.py 是「取数节奏唯一真源」（盘中/盘后/休市的采样间隔与缓存 TTL 全在这里），
+    #   board_flow.py 是板块分时的定稿判定与实时抓取节流；两者都只在进程 import 时生效。
+    "viewer/rhythm.py",
+    "board_flow.py",
 )
 
 

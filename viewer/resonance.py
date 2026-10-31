@@ -405,17 +405,25 @@ def state_history(bench: dict) -> dict:
 
 
 def fill_state_log(con: sqlite3.Connection, states: dict) -> int:
-    """市场环境历史回填（只补缺失的交易日，不覆盖已有）。"""
+    """市场环境历史回填（只补缺失的交易日，不覆盖已有）。
+
+    2026-10-30 P1-a：本函数是 `market_state_log` 的**第二个**写入方，判定规则与
+    `pillars.market_state()` 不同（本函数只能看全市场中位数，算不出 up_ratio），
+    所以必须写 `basis='resonance'`，否则两种口径在同一列里永久无法区分。
+    """
+    from viewer import state_basis as _SB
+    _SB.ensure_column(con)
+    con.row_factory = con.row_factory or sqlite3.Row
     exist = {r["trade_date"] for r in con.execute("SELECT trade_date FROM market_state_log")}
     n = 0
     for d, st in states.items():
         if d in exist:
             continue
-        con.execute("INSERT OR IGNORE INTO market_state_log(trade_date,state,breadth_json,note,created_at)"
-                    " VALUES(?,?,?,?,?)",
+        con.execute("INSERT OR IGNORE INTO market_state_log(trade_date,state,breadth_json,note,created_at,basis)"
+                    " VALUES(?,?,?,?,?,?)",
                     (d, st, json.dumps({"bench_median_pct": None}, ensure_ascii=False),
                      "共振引擎回填：普跌=中位涨幅≤-1.2%；震荡=中位涨幅<-0.45% 或 等权净值低于20日线；结构=其余",
-                     _now()))
+                     _now(), _SB.BASIS_RESONANCE))
         n += 1
     con.commit()
     return n

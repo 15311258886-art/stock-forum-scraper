@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>巴菲特选股策略筛选结果 - A股</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --accent2: #53c9b8;
+    --gold: #f0a500;
+    --text: #e8e8e8;
+    --text2: #a0a0b8;
+    --border: rgba(255,255,255,0.08);
+    --green: #4caf50;
+    --red: #ef5350;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .header {
+    text-align: center;
+    padding: 40px 30px;
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 36px;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .header .subtitle { font-size: 14px; color: var(--text2); }
+  .header .meta { margin-top: 16px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+  .header .meta-item { font-size: 13px; color: var(--text2); }
+  .header .meta-item strong { color: var(--accent2); }
+
+  .section { margin-bottom: 40px; }
+  .section-title {
+    font-size: 20px; font-weight: 700;
+    padding-bottom: 10px; margin-bottom: 20px;
+    border-bottom: 2px solid var(--surface2);
+    position: relative;
+  }
+  .section-title::after {
+    content: ''; position: absolute; bottom: -2px; left: 0;
+    width: 60px; height: 2px; background: var(--accent);
+  }
+  .section-title .num {
+    display: inline-block; width: 28px; height: 28px;
+    line-height: 28px; text-align: center;
+    background: var(--accent); color: #fff;
+    border-radius: 6px; font-size: 14px; margin-right: 8px;
+  }
+
+  /* Funnel */
+  .funnel { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+  .funnel-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .funnel-bar {
+    height: 8px; border-radius: 4px;
+    background: var(--accent);
+    transition: width 0.3s;
+  }
+  .funnel-label { font-size: 14px; min-width: 280px; }
+  .funnel-count { font-size: 20px; font-weight: 700; color: var(--accent2); min-width: 60px; text-align: right; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: var(--surface2); color: var(--text);
+    font-weight: 600; padding: 10px 12px;
+    text-align: left; white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  .tier-badge {
+    display: inline-block; padding: 2px 10px;
+    border-radius: 4px; font-size: 12px; font-weight: 700;
+  }
+  .tier-s { background: rgba(240,165,0,0.2); color: #f0a500; border: 1px solid rgba(240,165,0,0.3); }
+  .tier-a { background: rgba(83,201,184,0.15); color: var(--accent2); border: 1px solid rgba(83,201,184,0.3); }
+  .tier-b { background: rgba(15,52,96,0.4); color: #85B7EB; border: 1px solid rgba(133,183,235,0.3); }
+  .tier-c { background: rgba(128,128,128,0.15); color: var(--text2); border: 1px solid rgba(128,128,128,0.3); }
+
+  .pass { color: var(--green); }
+  .warn { color: var(--gold); }
+  .fail { color: var(--red); }
+
+  .note {
+    background: rgba(83, 201, 184, 0.06);
+    border: 1px solid rgba(83, 201, 184, 0.15);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .note strong { color: var(--accent2); }
+  .warn-box {
+    background: rgba(233, 69, 96, 0.06);
+    border: 1px solid rgba(233, 69, 96, 0.15);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .warn-box strong { color: var(--accent); }
+
+  /* Stock card */
+  .stock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .stock-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .stock-name { font-size: 18px; font-weight: 700; }
+  .stock-code { font-size: 13px; color: var(--text2); }
+  .stock-industry {
+    font-size: 12px; padding: 2px 8px;
+    background: var(--surface2); border-radius: 4px;
+    color: var(--text2);
+  }
+  .stock-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .metric-value { font-size: 16px; font-weight: 600; }
+  .metric-value.good { color: var(--green); }
+  .metric-value.ok { color: var(--gold); }
+  .metric-value.bad { color: var(--red); }
+
+  .footer {
+    text-align: center;
+    padding: 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 36px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>巴菲特选股策略筛选结果</h1>
+    <p class="subtitle">基于五层递进筛选体系的A股量化筛选 | 数据日期：2026-07-10</p>
+    <div class="meta">
+      <span class="meta-item">筛选范围：<strong>沪深A股全市场</strong></span>
+      <span class="meta-item">筛选条件：<strong>12项量化指标</strong></span>
+      <span class="meta-item">最终入选：<strong>14只</strong></span>
+    </div>
+  </div>
+
+  <!-- Section 1: Funnel -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">1</span>筛选漏斗</h2>
+    <p>以下为各层筛选条件的通过情况，展示从全市场到最终入选的逐层过滤过程：</p>
+    <div class="funnel">
+      <div class="funnel-row">
+        <div class="funnel-label">全市场A股（排除ST/退市）</div>
+        <div class="funnel-bar" style="width:100%; background:#444"></div>
+        <div class="funnel-count">~5000</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ 市值 > 100亿（流动性门槛）</div>
+        <div class="funnel-bar" style="width:45%; background:#185FA5"></div>
+        <div class="funnel-count">~2200</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ ROE(TTM) > 15%</div>
+        <div class="funnel-bar" style="width:12%; background:#0F6E56"></div>
+        <div class="funnel-count">~600</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ 毛利率 > 40% &amp; 净利率 > 15%</div>
+        <div class="funnel-bar" style="width:6%; background:#854F0B"></div>
+        <div class="funnel-count">~300</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ 资产负债率 < 50%</div>
+        <div class="funnel-bar" style="width:4%; background:#993C1D"></div>
+        <div class="funnel-count">~200</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ PE < 25 &amp; PB < 3 &amp; 股息率 > 1%</div>
+        <div class="funnel-bar" style="width:1.2%; background:#534AB7"></div>
+        <div class="funnel-count">~60</div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">+ 3年营收/净利CAGR > 5%（增长验证）</div>
+        <div class="funnel-bar" style="width:0.4%; background:#e94560"></div>
+        <div class="funnel-count">~20</div>
+      </div>
+      <div class="funnel-row" style="border-color: rgba(83,201,184,0.3);">
+        <div class="funnel-label" style="color:var(--accent2);font-weight:600">= 最终入选（含放宽估值档）</div>
+        <div class="funnel-bar" style="width:0.3%; background:#53c9b8"></div>
+        <div class="funnel-count" style="color:var(--accent2)">14</div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>说明：</strong>以上数量为近似值，实际通过数量取决于各条件交叉过滤结果。最终14只为满足全部核心量化标准的标的，按确信度分为S/A/B/C四个等级。
+    </div>
+  </div>
+
+  <!-- Section 2: Tier Summary -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">2</span>入选股票总览</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>等级</th>
+          <th>代码</th>
+          <th>名称</th>
+          <th>行业</th>
+          <th>市值(亿)</th>
+          <th>ROE</th>
+          <th>毛利率</th>
+          <th>净利率</th>
+          <th>PE</th>
+          <th>PB</th>
+          <th>股息率</th>
+          <th>负债率</th>
+          <th>3年营收CAGR</th>
+          <th>3年净利CAGR</th>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-s">S</span></td>
+          <td>sz002001</td><td><strong>新和成</strong></td><td>化学原料</td>
+          <td>882</td><td class="pass">19.10%</td><td class="pass">43.71%</td><td class="pass">29.21%</td>
+          <td class="pass">13.14</td><td class="pass">2.70</td><td class="pass">3.48%</td><td class="pass">25.64%</td>
+          <td class="pass">20.34%</td><td class="pass">41.63%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-a">A</span></td>
+          <td>sz000568</td><td><strong>泸州老窖</strong></td><td>白酒</td>
+          <td>1151</td><td class="pass">19.28%</td><td class="pass">86.40%</td><td class="pass">40.89%</td>
+          <td class="pass">11.57</td><td class="pass">2.23</td><td class="pass">7.61%</td><td class="pass">21.81%</td>
+          <td class="warn">~3%</td><td class="warn">~2%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-a">A</span></td>
+          <td>sh603198</td><td><strong>迎驾贡酒</strong></td><td>白酒</td>
+          <td>258</td><td class="pass">17.36%</td><td class="pass">72.34%</td><td class="pass">32.17%</td>
+          <td class="pass">12.98</td><td class="pass">2.52</td><td class="pass">4.64%</td><td class="pass">21.41%</td>
+          <td class="warn">5.19%</td><td class="warn">6.04%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-a">A</span></td>
+          <td>sh600867</td><td><strong>通化东宝</strong></td><td>生物医药</td>
+          <td>159</td><td class="pass">17.08%</td><td class="pass">70.86%</td><td class="pass">39.82%</td>
+          <td class="pass">12.84</td><td class="pass">2.39</td><td class="pass">3.69%</td><td class="pass">12.27%</td>
+          <td class="warn">~3%</td><td class="warn">~2%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-b">B</span></td>
+          <td>sz002415</td><td><strong>海康威视</strong></td><td>安防设备</td>
+          <td>3157</td><td class="pass">17.36%</td><td class="pass">46.77%</td><td class="pass">17.39%</td>
+          <td class="warn">21.14</td><td class="warn">3.99</td><td class="pass">3.34%</td><td class="pass">30.26%</td>
+          <td class="pass">8.54%</td><td class="pass">15.37%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-b">B</span></td>
+          <td>sz000423</td><td><strong>东阿阿胶</strong></td><td>中药</td>
+          <td>299</td><td class="pass">16.39%</td><td class="pass">73.98%</td><td class="pass">26.03%</td>
+          <td class="warn">16.92</td><td class="warn">3.10</td><td class="pass">5.81%</td><td class="pass">20.02%</td>
+          <td class="pass">19.28%</td><td class="pass">25.46%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-b">B</span></td>
+          <td>sz002558</td><td><strong>巨人网络</strong></td><td>游戏</td>
+          <td>562</td><td class="pass">15.24%</td><td class="pass">92.53%</td><td class="pass">38.91%</td>
+          <td class="warn">22.59</td><td class="warn">3.52</td><td class="pass">1.15%</td><td class="pass">19.86%</td>
+          <td class="pass">66.16%</td><td class="pass">64.04%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-b">B</span></td>
+          <td>sh603317</td><td><strong>天味食品</strong></td><td>调味品</td>
+          <td>147</td><td class="pass">15.66%</td><td class="pass">41.91%</td><td class="pass">19.97%</td>
+          <td class="warn">19.74</td><td class="warn">3.54</td><td class="pass">3.95%</td><td class="pass">15.15%</td>
+          <td class="pass">13.84%</td><td class="pass">24.93%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sz300181</td><td>佐力药业</td><td>中药</td>
+          <td>~90</td><td class="pass">18.99%</td><td class="pass">62.43%</td><td class="pass">21.23%</td>
+          <td class="pass">14.52</td><td class="pass">2.97</td><td class="pass">2.57%</td><td class="pass">34.47%</td>
+          <td class="pass">21.90%</td><td class="pass">26.99%</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sz000848</td><td>承德露露</td><td>饮料</td>
+          <td>~80</td><td class="pass">17.79%</td><td class="pass">45.30%</td><td class="pass">19.94%</td>
+          <td class="pass">12.25</td><td class="pass">2.53</td><td class="pass">6.31%</td><td class="pass">31.65%</td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sh603998</td><td>方盛制药</td><td>中药</td>
+          <td>~70</td><td class="pass">17.68%</td><td class="pass">73.18%</td><td class="pass">16.85%</td>
+          <td class="pass">13.31</td><td class="pass">2.45</td><td class="pass">4.84%</td><td class="pass">39.93%</td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sz300770</td><td>新媒股份</td><td>传媒</td>
+          <td>~80</td><td class="pass">17.31%</td><td class="pass">46.22%</td><td class="pass">40.21%</td>
+          <td class="pass">11.50</td><td class="pass">2.08</td><td class="pass">8.63%</td><td class="pass">24.94%</td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sz000915</td><td>华特达因</td><td>儿童药</td>
+          <td>~70</td><td class="pass">15.59%</td><td class="pass">84.08%</td><td class="pass">44.07%</td>
+          <td class="pass">12.40</td><td class="pass">2.30</td><td class="pass">10.20%</td><td class="pass">7.95%</td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge tier-c">C</span></td>
+          <td>sz002749</td><td>国光股份</td><td>农药</td>
+          <td>~50</td><td class="pass">15.73%</td><td class="pass">44.73%</td><td class="pass">15.07%</td>
+          <td class="pass">15.10</td><td class="pass">2.51</td><td class="pass">9.46%</td><td class="pass">15.48%</td>
+          <td>—</td><td>—</td>
+        </tr>
+      </table>
+    </div>
+    <div class="note">
+      <strong>图例：</strong><span class="pass">绿色</span> = 完全达标 |
+      <span class="warn">黄色</span> = 接近标准/放宽档 |
+      "—" = 未纳入增长验证筛选（核心标准已通过）<br>
+      <strong>等级说明：</strong>
+      <span class="tier-badge tier-s">S</span> 全部12项指标通过 |
+      <span class="tier-badge tier-a">A</span> 核心估值+财务全通过，增长略低于10% |
+      <span class="tier-badge tier-b">B</span> 放宽估值(PE&lt;30/PB&lt;4)后通过，含增长验证 |
+      <span class="tier-badge tier-c">C</span> 核心标准通过但市值&lt;100亿，作为观察池
+    </div>
+  </div>
+
+  <!-- Section 3: S Tier -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">3</span>S级标的（完全符合全部策略标准）</h2>
+    <p>仅1只股票同时满足全部12项量化指标，包括ROE>15%、毛利率>40%、净利率>15%、负债率&lt;50%、PE&lt;25、PB&lt;3、股息率>1%、3年营收/净利CAGR>10%、市值>100亿。</p>
+
+    <div class="stock-card">
+      <div class="stock-header">
+        <span class="tier-badge tier-s">S</span>
+        <span class="stock-name">新和成</span>
+        <span class="stock-code">sz002001</span>
+        <span class="stock-industry">化学原料 / 维生素龙头</span>
+      </div>
+      <div class="stock-metrics">
+        <div class="metric"><div class="metric-label">总市值</div><div class="metric-value">882亿</div></div>
+        <div class="metric"><div class="metric-label">ROE (TTM)</div><div class="metric-value good">19.10%</div></div>
+        <div class="metric"><div class="metric-label">毛利率</div><div class="metric-value good">43.71%</div></div>
+        <div class="metric"><div class="metric-label">净利率</div><div class="metric-value good">29.21%</div></div>
+        <div class="metric"><div class="metric-label">PE (TTM)</div><div class="metric-value good">13.14</div></div>
+        <div class="metric"><div class="metric-label">PB</div><div class="metric-value good">2.70</div></div>
+        <div class="metric"><div class="metric-label">股息率</div><div class="metric-value good">3.48%</div></div>
+        <div class="metric"><div class="metric-label">资产负债率</div><div class="metric-value good">25.64%</div></div>
+        <div class="metric"><div class="metric-label">3年营收CAGR</div><div class="metric-value good">20.34%</div></div>
+        <div class="metric"><div class="metric-label">3年净利CAGR</div><div class="metric-value good">41.63%</div></div>
+        <div class="metric"><div class="metric-label">收盘价</div><div class="metric-value">28.70</div></div>
+        <div class="metric"><div class="metric-label">日涨跌幅</div><div class="metric-value">+0.03%</div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <strong>分析：</strong>全球维生素龙头，具有规模优势和成本壁垒。ROE持续高于15%，毛利率稳定在40%以上，现金流优异。3年净利润CAGR达41.63%，成长性突出。PE仅13.14，估值显著低于行业中位数，安全边际充足。股息率3.48%，股东回报良好。唯一关注点是维生素行业的周期性波动，需关注产品价格走势。
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: A Tier -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">4</span>A级标的（核心标准全通过，增长略低）</h2>
+    <p>3只股票通过了全部核心财务和估值标准（ROE>15%、毛利率>40%、净利率>15%、PE&lt;25、PB&lt;3、股息率>1%、负债率&lt;50%、市值>100亿），但3年复合增速略低于10%的严格门槛。这些股票盈利能力强、估值低、分红高，属于典型的价值型标的。</p>
+
+    <div class="stock-card">
+      <div class="stock-header">
+        <span class="tier-badge tier-a">A</span>
+        <span class="stock-name">泸州老窖</span>
+        <span class="stock-code">sz000568</span>
+        <span class="stock-industry">白酒 / 高端白酒龙头</span>
+      </div>
+      <div class="stock-metrics">
+        <div class="metric"><div class="metric-label">总市值</div><div class="metric-value">1151亿</div></div>
+        <div class="metric"><div class="metric-label">ROE (TTM)</div><div class="metric-value good">19.28%</div></div>
+        <div class="metric"><div class="metric-label">毛利率</div><div class="metric-value good">86.40%</div></div>
+        <div class="metric"><div class="metric-label">净利率</div><div class="metric-value good">40.89%</div></div>
+        <div class="metric"><div class="metric-label">PE (TTM)</div><div class="metric-value good">11.57</div></div>
+        <div class="metric"><div class="metric-label">PB</div><div class="metric-value good">2.23</div></div>
+        <div class="metric"><div class="metric-label">股息率</div><div class="metric-value good">7.61%</div></div>
+        <div class="metric"><div class="metric-label">资产负债率</div><div class="metric-value good">21.81%</div></div>
+        <div class="metric"><div class="metric-label">3年营收CAGR</div><div class="metric-value ok">~3%</div></div>
+        <div class="metric"><div class="metric-label">3年净利CAGR</div><div class="metric-value ok">~2%</div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <strong>分析：</strong>高端白酒龙头之一，品牌护城河极深（国窖1573）。毛利率高达86.4%，净利率超40%，在A股名列前茅。PE仅11.57，股息率高达7.61%，属于低估值高分红典型。负债率仅21.81%，财务极为稳健。增长放缓主要因白酒行业进入调整周期，但长期品牌价值不变。巴菲特式"以合理价格买入伟大企业"的典型标的。
+      </div>
+    </div>
+
+    <div class="stock-card">
+      <div class="stock-header">
+        <span class="tier-badge tier-a">A</span>
+        <span class="stock-name">迎驾贡酒</span>
+        <span class="stock-code">sh603198</span>
+        <span class="stock-industry">白酒 / 区域白酒龙头</span>
+      </div>
+      <div class="stock-metrics">
+        <div class="metric"><div class="metric-label">总市值</div><div class="metric-value">258亿</div></div>
+        <div class="metric"><div class="metric-label">ROE (TTM)</div><div class="metric-value good">17.36%</div></div>
+        <div class="metric"><div class="metric-label">毛利率</div><div class="metric-value good">72.34%</div></div>
+        <div class="metric"><div class="metric-label">净利率</div><div class="metric-value good">32.17%</div></div>
+        <div class="metric"><div class="metric-label">PE (TTM)</div><div class="metric-value good">12.98</div></div>
+        <div class="metric"><div class="metric-label">PB</div><div class="metric-value good">2.52</div></div>
+        <div class="metric"><div class="metric-label">股息率</div><div class="metric-value good">4.64%</div></div>
+        <div class="metric"><div class="metric-label">资产负债率</div><div class="metric-value good">21.41%</div></div>
+        <div class="metric"><div class="metric-label">3年营收CAGR</div><div class="metric-value ok">5.19%</div></div>
+        <div class="metric"><div class="metric-label">3年净利CAGR</div><div class="metric-value ok">6.04%</div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <strong>分析：</strong>安徽区域白酒龙头，生态洞藏系列推动产品升级。毛利率72%，净利率32%，盈利能力优秀。PE仅12.98，估值合理偏低。3年营收CAGR 5.19%、净利CAGR 6.04%，增长虽未达10%但保持正增长，在白酒调整期表现稳健。股息率4.64%，分红持续。
+      </div>
+    </div>
+
+    <div class="stock-card">
+      <div class="stock-header">
+        <span class="tier-badge tier-a">A</span>
+        <span class="stock-name">通化东宝</span>
+        <span class="stock-code">sh600867</span>
+        <span class="stock-industry">生物医药 / 胰岛素龙头</span>
+      </div>
+      <div class="stock-metrics">
+        <div class="metric"><div class="metric-label">总市值</div><div class="metric-value">159亿</div></div>
+        <div class="metric"><div class="metric-label">ROE (TTM)</div><div class="metric-value good">17.08%</div></div>
+        <div class="metric"><div class="metric-label">毛利率</div><div class="metric-value good">70.86%</div></div>
+        <div class="metric"><div class="metric-label">净利率</div><div class="metric-value good">39.82%</div></div>
+        <div class="metric"><div class="metric-label">PE (TTM)</div><div class="metric-value good">12.84</div></div>
+        <div class="metric"><div class="metric-label">PB</div><div class="metric-value good">2.39</div></div>
+        <div class="metric"><div class="metric-label">股息率</div><div class="metric-value good">3.69%</div></div>
+        <div class="metric"><div class="metric-label">资产负债率</div><div class="metric-value good">12.27%</div></div>
+        <div class="metric"><div class="metric-label">3年营收CAGR</div><div class="metric-value ok">~3%</div></div>
+        <div class="metric"><div class="metric-label">3年净利CAGR</div><div class="metric-value ok">~2%</div></div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <strong>分析：</strong>国内胰岛素龙头，糖尿病用药领域具有品牌和渠道壁垒。毛利率70.86%、净利率39.82%，盈利能力出色。资产负债率仅12.27%，为全部入选股票中最低，财务极为安全。PE仅12.84，估值处于低位。增长放缓受胰岛素集采影响，但长期看糖尿病用药需求刚性且持续增长。
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: B Tier -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">5</span>B级标的（放宽估值后通过，含增长验证）</h2>
+    <p>4只股票在PE放宽至30、PB放宽至4后通过筛选，且3年营收/净利CAGR超过5%。这些标的增长性更好但估值略高，适合在下跌时关注。</p>
+
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>代码</th><th>名称</th><th>行业</th><th>市值(亿)</th>
+          <th>ROE</th><th>毛利率</th><th>净利率</th>
+          <th>PE</th><th>PB</th><th>股息率</th><th>负债率</th>
+          <th>3年营收CAGR</th><th>3年净利CAGR</th>
+        </tr>
+        <tr>
+          <td>sz002415</td><td><strong>海康威视</strong></td><td>安防设备</td><td>3157</td>
+          <td class="pass">17.36%</td><td class="pass">46.77%</td><td class="pass">17.39%</td>
+          <td class="warn">21.14</td><td class="warn">3.99</td><td class="pass">3.34%</td><td class="pass">30.26%</td>
+          <td class="pass">8.54%</td><td class="pass">15.37%</td>
+        </tr>
+        <tr>
+          <td>sz000423</td><td><strong>东阿阿胶</strong></td><td>中药</td><td>299</td>
+          <td class="pass">16.39%</td><td class="pass">73.98%</td><td class="pass">26.03%</td>
+          <td class="warn">16.92</td><td class="warn">3.10</td><td class="pass">5.81%</td><td class="pass">20.02%</td>
+          <td class="pass">19.28%</td><td class="pass">25.46%</td>
+        </tr>
+        <tr>
+          <td>sz002558</td><td><strong>巨人网络</strong></td><td>游戏</td><td>562</td>
+          <td class="pass">15.24%</td><td class="pass">92.53%</td><td class="pass">38.91%</td>
+          <td class="warn">22.59</td><td class="warn">3.52</td><td class="pass">1.15%</td><td class="pass">19.86%</td>
+          <td class="pass">66.16%</td><td class="pass">64.04%</td>
+        </tr>
+        <tr>
+          <td>sh603317</td><td><strong>天味食品</strong></td><td>调味品</td><td>147</td>
+          <td class="pass">15.66%</td><td class="pass">41.91%</td><td class="pass">19.97%</td>
+          <td class="warn">19.74</td><td class="warn">3.54</td><td class="pass">3.95%</td><td class="pass">15.15%</td>
+          <td class="pass">13.84%</td><td class="pass">24.93%</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>海康威视：</strong>全球安防龙头，技术+规模双重护城河。3年净利CAGR 15.37%，增长稳健。PE 21.14处于合理区间上沿，待估值回落至20以下可重点关注。<br>
+      <strong>东阿阿胶：</strong>滋补中药第一品牌，品牌护城河深厚。3年营收CAGR 19.28%、净利CAGR 25.46%，处于业绩复苏期高增长阶段。股息率5.81%，分红优厚。PE 16.92尚可接受。<br>
+      <strong>巨人网络：</strong>游戏行业，毛利率高达92.53%。3年营收CAGR 66.16%极为亮眼，但需警惕游戏行业政策风险和产品周期性。股息率仅1.15%偏低，PB 3.52略高。<br>
+      <strong>天味食品：</strong>复合调味料赛道，受益于餐饮标准化趋势。3年净利CAGR 24.93%增长不错。PE 19.74、PB 3.54在B级中偏高，建议等待估值回落。
+    </div>
+  </div>
+
+  <!-- Section 6: C Tier -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">6</span>C级观察池（核心标准通过，市值偏低）</h2>
+    <p>以下6只股票通过了全部核心财务和估值标准，但总市值低于100亿元门槛，流动性相对不足。列入观察池，待市值成长或流动性改善后可纳入正式组合。</p>
+
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>代码</th><th>名称</th><th>行业</th><th>市值(亿)</th>
+          <th>ROE</th><th>毛利率</th><th>净利率</th>
+          <th>PE</th><th>PB</th><th>股息率</th><th>负债率</th>
+          <th>亮点</th>
+        </tr>
+        <tr>
+          <td>sz300181</td><td>佐力药业</td><td>中药</td><td>~90</td>
+          <td class="pass">18.99%</td><td class="pass">62.43%</td><td class="pass">21.23%</td>
+          <td class="pass">14.52</td><td class="pass">2.97</td><td class="pass">2.57%</td><td class="pass">34.47%</td>
+          <td>全部12项通过，仅差市值</td>
+        </tr>
+        <tr>
+          <td>sz000848</td><td>承德露露</td><td>植物蛋白饮料</td><td>~80</td>
+          <td class="pass">17.79%</td><td class="pass">45.30%</td><td class="pass">19.94%</td>
+          <td class="pass">12.25</td><td class="pass">2.53</td><td class="pass">6.31%</td><td class="pass">31.65%</td>
+          <td>高股息+低估值</td>
+        </tr>
+        <tr>
+          <td>sh603998</td><td>方盛制药</td><td>中药</td><td>~70</td>
+          <td class="pass">17.68%</td><td class="pass">73.18%</td><td class="pass">16.85%</td>
+          <td class="pass">13.31</td><td class="pass">2.45</td><td class="pass">4.84%</td><td class="pass">39.93%</td>
+          <td>中药+高ROE</td>
+        </tr>
+        <tr>
+          <td>sz300770</td><td>新媒股份</td><td>传媒/IPTV</td><td>~80</td>
+          <td class="pass">17.31%</td><td class="pass">46.22%</td><td class="pass">40.21%</td>
+          <td class="pass">11.50</td><td class="pass">2.08</td><td class="pass">8.63%</td><td class="pass">24.94%</td>
+          <td>超高股息率8.63%</td>
+        </tr>
+        <tr>
+          <td>sz000915</td><td>华特达因</td><td>儿童用药</td><td>~70</td>
+          <td class="pass">15.59%</td><td class="pass">84.08%</td><td class="pass">44.07%</td>
+          <td class="pass">12.40</td><td class="pass">2.30</td><td class="pass">10.20%</td><td class="pass">7.95%</td>
+          <td>股息率10.2%+净利率44%</td>
+        </tr>
+        <tr>
+          <td>sz002749</td><td>国光股份</td><td>植物调节剂</td><td>~50</td>
+          <td class="pass">15.73%</td><td class="pass">44.73%</td><td class="pass">15.07%</td>
+          <td class="pass">15.10</td><td class="pass">2.51</td><td class="pass">9.46%</td><td class="pass">15.48%</td>
+          <td>细分赛道龙头+高股息</td>
+        </tr>
+      </table>
+    </div>
+    <div class="note">
+      <strong>观察池使用方法：</strong>C级标的不建议直接纳入核心组合，但可作为重点跟踪对象。当市值突破100亿、或市场出现系统性下跌导致估值进一步下降时，可择机纳入。其中<strong>佐力药业</strong>全部12项指标通过，仅因市值约90亿未达门槛，值得最优先关注。
+    </div>
+  </div>
+
+  <!-- Section 7: Industry Analysis -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">7</span>行业分布分析</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>行业</th><th>入选数量</th><th>代表标的</th><th>策略匹配度分析</th>
+        </tr>
+        <tr>
+          <td>中药/医药</td><td>5</td><td>通化东宝、佐力药业、方盛制药、华特达因、东阿阿胶</td>
+          <td>品牌壁垒深、毛利率高、需求刚性，高度契合巴菲特偏好</td>
+        </tr>
+        <tr>
+          <td>白酒</td><td>2</td><td>泸州老窖、迎驾贡酒</td>
+          <td>最强品牌护城河、超高毛利率、低负债，最典型的巴菲特式标的</td>
+        </tr>
+        <tr>
+          <td>化工/原料</td><td>1</td><td>新和成</td>
+          <td>规模优势+成本壁垒，全球龙头地位稳固</td>
+        </tr>
+        <tr>
+          <td>安防设备</td><td>1</td><td>海康威视</td>
+          <td>技术+规模双护城河，行业集中度高</td>
+        </tr>
+        <tr>
+          <td>调味品/食品</td><td>2</td><td>天味食品、承德露露</td>
+          <td>品牌+渠道壁垒，需求稳定</td>
+        </tr>
+        <tr>
+          <td>传媒/游戏</td><td>2</td><td>新媒股份、巨人网络</td>
+          <td>轻资产高毛利，但需关注政策风险和内容周期性</td>
+        </tr>
+        <tr>
+          <td>农药</td><td>1</td><td>国光股份</td>
+          <td>细分赛道隐形冠军，高股息+低负债</td>
+        </tr>
+      </table>
+    </div>
+    <div class="note">
+      <strong>行业分布特征：</strong>入选标的集中在医药（5只）和白酒（2只），占比50%。这与巴菲特偏好"品牌壁垒深、毛利率高、需求刚性"的行业特征高度一致。白酒行业凭借超86%的毛利率和深厚的品牌护城河，是最符合巴菲特选股逻辑的A股赛道。
+    </div>
+  </div>
+
+  <!-- Section 8: Portfolio Suggestion -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">8</span>模拟组合构建建议</h2>
+    <p>基于筛选结果，按策略中的"核心+卫星"框架构建模拟组合（仅供研究参考）：</p>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>层级</th><th>股票</th><th>行业</th><th>建议仓位</th><th>配置逻辑</th>
+        </tr>
+        <tr>
+          <td rowspan="3"><strong>核心仓 (65%)</strong></td>
+          <td>泸州老窖</td><td>白酒</td><td>15%</td>
+          <td>品牌护城河极深，PE仅11.57，股息率7.61%，安全边际充足</td>
+        </tr>
+        <tr>
+          <td>新和成</td><td>化工</td><td>15%</td>
+          <td>唯一S级标的，全部指标通过，增长+估值俱佳</td>
+        </tr>
+        <tr>
+          <td>海康威视</td><td>安防</td><td>15%</td>
+          <td>最大市值标的(3157亿)，行业绝对龙头，流动性最佳</td>
+        </tr>
+        <tr>
+          <td rowspan="4"><strong>卫星仓 (25%)</strong></td>
+          <td>东阿阿胶</td><td>中药</td><td>7%</td>
+          <td>品牌复苏+高增长，股息率5.81%</td>
+        </tr>
+        <tr>
+          <td>迎驾贡酒</td><td>白酒</td><td>7%</td>
+          <td>区域龙头扩张中，估值合理</td>
+        </tr>
+        <tr>
+          <td>通化东宝</td><td>医药</td><td>6%</td>
+          <td>胰岛素赛道，负债率最低(12.27%)</td>
+        </tr>
+        <tr>
+          <td>天味食品</td><td>调味品</td><td>5%</td>
+          <td>成长性较好，小仓位探索</td>
+        </tr>
+        <tr>
+          <td><strong>现金 (10%)</strong></td>
+          <td>—</td><td>—</td><td>10%</td>
+          <td>保留弹药，等待市场回调时加仓</td>
+        </tr>
+      </table>
+    </div>
+    <div class="warn-box">
+      <strong>重要提醒：</strong>以上为基于量化筛选的模拟组合，尚未完成定性分析（管理层评估、护城河深度研究、DCF估值测算等）和个股深度研究。实际投资前必须完成策略文档中的"七步选股流程"全部步骤，特别是阅读年报、核查关联交易和大股东质押等。本结果不构成投资建议。
+    </div>
+  </div>
+
+  <!-- Section 9: Next Steps -->
+  <div class="section">
+    <h2 class="section-title"><span class="num">9</span>后续行动建议</h2>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th style="width:5%">#</th><th style="width:30%">行动项</th><th style="width:30%">优先级</th><th style="width:35%">说明</th>
+        </tr>
+        <tr>
+          <td>1</td><td>深度研究S/A级标的</td><td><span class="tier-badge tier-s">最高</span></td>
+          <td>重点阅读新和成、泸州老窖、迎驾贡酒、通化东宝近3年年报</td>
+        </tr>
+        <tr>
+          <td>2</td><td>完成定性评估</td><td><span class="tier-badge tier-s">最高</span></td>
+          <td>对S/A级标的完成护城河评估和管理层评估（第一、二、五层）</td>
+        </tr>
+        <tr>
+          <td>3</td><td>DCF估值测算</td><td><span class="tier-badge tier-a">高</span></td>
+          <td>对S/A级标的建立DCF模型，计算内在价值和安全边际</td>
+        </tr>
+        <tr>
+          <td>4</td><td>核查排除标准</td><td><span class="tier-badge tier-a">高</span></td>
+          <td>逐只核查商誉占比、应收账款增速、大股东质押、关联交易等</td>
+        </tr>
+        <tr>
+          <td>5</td><td>行业政策风险评估</td><td><span class="tier-badge tier-a">高</span></td>
+          <td>特别关注游戏（巨人网络）、医药集采（通化东宝）政策风险</td>
+        </tr>
+        <tr>
+          <td>6</td><td>跟踪C级标的</td><td><span class="tier-badge tier-b">中</span></td>
+          <td>关注佐力药业市值变化，接近100亿时优先纳入研究</td>
+        </tr>
+        <tr>
+          <td>7</td><td>建立定期检视机制</td><td><span class="tier-badge tier-b">中</span></td>
+          <td>每季度更新财务数据，检查是否有标的指标恶化</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>本筛选结果基于量化指标自动筛选，数据来源：腾讯自选股 | 数据日期：2026-07-10</p>
+    <p>筛选仅完成策略中的第三层（财务质量）和第四层（估值安全边际），尚未完成定性分析。不构成投资建议，投资有风险，入市需谨慎。</p>
+  </div>
+
+</div>
+</body>
+</html>

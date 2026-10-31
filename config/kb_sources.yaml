@@ -48,7 +48,7 @@ kb_sources:
     order: 1                     # 排第一
     kind: glossary
     enabled: true
-    path: F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\knowledge\价值投资基础常识_v1.1.md
+    path: F:\AI Agent部署知识库\2026-09-22-11-49-42\stock-forum-scraper\knowledge\价值投资基础常识_v1.2.md
     # 兜底：换版本号 / 换目录时自动跟上最新一份
     path_glob: F:/AI Agent部署知识库/**/knowledge/价值投资基础常识_v*.md
 

@@ -1,0 +1,285 @@
+/* ============================================================================
+ * AI 复盘面板样式（2026-10-29 进哥需求）
+ * ----------------------------------------------------------------------------
+ * 与 app.css 解耦成独立文件：本面板是新增功能，不改动既有 52 个面板的样式风险面。
+ * 全部颜色走主题变量（--card/--border/--ink/--muted/--accent/--bull/--bear…），
+ * 因此暗色（dark-dashboard）与浅色主题自动适配，不需要各写一套。
+ * 前缀统一 air-（AI Review），避免与现有 td-/etf-/quant- 冲突。
+ * ========================================================================== */
+
+.air-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-2) 0 var(--sp-3);
+}
+.air-hd-l { display: flex; align-items: baseline; gap: var(--sp-3); }
+.air-title { font-size: var(--fs-lg); font-weight: 700; color: var(--ink); }
+.air-sub { font-size: var(--fs-sm); color: var(--muted); }
+.air-hd-r { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* 模型切换 */
+.air-provbar { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.air-provlab { font-size: var(--fs-xs); color: var(--muted); }
+.air-prov {
+  font-size: var(--fs-sm); padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; transition: all .15s;
+}
+.air-prov:hover:not(.off) { border-color: var(--accent); color: var(--ink); }
+.air-prov.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.air-prov.off { opacity: .45; cursor: not-allowed; }
+
+.air-meta {
+  font-size: var(--fs-2xs); color: var(--muted);
+  padding: 4px 10px; margin-bottom: var(--sp-2);
+  background: var(--bg-sub); border-radius: var(--r-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 「这次 AI 实际读了什么」—— 把"有没有真读东西"变成一堆可数的数字摆出来 */
+.air-readbar {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  padding: 7px 11px; margin-bottom: var(--sp-3);
+  background: var(--bg-sub); border-radius: var(--r-sm);
+  border: 1px dashed var(--border-dim);
+}
+.air-readlab { font-size: var(--fs-2xs); color: var(--muted); font-weight: 600; }
+.air-readitem { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+.air-readitem b {
+  font-size: var(--fs-md); color: var(--ink); font-weight: 700;
+  font-variant-numeric: tabular-nums; margin-right: 2px;
+}
+.air-readhi { color: var(--accent); }
+.air-readhi b { color: var(--accent); }
+
+/* 核心判断 */
+.air-verdict {
+  position: relative; padding: var(--sp-4) var(--sp-5);
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md); margin-bottom: var(--sp-4);
+}
+.air-v-tag { font-size: var(--fs-2xs); color: var(--accent); font-weight: 700; letter-spacing: .5px; }
+.air-v-text { font-size: var(--fs-xl); font-weight: 700; color: var(--ink); line-height: 1.45; margin: 6px 0 10px; }
+
+.air-conf { display: flex; align-items: center; gap: var(--sp-2); }
+.air-conf-lab { font-size: var(--fs-xs); color: var(--muted); }
+.air-conf-bar { flex: 0 0 160px; height: 6px; background: var(--bg-sub); border-radius: 999px; overflow: hidden; }
+.air-conf-bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.air-conf b { font-size: var(--fs-md); color: var(--ink); font-variant-numeric: tabular-nums; }
+.air-conf-unit { font-size: var(--fs-2xs); color: var(--muted); }
+
+/* 两列网格 */
+.air-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+@media (max-width: 900px) { .air-grid2 { grid-template-columns: 1fr; } }
+
+.air-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); margin-bottom: var(--sp-3); overflow: hidden;
+}
+.air-grid2 .air-card { margin-bottom: 0; }
+.air-card-hd {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 9px var(--sp-4); border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-sub);
+}
+.air-card-hd b { font-size: var(--fs-md); color: var(--ink); }
+.air-card-sub { font-size: var(--fs-2xs); color: var(--muted); }
+.air-card-bd { padding: var(--sp-3) var(--sp-4); }
+.air-card-hl { border-left: 3px solid var(--c-violet-line, var(--accent)); }
+.air-card-hl .air-card-hd { background: var(--c-violet-bg, var(--bg-sub)); }
+
+.air-logic { font-size: var(--fs-base); color: var(--ink); line-height: 1.65; }
+.air-ev { margin: var(--sp-2) 0 0; padding-left: 18px; }
+.air-ev li { font-size: var(--fs-sm); color: var(--muted); line-height: 1.7; }
+
+/* 行动 */
+.air-act {
+  display: flex; gap: var(--sp-2); align-items: flex-start;
+  font-size: var(--fs-base); color: var(--ink); line-height: 1.6;
+  padding: 7px 0; border-bottom: 1px dashed var(--border-dim);
+}
+.air-act:last-child { border-bottom: 0; }
+.air-act-n {
+  flex: 0 0 18px; height: 18px; line-height: 18px; text-align: center;
+  border-radius: 50%; background: var(--accent); color: var(--on-accent);
+  font-size: var(--fs-2xs); font-weight: 700; margin-top: 3px;
+}
+
+/* 主线 */
+.air-lines { display: flex; flex-direction: column; gap: var(--sp-3); }
+.air-line { padding: var(--sp-2) 0; border-bottom: 1px dashed var(--border-dim); }
+.air-line:last-child { border-bottom: 0; }
+.air-line-hd { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: 4px; flex-wrap: wrap; }
+.air-line-hd b { font-size: var(--fs-md); color: var(--ink); }
+.air-line-logic { font-size: var(--fs-sm); color: var(--ink); line-height: 1.65; opacity: .88; }
+.air-line-risk { font-size: var(--fs-sm); color: var(--c-orange-fg, var(--bear)); margin-top: 4px; line-height: 1.55; }
+
+/* 机会 */
+.air-opps { display: flex; flex-direction: column; gap: var(--sp-3); }
+.air-opp { border-left: 2px solid var(--border); padding-left: var(--sp-3); }
+.air-opp-hd { margin-bottom: 5px; }
+.air-sym { font-size: var(--fs-md); font-weight: 700; color: var(--ink); }
+.air-opp-body div { font-size: var(--fs-sm); color: var(--ink); line-height: 1.65; margin-bottom: 3px; }
+.air-invalidate { opacity: .8; }
+.air-k {
+  display: inline-block; min-width: 62px; font-size: var(--fs-2xs);
+  color: var(--muted); margin-right: 6px;
+}
+
+/* 风险 / 持仓 */
+.air-risk, .air-pf {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 6px 0; border-bottom: 1px dashed var(--border-dim);
+  font-size: var(--fs-sm); flex-wrap: wrap;
+}
+.air-risk:last-child, .air-pf:last-child { border-bottom: 0; }
+.air-risk b, .air-pf b { color: var(--ink); font-size: var(--fs-base); flex: 0 0 auto; }
+.air-risk-d { color: var(--muted); line-height: 1.55; flex: 1 1 200px; }
+
+/* 分歧区（本面板重点） */
+.air-diss { display: flex; flex-direction: column; gap: var(--sp-3); }
+.air-dis {
+  padding: var(--sp-3); background: var(--bg-sub);
+  border-radius: var(--r-sm); border-left: 2px solid var(--c-violet-line, var(--accent));
+}
+.air-dis-q { font-size: var(--fs-base); font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+
+/* 对照块：上「规则引擎」（灰、弱化）／下「模型判断」（亮、带强调色条）。
+   为什么不用左右两栏：这两段都是**一句话级的短文本**，1fr 1fr 分栏后各自只占一半宽度、
+   中间留下大片空白，读的时候眼睛要在两个"孤岛"之间横跳（实测截图确认）。
+   短文本用上下堆叠、左标签右内容，标点连续、视线只走一条线。 */
+.air-dis-vs {
+  display: flex; flex-direction: column;
+  border-radius: var(--r-sm); overflow: hidden;
+  border: 1px solid var(--border-dim); margin-bottom: 7px;
+}
+.air-dis-rule, .air-dis-mine { padding: 8px 11px; }
+.air-dis-rule {
+  background: var(--bg); border-bottom: 1px solid var(--border-dim);
+}
+.air-dis-mine {
+  background: var(--card);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.air-dis-vs .air-k {
+  display: inline-block; min-width: 70px; margin: 0 6px 0 0;
+  font-size: var(--fs-2xs); letter-spacing: .3px;
+}
+.air-dis-rule .air-k { color: var(--muted); }
+.air-dis-mine .air-k { color: var(--accent); font-weight: 700; }
+.air-dis-txt { display: inline; font-size: var(--fs-sm); line-height: 1.7; }
+.air-dis-rule .air-dis-txt { color: var(--muted); }
+.air-dis-mine .air-dis-txt { color: var(--ink); font-weight: 600; }
+
+.air-dis-why { font-size: var(--fs-sm); color: var(--muted); line-height: 1.6; }
+.air-k-inline { display: inline-block !important; min-width: 44px !important; margin: 0 6px 0 0 !important; }
+
+/* 兑现对照 */
+.air-vs-row { display: flex; gap: var(--sp-2); align-items: flex-start; padding: 5px 0; }
+.air-vs-row ul { margin: 0; padding-left: 18px; }
+.air-vs-row li { font-size: var(--fs-sm); line-height: 1.65; color: var(--ink); }
+.air-vs-hit .air-k { color: var(--bull); }
+.air-vs-miss .air-k { color: var(--bear); }
+.air-vs-empty, .air-empty-inline { font-size: var(--fs-sm); color: var(--muted); padding: 4px 0; }
+
+/* 状态：计算中 / 空 / 错误 */
+.air-computing {
+  display: flex; gap: var(--sp-4); align-items: flex-start;
+  padding: var(--sp-5); background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.air-spin {
+  flex: 0 0 22px; width: 22px; height: 22px; margin-top: 2px;
+  border: 2.5px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: air-spin .9s linear infinite;
+}
+@keyframes air-spin { to { transform: rotate(360deg); } }
+.air-computing-txt b { display: block; font-size: var(--fs-base); color: var(--ink); margin-bottom: 6px; }
+.air-computing-txt span { display: block; font-size: var(--fs-sm); color: var(--muted); line-height: 1.7; }
+.air-note { margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--muted); }
+
+.air-empty, .air-err {
+  padding: var(--sp-5); background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+}
+.air-empty b, .air-err b { display: block; font-size: var(--fs-base); color: var(--ink); margin-bottom: 6px; }
+.air-empty div, .air-err div { font-size: var(--fs-sm); color: var(--muted); line-height: 1.7; margin-bottom: 10px; }
+.air-err { border-left: 3px solid var(--err); }
+.air-err-hint { font-size: var(--fs-xs) !important; opacity: .85; }
+
+/* 页脚与历史 */
+.air-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  flex-wrap: wrap; padding: var(--sp-3) 0; margin-top: var(--sp-2);
+  border-top: 1px solid var(--border-dim);
+}
+.air-foot span { font-size: var(--fs-2xs); color: var(--muted); line-height: 1.6; flex: 1 1 400px; }
+
+.air-hist { display: flex; flex-direction: column; gap: 2px; }
+.air-hist-row {
+  display: grid; grid-template-columns: 88px 78px 1fr 56px; gap: var(--sp-2);
+  align-items: baseline; padding: 6px 0;
+  border-bottom: 1px dashed var(--border-dim); font-size: var(--fs-sm);
+}
+.air-hist-row:last-child { border-bottom: 0; }
+.air-hist-row.bad { opacity: .6; }
+.air-hist-d { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+.air-hist-p { color: var(--muted); font-size: var(--fs-xs); }
+.air-hist-v { color: var(--ink); line-height: 1.55; }
+.air-hist-t { color: var(--muted); font-size: var(--fs-xs); text-align: right; font-variant-numeric: tabular-nums; }
+.air-hist-empty { font-size: var(--fs-sm); color: var(--muted); padding: var(--sp-3) 0; }
+
+/* 小胶囊
+   注意：这里**故意不用 --bull/--bear**。语义色若借用涨跌色，会出现
+   「风险等级=高」被渲染成绿色（bear=绿）这种反直觉误读 —— 风险标签读起来像利好。
+   改用与涨跌无关的三组语义色：teal=积极 / orange=警示 / neutral=中性。 */
+.air-chip {
+  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  font-size: var(--fs-2xs); font-weight: 600; line-height: 1.7;
+  border: 1px solid transparent;
+}
+.air-tone-good {
+  background: var(--c-teal-bg, rgba(13,148,136,.12));
+  color: var(--c-teal-fg, #0f766e);
+  border-color: var(--c-teal-line, rgba(13,148,136,.4));
+}
+.air-tone-bad {
+  background: var(--c-orange-bg, rgba(234,88,12,.12));
+  color: var(--c-orange-fg, #c2410c);
+  border-color: var(--c-orange-line, rgba(234,88,12,.4));
+}
+.air-tone-mid {
+  background: var(--neutral-bg, rgba(120,120,120,.12));
+  color: var(--neutral-fg, var(--muted));
+  border-color: var(--neutral-line, var(--border));
+}
+.air-chip-dim { background: transparent; color: var(--muted); border-color: var(--border); }
+
+/* ============================================================================
+ * AI 可信度卡片（2026-10-31）
+ * ----------------------------------------------------------------------------
+ * 回答一个问题：**这个 AI 说的话到底准不准**。数据由系统按收盘价回填
+ * （viewer/review_score.py），不是模型自评。
+ * 涨红跌绿沿用项目约定：超额为正用 --bull，为负用 --bear。
+ * ========================================================================== */
+.air-score { margin: 0 0 var(--sp-3); }
+.asc-card {
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-md);
+  background: var(--bg-sub);
+  padding: var(--sp-3);
+}
+.asc-hd { font-size: var(--fs-sm); font-weight: 700; color: var(--ink); margin-bottom: var(--sp-2); }
+.asc-hd-sub { font-weight: 400; color: var(--muted); font-size: var(--fs-xs); margin-left: 6px; }
+.asc-note { font-size: var(--fs-xs); color: var(--muted); }
+.asc-warn { font-size: var(--fs-xs); color: var(--err); margin-bottom: var(--sp-2); }
+.asc-grid { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.asc-item { display: flex; flex-direction: column; gap: 2px; min-width: 112px; }
+.asc-lb { font-size: var(--fs-xs); color: var(--muted); }
+.asc-v { font-size: var(--fs-md); font-weight: 700; color: var(--muted); }
+.asc-v.up { color: var(--bull); }
+.asc-v.down { color: var(--bear); }
+.asc-sub { font-size: var(--fs-xs); color: var(--muted); }
+.asc-line { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--sp-2); }
+.asc-dim { opacity: .7; }

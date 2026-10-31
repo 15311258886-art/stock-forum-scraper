@@ -12,7 +12,8 @@
 设计要点：
   · 用 sqlite3 的**在线备份 API**（`src.backup(dst)`）而不是文件复制 —— 服务在跑、有 WAL 待落盘时
     文件拷贝会拿到不一致的副本，在线备份才是安全的。
-  · 保留策略：每日 1 份留 `--keep-daily`（默认 30）天；每周（周一）1 份留 `--keep-weekly`（默认 4）周。
+  · 保留策略：每日 1 份留 `--keep-daily`（默认 3）份；每周（周一）1 份留 `--keep-weekly`（默认 2）份。
+    2026-10-31 从 30/4 收紧：库体积 9GB 后原策略最坏会占 270GB（实测已堆到 32GB）。
   · 只清理**本工具自己产生的**文件（`app.db.daily-*` / `app.db.weekly-*`），
     不动历史手工快照 `app.db.pre-*`（那些是改造前的还原点，需人工确认后再清）。
   · 异地镜像用同样在线备份 API 直写异地库文件（不复制本地备份文件），一致性有保证；
@@ -166,8 +167,11 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="本地数据库备份与完整性校验 + 异地双副本")
     ap.add_argument("--check", action="store_true", help="只做完整性校验，不备份")
     ap.add_argument("--force", action="store_true", help="忽略当天已备份的限制")
-    ap.add_argument("--keep-daily", type=int, default=30, help="日备份保留天数（默认30=规格书 D1）")
-    ap.add_argument("--keep-weekly", type=int, default=4, help="每周全量保留周数（默认4）")
+    ap.add_argument("--keep-daily", type=int, default=3,
+                    help="日备份保留份数（默认3）。2026-10-31 由 30 收紧：库已涨到 9GB，"
+                         "30 份等于 270GB，磁盘扛不住；3 份足够覆盖「今天改坏了」的回滚窗口")
+    ap.add_argument("--keep-weekly", type=int, default=2,
+                    help="每周全量保留份数（默认2）。原为 4，理由同上")
     ap.add_argument("--remote-dir", default=None,
                     help="异地备份目录（D1 双副本，如 E:/backup/stock-backups；默认 "
                          "环境变量 DB_BACKUP_REMOTE_DIR 或 D:/stock-backups）")

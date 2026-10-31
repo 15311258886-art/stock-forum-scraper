@@ -31,9 +31,19 @@ import concurrent.futures as cf
 import contextlib
 import hmac
 import ctypes
+import _thread
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+# 2026-10-30（进哥现场：个股抽屉一直「加载中」）——GIL 让出粒度 5ms → 1ms。
+# 调度线程与 HTTP 请求线程同进程抢一把 GIL，默认 5ms 的切换间隔在后台重活下会把一次
+# 纯读缓存的请求拖到数秒（实测 /api/version 2.4~9.8s；py-spy 25 次采样里调度线程 24 次在跑）。
+# 降到 1ms 后请求线程能更快抢到 GIL，延迟下降一个量级；额外开销只是切换次数变多（可忽略）。
+try:
+    sys.setswitchinterval(0.001)
+except Exception:  # noqa: BLE001 —— 平台不支持就算了，绝不因优化项挡住启动
+    pass
 
 # 写接口串行化：demo/overseas/fetch 等重写入若并发执行（多线程各自持有 DB 连接），
 # 会互相抢 SQLite 写锁并抛 "database is locked"。GET 读请求不受影响（WAL 下读不阻塞）。
@@ -157,6 +167,12 @@ import board_flow  # noqa: E402  2026-09-28 板块资金流：多源 + 采样累
 import harvest as HARVEST  # noqa: E402  2026-10-31 收割视角引擎（涨停/炸板/连板 → 局与陷阱名单）
 import oss_mine as OSS  # noqa: E402  2026-10-30 开源情报：GitHub 规则在我们的数据上重测（只抽规则不抄代码）
 import selection as SELECTION  # noqa: E402  2026-10-30 选股方向：短线形态证伪 + 低波池
+import executability as EXECUTABILITY  # noqa: E402  2026-10-31 执行可行性：四字段 → 可行/不可行 + 容量区间
+import cost_calib as COST_CALIB  # noqa: E402  2026-10-31 决策⑤：成本档位标定位（只出建议，不改参数）
+from viewer.kernel import cost_basis as COST_BASIS  # noqa: E402  2026-10-31 决策①：两套成本口径并列展示
+from viewer import health as HEALTH  # noqa: E402  2026-10-31 决策⑤：任务运行记录 + 数据新鲜度
+import units as UNITS  # noqa: E402  2026-10-31 单位量纲自证（volume 手/股混存 + 涨跌停幅度）
+from viewer.kernel import params as KPARAMS  # noqa: E402  2026-10-31 参数注册表（阈值唯一来源）
 import board_flow_range  # noqa: E402  2026-10-05 板块资金流「日期区间」聚合（累计流入可指定起止日期）
 from viewer import predictor  # noqa: E402  —— 每日预测：六路信号合成 + 复盘自学习闭环（2026-09-28 新增）
 import pillars  # noqa: E402  —— 四支柱每日预测引擎 A/B/C/D（2026-10-15 新增；仅后端定时任务跑，查看器只读）
@@ -184,6 +200,7 @@ import bili_scan  # noqa: E402  —— 「一键筛股」：知识库战法→�
 import bili_consensus  # noqa: E402  —— B站博主共识结论：板块方向+个股热度（2026-10-12 王总：市场情绪面板先给结论）
 from viewer import build_id as _buildid  # noqa: E402  —— 代码指纹（2026-10-16）：判断「正在监听的后端」跑的是不是当前磁盘代码
 from viewer import warehouse as _wh  # noqa: E402  —— 本地数据仓（2026-10-29）：重接口响应落自有存储 + 快照兜底（A→B→C 的 B 路）
+from viewer import rhythm as _rhythm  # noqa: E402  —— 交易节奏唯一真源（2026-10-30）：「什么时段该多快」只在这里定义
 import kronos  # noqa: E402  —— Kronos K线基础模型预测板块（2026-10-24 新增；独立顶层 tab，查看器只读）
 import plate_heat  # noqa: E402  —— 板块热度榜（2026-10-29）：荐股降级为「注意力」，只答哪个板块被聊得多，不答涨不涨
 
@@ -711,6 +728,23 @@ def _api_cache_invalidate(prefix: str = None):
         else:
             for k in [k for k in _api_cache if k.startswith(prefix)]:
                 _api_cache.pop(k, None)
+        # 2026-10-31 修复（进哥：关注池「＋ 新分组 / ✎ 改名」点了没反应）：
+        #   写操作原先只清内层 _api_cache；而 /api/watch_list 当年又同时在 _TTL_ROUTES 里
+        #   叠了一层 HTTP 级 _TTL_CACHE（键是「路由?查询串」，与内层的 "watch_list" 不是同一个
+        #   命名空间）。两层各管各的 → DB 写成功了，前端重新 GET 却在 _do_GET 的 TTL 分支
+        #   拿回那份旧 body（实测响应里带着冻结的 _cache_age，等于把旧快照原样重放），
+        #   界面自然毫无变化。这里让同一把「写后失效」的钩子同时覆盖 TTL 层，
+        #   杜绝「写成功但界面不动」这一类问题再出现。
+        #   prefix 为 None 时全清；否则按「路由?查询串」的路径部分后缀匹配（如 "watch_list"
+        #   命中 "/api/watch_list?" 与 "/api/watch_list?x=1"）。
+        _ttl = globals().get("_TTL_CACHE")
+        if isinstance(_ttl, dict):
+            if prefix is None:
+                _ttl.clear()
+            else:
+                _suf = "/" + str(prefix)
+                for k in [k for k in list(_ttl) if str(k).split("?", 1)[0].endswith(_suf)]:
+                    _ttl.pop(k, None)
 
 # ---------------------------------------------------------------- SWR（2026-10-25）
 # 背景：dashboard 冷重算实测 32s、watch_list 取价 14s。缓存一旦过期，用户就得干等，
@@ -753,32 +787,102 @@ def _swr_refresh(key: str, fn) -> bool:
 
 
 # 快照落盘：进程重启后内存缓存必空，若不留盘上快照，每次重开页面都要再吃一次 32s 冷算。
-_DASH_SNAP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs",
-                               "dashboard_snapshot.json")
+# 2026-10-30：泛化成按 name 取文件（viewer/logs/<name>_snapshot.json）。
+#   原因（主理人指出，比我另拼一条 _wh 路径靠谱得多）：dashboard 这套「过期回旧值 + 后台重算 +
+#   重启读盘」2026-10-25 就在线上跑，已经验证过；today_decision / prediction 三个接口
+#   直接复用同一套，行为可预期。dashboard 的文件名与语义**完全不变**
+#   （仍是 dashboard_snapshot.json），旧函数名保留为薄包装，别处调用不受影响。
+_SNAP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+_DASH_SNAP_PATH = os.path.join(_SNAP_DIR, "dashboard_snapshot.json")   # 兼容保留：等价 _snap_path("dashboard")
 
 
-def _dashboard_snapshot_save(out: dict) -> None:
+def _snap_path(name: str) -> str:
+    """快照文件路径：viewer/logs/<name>_snapshot.json（name 中的分隔符不做转义，只接受内部常量）。"""
+    key = str(name or "").strip() or "misc"
+    return os.path.join(_SNAP_DIR, "%s_snapshot.json" % key)
+
+
+def _snap_save(name: str, out: dict) -> None:
+    """把某接口的最终结果落盘（tmp + os.replace 原子替换）。失败静默：快照只是兜底，绝不影响响应。"""
     try:
-        d = os.path.dirname(_DASH_SNAP_PATH)
+        d = os.path.dirname(_snap_path(name))
         if not os.path.isdir(d):
             os.makedirs(d, exist_ok=True)
-        tmp = _DASH_SNAP_PATH + ".tmp"
+        fp = _snap_path(name)
+        tmp = fp + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"at": time.time(), "data": out}, f, ensure_ascii=False)
-        os.replace(tmp, _DASH_SNAP_PATH)
+            # default=str 只是把「原先会 TypeError 而整份不落盘」的边角值（如 datetime）
+            # 转成字符串，不改变任何已能序列化的字段；对 dashboard 来说等于「原本失败的情况变成成功」。
+            json.dump({"at": time.time(), "data": out}, f, ensure_ascii=False, default=str)
+        os.replace(tmp, fp)
     except Exception:  # noqa: BLE001
-        logging.getLogger(__name__).debug("dashboard 快照落盘失败", exc_info=True)
+        logging.getLogger(__name__).debug("%s 快照落盘失败", name, exc_info=True)
 
 
-def _dashboard_snapshot_load():
+def _snap_load(name: str):
+    """读回 (data, age_seconds)；没有/损坏返回 (None, None)。"""
     try:
-        if not os.path.exists(_DASH_SNAP_PATH):
+        fp = _snap_path(name)
+        if not os.path.exists(fp):
             return None, None
-        with open(_DASH_SNAP_PATH, "r", encoding="utf-8") as f:
+        with open(fp, "r", encoding="utf-8") as f:
             obj = json.load(f)
         return obj.get("data"), (time.time() - float(obj.get("at") or 0))
     except Exception:  # noqa: BLE001
         return None, None
+
+
+def _dashboard_snapshot_save(out: dict) -> None:
+    """兼容旧名（2026-10-30 泛化后保留）：等价 _snap_save("dashboard", out)，行为不变。"""
+    _snap_save("dashboard", out)
+
+
+def _dashboard_snapshot_load():
+    """兼容旧名：等价 _snap_load("dashboard")，仍读 viewer/logs/dashboard_snapshot.json。"""
+    return _snap_load("dashboard")
+
+
+# ── 2026-10-30「盘后复盘优先」：把 dashboard 那套 SWR 抽成通用骨架，给三个冷态几十秒的接口复用 ──
+# 现场实测（主理人已完成，勿重测）：/api/today_decision 冷 52~57s / 热 16.8s；
+# /api/prediction/today 冷 120s / 热 0.68s；/api/prediction/scores 冷 32s / 热 1.46s。
+# 它们都不落磁盘 —— 进程一重启就归零，于是用户每次重启后第一次点开都在请求线程里干等。
+# 为什么不写第二条路（_wh 落盘快照）：dashboard 这套 2026-10-25 起已在线上跑，
+# 「过期回旧值 + 后台单飞重算 + 重启读盘」三段都验证过，复用它比新拼一条路径风险低。
+_API_SWR_TTL_DEFAULT = 1800
+
+
+def _swr_serve(key: str, compute, ttl: int = _API_SWR_TTL_DEFAULT, force: bool = False):
+    """通用 SWR 骨架（口径与 api_dashboard 2026-10-25 的实现逐条一致）。
+
+    顺序：
+      ① 内存缓存还新鲜（未过 ttl）→ 直接返回（毫秒级）；
+      ② 否则取「内存里的旧值」，内存没有就取「盘上快照」（刚重启的情形）
+         → 立刻返回，并标 `_stale` / `_cache_age`，同时 `_swr_refresh` 起后台单飞重算；
+      ③ 两者都没有（真正的第一次）→ 现算一次，写完内存缓存并落盘。
+    force=True（手动刷新）→ 跳过 ①②，直接现算，保证「手动刷新一定拿到最新」。
+
+    为什么过期也不重算：这几个接口的底层数据都是**盘后落库**，半小时前算的和现在算的
+    没有信息增益；而现算一次要 32~120s，压在这次点击上就是把用户钉在转圈里。
+    """
+    if not force:
+        cached = _api_cache_get(key)
+        if cached is not None:
+            return cached
+        snapshot, age = _api_cache_get_any(key)
+        if not isinstance(snapshot, dict):
+            snapshot, age = _snap_load(key)          # 刚重启：内存空，读盘
+        if isinstance(snapshot, dict):
+            # 后台重算（同 key 防重入）；注意传 force=True，否则后台那次又会被 ① 挡回来。
+            _swr_refresh(key, lambda: _swr_serve(key, compute, ttl, force=True))
+            snap = dict(snapshot)
+            snap["_stale"] = True
+            snap["_cache_age"] = int(age or 0)
+            return snap
+    out = compute()
+    if isinstance(out, dict):
+        _api_cache_put(key, out, ttl)
+        _snap_save(key, out)
+    return out
 
 
 def api_dashboard(force=False) -> dict:
@@ -1204,7 +1308,20 @@ def api_ai_review_detail(review_id: int = 0) -> dict:
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, str(e)[:150])}
 
 
-def api_today_decision() -> dict:
+def api_today_decision(force: bool = False) -> dict:
+    """今日决策首页（体验审计 P0-A）：一屏四卡（方向/机会/风险/我的票）+ 一句话结论。
+
+    2026-10-30「盘后复盘优先」节奏重构：实测冷态 **52~57s**、热态 16.8s（还出现过 25s 超时），
+    且结果不落磁盘 —— 进程重启后第一次点开就在请求线程里干等半分钟以上，而这正是
+    用户盘后复盘要看的第一个面板。现将整套计算挪到 `_today_decision_compute`，
+    外面套 dashboard 同款 SWR：新鲜缓存直接回 / 重启读盘快照（标 _stale + _cache_age）/
+    后台单飞重算。`force=True`（前端手动刷新，`?force=1` / `?refresh=1` / 带 `t=`）可穿透。
+    """
+    return _swr_serve("today_decision", _today_decision_compute, ttl=1800, force=force)
+
+
+def _today_decision_compute() -> dict:
+    """真正的重算体（原 api_today_decision 的全部逻辑，一个字没动）。"""
     gen = time.strftime("%Y-%m-%d %H:%M:%S")
     log = logging.getLogger(__name__)
     out: dict = {"ok": True, "generated_at": gen,
@@ -1268,11 +1385,23 @@ def api_today_decision() -> dict:
         if cb.get("risk"):  # 跨境 ETF 风险传导 → 风险卡置顶（最高否决权）
             for it in cb.get("items", []):
                 if it.get("flag"):
+                    # 2026-10-31 版面去噪：原来固定拼 "pct=%s%"，溢价缺失时直接把 Python 的
+                    # None 打印成「溢价=None%」摆到界面上（实测今日决策卡里就有）。
+                    # 改为按实际有的字段拼，缺的那一项**不出现**，不写 None、不写空括号。
+                    _pct = it.get("pct")
+                    _prem = it.get("premium_rt")
+                    # label 已经是 ETF 名称（如「纳指ETF广发」），detail 里再写一遍"跨境ETF"
+                    # 会拼成「纳指ETF广发跨境ETF 海外下跌传导」（实测今日一句话就是这么读的），
+                    # 故 detail 直接从标记起头，只追加真正有值的数字。
+                    _detail = str(it.get("flag") or "")
+                    if _pct is not None:
+                        _detail += " · 涨跌 %+.2f%%" % float(_pct)
+                    if _prem is not None:
+                        _detail += " · 溢价 %+.2f%%" % float(_prem)
                     out["risks"].insert(0, {
                         "type": "etf", "label": it.get("name") or it.get("code"),
                         "symbol": it.get("code"), "tone": "cross",
-                        "detail": "跨境ETF %s（pct=%s%%，溢价=%s%%）"
-                                  % (it.get("flag"), it.get("pct"), it.get("premium_rt")),
+                        "detail": _detail,
                     })
         out["etf_regime"] = (etf_ov.get("broad_based") or {}).get("regime")  # 宽基仓位 overlay
         out["etf_overlay"] = etf_ov
@@ -1401,10 +1530,12 @@ def api_today_decision() -> dict:
                 out["risks"].append({
                     "type": "stock", "label": r["security_name"] or r["security_code"],
                     "symbol": r["security_code"], "tone": "netout",
-                    "detail": "龙虎榜净卖出 %s 亿%s（数据日 %s）"
+                    # 2026-10-31：不再逐行拼「（数据日 2026-10-30）」——同一页 4 行各写一次，
+                    # 而「今日决策」页头与数据日条已统一交代过一次数据日。
+                    # 行内是"哪只票、卖了多少钱、当天涨跌"，数据日属于页面级事实。
+                    "detail": "龙虎榜净卖出 %s 亿%s"
                               % (abs(round(net / 1e8, 2)),
-                                 ("，当日 %s%%" % round(chg, 2)) if chg is not None else "",
-                                 ldate),
+                                 ("，当日 %s%%" % round(chg, 2)) if chg is not None else ""),
                 })
     except Exception as e:  # noqa: BLE001
         log.warning("today_decision 龙虎榜净卖出读取失败: %s", e)
@@ -1571,12 +1702,16 @@ def api_info_brief(hours: int = 48) -> dict:
     geo_latest = _src_latest("geo_events", "event_date")
     geo_stale = bool(geo_latest) and geo_latest[:10] < (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
 
-    def _add(src, tag, title, sectors, note, date, symbols, prio):
+    def _add(src, tag, title, sectors, note, date, symbols, prio, link=""):
         if not title:
             return
+        # link：这条消息的「完整研判在哪一页」。2026-10-31 去重：同一批国际事件在
+        #   「国际局势」面板已有完整研判（decision），本页只负责「发生了什么」，
+        #   不再复述那段结论（体检实测：3 条研判结论在两个面板逐字相同）。
         cand.append({"src": src, "tag": tag or "", "title": str(title)[:150],
                      "sectors": sectors or [], "note": (note or "")[:120],
-                     "date": str(date or "")[:16], "symbols": symbols or [], "prio": prio})
+                     "date": str(date or "")[:16], "symbols": symbols or [], "prio": prio,
+                     "link": link or ""})
 
     # ① 政策 / 官方口径（importance 数字越小越重要）
     try:
@@ -1590,15 +1725,29 @@ def api_info_brief(hours: int = 48) -> dict:
         log.warning("info_brief 政策失败: %s", e)
 
     # ② 国际局势（intensity 越大越重要；注意该源当前可能停在更早的日期）
+    #    2026-10-31 去重（进哥：「内容特别相似的应该合并」）：
+    #      这里原本把 geo_events.decision（研判结论，60~120 字）当作 note 复述一遍，
+    #      而「国际局势」面板的每张卡已经把同一段 decision 标成「研判结论」完整展示。
+    #      同一段话在两个面板逐字出现，既占版面又让人以为是两条不同的判断。
+    #      职责切开：本页答「今天有什么消息」（标题 + 板块 + 方向），
+    #      「该怎么办」留在国际局势面板（link 指过去，点一下就到）。
+    #    为什么 note 只留「利空…」半段：direction 是「利多A、B；利空C、D」，
+    #      而 A、B 已经由 sectors_up 渲染成「影响板块」了 —— 同一批板块名在一个条目里
+    #      出现两遍，还是冗余。留下利空面（它不在 sectors_up 里），信息不丢、重复归零。
+    def _bear_side(direction) -> str:
+        s = str(direction or "")
+        i = s.find("利空")
+        return s[i:].strip("；。 ") if i >= 0 else ""
     try:
         for r in DB.conn.execute(
-                "SELECT title, intensity, direction, sectors_up, decision, event_date, symbols_up "
+                "SELECT title, intensity, direction, sectors_up, event_date, symbols_up "
                 "FROM geo_events ORDER BY intensity DESC, event_date DESC LIMIT 6").fetchall():
             syms = _jl(r["symbols_up"]) if r["symbols_up"] else []
             _add("国际", "强度%s" % (r["intensity"] or "—"), r["title"],
-                 _split_sectors(r["sectors_up"]), r["decision"] or r["direction"],
+                 _split_sectors(r["sectors_up"]), _bear_side(r["direction"]),
                  r["event_date"], [s for s in syms if isinstance(s, dict)][:4],
-                 6 if geo_stale else (1 if (_num(r["intensity"]) or 0) >= 4 else 3))
+                 6 if geo_stale else (1 if (_num(r["intensity"]) or 0) >= 4 else 3),
+                 link="geo_events")
     except Exception as e:  # noqa: BLE001
         log.warning("info_brief 国际失败: %s", e)
 
@@ -3023,7 +3172,9 @@ def api_global_market() -> dict:
     try:
         return global_market.payload(auto=True)
     except Exception as e:  # noqa: BLE001
-        log.warning("global_market 接口失败: %s", e)
+        # 2026-10-31 修复：原为 `log.warning(...)`，但本函数作用域内没有 `log`
+        # （server.py 模块级也没有）→ 异常处理自身抛 NameError，把真实错误盖成 500。
+        logging.getLogger(__name__).warning("global_market 接口失败: %s", e)
         return {"ok": False, "error": str(e)[:160], "indices": [], "sectors": [],
                 "themes": [], "cross_asset": [], "countries": [], "hk": [], "summary": {}}
 
@@ -3206,6 +3357,15 @@ def api_freshness() -> dict:
             return None
 
     domains = {
+        # 2026-10-31（D51）：论坛语料水位。这是全站「数据到底停在哪天」的第一个来源——
+        #   此前只有各面板内部的「数据截至」，用户要逐页点开才知道手里这份东西新不新。
+        #   盘后与周末不采集属正常，故不设 action（不需要「点击补齐」）。
+        "forum": {
+            "label": "论坛语料（淘股吧 / 东财）",
+            "updated_at": _max("SELECT MAX(post_time) FROM posts"),
+            "source": "本机采集器（交易时段每约 10 分钟抓一次；盘后与周末不抓）",
+            "realtime": False,
+        },
         "geo": {
             "label": "国际局势 / 全球政策 / 科技前沿",
             "updated_at": _max("SELECT MAX(event_date) FROM geo_events"),
@@ -3662,6 +3822,55 @@ def api_watch_check() -> dict:
     return res
 
 
+def _refresh_watch_list_cache_after_check() -> None:
+    """`/api/watch_check` 跑完后，把 watch_list 缓存条目里「被它改过的那几列」同步刷新。
+
+    2026-10-31 背景（QA 实测：每 90s 的 startWatchPoll 轮询会让下一次 watch_list 读取等 15.4s）：
+      watch_check 更新的是 watch_items 的 last_price / last_pct / last_checked_at 以及
+      watch_alerts 表（见 watchlib.check_alerts）；而 watch_list 慢的地方在**取价竞速三源 +
+      值得率评分 + 战法复算**，跟这几列毫无关系。整条删缓存 = 为了三个小字段把 15s 的重算
+      全部重做，代价完全不成比例。故改为「就地打补丁」：只把这几列 + alerts_unread 换进
+      缓存里那份 body，groups / 行情 / 值得率 / 战法信号一律原样保留 —— 既不滞后，也不重算。
+
+    三个刻意的细节：
+      1. 时间戳沿用原值（不延长新鲜期），仅内容更新；过期语义与改动前完全一致。
+      2. **先取数据、再拿缓存锁**：不在持有 _WRITE_LOCK 时去拿 _api_cache_lock，
+         以免与本文件既有的「_WRITE_LOCK → 释放 → _api_cache_*」顺序反向而行，形成死锁。
+      3. 整体替换条目而不是原地 mutate：_send_json 可能正在序列化同一份 dict，
+         就地改嵌套 list 有并发风险，替换引用则是原子的。
+    """
+    try:
+        with _WRITE_LOCK:
+            watchlib.ensure_schema(DB.conn)
+            fresh = {r["id"]: r for r in watchlib.list_items(DB.conn)}
+            unread = watchlib.count_unread(DB.conn)
+        with _api_cache_lock:
+            cur = _api_cache.get("watch_list")
+            if not cur or not isinstance(cur[1], dict):
+                return
+            ts, body, ttl = cur
+            items = body.get("items")
+            if not isinstance(items, list):
+                return
+            new_items = []
+            for it in items:
+                f = fresh.get(it.get("id")) if isinstance(it, dict) else None
+                if not isinstance(f, dict):
+                    new_items.append(it)
+                    continue
+                it2 = dict(it)
+                for k in ("last_price", "last_pct", "last_checked_at"):
+                    if k in f:
+                        it2[k] = f[k]
+                new_items.append(it2)
+            new_body = dict(body)
+            new_body["items"] = new_items
+            new_body["alerts_unread"] = unread
+            _api_cache["watch_list"] = (ts, new_body, ttl)
+    except Exception:  # noqa: BLE001 —— 补丁失败绝不影响检测结果本身
+        logging.getLogger(__name__).debug("watch_check 后刷新 watch_list 缓存失败", exc_info=True)
+
+
 # ==================== 豆包整理的抖音博主语料（2026-10-20 进哥需求） ====================
 # 数据源：荐股追踪查看台（博主数据查看台）豆包日更产出的两个**新域** JSON，
 # 由 tools/import_douyin_corpus.py 幂等灌进 douyin_corpus_*（零 JOIN 既有业务表）。
@@ -4091,36 +4300,37 @@ def api_douyin_plate(plate: str = "") -> dict:
         risk = 0.0
         reasons = []
         if n_mul:
-            conf += min(n_mul, 5) * 9.0
+            conf += min(n_mul, KPARAMS.CARD_SRC_CAP) * KPARAMS.CARD_SCORE_W["multi"]
             reasons.append("六源信号 %d 路偏多" % n_mul)
         if n_short:
-            risk += min(n_short, 5) * 14.0
+            risk += min(n_short, KPARAMS.CARD_SRC_CAP) * KPARAMS.CARD_SCORE_W["short"]
             reasons.append("六源信号 %d 路偏空" % n_short)
         if tier_w:
-            conf += tier_w * 7.0
+            conf += tier_w * KPARAMS.CARD_SCORE_W["tier"]
             reasons.append("合成卡 %s 档(%s)" % (t, rs))
         if bull_st:
-            conf += 12.0
+            conf += KPARAMS.CARD_SCORE_W["bull_tag"]
             reasons.append("豆包标注「%s」" % "/".join(bull_st))
         if bear_st:
-            risk += 16.0
+            risk += KPARAMS.CARD_SCORE_W["bear_tag"]
             reasons.append("豆包标注「%s」" % "/".join(bear_st))
-        conf += min(h["n"], 4) * 3.0
+        conf += min(h["n"], KPARAMS.CARD_SAMPLE_CAP) * KPARAMS.CARD_SCORE_W["sample"]
         if n_mul and n_short:
-            risk += 8.0
+            risk += KPARAMS.CARD_SCORE_W["both_dir"]
             reasons.append("多空信号并存，方向不纯")
         if not t and not s:
             reasons.append("仅豆包提及，尚无合成层/信号印证")
-        conf = min(conf, 100.0)
-        risk = min(risk, 100.0)
+        conf = min(conf, KPARAMS.CARD_SCORE_CAP)
+        risk = min(risk, KPARAMS.CARD_SCORE_CAP)
         net = conf - risk
-        if net >= 15 and n_mul >= n_short:
+        if net >= KPARAMS.CARD_DIR_NEUTRAL_NET and n_mul >= n_short:
             d = "看涨"
-        elif net <= -15 or (n_short > n_mul and risk >= 14):
+        elif net <= -KPARAMS.CARD_DIR_NEUTRAL_NET or (n_short > n_mul and risk >= 14):
             d = "看跌"
         else:
             d = "中性"
-        strength = "强" if abs(net) >= 45 else ("中" if abs(net) >= 25 else "弱")
+        strength = ("强" if abs(net) >= KPARAMS.CARD_STRONG_NET
+                    else ("中" if abs(net) >= KPARAMS.CARD_MID_NET else "弱"))
         score = int(round(50 + net * 0.5))
         score = max(0, min(100, score))
         stocks.append({
@@ -4131,6 +4341,12 @@ def api_douyin_plate(plate: str = "") -> dict:
             "sig_mul": n_mul, "sig_short": n_short,
             "stances": sts, "bloggers": sorted(h["authors"])[:5],
             "reasons": reasons, "samples": h["samples"],
+            # 2026-10-31 整改（测评 P1「结论卡证据强度」项）：强度标签必须自带来历。
+            # 之前这三档只是一个 abs(net) 的切分，界面上"强"看起来像结论，
+            # 实际是 6 个拍定系数的差。现在把"它是怎么来的""系数没有来源"直接放在卡里。
+            "strength_basis": KPARAMS.CARD_STRENGTH_BASIS,
+            "weights_are_arbitrary": KPARAMS.CARD_WEIGHTS_ARE_ARBITRARY,
+            "net": round(net, 2),
         })
 
     bulls = sorted([x for x in stocks if x["dir"] == "看涨"], key=lambda x: -x["score"])
@@ -4747,7 +4963,9 @@ def api_board_flow_range(start: str = "", end: str = "", kind: str = "industry",
         res["force"] = bool(force)
         return _flow_range_cached("range:%s:%s:%s:%d:%d" % (start, end, kind, top, force), res)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("板块资金流区间聚合异常")
+        # 2026-10-31 修复：原为 `logger.exception(...)`，本函数的局部名表里没有 `logger`
+        # → 异常处理自身抛 NameError。改用模块内既有写法 logging.getLogger(__name__)。
+        logging.getLogger(__name__).exception("板块资金流区间聚合异常")
         return {"ok": False, "error": "区间聚合失败：%s" % exc, "series": [], "pool": []}
 
 
@@ -4757,7 +4975,8 @@ def api_board_flow_dates(kind: str = "industry") -> dict:
         board_flow_range.ensure_schema(DB.conn)
         return board_flow_range.date_options(DB.conn, kind)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("板块资金流日期清单异常")
+        # 2026-10-31 修复：同 api_board_flow_range，`logger` 未定义 → 改模块内既有写法。
+        logging.getLogger(__name__).exception("板块资金流日期清单异常")
         return {"ok": False, "error": str(exc), "days": []}
 
 
@@ -4768,16 +4987,32 @@ def api_board_flow_status() -> dict:
 
 # ================= 总览③ 每日预测（六路信号 + 复盘自学习闭环，2026-09-28 新增）=====
 # 引擎在 viewer/predictor.py：独立建表、不 JOIN 既有业务表；口径见该模块 docstring。
-def api_prediction_today() -> dict:
-    """今日推荐载荷：核心/观察池 + 命中信号 + 理由 + 复盘结果 + 权重调整痕迹。"""
+def _prediction_today_compute() -> dict:
     predictor.ensure_tables(DB.conn)
     return predictor.today_payload(DB.conn)
 
 
-def api_prediction_scores() -> dict:
-    """策略记分板：六路信号 + 九流派 + 逐策略的实盘命中率（T+1/T+3/T+5）。"""
+def _prediction_scores_compute() -> dict:
     predictor.ensure_tables(DB.conn)
     return predictor.scores_payload(DB.conn)
+
+
+def api_prediction_today(force: bool = False) -> dict:
+    """今日推荐载荷：核心/观察池 + 命中信号 + 理由 + 复盘结果 + 权重调整痕迹。
+
+    2026-10-30：实测冷态 **120s**、热态 0.68s，且不落磁盘 —— 套 SWR（见 _swr_serve）：
+    重启后第一次点击读盘快照（毫秒级、标 _stale），后台再重算；手动刷新走 force。
+    """
+    return _swr_serve("prediction_today", _prediction_today_compute, ttl=1800, force=force)
+
+
+def api_prediction_scores(force: bool = False) -> dict:
+    """策略记分板：六路信号 + 九流派 + 逐策略的实盘命中率（T+1/T+3/T+5）。
+
+    2026-10-30：实测冷态 32s、热态 1.46s。记分板本质是「历史命中统计」，一天只变一次，
+    故 TTL 给 7200s（比 today 更宽）。
+    """
+    return _swr_serve("prediction_scores", _prediction_scores_compute, ttl=7200, force=force)
 
 
 def api_prediction_track() -> dict:
@@ -7099,7 +7334,10 @@ def _overseas_insight() -> dict:
             "regions": h.get("driver_regions") or [],
             "symbols": h.get("related_symbols") or [],
             "sources": (h.get("driver_sources") or [])[:5],
-            "heat": round(heat, 1), "confidence": h.get("confidence"),
+            "heat": round(heat, 1),
+            # confidence 不再外抛（2026-10-31）：它是「人工基准 0.6 + 0.03×条数」的合成分，
+            # 不是可复现的概率。界面改按信源家数分档（credTier），库里该列仍保留，
+            # 因为 predictor 用它做热度加权——那是内部权重，不对外当"把握度"展示。
             "amp": h.get("amplification_factor"),
         })
         ups = [x for x in (h.get("sectors_up") or []) if x and not _is_none(x)]
@@ -7118,7 +7356,7 @@ def _overseas_insight() -> dict:
                    if x and not _is_none(x.get("sector"))],
             "down": [x for x in (h.get("sectors_down_detail") or [])
                      if x and not _is_none(x.get("sector"))],
-            "confidence": h.get("confidence"), "heat": round(heat, 1),
+            "heat": round(heat, 1),
         })
     bull = [k for k, _ in sorted(up_w.items(), key=lambda kv: -kv[1])][:8]
     bear = [k for k, _ in sorted(dn_w.items(), key=lambda kv: -kv[1])][:6]
@@ -8462,6 +8700,21 @@ def _user_busy(secs: float | None = None) -> bool:
     return _LAST_REQ_TS > 0 and (time.monotonic() - _LAST_REQ_TS) < s
 
 
+def _wait_user_idle(quiet: float = 8.0, max_wait: float = 180.0) -> bool:
+    """阻塞等待「用户安静 quiet 秒」，最多等 max_wait 秒；等到返回 True。
+
+    2026-10-30：后台那些**不在调度器里**的重活（启动预热、盯盘自愈扫描）此前完全不看用户状态，
+    一开机就跑几分钟纯 Python，把首屏请求全堵住。它们都是「有缓存更好、没有也能用」的优化项，
+    所以统一改成：用户在用就先让路，等安静下来再补。
+    """
+    t0 = time.monotonic()
+    while _user_busy(quiet):
+        if time.monotonic() - t0 >= max_wait:
+            return False
+        time.sleep(2.0)
+    return True
+
+
 def _idle_gate(fn, name: str = ""):
     """把「进程内 CPU 重活」包成「用户忙碌就跳过」的调度项（2026-10-29）。
 
@@ -8534,8 +8787,15 @@ def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
                 req = urllib.request.Request(url, headers=headers)
                 eff_timeout = timeout
                 _dl = deadline if deadline is not None else getattr(_REQ_DEADLINE, "value", None)
+                # 2026-10-30：外网超时下限 1s → 2.5s。此前只要请求在排队中把「8s 处理时限」耗掉，
+                # 这里就会把超时压成 1s；而腾讯行情单次实测 0.6~0.8s、东财 F10 更久，
+                # 于是必然超时 → /api/quote 一律返回「东方财富 / 腾讯均不可用」，
+                # 个股抽屉的「简称 / 重要信息」就永远停在「加载中…」。
+                # 排队慢是服务端自己的问题，不能让上游取数替它背锅。
                 if _dl is not None:
-                    eff_timeout = max(1, int(min(timeout, _dl - time.monotonic())))
+                    eff_timeout = max(2.5, min(float(timeout), _dl - time.monotonic()))
+                else:
+                    eff_timeout = float(timeout)
                 with opener.open(req, timeout=eff_timeout) as resp:
                     return resp.read().decode(encoding, "ignore")
             except Exception as e:  # noqa: BLE001 —— 网络类异常统一重试
@@ -8565,7 +8825,15 @@ def _em_get_json(url: str, referer: str, timeout: int = 12, retries: int = 2):
         if txt:
             cu.mark_eastmoney_success()
         else:
-            cu.mark_eastmoney_failure()
+            # 2026-10-30 修复：熔断记账是**旁路**，绝不能打断取数主流程。
+            # 实测事故：`mark_eastmoney_failure()` 自身抛 UnboundLocalError（cacheutil 里漏写
+            # global，已修），而这里当时裸调 → 东财一失败就向上抛异常，`_em_json` 注释承诺的
+            # 「网络失败时不反查、直接交给腾讯兜底」永远走不到，弹窗表现成「永久加载中」。
+            # 即便根因已修，记账失败也**不允许**升级成取数失败：这里兜住并降级为 debug。
+            try:
+                cu.mark_eastmoney_failure()
+            except Exception:  # noqa: BLE001
+                logging.debug("东财失败记账异常（已忽略，不影响取数兜底）", exc_info=True)
     if not txt:
         return None
     try:
@@ -9779,14 +10047,48 @@ _SCHED_START_MIN = 9 * 60                # 交易窗口起点 09:00
 _SCHED_END_MIN = 16 * 60                 # 交易窗口终点 16:00
 _SCHED_MIN_GAP = 600                     # 两次调度最小间隔 10 分钟（防抖）
 _SCHED_WAKE = 10                         # 唤醒粒度（秒）；比 60s 更灵敏，验收 5-10s 内触发可达
-_SCHED_SOURCES = list(getattr(CFG, "INGEST_SOURCES", ["taoguba", "eastmoney", "sina"]))
-# 2026-10-30：改从 viewer/config.INGEST_SOURCES 读（单一事实源）。置空 = 停掉交易时段
-# 每 10 分钟一轮的论坛轮询（约 42 轮/日）。论坛信号实证见 docs/论坛大V信号实证_20261030.md。
+# 2026-10-31 整改（测评 P0-1「三层 fail-open」，逐条对应）：
+#   ① 原：_SCHED_SOURCES = list(getattr(CFG, "INGEST_SOURCES", ["taoguba","eastmoney","sina"]))
+#      —— 缺属性时**复活三个论坛源**，其中 taoguba 已于 2026-10-24 判定 login_failed
+#      （config.py 自述）。改为取源函数：缺属性/为 None ⇒ 空列表（不复活）+ error 日志。
+#   ② 原：_sched_default_state() 的 enabled=True —— 没有状态时默认「开着」。改为 False。
+#   ③ 原：读 scheduler_state 失败的 except 分支 return _sched_default_state() —— 读失败也「开着」。
+#      改为显式声明「状态未知 ⇒ 按关闭处理」并把原因写进返回值。
+#   ④ 原：守卫 `if not _SCHED_SOURCES` 位于 _sched_run_once 内、且守卫对象是已被默认值填满的
+#      模块级变量 —— 它检查的不是「配置为空」，而是「为空之后有没有被默认值补上」。
+#      改为：书写（此处）、守卫（_sched_maybe_run 首行）、生效（_sched_run_once）三处收拢到
+#      同一个函数，且守卫先于读库与抢锁。
+# 落点为什么不在 config 模块顶层抛错：predictor.py / universe_scan.py / indicators.py /
+# server.py 共 4 处 import 依赖 INGEST_SOURCES 的容错，顶层抛错会把「抓取该停」升级成
+# 「服务起不来」——那不是修 fail-open，是换了一个更响的故障。
+def _sched_sources() -> list:
+    """调度抓取源（fail-closed 唯一取源处）。缺配置 = 不抓，不是「照默认抓」。"""
+    if not hasattr(CFG, "INGEST_SOURCES"):
+        logging.error("[sched] config 缺 INGEST_SOURCES —— fail-closed：本轮不抓取")
+        return []
+    v = getattr(CFG, "INGEST_SOURCES", None)
+    if v is None:
+        logging.error("[sched] config.INGEST_SOURCES 为 None —— fail-closed：本轮不抓取")
+        return []
+    out = [x for x in v if x]
+    return out
+
+
+# 短路日志的限速器：源为空时每 10s 唤醒一次，不该每轮都打一行（实测曾刷出 2,439 行）。
+_SCHED_SKIP_LOG_TS = 0.0
+_SCHED_SKIP_LOG_GAP = 600
 
 
 def _sched_default_state() -> dict:
-    return {"enabled": True, "last_run_at": None,
-            "run_count": 0, "errors_today": 0, "errors_date": ""}
+    """无状态时的缺省值 —— 一律取「关」。
+
+    2026-10-31 整改（测评 P0-1）：原为 enabled=True。缺省「开着」意味着
+    「没配过」与「配成开」在系统里不可区分，而这两件事的后果差一个数量级：
+    前者是没人决定过，后者是有人决定了。缺省必须是关，开启必须是一次显式动作。
+    """
+    return {"enabled": False, "last_run_at": None,
+            "run_count": 0, "errors_today": 0, "errors_date": "",
+            "state_known": True}
 
 
 def _sched_load_state() -> dict:
@@ -9799,7 +10101,14 @@ def _sched_load_state() -> dict:
                 base.update(d)
                 return base
     except Exception:  # noqa: BLE001
-        logging.exception("读取 scheduler_state 失败，退回默认")
+        # 2026-10-31 整改（测评 P0-1）：读失败不再「退回默认（开着）」。
+        # 读不到状态与「状态是关」在行为上等价，但在报告上必须可区分 —— 故带 state_known=False，
+        # 让 /api/scheduler/status 能把「未知」如实显示成未知，而不是显示成一个像模像样的 enabled。
+        logging.exception("读取 scheduler_state 失败 —— 按 fail-closed 处理（enabled=False, state_known=False）")
+        st = _sched_default_state()
+        st["state_known"] = False
+        st["state_error"] = "scheduler_state 读取失败"
+        return st
     return _sched_default_state()
 
 
@@ -9837,16 +10146,18 @@ def _sched_run_once(state: dict) -> None:
     try:
         errors = 0
         total_items = 0
-        if not _SCHED_SOURCES:
-            # 2026-10-30 全链路体检：论坛源整体停抓（config.INGEST_SOURCES 置空）时的短路。
-            # 必须显式返回，否则 ThreadPoolExecutor(max_workers=0) 会抛 ValueError，
-            # 且会把「__all__」刷成 ok 让顶栏误以为数据还在更新。
+        # 第二道守卫（纵深防御）：正常路径已被 _sched_maybe_run 首行拦下，这里再判一次，
+        # 因为本函数也可能被未来的新入口直接调用。空列表若继续往下走，
+        # ThreadPoolExecutor(max_workers=0) 会抛 ValueError，且「__all__」会被刷成 ok
+        # 让顶栏误以为数据还在更新 —— 两种后果都比直接返回糟。
+        srcs = _sched_sources()
+        if not srcs:
             logging.info("调度抓取跳过：论坛源已停用（config.INGEST_SOURCES 为空）")
             return
         # 2026-09-25 优化：两来源并发抓取（DB 已 WAL + 每线程独立连接），缩短整轮耗时。
-        max_workers = min(len(_SCHED_SOURCES), int(os.environ.get("INGEST_MAX_WORKERS", "4")))
+        max_workers = min(len(srcs), int(os.environ.get("INGEST_MAX_WORKERS", "4")))
         with cf.ThreadPoolExecutor(max_workers=max_workers) as ex:
-            futs = {ex.submit(INGEST.ingest, s, "all"): s for s in _SCHED_SOURCES}
+            futs = {ex.submit(INGEST.ingest, s, "all"): s for s in srcs}
             for fut in cf.as_completed(futs):
                 s = futs[fut]
                 try:
@@ -9873,9 +10184,9 @@ def _sched_run_once(state: dict) -> None:
         # 旧行为里 __all__ 只有手动 /api/fetch 全成功才更新，调度每轮跑完不回写，
         # 于是顶栏拿一个十几分钟前的 last_ok_at 去比，长期误报「已超时」。
         # 这里按**至少一个来源成功**即记 ok（部分来源失败只是降级，不是数据停更）。
-        _sched_record_all(errors, len(_SCHED_SOURCES), total_items)
+        _sched_record_all(errors, len(srcs), total_items)
         logging.info("调度抓取完成：sources=%s errors=%d run_count=%d",
-                     _SCHED_SOURCES, errors, state["run_count"])
+                     srcs, errors, state["run_count"])
     finally:
         INGEST_LOCK.release()
 
@@ -9901,8 +10212,19 @@ def _sched_record_all(errors: int, total_sources: int, total_items: int = 0) -> 
 
 
 def _sched_maybe_run() -> None:
+    # 2026-10-31 整改（测评 P0-1）：守卫提前到最前，先于读库、先于抢锁。
+    # 原实现守卫在 _sched_run_once 里，且短路 return 发生在写状态之前 ⇒ last_run_at 永不推进
+    # ⇒ 下方防抖（依赖 last_run_at）对该路径完全失效 ⇒ 每 10s 唤醒都白跑一遍
+    # 「读 state → 抢锁 → 打日志 → 释放」。这就是实测 2,439 次短路的来源。
+    global _SCHED_SKIP_LOG_TS
+    if not _sched_sources():
+        now_ts = time.time()
+        if now_ts - _SCHED_SKIP_LOG_TS >= _SCHED_SKIP_LOG_GAP:
+            _SCHED_SKIP_LOG_TS = now_ts
+            logging.info("调度抓取跳过：论坛源已停用（config.INGEST_SOURCES 为空）")
+        return
     state = _sched_load_state()
-    if not state.get("enabled", True):
+    if not state.get("enabled", False):
         return
     now = datetime.now()
     if not _sched_in_window(now):
@@ -9975,6 +10297,11 @@ _TTL_ROUTES: dict = {
     "/api/douyin/facets": 300,
     "/api/douyin/list": 300,
     "/api/douyin/overview": 300,
+    # 2026-10-30 D35 阶段二：资金风向是「读表 + 算一个分位」，本身只有毫秒级，
+    # 之所以仍进白名单：① 落到 _TTL_ROUTES 才能用 SWR（先给旧值、后台刷新），
+    # 否则表被重写的那一瞬间（--save 先 DELETE 再 INSERT）用户会看到空面板；
+    # ② 120s 与数据实际更新频率（每日一次）相比绰绰有余。
+    "/api/lhb_weather": 120,
 
     "/api/douyin/topics": 300,
 
@@ -9996,7 +10323,16 @@ _TTL_ROUTES: dict = {
     # 底层数据每日盘后落库，短期 TTL 即可消除重复计算，且前端「立即刷新」带 force= 会绕过。
     "/api/quant": 300,
     "/api/etf": 300,
-    "/api/watch_list": 300,
+    # 2026-10-31 修复（进哥：关注池「＋ 新分组 / ✎ 改名」点了没反应）：
+    #   "/api/watch_list": 300 已从本白名单**移除**。api_watch_list 自 2026-10-25 起函数内部
+    #   已自带同款 SWR（_api_cache 300s + 过期先回旧值 + 后台重算），再叠这一层就是两条
+    #   互不感知的缓存 —— 正是本文件 10161 行那条「两层缓存各自过期、用户按了刷新却仍看到
+    #   旧值」的注释所禁止的组合（today_decision / prediction 当时就是这么被请出去的）。
+    #   现场证据：往 watch_groups 写入成功后，GET /api/watch_list 仍原样回放旧 body
+    #   （响应带冻结的 _cache_age=341），分组标签条一个都不多；且因为刷新参数只认
+    #   t= / force=，前端 loadWatch(true) 发的 refresh=1 也绕不过这层，「刷新」按钮同样失效。
+    #   去掉外部这层只减少一层缓存，热路径的 300s 命中仍由函数内的 _api_cache 提供，
+    #   冷启动成本不变；换来的是「写后失效」只作用于唯一那份缓存，语义干净。
     # 2026-10-29 全站逐点体检（进哥要求「每个取数点都自己点开测一遍」）实测补入：
     #   /api/stocks 5.6s（stock_mentions×posts 全表 GROUP BY + 情绪三态）、
     #   /api/screener_decline 17.6s（活跃池逐只算日线）、
@@ -10013,7 +10349,18 @@ _TTL_ROUTES: dict = {
     # 注意：**不缓存 /api/dashboard** —— 它含集合竞价 / 实时报价等「当下」语义，
     # 且前端存在不带 `t=` 的裸调用刷新路径（selectNav 与手动刷新都会打同一 URL），
     # 缓存会挡住刷新、让用户看到几十秒内的旧价。实时类接口一律不进白名单。
+    # 同理（2026-10-30 修订）：/api/today_decision、/api/prediction/today、
+    # /api/prediction/scores **不进本白名单** —— 它们各自在函数内部套了 dashboard 同款
+    # SWR（_swr_serve：缓存 + 落盘快照 + 后台重算 + force 穿透），再叠一层 TTL 只会让
+    # 「手动刷新」的语义打架（两层缓存各自过期、用户按了刷新却仍看到旧值）。
 }
+
+
+# 2026-10-30 修订记录：本节原先还定义过 `_SNAPSHOT_FIRST_ROUTES` / `_snapshot_fresh_enough`
+# 与 _do_GET 里的「落盘快照优先」分支（走 _wh.get_snapshot）。按主理人要求已**回退干净**：
+# 三个慢接口改用函数内部的 _swr_serve（复用 dashboard 2026-10-25 线上已验证的机制），
+# 不再在 handler 层叠一条读盘分支 —— 两条路径并存会出现「谁先命中」的不确定行为。
+# 若日后要恢复 handler 级兜底，请先确认 _swr_serve 已不再负责同一路由。
 
 
 _SWR_INFLIGHT: dict = {}
@@ -10287,6 +10634,10 @@ _OFFPROC_GAP = {          # 同一任务两次启动的最小间隔（秒）：�
     "resonance_build": 900, "selfpick_build": 900, "evolve_daily": 900,
     "bili_scan": 900, "kline_prewarm": 600, "hotspots": 600,
     "lhb_daily": 600,
+    # 2026-10-30：板块资金流日线日更。窗口在 18:30，且子进程自带「当日已成功即跳过」的闸门
+    # （board_flow_range._gate），所以这里给 600s 与 lhb_daily 对齐即可：
+    # 它的职责只是「同一 tick 别反复起进程」，真正的幂等在子进程里。
+    "board_flow_range_daily": 600,
     # 2026-10-19：夜刷编排出进程。原注：blogger_daily 单轮 525.5s 占 GIL 冻结全站；
     # 2026-10-30 该任务已随博主荐股下线删除，lhb_daily 仍按 600s 节流。
     # 2026-10-29：参数化重量级面板（低位箱体/换手榜）—— 这个任务一次消费**全部**待算请求单，
@@ -10314,6 +10665,11 @@ _JOB_META: dict = {}   # 子进程成功退出后由父进程落盘的"已完成
 _JOB_TIMEOUT = {
     "indicators_daily": 4800,    # 实测单轮 2965s（49 分钟）
     "predictor_daily": 5400,     # 历史出现过 45 分钟以上未完成
+    # 2026-10-30 D36：原来没登记 → 吃默认 3600s，而实测单轮 2327s 只有 1.55 倍余量。
+    # 余量不够的后果不是"晚一点"，是**在写库中途被 kill** → 退避重试 → 再被 kill，
+    # 整晚空转（与 lhb_daily 那次 11 天静默停更同一种慢性病的另一种形态）。
+    # 它和 predictor_daily 同为全市场重算，取同一档 5400s。
+    "pillars_daily": 5400,
     "kline_daily": 3600,         # 实测 1139s
     "kbase_daily": 5400,         # 首次会全量读 2.3GB 库
     "kline_prewarm": 1800,       # 实测 165s
@@ -10334,6 +10690,12 @@ _JOB_TIMEOUT = {
     # （lhb_fetch 6.7 + sector_link 413 + sector_chain 64），3600s 是 7.4 倍余量。
     # ⚠️ 别往下改小：内层子进程超时已经是 900 + 1800 + 1800，遇到限流重试会被误杀。
     "lhb_daily": 3600,
+    # 2026-10-30：板块资金流日线日更。实测一整轮（3 个交易日 × 2 个 kind = 12 个请求，
+    # industry 1 页 / concept 3 页）**2.05s**（库副本上量的，不是估的）。
+    # 给 300s = 146 倍余量：这条链唯一的慢因是东财限流/网络劣化时的重试，
+    # 而单请求 timeout 是 12s、最多 6 页 → 单日单 kind 最坏 72s，2 个 kind 最坏 144s。
+    # 300 足够覆盖"两天都撞限流"，又不会让卡死进程占着写域太久。
+    "board_flow_range_daily": 300,
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
@@ -10366,17 +10728,24 @@ def _meta_get_cached(key: str):
     return v
 
 
-def _daily_job(job: str, deadline_hm: tuple[int, int]) -> None:
+def _daily_job(job: str, start_after_hm: tuple[int, int]) -> None:
     """日更任务统一调度：交易日 + 到点 + 今天没做过 → 交给子进程。
 
-    deadline_hm 是「最早可跑时刻」的 (时, 分)；周末与未到点直接返回。
+    start_after_hm 是「**最早可跑时刻**」的 (时, 分)；周末与未到点直接返回。
+
+    2026-10-31 整改（测评 08 节「命名陷阱」）：本参数原名为 `deadline_hm`。
+    `deadline` 读作「截止」，而实现是「起点门」（`if (now.hour, now.minute) < 岗 → return`）。
+    命名与实现反向，造成的不是误解，是**搜索方向错误**：下一个人会去找
+    「20:00 前必须跑完」的证据 —— 而它在 20:00 之前根本不存在。
+    搜索方向错误不会报错，只会让人得出「没找到 ⇒ 不存在」。
+    故改名为 start_after_hm；全部 18 处调用为位置传参，无需改动。
     """
     if BRAKE_backoff_wait(job) > 0:      # 上次失败，按退避窗口静默跳过
         return
     now = datetime.now()
     if now.weekday() >= 5:               # 周末不跑（周五的成果覆盖周六日）
         return
-    if (now.hour, now.minute) < deadline_hm:
+    if (now.hour, now.minute) < start_after_hm:
         return
     day = now.strftime("%Y-%m-%d")
     flag = job + "_done"
@@ -10469,6 +10838,21 @@ def _spawn_offproc(job: str, logname: str | None = None) -> bool:
                                     "按退避策略 %.0fs 内不再重试",
                                     job, prev.returncode, job, wait)
                     _JOB_WARNED.add(job)
+                # 2026-10-30 修复（严重 · 一次失败 = 当天永久停摆）：
+                # 旧实现**从不 pop** `_JOB_PROCS[job]`，于是这一条死记录永远留在表里、且
+                # `prev.returncode` 恒为真 → 此后**每个 tick（10s）**都重新进这个分支：
+                #   ① 反复 `BRAKE_backoff_fail` 把退避窗口一次次往后推（60→300→900→1800 封顶）；
+                #   ② 立刻 return False → 永远走不到函数后段 `BRAKE_backoff_wait` 的门控，
+                #      **退避窗口即使过期也没有任何路径能重试**，`MAX_TRIES` 形同虚设。
+                # 直连 `_spawn_offproc` 的任务（lhb_daily / predictor_daily / pillars_daily /
+                # bili_scan / resonance_build…）没有 `_daily_job` 的 `backoff_wait > 0` 提前
+                # return 这层保护，一旦某轮非零退出就**直到服务重启都不会再启动**。
+                # 修法：失败分支把这条记录摘掉，下一次 tick 走 `prev is None` 的正常路径
+                # → 落到 `wait = BRAKE_backoff_wait(job)` 门控：退避仍然生效，但**窗口过期后能重试**。
+                # ⚠️ 只在失败分支摘；成功分支必须留着（它还要靠 `_JOB_LAST_OK[job]` 让
+                #    `_daily_job` 补写"当日已完成"标记），且 `BRAKE.release(job)` 已在上面执行过
+                #    （`Brake.release` 是 `self._leases.pop(job, None)`，对重复/未知 job 幂等）。
+                _JOB_PROCS.pop(job, None)
                 return False                    # ← 失败后不当场重开，交给退避窗口
             else:
                 _JOB_WARNED.discard(job)
@@ -10849,6 +11233,25 @@ def _review_score_daily_maybe() -> None:
     _daily_job("review_score_daily", (18, 0))
 
 
+def _board_flow_range_daily_maybe() -> None:
+    """板块资金流日线（`board_flow_daily`）日更（2026-10-30 新增）。排在 18:30。
+
+    【为什么会有这一班】这张表停更了 21 个交易日（库内 217 行全落在 2026-10-08），
+    根因是它**从来没有进过调度**：唯一写入路径 `board_flow_range.ensure_daily`
+    只由「区间资金面板请求」间接调用（`range_flow` → `_maybe_spawn`）→
+    没人打开那个面板，表就永远不更新。这里把「有没有人看」和「数据新不新」解耦。
+
+    【为什么 18:30】它拉的是**日线收盘**数据；排在 `lhb_daily`(18:00) 之后，
+    避免两个任务同时抢 app.db 的写域（brake 的写域互斥会把其中一个挡回去）。
+    实测东财当天数据在 17:0x 就已生成，18:30 是留足余量的时点。
+
+    【为什么出进程】本项目铁律：纯 Python 长任务留在服务进程里会占 GIL 冻结所有接口。
+    这条链虽然以 HTTP 为主，但解析与落库都是本进程代码，统一走 `_spawn_offproc`。
+    """
+    _daily_job("board_flow_range_daily", (18, 30))
+
+
+
 def _strategy_templates_maybe() -> None:
     """现成策略模板（2026-10-26 P5）：依赖 indicators_daily 的 stock_indicators
     与 universe_scan 的 stock_universe_scan，对干净宇宙跑现成选股模板。
@@ -10917,8 +11320,26 @@ def _sched_tasks() -> list:
         ("sched_maybe_run", _sched_maybe_run),
         ("kline_prewarm", _kline_prewarm_maybe),
         ("board_flow_sample", _idle_gate(lambda: board_flow.maybe_sample(DB.conn), "board_flow_sample")),
-        ("predictor_daily", lambda: _spawn_offproc("predictor_daily")),
-        ("pillars_daily", lambda: _spawn_offproc("pillars_daily")),
+        # 2026-10-30 修复（严重 · 无限循环永久占住写闸）：
+        # 这两个任务此前是**直连** `_spawn_offproc`，即"起了就不管今天做过没有"：
+        #   · `_OFFPROC_GAP` 里两者都没登记 → 吃默认 600s；
+        #   · 而单轮实测 `pillars_daily` 2327s、`predictor_daily` 冷缓存上一轮跑满 5400s 被超时杀；
+        #   · 600s < 2327s → **上一轮一结束，间隔条件立刻满足 → 下一 tick 立刻重生**；
+        #   · 它们又都是 `(COMPUTE, "app")`，于是 `写域 app` 被连续占死，`lhb_daily`（app 域）
+        #     永远抢不到闸，整条日更链欠账（10-30 现场：kline_daily / indicators_daily 全被挡）。
+        # 根因不是"跑得慢"，是**成功退出后没有任何"当日已完成"标记**：
+        #   · `_JOB_META` 是空字典（10558 附近，没人往里写过这两个 job）；
+        #   · 子进程里的 `_GEN_DONE`（pillars.py:130/1288）与 `_DAILY_DONE`（predictor.py:3885/4040）
+        #     都是**进程内字典**，而 `tools/sched_job.py` 每进程只调一次 maybe_daily
+        #     → 它们在本架构下根本不可能被读到第二次，等于死代码；
+        #   · `meta` 表里也确实没有 `pillars_daily_done` / `predictor_daily_done`。
+        # 修法：接进 `_daily_job` —— 它在子进程**成功退出**后（靠 `_JOB_LAST_OK`，见 10410~10420）
+        # 才把 `<job>_done = 当日` 落进 meta，于是当天不再 spawn，循环从根上断掉。
+        # 同时这也恢复了两个 `maybe_daily` docstring 原本的设计语义（"同一天成功后只跑一次"）。
+        # deadline 取各自 maybe_daily 内部的时间窗起点（pillars 16:00、predictor 15:05），
+        # 保证"父进程放行"与"子进程闸"同源，不会出现父进程放行、子进程永远 skip 的空转。
+        ("predictor_daily", lambda: _daily_job("predictor_daily", (15, 5))),
+        ("pillars_daily", lambda: _daily_job("pillars_daily", (16, 0))),
         ("pillars_b_confirm", lambda: pillars.maybe_b_confirm_wrapper(DB.conn)),
         ("pillars_monday_refresh", _monday_refresh_maybe),
         ("policydesk_refresh", _idle_gate(lambda: policydesk.maybe_refresh(DB.conn), "policydesk_refresh")),
@@ -10927,6 +11348,10 @@ def _sched_tasks() -> list:
         # 2026-10-29：auction.maybe_snapshot 是纯 CPU 采集（实测单次 94.5s），必须加忙碌闸，否则冻结全站
         ("auction_snapshot", _idle_gate(lambda: auction.maybe_snapshot(DB.conn), "auction_snapshot")),
         ("lhb_daily", lambda: _spawn_offproc("lhb_daily")),
+        # 2026-10-30：板块资金流日线（board_flow_daily）日更。18:30 窗口，
+        #   排在 lhb_daily(18:00) 之后错开写域；此前这张表**没有任何调度**，靠用户开面板触发，
+        #   结果停更 21 个交易日（217 行全在 2026-10-08）。
+        ("board_flow_range_daily", _board_flow_range_daily_maybe),
         ("bili_scan", lambda: _spawn_offproc("bili_scan")),
         ("resonance_build", lambda: _spawn_offproc("resonance_build")),
         ("selfpick_build", lambda: _spawn_offproc("selfpick_build")),
@@ -10960,6 +11385,12 @@ def _sched_tasks() -> list:
         #   场景：用户点了低位箱体就切走/关页面，请求单会留在 viewer/data/variants/，
         #   靠这一轮调度把它算完落盘，下次打开秒出 —— 保证「一定会有结果」，不留死单。
         ("variant_drain", _variant_drain_maybe),
+        # 2026-10-30「盘后复盘优先」：收盘定稿（交易日 15:20 后）把三个慢接口
+        # （today_decision / prediction_today / prediction_scores）补算一遍，让用户晚上复盘时
+        # 全部命中内存 —— 而不是让他点第一次时在请求线程里现算 52 秒。
+        # 放最后：不改变任何既有任务的先后关系；自带四道闸（见函数 docstring），
+        # 用户忙时让路、当日只跑一次（meta 标记）。
+        ("rhythm_close_warm", _rhythm_close_warm_maybe),
     ]
     # 2026-10-30 全链路体检：停用「零分析消费 / 源已死」的任务（见 viewer/config.DISABLED_SCHED）。
     # 只做清单过滤，不动任务本身的顺序与实现 —— 从 config 里删掉名字即恢复。
@@ -10998,15 +11429,54 @@ def _monday_refresh_maybe() -> None:
         logging.exception("周度基本面全量刷新失败（已忽略，下周一再试）")
 
 
+_SCHED_BUSY_STREAK = 0      # 连续「因用户活跃而整轮让路」的轮数（仅用于日志节奏，不再用于强制爆破）
+_SCHED_RR = 0               # 用户忙碌时的任务轮转指针（2026-10-30）：每轮只放行一个任务，依次轮流
+
+
 def _scheduler_loop() -> None:
-    global _SCHED_CURRENT
+    global _SCHED_CURRENT, _SCHED_BUSY_STREAK, _SCHED_RR
     logging.info("scheduler thread running")
     while True:
         try:
             time.sleep(_SCHED_WAKE)   # 每 ~10s 唤醒检查一次
             tick0 = time.time()
             slow: list = []
-            for name, fn in _sched_tasks():
+            skipped: list = []
+            # ── 2026-10-30：整轮让路（这是「点开个股一直转圈」的真正根因之一）──────────
+            # py-spy 现场证据：25 次采样里 autofetch-scheduler 24 次处于 active+gil
+            #   （栈顶 json/decoder.raw_decode、policydesk.map_sectors），
+            #   而 MainThread 卡在 socketserver 的 Thread.start() 上 —— 接收循环被 GIL 拖住，
+            #   于是「一个任务慢」被放大成「所有请求排队」：/api/version 这种纯读缓存接口
+            #   要 2.4~9.8s，日志里还有 106s 的静态文件、295s 的接口。
+            # 此前只有 4 个任务套了 _idle_gate；etf_refresh / global_market / etf_klines /
+            #   db_housekeep 等照样在用户点击时跑。改为**整轮级别**让路：
+            #   用户 45s 内有请求 → 除 sched_maybe_run（用户手动刷新要走它）外全部跳过。
+            #
+            # ⚠️ 2026-10-30 二次修正（删掉 _SCHED_BUSY_MAX_SKIP 的原因是重点，别改回去）：
+            #   上一版为了「不让后台欠账」，规定「连续跳过 24 轮（≈4 分钟）就强制跑一整轮」。
+            #   实测副作用正是用户反馈的**偶发卡顿**：他连着看盘/复盘时，每隔约 4 分钟就会
+            #   撞上一次「40+ 个任务集中执行」的全轮，那几十秒里所有接口一起变慢（GIL 被占）。
+            #   也就是说：它解决了「后台欠账」，代价是**定期把用户正在用的界面冻一下**。
+            #   新策略：用户忙碌时每轮只放行**一个**任务（用 _SCHED_RR 轮转，不总跑同一个），
+            #   于是后台依然在推进（40 个任务 ≈ 40 轮 ≈ 7 分钟走完一圈，本来就够），
+            #   但任何一轮的 CPU 占用都被压到「一个任务」的量级 —— 用户永远碰不到集中执行。
+            busy = _user_busy()
+            if busy:
+                _SCHED_BUSY_STREAK += 1
+            else:
+                _SCHED_BUSY_STREAK = 0
+            tasks = _sched_tasks()
+            allow_idx = -1
+            if busy:
+                # 候选 = 除 sched_maybe_run 之外的全部任务（那个永远放行，见下）
+                _cands = [i for i, (n, _f) in enumerate(tasks) if n != "sched_maybe_run"]
+                if _cands:
+                    allow_idx = _cands[_SCHED_RR % len(_cands)]
+                    _SCHED_RR += 1
+            for _i, (name, fn) in enumerate(tasks):
+                if busy and name != "sched_maybe_run" and _i != allow_idx:
+                    skipped.append(name)
+                    continue
                 _SCHED_CURRENT = name
                 t0 = time.time()
                 try:
@@ -11018,6 +11488,16 @@ def _scheduler_loop() -> None:
                     slow.append("%s=%.1fs" % (name, dt))
             _SCHED_CURRENT = "-"
             tick_dt = time.time() - tick0
+            # 每 6 轮记一次「让路」，避免 10s 一条把日志刷满
+            if skipped and _SCHED_BUSY_STREAK % 6 == 1:
+                logging.info("[sched] 用户活跃（45s 内有请求），本轮放行 1 项、其余 %d 项让路，不抢 GIL",
+                             len(skipped))
+            # 每 60 轮（≈10 分钟）明确说明一次「后台没有被饿死」，否则运维看日志会以为停摆了
+            if busy and _SCHED_BUSY_STREAK % 60 == 1:
+                logging.info("[sched] 用户持续在线 %d 轮，已按「每轮 1 个任务」的节奏推进"
+                             "（轮转指针=%d，全轮任务数=%d；原「跳满 24 轮强制整轮」已删除，"
+                             "它会每 4 分钟把用户正在用的界面冻一下）",
+                             _SCHED_BUSY_STREAK, _SCHED_RR, len(tasks))
             if slow or tick_dt >= _SCHED_SLOW_TICK_SEC:
                 logging.warning(
                     "[sched] 本轮 %.1fs｜慢任务（纯 Python 任务占 GIL 会冻结所有接口）：%s",
@@ -11139,13 +11619,153 @@ def _hotspots_prewarm_impl() -> None:
         logging.exception("hotspots prewarm 失败（已忽略，用户访问时仍会按需计算）")
 
 
+_SELF_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def api_params() -> dict:
+    """/api/params —— 参数注册表自述 + 执行可行性假设清单。
+
+    为什么要把"参数"做成一个接口：测评指出同一套代码里 40 与 500 两个阈值
+    共存一个多月、两次评审都没发现。把参数和它的**矛盾带宽**一起暴露出来，
+    是让"不一致"变成可以看见的东西，而不是靠人记得住。
+    """
+    try:
+        out = {"ok": True, "params": KPARAMS.describe(),
+               "executability": EXECUTABILITY.describe()}
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_params 失败")
+        return {"ok": False, "error": str(e)[:200]}
+    try:
+        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        try:
+            out["volume_units"] = UNITS.snapshot_volume_unit_stats(con)
+        finally:
+            con.close()
+    except Exception:  # noqa: BLE001
+        out["volume_units"] = {"error": "unavailable"}
+    return out
+
+
+def api_executability(codes, aum, n_hold, hold_days, fee_bp) -> dict:
+    """/api/executability?codes=...&aum=...&n=...&days=...&fee=...
+
+    四字段必填。缺任一项返回 missing_required，**不用默认值顶替** ——
+    用默认值算出来的可行性，是给别人看的可行性。
+
+    2026-10-31 决策④：`days` 支持多值（`days=3,10,20`），此时返回
+    `{scenarios: [...]}` 三档并排；单值仍返回单档完整结果（向后兼容）。
+    进哥说不出自己典型持有几天、也不该为此去翻交割单，所以让他认领一档。
+    """
+    cl = [c.strip() for c in str(codes or "").replace(";", ",").split(",") if c.strip()]
+    names = {}
+    if cl:
+        try:
+            con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+            try:
+                qs = ",".join("?" * len(cl))
+                for code, name in con.execute(
+                        "SELECT code, name FROM stock_daily_snapshot WHERE code IN (%s) "
+                        "AND trade_date=(SELECT MAX(trade_date) FROM stock_daily_snapshot)"
+                        % qs, cl).fetchall():
+                    names[code] = name
+            finally:
+                con.close()
+        except Exception:  # noqa: BLE001
+            logging.exception("api_executability 取名失败（已忽略，仅影响 ST 判定）")
+    hs = [x.strip() for x in str(hold_days or "").replace(";", ",").split(",") if x.strip()]
+    if len(hs) > 1:
+        return EXECUTABILITY.sweep_hold_days(cl, aum=aum, n_hold=n_hold, fee_bp=fee_bp,
+                                             hold_days_list=hs, names=names)
+    return EXECUTABILITY.evaluate(cl, aum=aum, n_hold=n_hold,
+                                  hold_days=(hs[0] if hs else hold_days),
+                                  fee_bp=fee_bp, names=names)
+
+
+def api_health() -> dict:
+    """/api/health —— 任务运行记录 + 数据新鲜度（决策⑤）。
+
+    回答两个此前没人回答的问题：
+      · 调度任务到底有没有在成功？此前失败只写日志，而日志没人看
+        （build_exclusion 11 次全失败、a_shares_snapshot 连失两天记成完成）；
+      · 数据到底停在哪一天？此前只能靠"数字看着不对"察觉。
+
+    `level` 有四个值，`unknown` **不等于正常** —— 判不出就说不知道，
+    这是本项目反复强调的同一条原则（不要用默认值把未知盖住）。
+    内部 60 秒缓存：新鲜度按交易日变，轮询面板不需要每次重扫 1.7 亿行。
+    """
+    try:
+        return HEALTH.overall()
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_health 失败")
+        return {"ok": False, "error": "health_failed", "detail": str(e)}
+
+
+def api_cost_basis() -> dict:
+    """/api/cost_basis —— 成本口径表（决策①）。
+
+    系统里有**两套都叫"成本"的数字**：回测口径 15bp（含印花税）、执行口径 25bp+
+    （按 ADV 分档、不含印花税）。两个都对，但答的不是同一个问题。
+    这个接口把它们并列返回，是为了让人**能自己核对**，而不是由后端挑一个"权威值"。
+
+    纯静态定义，不读库、不计算 —— 它描述的是口径本身，不是某次运行的结果。
+    """
+    try:
+        return COST_BASIS.describe()
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_cost_basis 失败")
+        return {"ok": False, "error": str(e)}
+
+
+def api_cost_calib() -> dict:
+    """/api/cost_calib —— 成本档位标定状态（决策⑤）。
+
+    **只读**：不改 params.COST_TIERS_BP，只给"建议值 + 样本量 + 口径限制"。
+    样本不足时明确说"不构成建议"，而不是给一个凑数的数字 ——
+    凑数的分档比没有分档更坏，因为它会被当成实测。
+    """
+    try:
+        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        try:
+            s = COST_CALIB.stats(con)
+        finally:
+            con.close()
+        s["describe"] = COST_CALIB.describe()
+        return s
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_cost_calib 失败")
+        return {"ok": False, "error": str(e)}
+
+
+def api_shadow_weights(days: int = 20) -> dict:
+    """/api/shadow_weights —— 影子权重 vs 生产权重（决策②）。
+
+    影子权重是"如果不用先验、纯按数据排"的结果，每日记录，**不生效**。
+    这个接口只做对比展示；切换与否由人按 switch_rule 判断。
+    """
+    try:
+        con = sqlite3.connect(os.path.join(_SELF_DIR, "app.db"), timeout=15)
+        try:
+            return predictor.load_shadow(con, days)
+        finally:
+            con.close()
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_shadow_weights 失败")
+        return {"ok": False, "error": str(e)[:200]}
+
+
 def api_scheduler_status() -> dict:
     """/api/scheduler/status 返回：{enabled, last_run_at, next_run_at, run_count, errors_today}。"""
     state = _sched_load_state()
     now = datetime.now()
-    enabled = bool(state.get("enabled", True))
+    enabled = bool(state.get("enabled", False))
     last_run = state.get("last_run_at")
+    srcs = _sched_sources()
     if not enabled:
+        next_run = None
+    elif not srcs:
+        # 源已停用：说「下次不跑」，而不是按 last_run_at 算出一个『马上会跑』的时刻。
+        # 原实现在 last_run_at 为 None 时返回 now，界面因此显示「即将运行」，
+        # 而实际上永远不会运行 —— 这是本轮要求消灭的「确定性与不确定性配比颠倒」的一个实例。
         next_run = None
     elif not _sched_in_window(now):
         next_run = _sched_next_window(now).strftime("%Y-%m-%d %H:%M:%S")
@@ -11163,8 +11783,125 @@ def api_scheduler_status() -> dict:
         "run_count": int(state.get("run_count", 0)),
         "errors_today": int(state.get("errors_today", 0)),
         "in_window": _sched_in_window(now),
-        "sources": _SCHED_SOURCES,
+        "sources": srcs,
+        "sources_empty": not srcs,
+        "state_known": bool(state.get("state_known", True)),
+        "skip_reason": (None if (enabled and srcs) else
+                        ("state_unknown" if not state.get("state_known", True) else
+                         ("sources_empty" if not srcs else "disabled"))),
     }
+
+
+# ── 2026-10-30「盘后复盘优先」：两个预热入口（启动后 / 收盘定稿后）──────────────────
+# 背景（实测，勿再重测）：/api/today_decision 冷态 52~57s、/api/prediction/today 冷态 120s、
+# /api/prediction/scores 冷态 32s，且都不落磁盘 → 进程一重启就归零，用户第一次点开必等。
+# 这里在「用户不看盘的时候」提前算好，把他真正用的时候的等待变成 0。
+_RHYTHM_WARM_ROUTES = ("/api/today_decision", "/api/prediction/today", "/api/prediction/scores")
+# 收盘补算额外带上「板块资金流分时曲线」两条（URL 与 _BOOT_WARM_PATHS 逐字一致，否则预热白做）。
+# 为什么必须带：盘中落库的曲线是**截断**的（实测当日 industry 停在 14:40、concept 停在 11:07），
+# 收盘后 board_flow 会放行「唯一一次补抓」把完整尾盘补齐（7.5s×2，串行 0.55s/板块）。
+# 若不在这里补，这次 7.5s 就会落在用户晚上点开面板的那一下 —— 正是本次重构要消灭的等待。
+_RHYTHM_CLOSE_WARM_ROUTES = _RHYTHM_WARM_ROUTES + (
+    "/api/board_flow_intraday?kind=industry&top=16",
+    "/api/board_flow_intraday?kind=concept&top=16",
+)
+_RHYTHM_BOOT_WARM_DELAY = 20         # 启动后等 20s：让首屏那批请求先跑完（不让预热去抢 GIL）
+_RHYTHM_CLOSE_WARM_AT = (15, 20)     # 收盘定稿补算的时刻（15:05 数据定稿后再等 15 分钟，避开尾盘抓取）
+_RHYTHM_CLOSE_WARM_LOCK = threading.Lock()
+_RHYTHM_CLOSE_WARM_RUNNING = {"on": False}
+
+
+def _rhythm_warm_fire(reason: str, routes=None) -> None:
+    """串行把指定路由各请求一次，把结果算好并写进内存缓存 + 落盘快照。
+
+    ⚠️ 2026-10-30 第二版（随 B 项改用 dashboard 同款 SWR）：预热必须带 `force=1`。
+    原因：三个接口内部现在是 _swr_serve —— 不带 force 的请求会走「有快照就直接返回 +
+    后台重算」，于是预热请求 10ms 就回来了，日志写着「完成」但其实还没算；接着下一条又开始，
+    5 条并发在后台跑，等于把重活堆一块。带 force=1 才是**同步真算**，日志说完成就真完成。
+    （第一版用的是 `X-SWR: 1` 头，那是给 _TTL_ROUTES 那条老路用的，现已不适用。）
+    串行 + 间隔 1s：一次只占一个 GIL 份额，不和正常请求抢管道。
+    """
+    for _p in (routes or _RHYTHM_WARM_ROUTES):
+        _sep = "&" if ("?" in _p) else "?"
+        try:
+            _url = "http://127.0.0.1:%d%s%sforce=1" % (PORT, _p, _sep)
+            with urllib.request.urlopen(_url, timeout=300) as _r:
+                _r.read()
+            logging.info("[rhythm-%s] 预热 %s 完成", reason, _p)
+        except Exception:  # noqa: BLE001 —— 预热是锦上添花，失败只记一行
+            logging.info("[rhythm-%s] 预热 %s 跳过（不影响功能，首次访问会现算）", reason, _p)
+        time.sleep(1.0)
+
+
+def _rhythm_boot_warm() -> None:
+    """启动预热：服务启动 20s 后、且用户空闲时，把三个慢接口算好放进内存缓存。
+
+    意义不只是「第一次点击命中内存而不是读盘」（那点差异只有几十毫秒），
+    更重要的是**顺便把落盘快照也刷新成今天的** —— 否则下次重启时给用户的，
+    是一份更旧的（虽然会标 _stale）数据。
+    用户正在用就整轮跳过（沿用 _wait_user_idle）：预热绝不能反过来让他多等。
+    """
+    try:
+        time.sleep(_RHYTHM_BOOT_WARM_DELAY)
+        # 8s 静默即视为「用户没在用」；最多等 120s，等不到就跳过（下次重启再来）。
+        if not _wait_user_idle(quiet=8.0, max_wait=120.0):
+            logging.info("[rhythm-boot] 预热让路（用户正在使用），本轮跳过")
+            return
+        _rhythm_warm_fire("boot")
+    except Exception:  # noqa: BLE001
+        logging.info("[rhythm-boot] 预热线程异常（已忽略，不影响服务）")
+
+
+def _rhythm_close_warm_maybe() -> None:
+    """收盘定稿后补算一次（调度任务，2026-10-30 新增）。
+
+    干什么：顺序请求 5 个接口 —— 三个慢聚合（today_decision / prediction_today /
+    prediction_scores）+ 两条板块资金流分时曲线（industry / concept）。
+
+    为什么要有：用户晚上复盘时看的正是这些面板。
+    重构前它们每次都在请求线程里现算（冷态 52s / 120s / 7.5s），用户点第一次就是干等；
+    重构后虽然有了「落盘快照兜底」，但那份快照是**最后一次算出来的**，
+    盘中算的和收盘后的结果必然不同（当天数据定稿了；分时曲线更是缺整段尾盘）。
+    所以在交易日 15:20 之后、当日还没补算过、且用户此刻不忙时，后台按节奏重算一遍并写进
+    meta —— 让用户晚上打开就能全部命中内存，而不是让他点第一次时现算 52 秒。
+
+    闸门四道（缺一不可）：
+      ① rhythm.is_after_close() 且不早于 15:20：15:05 前数据没定稿，算了也是白算；
+      ② meta `rhythm_close_warm_done` 当日未写：一天只补一次，绝不反复烧 CPU；
+      ③ not _user_busy()：用户 45s 内有请求就不起（这条任务本身也是重活）；
+      ④ 进程内单飞（_RHYTHM_CLOSE_WARM_RUNNING）：调度每 10s 一轮，防重复起线程。
+    """
+    try:
+        now = datetime.now()
+        if not _rhythm.is_after_close(now):
+            return
+        if (now.hour, now.minute) < _RHYTHM_CLOSE_WARM_AT:
+            return
+        day = now.strftime("%Y-%m-%d")
+        if (DB.get_meta("rhythm_close_warm_done") or "").strip() == day:
+            return
+        if _user_busy():
+            return
+        with _RHYTHM_CLOSE_WARM_LOCK:
+            if _RHYTHM_CLOSE_WARM_RUNNING["on"]:
+                return
+            _RHYTHM_CLOSE_WARM_RUNNING["on"] = True
+
+        def _run() -> None:
+            try:
+                _rhythm_warm_fire("close", routes=_RHYTHM_CLOSE_WARM_ROUTES)
+                DB.set_meta("rhythm_close_warm_done", day)
+                logging.info("[rhythm-close] 收盘定稿补算完成（%s），晚上复盘将命中内存", day)
+            except Exception:  # noqa: BLE001
+                logging.exception("[rhythm-close] 收盘定稿补算失败（已忽略，下轮重试）")
+            finally:
+                with _RHYTHM_CLOSE_WARM_LOCK:
+                    _RHYTHM_CLOSE_WARM_RUNNING["on"] = False
+
+        threading.Thread(target=_run, name="rhythm-close-warm", daemon=True).start()
+        logging.info("[rhythm-close] %s 收盘定稿补算已启动（后台串行请求 3 个慢接口）", day)
+    except Exception:  # noqa: BLE001 —— 调度任务绝不能把调度线程带崩
+        logging.exception("[rhythm-close] 调度异常（已忽略）")
 
 
 def boot() -> None:
@@ -11243,6 +11980,12 @@ def boot() -> None:
         def _bt_warm():
             try:
                 time.sleep(10)
+                # 2026-10-30：backtest.warm() 是十几秒纯 Python，开机就跑会和首屏请求抢 GIL
+                # （实测这个线程把 /api/version 拖到 2~15 秒）。改为等用户安静再补；
+                # 等不到就跳过 —— 首次访问 /api/backtest 会现算，只是慢一点，不会坏。
+                if not _wait_user_idle(quiet=10.0, max_wait=240.0):
+                    logging.info("[启动] 回测预热让路（用户正在使用），本次跳过")
+                    return
                 backtest.warm()
             except Exception:  # noqa: BLE001
                 logging.exception("回测预热失败（不影响功能，首次访问会现算）")
@@ -11258,6 +12001,10 @@ def boot() -> None:
         def _bottom_boot_warm():
             time.sleep(40)
             try:
+                # 2026-10-30：全市场 24s 纯 Python，用户在用就先让路（面板首次打开会现算）
+                if not _wait_user_idle(quiet=10.0, max_wait=180.0):
+                    logging.info("[启动] 长期底部预热让路（用户正在使用），本次跳过")
+                    return
                 if not _bottom_cache_load():
                     _bottom_scan_async()
             except Exception:  # noqa: BLE001
@@ -11279,6 +12026,11 @@ def boot() -> None:
         def _ttl_boot_warm():
             time.sleep(14)
             for _p in _BOOT_WARM_PATHS:
+                # 2026-10-30：预热是「锦上添花」。用户正在用 → 让路，别为了省他 2 秒冷启动
+                # 反而让他每次点击都等好几秒（实测 board_flow_intraday 预热一次 48.8s）。
+                if not _wait_user_idle(quiet=8.0, max_wait=30.0):
+                    logging.info("[启动] 预热 %s 让路（用户正在使用）", _p)
+                    continue
                 try:
                     urllib.request.urlopen(
                         "http://127.0.0.1:%d%s" % (PORT, _p), timeout=120).read()
@@ -11289,6 +12041,15 @@ def boot() -> None:
         threading.Thread(target=_ttl_boot_warm, name="ttl-boot-warm", daemon=True).start()
     except Exception:  # noqa: BLE001
         pass
+    # 2026-10-30「盘后复盘优先」：三个慢接口（today_decision / prediction_today / prediction_scores）
+    # 冷态分别要 52s / 120s / 32s，且不落磁盘 —— 重启后第一次点开就是干等。
+    # 这里在启动 20s 后（首屏与上面的 TTL 预热都已跑过）且用户空闲时预热一次，
+    # 使「重启后第一次点击」命中内存；同时把落盘快照刷成最新的，供下次重启兜底。
+    # 放在 _ttl_boot_warm **之后**启动，避免两个预热线程同时抢 GIL。
+    try:
+        threading.Thread(target=_rhythm_boot_warm, name="rhythm-warm", daemon=True).start()
+    except Exception:  # noqa: BLE001
+        logging.exception("rhythm 预热线程启动失败（已忽略）")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -11342,6 +12103,19 @@ class Handler(BaseHTTPRequestHandler):
         except (ConnectionAbortedError, BrokenPipeError, OSError):
             # 浏览器已断开（用户切走/刷新/超时）——数据已取到，仅回传被中止，非服务错误，静默。
             pass
+
+    def _force_arg(self, q: dict, raw_query: str = "") -> bool:
+        """统一的「要最新」判定（2026-10-30）：`?force=1` / `?refresh=1` / 带 `t=` 都算。
+
+        为什么统一：三个慢接口内部套了 _swr_serve，`force` 必须能从 HTTP 层传进来 ——
+        否则用户按「刷新」只会再拿到一份标着 _stale 的旧快照，等于刷新按钮失效。
+        约定与 _TTL_ROUTES 那边完全一致（带 `t=` 的请求一律绕过缓存），前端两种写法都兼容。
+        """
+        for k in ("force", "refresh"):
+            v = str((q.get(k) or [""])[0] or "").strip().lower()
+            if v in ("1", "true", "yes"):
+                return True
+        return ("t=" in (raw_query or ""))
 
     def _int_arg(self, q: dict, name: str, default: int, lo: int, hi: int) -> int:
         """读取整数查询参数：非整数 → 400（此前会抛 ValueError 掐断连接）；
@@ -11685,6 +12459,16 @@ class Handler(BaseHTTPRequestHandler):
             _q_ph = urllib.parse.parse_qs(parsed.query)
             return self._send_json(api_plate_heat(
                 rebuild=str((_q_ph.get("rebuild") or ["0"])[0]) not in ("", "0", "false", "False")))
+        if route == "/api/lhb_weather":            # 2026-10-30 D35 阶段二：资金风向（只读表）
+            _q_lw = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_lhb_weather(
+                days=self._int_arg(_q_lw, "days", 120, 20, 400)))
+        if route == "/api/signal/combo":
+            # 2026-10-31 决策③：信号两两交集（只返回样本足够的行）
+            _q_cb = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_signal_combo(
+                fwd=self._int_arg(_q_cb, "fwd", 0, 0, 250) or None,
+                limit=self._int_arg(_q_cb, "limit", 60, 1, 500)))
         if route == "/api/signal/backtest":        # P4：信号 alpha 回测实证（此前未暴露给前端）
             # 2026-10-29 bugfix：原来直接用了上面某个分支才赋值的 `q`，单独打这个接口会抛
             # UnboundLocalError（日志实证 500），这里自己解析 query，不再依赖别处。
@@ -11700,6 +12484,51 @@ class Handler(BaseHTTPRequestHandler):
         if route == "/api/market_freshness":
             # 2026-10-09 新增：现抓行情时间戳（与论坛抓取新鲜度分开计时），供顶栏如实显示数据时间
             return self._send_json(api_market_freshness())
+        if route == "/api/params":
+            # 2026-10-31 新增：参数注册表自述（含 40 vs 500 的矛盾带宽）+ 可行性假设清单
+            return self._send_json(api_params())
+        if route == "/api/executability":
+            # 2026-10-31 新增：四字段 → 逐票可行性 + 容量区间。
+            # 缺字段一律传 None，让引擎自己报 missing_required —— 绝不在这里补默认值：
+            # 用默认 AUM/持有期算出来的"可行"，是给别人看的可行。
+            _q_ex = urllib.parse.parse_qs(parsed.query)
+            _nums, _bad = {}, None
+            # 2026-10-31 决策④：days 不再强制转数字 —— 它支持 "3,10,20" 多值（三档对比）。
+            # 原来这里对它做 float()，"3,10,20" 会直接变成 bad_number，
+            # 三档功能在后端根本走不到。数值校验交给引擎（evaluate 内部会 int()）。
+            for _k in ("aum", "n", "fee"):
+                _raw = _q_ex.get(_k, [None])[0]
+                if _raw is None or str(_raw).strip() == "":
+                    _nums[_k] = None
+                else:
+                    try:
+                        _nums[_k] = float(str(_raw).strip())
+                    except (TypeError, ValueError):
+                        _bad = _k
+                        break
+            if _bad:
+                return self._send_json(
+                    {"ok": False, "error": "bad_number", "field": _bad}, 400)
+            _days = self._str_arg(_q_ex, "days", None, maxlen=40)
+            return self._send_json(api_executability(
+                self._str_arg(_q_ex, "codes", "", maxlen=800),
+                _nums["aum"],
+                None if _nums["n"] is None else int(_nums["n"]),
+                _days,
+                _nums["fee"]))
+        if route == "/api/cost_basis":
+            # 2026-10-31 决策①：两套成本口径并列（纯静态定义，不读库）
+            return self._send_json(api_cost_basis())
+        if route == "/api/health":
+            # 2026-10-31 决策⑤：任务运行记录 + 数据新鲜度（只读）
+            return self._send_json(api_health())
+        if route == "/api/cost_calib":
+            # 2026-10-31 决策⑤：成本档位标定状态（只读，不改参数）
+            return self._send_json(api_cost_calib())
+        if route == "/api/shadow_weights":
+            # 2026-10-31 决策②：影子权重 vs 生产权重（只读，不生效）
+            _q_sh = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_shadow_weights(self._int_arg(_q_sh, "days", 20, 1, 120)))
         if route == "/api/scheduler/status":
             return self._send_json(api_scheduler_status())
         if route == "/api/kb/list":
@@ -11769,7 +12598,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json(api_dashboard(force=force))
         if route == "/api/today_decision":
             # 2026-10-12 今日决策首页（体验审计 P0-A）：一屏四卡（方向/机会/风险/我的票）+ 一句话结论
-            return self._send_json(api_today_decision())
+            # 2026-10-30：接口内部改为 SWR（先给上次结果 + 后台重算），这里把「要最新」透传进去——
+            #   不加这一行，用户点「刷新」也只会再拿到标 _stale 的旧快照，刷新按钮形同失效。
+            q = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_today_decision(force=self._force_arg(q, parsed.query)))
         if route == "/api/info_brief":
             # P0-D 消息与外围顶部汇总结论：今日消息面 Top5 · 影响板块
             return self._send_json(api_info_brief())
@@ -11935,9 +12767,12 @@ class Handler(BaseHTTPRequestHandler):
                 name=self._str_arg(q, "name", "", maxlen=40),
                 force=self._int_arg(q, "force", 0, 0, 1)))
         if route == "/api/prediction/today":
-            return self._send_json(api_prediction_today())
+            # 2026-10-30：透传 force（?force=1 / ?refresh=1 / 带 t=），否则刷新按钮拿不到新结果
+            q = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_prediction_today(force=self._force_arg(q, parsed.query)))
         if route == "/api/prediction/scores":
-            return self._send_json(api_prediction_scores())
+            q = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_prediction_scores(force=self._force_arg(q, parsed.query)))
         if route == "/api/prediction/track":
             return self._send_json(api_prediction_track())
         if route == "/api/growth/adjust_log":
@@ -12745,7 +13580,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not _truthy(payload.get("confirm")):
                     return self._send_json(_destructive_payload(), code=409)
                 try:
-                    snap = DB.snapshot(prefix="app.db.pre-overseas", keep=5)
+                    # keep=2（2026-10-31）：库已 9GB，留 5 份等于 45GB。留最近两份足够回滚到上一次刷新前。
+                    snap = DB.snapshot(prefix="app.db.pre-overseas", keep=2)
                     DB.set_meta("last_overseas_backup", snap)
                     DB.set_meta("last_overseas_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 except Exception as e:  # noqa: BLE001
@@ -12768,12 +13604,25 @@ class Handler(BaseHTTPRequestHandler):
                 logging.exception("补全股票名称失败")
                 return self._send_json({"ok": False, "error": f"补全股票名称失败：{e}"}, code=500)
         # ---- 自选 / 关注池 + 到价提醒（2026-09-27 新增）----
+        # 2026-10-31 修复（QA 实测：每 90s 的到价轮询会让下一次 watch_list 读取等 15.4s）：
+        #   /api/watch_check 原先和分组/标的写操作并列在下面的"写后失效"名单里，于是
+        #   startWatchPoll 每 90s 一次就把 watch_list 内层缓存整条删掉，紧随其后的读取要走
+        #   全量重算（取价竞速三源 + 值得率复算 + 战法复算）。修复前这被 _TTL_ROUTES 那层
+        #   HTTP 缓存掩盖（秒回旧 body），两层缓存拆掉后立刻暴露。
+        #   watch_check 实际只写 watch_items 的 last_price / last_pct / last_checked_at 和
+        #   watch_alerts 表 —— 既不动分组结构，也不是 watch_list 慢的原因。故把它单独拎出来：
+        #   照旧检测，但**不整条删缓存**，只把被改动的几列就地补丁进缓存，字段不滞后、也不重算。
+        if route == "/api/watch_check":
+            r = api_watch_check()
+            if r.get("ok"):
+                _refresh_watch_list_cache_after_check()
+            return self._send_json(r)
         # 2026-10-14 性能修复：任一会改变关注池 / 分组的写入成功后，立即清掉 watch_list 缓存，
         # 保证下次加载（或前端乐观更新后的兜底刷新）拿到的是新数据，而非 5 分钟内的旧快照。
         if route in ("/api/watch_item_add", "/api/watch_item_update", "/api/watch_item_remove",
                      "/api/watch_item_reorder", "/api/watch_item_group_remove",
                      "/api/watch_group_add", "/api/watch_group_rename",
-                     "/api/watch_group_remove", "/api/watch_group_reorder", "/api/watch_check"):
+                     "/api/watch_group_remove", "/api/watch_group_reorder"):
             handler = {
                 "/api/watch_item_add": api_watch_item_add,
                 "/api/watch_item_update": api_watch_item_update,
@@ -12784,9 +13633,8 @@ class Handler(BaseHTTPRequestHandler):
                 "/api/watch_group_rename": api_watch_group_rename,
                 "/api/watch_group_remove": api_watch_group_remove,
                 "/api/watch_group_reorder": api_watch_group_reorder,
-                "/api/watch_check": api_watch_check,
             }[route]
-            r = handler(payload) if route != "/api/watch_check" else handler()
+            r = handler(payload)
             if r.get("ok"):
                 _api_cache_invalidate("watch_list")
             return self._send_json(r)
@@ -12875,6 +13723,257 @@ def api_signal_evidence(fwd: int = 5) -> dict:
         return {"ok": False, "err": "证据层不可用", "signals": [], "baseline": {}}
 
 
+def _lhbw_num(x):
+    """转 float；None/NaN/Inf/非数字 → None（落 JSON 前不留 NaN）。"""
+    if x is None:
+        return None
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if v != v or v in (float("inf"), float("-inf")) else v
+
+
+def _lhbw_row_dict(cols, vals) -> dict:
+    """把 `(cols, vals)` 拼成 dict。
+
+    **不用 `con.row_factory = sqlite3.Row`** ——`DB.conn` 是全进程共用的写连接，
+    改它的 row_factory 会让别的模块拿到 Row 而不是 tuple（隐蔽的破坏）。
+    """
+    return dict(zip(cols, vals))
+
+
+def _lhbw_pct(prior: list, cur) -> float | None:
+    """当日值在过去 `prior` 个样本中的分位（0~100），**窗口不含当日**。
+
+    与 `viewer/lhb_weather.py::roll_pct(hist=250, min_hist=60)` 是同一个算式
+    （`(h < cur).sum() * 100 / len(h)`，样本不足 60 个回 None）。此处内联是为了
+    不在请求线程里 import pandas —— 口径由 `lhb_weather` 定义，这里只是照抄三行。
+    """
+    if cur is None:
+        return None
+    h = [x for x in prior if x is not None]
+    if len(h) < _LHBW_CONSTS[1]:
+        return None
+    return round(100.0 * sum(1 for x in h if x < cur) / len(h), 1)
+
+
+# `lhb_weather` 的口径常量在这里取一次（与生产计算共用同一份，避免抄成两套数字）。
+#   放在模块级懒加载：server.py 启动时不额外 import pandas；首次请求填一次后常驻。
+_LHBW_CONSTS = (250, 60, 250)      # (HIST, MIN_HIST, MIN_SAMPLE_FOR_STATE)，下方 _lhbw_init 覆盖
+_LHBW_INITED = False
+
+
+def _lhbw_init() -> None:
+    """从 `viewer.lhb_weather` 读口径常量（唯一真源），并补上表名。"""
+    global _LHBW_CONSTS, _LHBW_INITED
+    if _LHBW_INITED:
+        return
+    from viewer import lhb_weather as LW
+    _LHBW_CONSTS = (int(LW.HIST), int(LW.MIN_HIST), int(LW.MIN_SAMPLE_FOR_STATE))
+    _LHBW_INITED = True
+
+
+def api_lhb_weather(days: int = 120) -> dict:
+    """龙虎榜资金风向（2026-10-30 D35 阶段二）：**只读 `lhb_weather_daily`，绝不现算**。
+
+    为什么必须只读表：全历史 `compute()` 实测 110 秒（要扫 1382 万行日线 + 4084 个上榜日
+    的滚动分位）。放在请求线程里跑，就是 D32 那个「单接口 45 秒超时、全站被 GIL 冻住」的
+    同一个坑。计算只在 `python -m viewer.lhb_weather --save` 时做一次，请求侧永远只读。
+
+    产品口径（这是**描述性**指标，不是信号）：
+      · 返回体里刻意没有 buy/sell/direction/score 之外的任何"该怎么做"字段；
+      · 结构与集中度只有 27/25 天样本（`sample_days_*`），远低于 `MIN_SAMPLE_FOR_STATE`，
+        所以它们的 `pct` 恒为 None、并带 `badge` 说明"仅供参考、不参与判定" ——
+        **不许拿 27 天算出一个"250 日分位"来充数**，那是编数据；
+      · `disclaimer` 原样回前端，面板底部必须显示。
+
+    参数 `days`：曲线长度（20~400，默认 120）。分位窗口固定 250，与 `lhb_weather.HIST` 一致，
+    所以实际取 `max(days, 251)` 行：前 250 行只用于算今日分位，不进 `series`。
+    """
+    try:
+        _lhbw_init()
+        from viewer import lhb_weather as LW
+        hist, min_hist, min_sample = _LHBW_CONSTS
+        days = max(20, min(int(days or 120), 400))
+        n_fetch = max(days, hist + 1)
+
+        con = DB.conn
+
+        def _fetch(sql, args=()):
+            """执行查询并返回 [(cols, vals), ...]，不碰 `DB.conn` 的 row_factory。"""
+            cur = con.execute(sql, args)
+            cols = [d[0] for d in (cur.description or [])]
+            return cols, cur.fetchall()
+
+        exists = con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (LW.TABLE,)).fetchone()
+        if not exists:
+            return {"ok": False, "not_ready": True, "days": days, "series": [], "dims": [],
+                    "error": "资金风向尚未落库",
+                    "note": "需要先跑一次：python -m viewer.lhb_weather --save"
+                            "（只读表，不在请求里现算）"}
+
+        cols, fetched = _fetch(
+            "SELECT * FROM %s ORDER BY trade_date DESC LIMIT ?" % LW.TABLE, (n_fetch,))
+        if not fetched:
+            return {"ok": False, "not_ready": True, "days": days, "series": [], "dims": [],
+                    "error": "资金风向表是空的",
+                    "note": "需要先跑一次：python -m viewer.lhb_weather --save"}
+        rows = [_lhbw_row_dict(cols, v) for v in reversed(fetched)]   # → 时间升序
+
+        # 「今日」= 最后一行**有分值**的日期，不是表里最后一行。
+        #   实测 2026-10-30 就是反例：当天已有 48 只上榜，但全市场成交额（kline_daily.db）
+        #   和分母（stock_indicators_daily）都还没到，于是 score=NULL、denom_src=fallback。
+        #   如果直接取 rows[-1] 当"今天"，前端会显示 score=—、档位=未知 的空温度计，
+        #   看上去像功能坏了。取最后一个有分值的日期，再把"表里更新的那行还没算完"如实报出来。
+        idx_today = -1
+        for i in range(len(rows) - 1, -1, -1):
+            if _lhbw_num(rows[i].get("score")) is not None:
+                idx_today = i
+                break
+        if idx_today < 0:
+            return {"ok": False, "not_ready": True, "days": days, "series": [], "dims": [],
+                    "error": "资金风向表里还没有可定档的日期",
+                    "note": "多半是历史太短（阈值需 %d 个交易日）；等下一次 --save" % min_hist}
+        today = rows[idx_today]
+        latest = rows[-1]
+        pending = None
+        if str(latest.get("trade_date") or "") != str(today.get("trade_date") or ""):
+            pending = {
+                "trade_date": str(latest.get("trade_date") or ""),
+                "n_listed": _lhbw_num(latest.get("n_listed")),
+                "denom_src": str(latest.get("denom_src") or ""),
+                "reason": "该日全市场成交额或分母尚未到齐，暂不计分（不计入曲线）",
+            }
+
+        # ── 今日分位：只用今日之前的 250 行（窗口不含当日）──────────
+        prior = [_lhbw_num(r.get("score")) for r in rows[:idx_today]][-hist:]
+        score = _lhbw_num(today.get("score"))
+        score_pct = _lhbw_pct(prior, score)
+
+        def _fmt_pct(x, nd=2, signed=True):
+            """比值 → 百分数（×100）。用于 list_ratio / net_amt_ratio / *_share / d1_win_20。"""
+            v = _lhbw_num(x)
+            if v is None:
+                return "—"
+            return ("%+.*f%%" if signed else "%.*f%%") % (nd, v * 100.0)
+
+        def _fmt_pp(x, nd=2, signed=True):
+            """**已经是百分数**的值，只补小数点。
+
+            实测坑：`lhb_stocks.d1_chg` 存的就是百分数（9.25925926 = +9.26%，
+            全表 min/max = −92.78 / +177.74），所以 `d1_mean_20` 也是百分数。
+            拿它再过一遍 ×100 会印出「−123.47%」这种不存在的涨幅（本项目第一版就踩了）。
+            """
+            v = _lhbw_num(x)
+            if v is None:
+                return "—"
+            return ("%+.*f" if signed else "%.*f") % (nd, v) + "%"
+
+        def _fmt_yi(x):
+            v = _lhbw_num(x)
+            return "—" if v is None else "%+.2f 亿" % (v / 1e8)
+
+        n_listed = _lhbw_num(today.get("n_listed"))
+        denom = _lhbw_num(today.get("denom"))
+        dims = [
+            {
+                "key": "participation", "label": "参与度", "in_state": True,
+                "rows": [
+                    ["上榜占全市场", _fmt_pct(today.get("list_ratio"), 2, False),
+                     ("%d / %d 只" % (int(n_listed), int(denom))) if n_listed and denom else "—"],
+                    ["净买入占成交额", _fmt_pct(today.get("net_amt_ratio"), 3, False),
+                     "净买入 " + _fmt_yi(today.get("net_amt"))],
+                ],
+                "pct": _lhbw_num(today.get("part_pct")), "pct_label": "参与度 · 近一年分位",
+                "badge": None, "sample_days": None,
+            },
+            {
+                "key": "effect", "label": "赚钱效应", "in_state": True,
+                "rows": [
+                    ["上榜股次日均涨", _fmt_pp(today.get("d1_mean_20")),
+                     "近 20 个上榜日均值，已滞后 1 个交易日"],
+                    ["次日上涨占比", _fmt_pct(today.get("d1_win_20"), 1, False), ""],
+                ],
+                "pct": _lhbw_num(today.get("effect_pct")), "pct_label": "赚钱效应 · 近一年分位",
+                "badge": None, "sample_days": None,
+            },
+            {
+                "key": "structure", "label": "结构", "in_state": False,
+                "rows": [
+                    ["机构净买入占比", _fmt_pct(today.get("inst_share"), 1),
+                     "机构专用 %s ｜ 游资 %s" % (_fmt_yi(today.get("inst_net")),
+                                                _fmt_yi(today.get("hot_net")))],
+                ],
+                "pct": None, "pct_label": None,
+                "badge": "样本 %s 天，仅供参考，不参与判定"
+                         % int(_lhbw_num(today.get("sample_days_structure")) or 0),
+                "sample_days": int(_lhbw_num(today.get("sample_days_structure")) or 0),
+            },
+            {
+                "key": "concentration", "label": "集中度", "in_state": False,
+                "rows": [
+                    ["前三席位集中度", _fmt_pct(today.get("top3_share"), 1, False),
+                     ("HHI %.3f" % _lhbw_num(today.get("hhi"))) if _lhbw_num(today.get("hhi")) is not None
+                     else "HHI —"],
+                ],
+                "pct": None, "pct_label": None,
+                "badge": "样本 %s 天，仅供参考，不参与判定"
+                         % int(_lhbw_num(today.get("sample_days_sector")) or 0),
+                "sample_days": int(_lhbw_num(today.get("sample_days_sector")) or 0),
+            },
+        ]
+
+        series = []
+        for d in rows[max(0, idx_today - days + 1):idx_today + 1]:
+            series.append({"trade_date": str(d.get("trade_date") or ""),
+                           "score": _lhbw_num(d.get("score")),
+                           "state": str(d.get("state") or "unknown")})
+
+        state = str(today.get("state") or "unknown")
+        return {
+            "ok": True,
+            "asof": str(today.get("trade_date") or ""),
+            "days": days,
+            "hist": hist,
+            "today": {
+                "trade_date": str(today.get("trade_date") or ""),
+                "score": score,
+                "score_pct": score_pct,
+                "state": state,
+                "state_cn": {"hot": "偏热", "neutral": "中性", "cold": "偏冷"}.get(state, "未知"),
+                "n_listed": (int(round(n_listed)) if n_listed is not None else None),
+                "denom": (int(round(denom)) if denom is not None else None),
+                "denom_src": str(today.get("denom_src") or ""),
+                "q33": (round(_lhbw_num(today.get("q33")), 2)
+                        if _lhbw_num(today.get("q33")) is not None else None),
+                "q67": (round(_lhbw_num(today.get("q67")), 2)
+                        if _lhbw_num(today.get("q67")) is not None else None),
+                "updated_at": str(today.get("updated_at") or ""),
+            },
+            "dims": dims,
+            "series": series,
+            "pending": pending,
+            "sample_days": {
+                "structure": dims[2]["sample_days"],
+                "sector": dims[3]["sample_days"],
+            },
+            "min_sample_for_state": min_sample,
+            # 面板底部必须原样显示（口径边界，不是客套话）
+            "disclaimer": "本指标描述资金活跃度，不构成个股买卖依据。",
+            "note": "口径：上榜家数/全市场有成交家数 = 参与度；上榜股次日涨跌幅（滞后 1 个交易日）"
+                    "= 赚钱效应。两者各取近 250 个交易日的分位、等权合成 score，再按滚动 250 日"
+                    " 33/67 分位切三档。结构与集中度样本不足 %d 天，只展示不参与判定。"
+                    % min_sample,
+        }
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_lhb_weather 失败")
+        return {"ok": False, "days": days, "series": [], "dims": [],
+                "error": "资金风向读取失败：%s" % str(e)[:160]}
+
+
 def api_plate_heat(rebuild: bool = False) -> dict:
     """板块热度榜（2026-10-29 进哥拍板：荐股一律降级为热度）。
 
@@ -12961,6 +14060,67 @@ def api_signal_regime(fwd: int = 10) -> dict:
         return {"ok": False, "err": "分市况数据不可用", "signals": [], "baseline": {}}
 
 
+def api_signal_combo(fwd=None, limit=60):
+    """/api/signal/combo —— 信号两两交集（决策③）。
+
+    只返回 usable=1（样本 ≥ MIN_COMBO_N）的行，并**把被排除的条数一起说出来**：
+    「有 N 个组合因样本不足未列入」本身就是结论 —— 它说明大多数看起来不错的组合
+    其实只出现在几十个样本里，禁不起下一年的检验。
+
+    verdict 的四分类是刻意设计的，因为「超额为正」有四种完全不同的成因：
+      · 候选      —— 两个超额都为正且 q<0.05，组合本身可能真有增量
+      · 赚的是市况 —— 相对基线为正、相对成分却不为正，说明组合并不比单用更好
+      · 不显著    —— BH 校正后 q≥0.05，属于「检验了 216 次」的产物
+      · 无效      —— 其余
+    只报第一个，等于把后三类也包装成好消息。
+    """
+    out = {"ok": True, "rows": [], "excluded": 0, "total": 0, "note": "", "calc_version": ""}
+    try:
+        _cols = [d[1] for d in DB.conn.execute("PRAGMA table_info(signal_combo)").fetchall()]
+        if not _cols:
+            out["note"] = "交集表尚未生成（需先跑一次全量回测）"
+            return out
+        where, args = ["usable=1"], []
+        if fwd:
+            where.append("fwd=?")
+            args.append(int(fwd))
+        rows = DB.conn.execute(
+            "SELECT reason_a,reason_b,direction,fwd,n,winrate_net,avg_ret_net,sharpe_net,"
+            "edge_vs_base,edge_vs_parts,q_bh,part_a_ret_net,part_b_ret_net,calc_version "
+            "FROM signal_combo WHERE " + " AND ".join(where) +
+            " ORDER BY edge_vs_base DESC LIMIT ?", args + [int(limit)]).fetchall()
+        out["excluded"] = int(DB.conn.execute(
+            "SELECT COUNT(*) FROM signal_combo WHERE usable=0").fetchone()[0])
+        for r in rows:
+            evb, evp, q = r[8], r[9], r[10]
+            if (evb or 0) > 0 and (evp is not None and evp <= 0):
+                verdict = "赚的是市况"
+            elif q is not None and q < 0.05 and (evb or 0) > 0 and (evp or 0) > 0:
+                verdict = "候选"
+            elif q is not None and q >= 0.05:
+                verdict = "不显著"
+            else:
+                verdict = "无效"
+            out["rows"].append({
+                "a": r[0], "b": r[1], "direction": r[2], "fwd": r[3], "n": r[4],
+                "winrate_net": r[5], "avg_ret_net": r[6], "sharpe_net": r[7],
+                "edge_vs_base": evb, "edge_vs_parts": evp, "q_bh": q,
+                "part_a": r[11], "part_b": r[12], "verdict": verdict,
+            })
+        out["total"] = len(out["rows"])
+        if rows:
+            out["calc_version"] = rows[0][13] or ""
+        out["note"] = ("交集 = 同一天同一只票上、两个**同方向**信号同时触发。"
+                       "「超额(基准)」相对全市场同期；「超额(成分)」相对这两个信号单独用的平均。"
+                       "两个都为正才说明组合本身有价值；只有前者为正说明赚的是市况。"
+                       "本表只列样本 ≥ %d 的组合，另有 %d 个因样本不足未列入。"
+                       % (KPARAMS.MIN_COMBO_N, out["excluded"]))
+    except Exception as e:  # noqa: BLE001
+        logging.exception("api_signal_combo 失败")
+        return {"ok": False, "error": str(e)}
+    return out
+
+
 def api_signal_backtest(limit=200):
     """P4：信号 alpha 回测实证结果（17 信号 × 3 前向窗口 = 51 行）。
     这是 viewer/config.SIGNAL_WEIGHTS 的实证来源；此前只落库、前端无入口查看，
@@ -13009,15 +14169,21 @@ def api_signal_backtest(limit=200):
             sh_net = float(r[11]) if r[11] is not None else float(r[6] or 0)
             ew = wr_net - b[2]
             er = ret_net - b[3]
-            v = _EV.judge(int(r[3] or 0), ew, ret_net, sh_net) if _EV else ""
+            _n = int(r[3] or 0)
+            v = _EV.judge(_n, ew, ret_net, sh_net) if _EV else ""
             return {"signal": r[0], "direction": r[1], "fwd": r[2], "n": r[3],
                     "winrate": r[4], "avg_ret": r[5], "sharpe": r[6], "updated": r[7],
                     "winrate_net": round(wr_net, 4), "avg_ret_net": round(ret_net, 4),
                     "sharpe_net": round(sh_net, 3),
                     "edge_wr": round(ew, 4), "edge_ret": round(er, 4),
-                    "verdict": v, "verdict_label": (_EV.LABEL.get(v, v) if _EV else "")}
+                    "verdict": v, "verdict_label": (_EV.LABEL.get(v, v) if _EV else ""),
+                    # 2026-10-31 决策①：本面板原来自己判 verdict、没有分层标签。
+                    # 现在统一由 evidence.tier_info 给，别在这里手拼 tier 字段。
+                    **(_EV.tier_info(_n) if _EV else {})}
 
         out["rows"] = [_row(r) for r in rows]
+        if _EV:
+            out["tiering"] = _EV.tier_legend()
         # 当前被消费的权重（config.SIGNAL_WEIGHTS），核对实证→权重链路
         try:
             import config as _cfg
@@ -13105,6 +14271,27 @@ class _SingleInstanceHTTPServer(ThreadingHTTPServer):
         if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):  # 仅 Windows 存在
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         super().server_bind()
+
+    # ── 2026-10-30：接收循环不再等「新线程真正跑起来」───────────────────────────
+    # socketserver 默认的 process_request 调 threading.Thread.start()，而 start() 会
+    # **阻塞**到新线程被调度、拿到 GIL 并 set 事件为止。于是只要后台有纯 Python 重活占着 GIL，
+    # 接收循环就跟着停摆 —— py-spy 现场就抓在 serve_forever → process_request →
+    # Thread.start() 这一条上。结果：一个请求慢，后面全部排队（日志实证 106s 的 CSS、
+    # 295s 的接口）。改用 _thread.start_new_thread（立即返回、不等调度），
+    # accept 循环与 GIL 解耦；每个连接仍然独立线程处理，语义不变。
+    def process_request(self, request, client_address):
+        try:
+            _thread.start_new_thread(self._serve_conn, (request, client_address))
+        except Exception:  # noqa: BLE001 —— 起不了线程就关掉这个连接，绝不让接收循环崩
+            self.shutdown_request(request)
+
+    def _serve_conn(self, request, client_address):
+        try:
+            self.finish_request(request, client_address)
+        except Exception:  # noqa: BLE001
+            self.handle_error(request, client_address)
+        finally:
+            self.shutdown_request(request)
 
 
 def _port_listening(port: int) -> bool:

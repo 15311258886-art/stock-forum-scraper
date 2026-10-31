@@ -1,0 +1,107 @@
+/* ===== 方法共振 / 多层筛选漏斗（2026-10-26 新增，浅色主题，复用全局变量） =====
+   复用 douyin_corpus.css 的 .dy-chip / .dy-chip--on / .ic-badge 等类，保持与整合图谱、全局一致。 */
+.fn-wrap { padding:6px 2px; }
+.fn-hd { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.fn-hd h2 { margin:0; font-size:16px; color:var(--text,#111); }
+.fn-hd .fn-sub { font-size:12.5px; color:var(--muted,#6b7280); }
+
+.fn-pick { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.fn-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.fn-input { flex:0 0 200px; padding:6px 10px; border:1px solid var(--border,#e5e7eb);
+  border-radius:8px; background:var(--panel,#fff); color:var(--text,#111); font-size:13px; }
+.fn-run { background:var(--accent,#0E7490); color:#fff; border:1px solid var(--accent,#0E7490);
+  border-radius:8px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+.fn-run:hover { filter:brightness(1.06); }
+.fn-run:disabled { opacity:.55; cursor:default; }
+
+.fn-pool { background:var(--panel,#fff); border:1px solid var(--border,#e5e7eb);
+  border-left:3px solid var(--accent,#0E7490); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+.fn-pool-h { font-weight:700; font-size:14px; color:var(--text,#111); margin-bottom:6px; }
+.fn-pool-t { font-size:13.5px; color:var(--text,#111); line-height:1.8; }
+.fn-pool-t b { color:var(--accent,#0E7490); }
+
+.fn-methods { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-bottom:16px; }
+.fn-mcard { background:var(--panel,#fff); border:1px solid var(--border,#e5e7eb); border-radius:10px;
+  padding:12px 14px; transition:opacity .15s; }
+.fn-mcard--off { opacity:.5; }
+.fn-mhd { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.fn-mname { font-weight:700; font-size:13.5px; color:var(--text,#111); }
+.fn-engine { font-size:11px; color:var(--muted,#6b7280); background:var(--tag,#f3f4f6);
+  border:1px solid var(--border,#e5e7eb); border-radius:8px; padding:1px 7px; }
+.fn-desc { font-size:12px; color:var(--muted,#6b7280); line-height:1.6; margin-bottom:10px; }
+.fn-ctl { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.fn-toggle { font-size:12px; padding:2px 10px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--border,#e5e7eb); background:var(--tag,#f3f4f6); color:var(--muted,#6b7280); }
+.fn-toggle.on { background:var(--accent,#0E7490); color:#fff; border-color:var(--accent,#0E7490); font-weight:600; }
+.fn-order { font-size:12px; color:var(--muted,#6b7280); cursor:pointer; border:1px solid var(--border,#e5e7eb);
+  border-radius:6px; padding:1px 7px; background:var(--panel,#fff); }
+.fn-order:hover { border-color:var(--accent,#0E7490); color:var(--accent,#0E7490); }
+.fn-keep { font-size:12px; padding:2px 6px; border:1px solid var(--border,#e5e7eb);
+  border-radius:6px; background:var(--panel,#fff); color:var(--text,#111); }
+.fn-kpi { margin-top:10px; font-size:12px; color:var(--muted,#6b7280); }
+.fn-kpi b { color:var(--accent,#0E7490); }
+
+.fn-table { width:100%; border-collapse:collapse; background:var(--panel,#fff);
+  border:1px solid var(--border,#e5e7eb); border-radius:10px; overflow:hidden; margin-bottom:8px; }
+.fn-table th, .fn-table td { padding:8px 10px; text-align:left; font-size:12.5px;
+  border-bottom:1px solid var(--border,#e5e7eb); color:var(--text,#111); }
+.fn-table th { background:var(--tag,#f3f4f6); font-weight:600; color:var(--text,#111); }
+.fn-table tbody tr:hover { background:var(--tag,#f3f4f6); }
+.fn-code { color:var(--muted,#6b7280); font-variant-numeric:tabular-nums; }
+.fn-cons { font-weight:700; color:var(--accent,#0E7490); text-align:center; }
+.fn-note { font-size:12px; color:var(--muted,#6b7280); margin-top:10px; line-height:1.7; }
+
+/* 模式切换（舆情池 / 官方池）+ 刷新 */
+.fn-modes { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.fn-mode { font-size:12.5px; padding:3px 12px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--border,#e5e7eb); background:var(--panel,#fff); color:var(--muted,#6b7280); }
+.fn-mode.on { background:var(--accent,#0E7490); color:#fff; border-color:var(--accent,#0E7490); font-weight:600; }
+.fn-refresh { margin-left:4px; padding:3px 12px; }
+
+/* 池提示 */
+.fn-pool-warn { font-size:12px; color:#9a6b00; background:#fff7e6; border:1px solid #ffe1a6;
+  border-radius:8px; padding:7px 10px; margin-top:8px; line-height:1.6; }
+.fn-pool-warn code { background:#f3e9d2; padding:1px 5px; border-radius:4px; font-size:11.5px; }
+.fn-pool-ok { font-size:12px; color:#1e7d43; background:#e7f6ec; border:1px solid #c4ebd2;
+  border-radius:8px; padding:7px 10px; margin-top:8px; }
+
+/* 方向徽章（涨=红 跌=绿 中性=灰 未覆盖=虚线灰） */
+.ic-badge { display:inline-block; padding:1px 8px; border-radius:8px; font-size:11.5px; font-weight:600;
+  border:1px solid transparent; white-space:nowrap; }
+.ic-badge.bull { background:#fde8e8; color:#c0392b; border-color:#f5c6c6; }
+.ic-badge.bear { background:#e7f6ec; color:#1e7d43; border-color:#c4ebd2; }
+.ic-badge.neu  { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; }
+.ic-badge.ncov { background:#fafafa; color:#9aa0a6; border-color:#e6e6e6; border-style:dashed; }
+
+/* 共识度条 */
+.fn-cons-bar { position:relative; min-width:84px; height:16px; background:var(--tag,#f3f4f6);
+  border-radius:8px; overflow:hidden; }
+.fn-cons-fill { position:absolute; left:0; top:0; bottom:0; background:var(--accent,#0E7490); opacity:.28; }
+.fn-cons-num { position:relative; font-size:11.5px; font-weight:700; color:var(--text,#111);
+  line-height:16px; padding-left:6px; }
+.fn-row-full { background:#fff8f0; }
+.fn-row-full:hover { background:#ffefdb; }
+
+/* 逐层 AND 收缩轨迹 */
+.fn-trace { background:var(--panel,#fff); border:1px solid var(--border,#e5e7eb);
+  border-left:3px solid var(--accent,#0E7490); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+.fn-trace-h { font-weight:700; font-size:13.5px; color:var(--text,#111); margin-bottom:8px; }
+.fn-trace-body { display:flex; flex-direction:column; gap:5px; }
+.fn-trace-row { font-size:12.5px; color:var(--text,#111); line-height:1.6; }
+.fn-trace-step { color:var(--muted,#6b7280); margin-right:4px; }
+.fn-trace-num { font-weight:700; color:var(--accent,#0E7490); }
+.fn-trace-final { border-top:1px dashed var(--border,#e5e7eb); padding-top:6px; margin-top:2px; font-weight:600; }
+
+/* 结果视图切换 */
+.fn-toggleview { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.fn-tv { font-size:12.5px; padding:3px 12px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--border,#e5e7eb); background:var(--panel,#fff); color:var(--muted,#6b7280); }
+.fn-tv.on { background:var(--accent,#0E7490); color:#fff; border-color:var(--accent,#0E7490); font-weight:600; }
+
+/* 干净宇宙透明卡 */
+.fn-clean { margin-top:10px; background:linear-gradient(180deg,#f6fbff,#eef7ff);
+  border:1px solid #cfe6fb; border-left:3px solid #0E7490; border-radius:10px; padding:11px 14px; }
+.fn-clean-h { font-weight:700; font-size:13px; color:#0b5d75; margin-bottom:5px; }
+.fn-clean-b { font-size:12.5px; color:#22323a; line-height:1.7; }
+.fn-clean-b b { color:#c0392b; }
+.fn-clean-note { font-size:11.5px; color:#5b7186; margin-top:5px; line-height:1.6; }

@@ -1,0 +1,230 @@
+/* ============================================================================
+   抖音博主语料面板样式（2026-10-20）
+   设计意图：**一眼看出这是「另一个来源」**，但不抢原面板的主视觉。
+     · 独立框：发丝描边 + 左侧 3px 品牌色立条 + 顶部浅底标题栏；
+     · 来源徽标 `.dy-src` 用实心强调色，是全页面唯一的「豆包整理」标识；
+     · 全部颜色走主题变量（--panel/--border/--muted/--tag/--accent），
+       暗色/浅色主题自动适配，无需各写一份。
+   ========================================================================== */
+
+.dy-box{
+  border:1px solid var(--border, #e5e7eb);
+  border-left:3px solid var(--accent, #0E7490);
+  border-radius:12px;
+  background:var(--panel, #fff);
+  margin:0 0 18px;
+  overflow:hidden;
+}
+.dy-box--compact{ margin-bottom:14px; }
+
+/* ---- 头部 ---- */
+.dy-hd{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:10px 14px;
+  background:var(--tag, #f3f4f6);
+  border-bottom:1px solid var(--border, #e5e7eb);
+}
+.dy-src{
+  display:inline-flex; align-items:center;
+  padding:2px 8px; border-radius:6px;
+  background:var(--accent, #0E7490); color:#fff;
+  font-size:12px; font-weight:700; letter-spacing:.4px;
+  white-space:nowrap;
+}
+.dy-title{ font-size:15px; font-weight:700; color:var(--text, #111); }
+.dy-meta{ font-size:12px; color:var(--muted, #6b7280); }
+.dy-sp{ flex:1 1 auto; }
+
+.dy-btn{
+  padding:4px 10px; border-radius:8px; cursor:pointer;
+  border:1px solid var(--border, #e5e7eb);
+  background:var(--panel, #fff);
+  color:var(--text, #111); font-size:12px;
+}
+.dy-btn:hover{ background:var(--hover, #f3f4f6); }
+.dy-btn:disabled{ opacity:.55; cursor:default; }
+.dy-btn-ghost{ background:transparent; }
+
+.dy-note{
+  padding:8px 14px;
+  font-size:12px; line-height:1.6;
+  color:var(--muted, #6b7280);
+  background:var(--bg-sub, #fafafa);
+  border-bottom:1px solid var(--border, #e5e7eb);
+}
+
+/* ---- 筛选 ---- */
+.dy-body{ padding:12px 14px 14px; }
+.dy-filters{
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  margin-bottom:12px;
+}
+.dy-sel, .dy-search{
+  padding:5px 9px; border-radius:8px;
+  border:1px solid var(--border, #e5e7eb);
+  background:var(--panel, #fff);
+  color:var(--text, #111);
+  font-size:12px;
+  max-width:240px;
+}
+.dy-search{ flex:1 1 200px; min-width:160px; }
+.dy-sel:focus, .dy-search:focus{
+  outline:none;
+  border-color:var(--accent, #0E7490);
+}
+
+/* ---- 列表 ---- */
+.dy-list{ display:flex; flex-direction:column; gap:0; }
+.dy-item{
+  padding:10px 0;
+  border-bottom:1px dashed var(--border, #e5e7eb);
+}
+.dy-item:last-child{ border-bottom:0; }
+.dy-item-hd{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:12px; color:var(--muted, #6b7280);
+  margin-bottom:4px;
+}
+.dy-date{ font-variant-numeric:tabular-nums; }
+.dy-author{ color:var(--text, #111); font-weight:600; }
+.dy-cat{
+  padding:1px 6px; border-radius:4px;
+  background:var(--tag, #f3f4f6); color:var(--muted, #6b7280);
+  font-size:11px;
+}
+.dy-asr{
+  padding:1px 5px; border-radius:4px;
+  background:var(--c5-bg, #eef6f8); color:var(--c5-fg, #0E7490);
+  font-size:10px; letter-spacing:.3px;
+}
+.dy-link{
+  color:var(--accent, #0E7490); text-decoration:none; font-size:12px;
+}
+.dy-link:hover{ text-decoration:underline; }
+
+.dy-item-title{
+  font-size:13.5px; line-height:1.5; font-weight:600;
+  color:var(--text, #111);
+  margin-bottom:4px;
+}
+.dy-tbtn{
+  all:unset; cursor:pointer;
+  color:var(--text, #111);
+  border-bottom:1px dotted var(--border, #d1d5db);
+}
+.dy-tbtn:hover{ color:var(--accent, #0E7490); border-bottom-color:var(--accent, #0E7490); }
+
+.dy-brief{
+  font-size:12.5px; line-height:1.75;
+  color:var(--muted, #6b7280);
+  white-space:pre-wrap;
+}
+.dy-brief--dim{ opacity:.55; }
+.dy-dim{ opacity:.6; }
+.dy-full{
+  margin-top:8px; padding:10px 12px;
+  border-radius:8px;
+  background:var(--bg-sub, #fafafa);
+  border:1px solid var(--border, #e5e7eb);
+  font-size:12.5px; line-height:1.85;
+  color:var(--text, #111);
+  white-space:pre-wrap;
+  max-height:420px; overflow:auto;
+}
+.dy-empty{
+  padding:18px 0; text-align:center;
+  font-size:12.5px; color:var(--muted, #6b7280);
+}
+
+/* ---- 底部 ---- */
+.dy-foot{
+  display:flex; align-items:center; gap:12px;
+  padding-top:12px;
+}
+.dy-count{ font-size:12px; color:var(--muted, #6b7280); }
+
+/* ---- 情绪面板里的「来源说明」条（进哥：情绪地图要标出豆包整理来源） ---- */
+.dy-src-legend{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:0 0 12px; padding:8px 12px;
+  border-radius:8px;
+  border:1px dashed var(--border, #e5e7eb);
+  background:var(--tag, #f3f4f6);
+  font-size:12px; line-height:1.6;
+  color:var(--muted, #6b7280);
+}
+.dy-src-legend b{ color:var(--text, #111); }
+
+/* ---- 整合层：主题轨道 / 观点类型 chip（浅色，跟随主题变量） ---- */
+.dy-tracks, .dy-stance { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:4px 0 8px; }
+.dy-tracks-lbl, .dy-stance-lbl { color:var(--muted,#6b7280); font-size:12px; margin-right:2px; }
+.dy-tracks-loading, .dy-stance-loading { color:var(--muted,#6b7280); font-size:12px; }
+.dy-chip { background:var(--tag,#f3f4f6); color:var(--text,#111); border:1px solid var(--border,#e5e7eb);
+  border-radius:14px; padding:3px 11px; font-size:12px; cursor:pointer; transition:all .15s; }
+.dy-chip:hover { border-color:var(--accent,#0E7490); color:var(--accent,#0E7490); }
+.dy-chip--on { background:var(--accent,#0E7490); color:#fff; border-color:var(--accent,#0E7490); font-weight:600; }
+
+/* ---- 整合图谱：结论优先（浅色，与全局主题一致） ---- */
+.integ-wrap { padding:6px 2px; }
+.integ-hd { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.integ-pick { display:flex; gap:8px; margin-bottom:10px; }
+.integ-pick .dy-search { flex:1; }
+.dy-btn-primary { background:var(--accent,#0E7490); color:#fff; border-color:var(--accent,#0E7490); font-weight:600; }
+.dy-btn-primary:hover { filter:brightness(1.06); color:#fff; }
+.integ-hot { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+
+.ic-sum { background:var(--panel,#fff); border:1px solid var(--border,#e5e7eb);
+  border-left:3px solid var(--accent,#0E7490); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+.ic-sum-h { font-weight:700; color:var(--text,#111); margin-bottom:6px; font-size:14px; }
+.ic-sum-t { color:var(--text,#111); font-size:13.5px; line-height:1.8; }
+.ic-kpi { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.ic-kpi .kpi { font-size:12px; padding:2px 10px; border-radius:12px;
+  border:1px solid var(--border,#e5e7eb); background:var(--tag,#f3f4f6); color:var(--muted,#6b7280); }
+.ic-kpi .kpi b { font-size:14px; }
+.ic-kpi .kpi.bull { color:var(--bull,#C81E1E); background:var(--bull-bg,#FDE7E6); border-color:var(--bull-bg,#FDE7E6); }
+.ic-kpi .kpi.bear { color:var(--bear,#15803D); background:var(--bear-bg,#DEF3E3); border-color:var(--bear-bg,#DEF3E3); }
+.ic-kpi .kpi.neu { color:var(--muted,#6b7280); }
+
+.ic-split { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width: 980px) { .ic-split { grid-template-columns:1fr; } }
+.ic-col { border:1px solid var(--border,#e5e7eb); border-radius:10px; background:var(--panel,#fff); overflow:hidden; }
+.ic-col-h { padding:9px 12px; font-weight:700; font-size:13px;
+  border-bottom:1px solid var(--border,#e5e7eb); background:var(--tag,#f3f4f6); color:var(--text,#111); }
+.ic-col.bull .ic-col-h { color:var(--bull,#C81E1E); }
+.ic-col.bear .ic-col-h { color:var(--bear,#15803D); }
+.ic-row { padding:10px 12px; border-bottom:1px dashed var(--border,#e5e7eb); }
+.ic-row:last-child { border-bottom:0; }
+.ic-row-h { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:5px; }
+.ic-row-h b { color:var(--text,#111); font-size:13.5px; }
+.ic-code { color:var(--muted,#6b7280); font-size:12px; font-variant-numeric:tabular-nums; }
+.ic-badge { font-size:11px; padding:1px 8px; border-radius:10px; font-weight:600; }
+.ic-badge.bull { color:var(--bull,#C81E1E); background:var(--bull-bg,#FDE7E6); border:1px solid var(--bull-bg,#FDE7E6); }
+.ic-badge.bear { color:var(--bear,#15803D); background:var(--bear-bg,#DEF3E3); border:1px solid var(--bear-bg,#DEF3E3); }
+.ic-badge.neu { color:var(--muted,#6b7280); background:var(--tag,#f3f4f6); border:1px solid var(--border,#e5e7eb); }
+.ic-score { margin-left:auto; font-size:12px; color:var(--muted,#6b7280); font-variant-numeric:tabular-nums; }
+.ic-rs-wrap { display:flex; flex-wrap:wrap; gap:5px; }
+.ic-rs { font-size:11.5px; color:var(--text,#111); background:var(--tag,#f3f4f6);
+  border:1px solid var(--border,#e5e7eb); border-radius:8px; padding:1px 7px; }
+.ic-q { margin-top:5px; font-size:12px; color:var(--muted,#6b7280); line-height:1.6; }
+.ic-basis { margin-top:16px; border-top:1px dashed var(--border,#e5e7eb); padding-top:10px; }
+.ic-basis summary { cursor:pointer; font-size:12.5px; color:var(--accent,#0E7490); font-weight:600; }
+.ic-basis-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:10px; }
+.ic-basis-h { font-size:12px; color:var(--muted,#6b7280); font-weight:600; margin-bottom:6px; }
+.ic-kv { display:flex; justify-content:space-between; padding:3px 0; font-size:12.5px; color:var(--text,#111); border-bottom:1px dashed var(--border,#e5e7eb); }
+.ic-kv b { color:var(--accent,#0E7490); }
+.ic-basis-neu { margin:10px 0; }
+.ic-neu-list { display:flex; flex-wrap:wrap; gap:6px; }
+.ic-neu { font-size:11.5px; color:var(--muted,#6b7280); background:var(--tag,#f3f4f6); border:1px solid var(--border,#e5e7eb); border-radius:8px; padding:1px 7px; }
+.ic-basis-blog { margin-top:10px; font-size:12px; color:var(--muted,#6b7280); line-height:1.7; }
+
+/* ---- 2026-10-31 去重：来源说明常驻 2 行 → 1 行 + 折叠（本页说明文字原占 39%）
+   「不混算」这条隔离声明保留（一字未删），只是默认不占版面。 ---- */
+.dy-src-legend > .dy-src { flex: 0 0 auto; }
+.dy-src-more { flex: 1 1 100%; margin: 0; }
+.dy-src-more > summary { cursor: pointer; font-size: 11.5px; color: var(--accent, #0E7490);
+  list-style: none; display: inline-block; }
+.dy-src-more > summary::-webkit-details-marker { display: none; }
+.dy-src-more > summary::before { content: "▸ "; }
+.dy-src-more[open] > summary::before { content: "▾ "; }
+.dy-src-txt { margin-top: 4px; font-size: 11.5px; line-height: 1.7; color: var(--muted, #6b7280); }
+.dy-src-txt b { color: var(--text, #111); }

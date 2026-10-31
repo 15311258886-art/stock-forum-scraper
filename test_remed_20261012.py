@@ -103,7 +103,12 @@ def test_send_json_uses_allow_nan_false():
     src = _read(SERVER_PY)
     i = src.find("def _send_json")
     assert i > 0, "找不到 _send_json"
-    seg = src[i:i + 700]
+    # 2026-10-31：原来截的是「从 def 起 700 字符」这个固定窗口。`_send_json` 后面陆续加了
+    # TTL 缓存、占位包豁免、快照落盘等注释与分支，函数体早已超过 700 字符，
+    # 于是断言在**功能本身没坏**的情况下变红（allow_nan=False 就在第 1000 字左右）。
+    # 固定字符窗口不是契约，改法：截到「下一个同级 def / 类末尾」为止，与注释长度解耦。
+    nxt = src.find("\n    def ", i + 10)
+    seg = src[i:nxt] if nxt > 0 else src[i:i + 4000]
     assert "allow_nan=False" in seg, "_send_json 未启用 allow_nan=False"
     assert "_json_safe(" in seg, "_send_json 未走 _json_safe 清洗"
     return True

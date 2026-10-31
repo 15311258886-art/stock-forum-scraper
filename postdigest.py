@@ -335,6 +335,10 @@ def _build_core(hours: int = 24, max_posts: int = 800) -> dict:
                         + (f"，属{d['board']}，" if d["board"] else "，")
                         + f"看多 {d['pos']}、看空 {d['neg']}、中立 {d['neu']} → 结论「{v}」"
                           + (f"（{conf}）" if conf != "—" else ""))
+        # 2026-10-31 版面去噪备注：summary 的前半截（N 帖点名 / 名称代码 / 板块 / 多空计数 /
+        #   结论）在界面上的卡片头、进度条、结论徽章里已各显示一次，逐只票再复述一遍，
+        #   实测 10 只票多出近 600 字纯冗余。前端因此改读 _mini 已给出的结构化 reasons 数组；
+        #   summary 保留完整句式不动（其他消费方可能按整句解析）。
         if reasons:
             d["summary"] += f"；在说的理由：{'、'.join(reasons)}"
         stock_items.append({**d, "quotes": quotes})

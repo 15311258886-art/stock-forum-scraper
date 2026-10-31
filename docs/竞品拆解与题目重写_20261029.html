@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>提示能力的竞品拆解与题目重写</title>
+<style>
+  :root{
+    --ink:#1a1f26; --ink2:#4a5462; --ink3:#7b8794;
+    --line:#e3e7ed; --bg:#f5f6f8; --card:#ffffff;
+    --brand:#1f3a5f; --brand2:#2d5f8b;
+    --red:#c0392b; --amber:#b7791f; --green:#1e7d5c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:15px; line-height:1.85; padding:48px 20px 80px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px;margin:0 auto}
+  /* 封面 */
+  .cover{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:44px 48px 38px;margin-bottom:26px;position:relative;overflow:hidden}
+  .cover::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,var(--brand),var(--brand2))}
+  .kicker{font-size:12px;letter-spacing:.22em;color:var(--ink3);text-transform:uppercase;margin-bottom:16px}
+  h1{font-size:29px;line-height:1.45;font-weight:700;letter-spacing:-.01em;margin-bottom:14px}
+  .sub{font-size:15px;color:var(--ink2);line-height:1.9;max-width:760px}
+  .meta{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink3);display:flex;gap:26px;flex-wrap:wrap}
+
+  h2{font-size:20px;font-weight:700;margin:44px 0 6px;padding-left:14px;border-left:4px solid var(--brand);line-height:1.5}
+  h3{font-size:16px;font-weight:600;margin:26px 0 10px;color:var(--brand)}
+  p{margin:10px 0;color:var(--ink2)}
+  p strong{color:var(--ink);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:26px 30px;margin:16px 0}
+
+  /* 数字卡 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0 8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 20px;border-top:3px solid var(--red)}
+  .stat .n{font-size:32px;font-weight:700;color:var(--red);letter-spacing:-.02em;line-height:1.2}
+  .stat .t{font-size:13px;font-weight:600;margin-top:8px}
+  .stat .d{font-size:12.5px;color:var(--ink3);line-height:1.7;margin-top:5px}
+
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13.5px;background:var(--card)}
+  th{background:var(--brand);color:#fff;font-weight:600;text-align:left;padding:11px 12px;font-size:12.5px;letter-spacing:.03em}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2);line-height:1.75}
+  tr:last-child td{border-bottom:none}
+  td strong{color:var(--ink)}
+  .num{text-align:center;font-size:15px;letter-spacing:1px}
+  .yes{color:var(--green)}
+  .half{color:var(--amber)}
+  .no{color:#c9d1d9}
+  tr.us td{background:#fbfcfe}
+  tr.us td:first-child{font-weight:600;color:var(--brand)}
+
+  ol,ul{margin:12px 0 12px 4px;padding-left:22px}
+  li{margin:9px 0;color:var(--ink2);line-height:1.85}
+  li strong{color:var(--ink)}
+
+  .quote{border-left:3px solid var(--amber);background:#fffbf2;padding:16px 22px;border-radius:0 8px 8px 0;margin:18px 0;font-size:14px;color:#5c4a1f}
+  .quote b{color:#8a5a00}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px}
+  .box.bad{border-left:3px solid var(--red)}
+  .box.good{border-left:3px solid var(--green)}
+  .box h4{font-size:13.5px;font-weight:700;margin-bottom:9px;color:var(--ink)}
+  .box ul{padding-left:18px;margin:6px 0}
+  .box li{font-size:13px;margin:6px 0;line-height:1.7}
+
+  .title-compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:20px 0}
+  .tc{padding:24px 26px}
+  .tc.old{background:#fafafa;border-right:1px solid var(--line)}
+  .tc.new{background:#f3f8f5}
+  .tc .lab{font-size:11.5px;letter-spacing:.15em;font-weight:700;margin-bottom:13px}
+  .tc.old .lab{color:var(--ink3)}
+  .tc.new .lab{color:var(--green)}
+  .tc .txt{font-size:14.5px;line-height:1.85;color:var(--ink)}
+  .tc .note{font-size:12.5px;color:var(--ink3);margin-top:12px;line-height:1.7}
+
+  .foot{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink3);line-height:1.9}
+  @media(max-width:760px){
+    body{padding:24px 12px 50px}
+    .stats,.grid2,.title-compare{grid-template-columns:1fr}
+    .cover{padding:30px 24px}
+    h1{font-size:23px}
+    .tc.old{border-right:none;border-bottom:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="kicker">Competitive Teardown &amp; Problem Restatement</div>
+    <h1>提示能力的竞品拆解，与题目重写</h1>
+    <div class="sub">
+      你要的是"更深入"而不是"更大"。这份文档先做竞品拆解，但结论可能与预期相反：
+      <strong>我们缺的不是提示的数量，是提示的可信度</strong>。所有建议都建立在该系统自己的数据库实测之上。
+    </div>
+    <div class="meta">
+      <span>数据来源：viewer/app.db 实测</span>
+      <span>信号账本 111 组 / 预测登记 360 条</span>
+      <span>2026-10-29</span>
+    </div>
+  </div>
+
+  <h2>一、先说一个与"加功能"相反的结论</h2>
+
+  <p>在讨论学谁之前，必须先看我们自己的账本。我从系统数据库里直接查了三组数字，它们指向同一件事：</p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="n">0</div>
+      <div class="t">预警记录条数</div>
+      <div class="d">watch_alerts 表为空。到价提醒、突破提醒的代码路径存在，但从未产生过一条记录——这类功能是空壳。</div>
+    </div>
+    <div class="stat">
+      <div class="n">T+5</div>
+      <div class="t">几乎全部信号为负</div>
+      <div class="d">111 组信号账本里，T+5 平均收益为正的不到 15 组，且每组样本仅 1~16 个，统计上不可用。</div>
+    </div>
+    <div class="stat">
+      <div class="n">45%</div>
+      <div class="t">次日命中率 ≈ 抛硬币</div>
+      <div class="d">逐日预测 347/360 已结算，单日命中 3/20 到 14/20 剧烈摆动，看不出稳定优势。</div>
+    </div>
+  </div>
+
+  <div class="quote">
+    <b>这件事的含义：</b>如果信号本身没有信息量，那么"提示得更快、更漂亮、更多渠道"只会让你更早、更准地执行一个没有优势的动作。对标竞品的第一价值不是抄功能，而是搞清楚<b>他们的提示为什么有人信</b>。
+  </div>
+
+  <p>还有一个更隐蔽的问题：系统里存在<strong>两套互相矛盾的账本</strong>。一套是小样本的 <code>predictor_score</code>（每组几十到几百个样本，波动极大）；另一套是 <code>signal_backtest</code>（单条信号九千余样本，例如"KDJ 超买死叉"20 日胜率 42.0%、夏普 −0.299）。而评分加权用的是前者。这等于用噪声去校准信号。</p>
+
+  <h2>二、市面产品到底提供什么"提示优势"</h2>
+
+  <p>把主流产品拆开看，它们并不是"更聪明"，而是各自把某一层做到了极致。四种类型，四种不同的赚钱逻辑：</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:17%">能力</th>
+        <th style="width:21%">触发型<br><span style="font-weight:400;opacity:.75">同花顺 / 通达信 / AI涨乐</span></th>
+        <th style="width:21%">归因型<br><span style="font-weight:400;opacity:.75">韭研公社 / 选股宝</span></th>
+        <th style="width:21%">验证型<br><span style="font-weight:400;opacity:.75">看究竟 / 慧博</span></th>
+        <th style="width:20%">我们现状</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>条件到价即提醒</strong></td>
+        <td>云端条件单，关软件也推送，支持分时均线、量比、封板</td>
+        <td>弱，靠人工盯</td>
+        <td>弱</td>
+        <td class="num half">◐ 有表无数据</td>
+      </tr>
+      <tr>
+        <td><strong>涨停/异动归因</strong></td>
+        <td>只报"拉升至涨停"，不给原因</td>
+        <td>核心能力：拆解涨停的题材属性、概念关联、连板演化</td>
+        <td>事后研报解读</td>
+        <td class="num half">◐ 只有板块净流入</td>
+      </tr>
+      <tr>
+        <td><strong>题材生命周期</strong></td>
+        <td>无</td>
+        <td>题材发酵进程、关联标的、催化事件时间轴</td>
+        <td>产业库 + 时间轴</td>
+        <td class="num no">○ 无</td>
+      </tr>
+      <tr>
+        <td><strong>结论自带回测路径</strong></td>
+        <td>无（只给信号）</td>
+        <td>无</td>
+        <td>核心卖点：每组"高概率"都附回测路径与数据支撑</td>
+        <td class="num half">◐ 有 9000 样本库但未展示</td>
+      </tr>
+      <tr>
+        <td><strong>预期差 / 一致预期</strong></td>
+        <td>无</td>
+        <td>逻辑挖掘（主观）</td>
+        <td>金融工程算法算一致预期与预期差</td>
+        <td class="num no">○ 无</td>
+      </tr>
+      <tr>
+        <td><strong>数据颗粒度</strong></td>
+        <td>Level-2 十档、逐笔</td>
+        <td>公告、产业图谱</td>
+        <td>研报、财报、调研</td>
+        <td class="num half">◐ 日频聚合为主</td>
+      </tr>
+      <tr class="us">
+        <td>看谁说、历史准不准</td>
+        <td class="num no">○ 无</td>
+        <td class="num half">◐ 靠人工筛选优质作者</td>
+        <td class="num no">○ 无</td>
+        <td class="num yes">● 有可结算战绩库</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>逐条看，哪些值得学，哪些是陷阱</h3>
+
+  <div class="grid2">
+    <div class="box good">
+      <h4>值得学（补的是可信度，不是数量）</h4>
+      <ul>
+        <li><strong>结论带回测路径</strong>——最便宜的高价值改造。我们已有九千样本回测库，只是没印在提示旁边。这一条就能把"提示"变成"有依据的提示"。</li>
+        <li><strong>异动归因</strong>——我们有天然优势：论坛与短视频本身就是"为什么涨"的原始文本。缺的是把它们结构化到"驱动逻辑 + 催化时点 + 可证伪条件"。</li>
+        <li><strong>题材生命周期分阶段</strong>——AI 复盘里已有 stage 字段，但那是定性判断；应改为用涨停家数、连板高度、成交占比算出启动/发酵/高潮/退潮。</li>
+      </ul>
+    </div>
+    <div class="box bad">
+      <h4>看着诱人但是陷阱</h4>
+      <ul>
+        <li><strong>云端秒级推送</strong>——前提是你的信号在扣费后有正期望。目前 T+5 为负，推得越快执行越准，亏得越干脆。技术难度低，价值排序应靠后。</li>
+        <li><strong>更多指标、更多板块、更多榜单</strong>——典型"更大的版本"。在验证体系没修好之前，每加一个信号都在放大噪声。</li>
+        <li><strong>照搬一致预期数据</strong>——慧博的预期差建立在卖方研报库上，我们没有这个数据源，硬做只能是伪精度。</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>三、我们有哪些竞品拿不走的东西</h2>
+
+  <p>抄竞品之前要知道自己守什么。以下五项是结构性差异，不是功能差异：</p>
+
+  <ol>
+    <li><strong>论坛博主的可结算战绩。</strong>韭研靠人工挑"优质作者"，我们能用 5327 条信号记录 + 21 人跟踪表算出每个人的历史胜率与超额。这是唯一能回答"这个人的话值多少钱"的资产。</li>
+    <li><strong>抖音 / B 站内容源。</strong>竞品完全没有。短视频的情绪传导通常早于论坛文字，是天然的前置指标。</li>
+    <li><strong>港美股与海外情绪联动。</strong>跨市场传导链，国内软件普遍弱。</li>
+    <li><strong>你自己的准则库。</strong>AI 复盘会读你的九条交易准则——没有任何商用软件能做到这种个性化纪律约束。</li>
+    <li><strong>预测登记 + 事后结算的完整闭环。</strong>prediction_run / prediction_item 已经有逐日登记与 T+1/T+3/T+5/T+10 结算字段。这是"可审计"的骨架，绝大多数产品不敢做，因为做完就要面对自己的成绩单。</li>
+  </ol>
+
+  <h2>四、你问的四个问题</h2>
+
+  <h3>（1）这个领域的顶尖专家会做、而你没要求的事</h3>
+  <ol>
+    <li><strong>先定义"有用"，再谈优化。</strong>是 T+1 命中？还是 T+1 到 T+5 的超额？口径不定，后面所有工作都无法评判。</li>
+    <li><strong>一切收益减基准。</strong>牛市里任何信号都"赚钱"。必须减掉同期指数或等权组合，才算信号有效。系统里已有 bench_t1/t3/t5 字段，但没进展示口径。</li>
+    <li><strong>扣掉交易成本。</strong>印花税千分之一、佣金、滑点。T+1 均值 +0.075% 这种数字，成本一算就没了。</li>
+    <li><strong>多重检验校正。</strong>试一百个指标，总有五个好看。不做 FDR 校正，等于自己骗自己——这正是 111 组账本里那些"好看但样本个位数"的来源。</li>
+    <li><strong>样本外检验与幸存者偏差处理。</strong>退市、停牌、ST 必须留在样本里，否则回测必然虚高。</li>
+    <li><strong>预测先登记、口径不许改。</strong>预注册机制。事后调整口径是这类系统最常见的自欺方式。</li>
+    <li><strong>合规边界。</strong>任何对外输出的"建议"都涉及投顾资质边界，表述必须落在"数据与统计"而非"投资建议"。</li>
+  </ol>
+
+  <h3>（2）他们会从哪些原始素材入手，而不是你已经整理好的素材</h3>
+
+  <div class="grid2">
+    <div class="box bad">
+      <h4>我们目前用的（已加工的聚合值）</h4>
+      <ul>
+        <li>板块净流入金额、板块涨幅排名</li>
+        <li>"机构席位净买 +44.89 亿"这类聚合标签</li>
+        <li>论坛情绪净多 +169（先算成净多比）</li>
+        <li>AI 复盘输出的结论与主线判断</li>
+      </ul>
+    </div>
+    <div class="box good">
+      <h4>专家会直接用的（带时间戳的原始事件流）</h4>
+      <ul>
+        <li>龙虎榜<strong>原始营业部名称</strong>与买卖金额（不是"机构席位"这个聚合标签）</li>
+        <li>涨停<strong>首封时间、封单量、炸板次数、回封时间</strong></li>
+        <li>公告与互动易<strong>问答原文</strong>及发布时刻</li>
+        <li>论坛<strong>原始帖子</strong>（发帖时间戳、作者、楼层顺序），不是情绪分</li>
+        <li>融资融券逐日、北向逐笔、大宗交易明细与折溢价</li>
+        <li>ETF / 可转债折溢价（资金真实意图的旁证）</li>
+      </ul>
+    </div>
+  </div>
+
+  <p><strong>差别不在"更原始"，而在"顺序"。</strong>聚合会丢掉节奏：一只票是开盘秒板还是尾盘偷袭、是首封还是回封、封单是递增还是撤单——这些顺序信息在算成"涨停=1"的瞬间全部消失，而它们恰恰是判断持续性的主要依据。</p>
+
+  <h3>（3）他们使用的具体方法与工具</h3>
+  <table>
+    <thead>
+      <tr><th style="width:26%">方法</th><th style="width:38%">解决什么问题</th><th>工具</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>事件研究法（CAR）</strong></td><td>把"这个信号有没有用"变成可检验的累积异常收益曲线</td><td>statsmodels、自建基准</td></tr>
+      <tr><td><strong>分位数分组回测</strong></td><td>看信号强度与收益是否单调，排除偶然</td><td>pandas + DuckDB</td></tr>
+      <tr><td><strong>Purged K-Fold 交叉验证</strong></td><td>金融时序有重叠，普通 CV 会严重高估</td><td>scikit-learn + 自实现 purge</td></tr>
+      <tr><td><strong>Deflated Sharpe Ratio</strong></td><td>试了很多策略后，夏普要打折才算真实</td><td>自实现（López de Prado）</td></tr>
+      <tr><td><strong>三重障碍标注</strong></td><td>把"涨没涨"换成"先碰止盈还是先碰止损"</td><td>自实现</td></tr>
+      <tr><td><strong>生存分析</strong></td><td>涨停后还能活几天、题材何时退潮</td><td>lifelines</td></tr>
+      <tr><td><strong>面板固定效应回归</strong></td><td>控制行业与日期效应，分离信号的真实贡献</td><td>linearmodels</td></tr>
+    </tbody>
+  </table>
+
+  <h3>（4）除了你我，还有什么能证明结果是对的</h3>
+  <ol>
+    <li><strong>可独立复算的原始行情。</strong>交易所与巨潮的日线/逐笔是公开的，任何人拿我们的预测登记表都能自己算出命中率。</li>
+    <li><strong>中证指数公司的官方基准。</strong>超额收益用官方指数，不用自建基准，避免"自己定标准自己及格"。</li>
+    <li><strong>公开因子库对照。</strong>如 CNE6 / Barra 风格因子，验证我们的"超额"不是某个风格暴露的伪装。</li>
+    <li><strong>时间戳审计。</strong>prediction_run 的 created_at 是不可篡改的登记时点，第三方可核对"预测是否事后修改"。</li>
+    <li><strong>可复现性。</strong>换一个人按文档跑一遍，能否得到同一组数字。这是最硬的验证。</li>
+    <li><strong>公开的第三方研报与一致预期</strong>（Wind / Choice），用来交叉验证我们对某只票的归因是否与主流认知一致或存在分歧。</li>
+  </ol>
+
+  <h2>五、改写后的题目</h2>
+
+  <p>原题的核心是"改造并优化这个查看器"——它是一个<strong>工程命题</strong>，天然导向"做更多功能"。按上面四条要求，它应该被重写成一个<strong>验证命题</strong>：</p>
+
+  <div class="title-compare">
+    <div class="tc old">
+      <div class="lab">原 题 目</div>
+      <div class="txt">对股票论坛可视化查看器进行底层重构与优化，梳理链路、简化代码，并接入 WorkBuddy 算力、优化数据源呈现速度。</div>
+      <div class="note">问题：目标落在"更稳、更快、更简洁"，是工程质量，不是研究质量。做完之后，提示是否更可信，仍然无法回答。</div>
+    </div>
+    <div class="tc new">
+      <div class="lab">重 写 后</div>
+      <div class="txt">
+        以"提示是否可结算"为唯一验收标准，改造现有论坛查看器：<br><br>
+        ① 把所有提示统一到<strong>相对官方基准、扣除交易成本后的 T+1 / T+3 / T+5 超额收益</strong>这一个口径；<br><br>
+        ② 输入从聚合指标下沉到<strong>带时间戳的原始事件流</strong>（涨停首封/回封、营业部原名、原始帖子时间序）；<br><br>
+        ③ 每条提示必须携带<strong>历史样本量、胜率、基准超额与失效条件</strong>，样本不足则显式标注"不足以判断"；<br><br>
+        ④ 建立<strong>预注册—结算</strong>纪律：预测先登记、结算自动跑、口径锁定不可事后修改；<br><br>
+        ⑤ 交付物不是新面板，而是一份<strong>能被第三方独立复算的信号审计报告</strong>。
+      </div>
+      <div class="note">这一版把"做大"换成"做准"：功能可能变少，但每个留在界面上的提示都必须能回答"凭什么"。验收标准从"跑得通"变成"算得清"。</div>
+    </div>
+  </div>
+
+  <h3>新题目明确不做的事</h3>
+  <ul>
+    <li>不新增数据源（除非为了替换掉一个聚合指标）</li>
+    <li>不新增展示面板（除非它能承接审计结论）</li>
+    <li>不在验证体系修好前增加任何新信号</li>
+    <li>不做云端秒级推送（价值排序在信号修好之后）</li>
+  </ul>
+
+  <div class="card" style="border-left:3px solid var(--brand)">
+    <h3 style="margin-top:0">如果只能做一件事</h3>
+    <p style="margin-bottom:0">
+      把已有的九千样本回测库（<code>signal_backtest</code>）接到界面上，让每一条提示旁边直接印出它的历史胜率与基准超额，并把小样本的 <code>predictor_score</code> 降级为参考、不再参与加权。
+      这一件事改动量最小，却能把"提示"从<strong>看起来有道理</strong>变成<strong>有账可查</strong>——而这正是竞品里最贵、我们最缺的那一层。
+    </p>
+  </div>
+
+  <div class="foot">
+    本文所有数字均来自 viewer/app.db 实测：predictor_score 111 组、prediction_item 360 条（347 条已结算 T+1）、signal_backtest 51 条（单条最高 9254 样本）、watch_alerts 0 条、stock_signals 5327 条。<br>
+    竞品能力描述基于公开产品说明与用户实测对比，不含任何未公开数据。
+  </div>
+
+</div>
+</body>
+</html>

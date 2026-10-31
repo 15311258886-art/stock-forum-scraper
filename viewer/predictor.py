@@ -73,6 +73,9 @@ WATCH_PCT = 0.030           # 观察池分位带：前 3%（扣掉核心池后�
 # 流动性头部 2000 只干净票；其余干净宇宙由 viewer/universe_scan 廉价全量扫描覆盖。可用
 # 环境变量 PILLARS_POOL_LIMIT 进一步调大（如 5268 即全宇宙重分析）。
 from viewer.config import PILLARS_POOL_LIMIT as POOL_LIMIT  # 集中配置（环境变量覆盖见 viewer/config.py）
+# 2026-10-31 整改（测评 P0-D）：阈值唯一来源。eff 的 40、judge 的 500、名单的 20
+# 全部收进这一个模块 —— 原来它们分散在三处，互相不知道对方存在。
+from viewer.kernel import params as _PARAMS
 BARS = 660                  # 每只票取多少根日线（够「近两年 2×244」回放 + MA120 / 年线）
 MIN_BARS = 130              # 少于此根数的票不参与技术面判定
 WINDOWS = (1, 3, 5, 10)     # 复盘窗口（交易日）：1 日 / 3 日 / 5 日 / 10 日（2026-09-29 应王总加 T+1）
@@ -190,6 +193,21 @@ SIGNALS = [
 SIGNAL_KEYS = [s["key"] for s in SIGNALS]
 SIGNAL_META = {s["key"]: s for s in SIGNALS}
 SIGNAL_PRIOR = {s["key"]: float(s.get("prior", 1.0)) for s in SIGNALS}
+
+# 2026-10-31 新增（测评 P1「core 档没有解释」项）：tier 的**唯一定义出口**。
+# 之前 tier="core" 只在这一个文件里被赋值一次，却从没有任何地方说明它是什么，
+# 于是前端把它渲染成「核心」，用户读成「最值得买」。它其实只是"综合分排前 N 名"。
+# 这个字典随 /api/predict 与 run 记录一起返回，界面上"core 是什么意思"只能从这里取。
+TIER_DEFINITION = {
+    "core": "综合分排序的前 core_k 名。这是**截断位次**，不是质量结论 —— "
+            "core 与 watch 的收益差在本系统内从未被检验过，没有证据支持"
+            "「core 更值得买」。",
+    "watch": "入选名单中 core 之后的部分。同样不是「次优」，只是排名其后。",
+    "note": "两个档位的差别仅在于排名位置；把 core 读成「核心持仓」是本系统历史上"
+            "最容易被误读的一处标签。若要让它承载质量含义，必须先做"
+            "「core vs watch 收益差」的检验（含多重比较校正），否则标签不该这么写。",
+}
+
 
 # ---- 龙虎榜校准表（L1 方法论校准层）---------------------------------------------
 # 出处分两类：
@@ -2008,8 +2026,15 @@ def _ret_multiplier(n1: int, sr1: float, n5: int, sr5: float) -> float:
     return 1.0 + max(-0.45, min(0.15, z))
 
 
-def _compute_weights(con: sqlite3.Connection) -> tuple:
+def _compute_weights(con: sqlite3.Connection, prior_mode: str = "prod") -> tuple:
     """按「先验系数 × 实盘命中率 × 覆盖置信度」算十二路权重，返回 (new_w, detail)。只算不写库。
+
+    `prior_mode`（2026-10-31 决策②）：
+      · "prod"      —— 生产口径，先验随样本量让位（默认，行为与改动前一致）
+      · "data_only" —— 影子口径，**完全不用先验**（prior_eff 恒为 1.0），
+                       其余环节（命中率 / 覆盖 / 超额系数 / 证据因子 / 限幅 / 归一化）完全相同。
+    做成同一个函数的两个模式，而不是复制一份影子函数：复制出来的第二份迟早会与
+    第一份走岔，而这两份本来就是要对比的 —— 一旦口径不同，对比就没有意义。
 
     先验系数此前漏乘（2026-10-01 实测踩到）：rescore 只乘 hit_score×cov_blend，
     导致每次跑完都按"覆盖度"重新洗牌——游资上榜（prior 0.30，全十二路最低）
@@ -2051,18 +2076,39 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
         # 旧版只吃 T+5（0.6），而 T+5 样本长期为 0（窗口未到期）→ 主轴恒为中性 0.5，
         # 自学习等于空转（2026-10-11 王总定：把已到期的 T+1/T+3 纳入主轴）。
         score = 0.28 * s1 + 0.34 * s3 + 0.28 * s5 + 0.10 * s10
-        eff = max(0.0, 1.0 - math.exp(-(n1 + n3 + n5 + n10) / 40.0))   # 样本量置信度 0→1（含 T+1）
-        hit_score = 1.0 + eff * (score - 0.5) * 2.0              # 中性=1.0
+        # 2026-10-31 整改（测评 P0-D）：样本量置信度改走参数注册表。
+        # 原来这里写的是常数 40，而 judge 的门槛是 500，两处互不知情 ——
+        # n=499 时 judge 答"样本不足、无权裁决"，eff 已给 99.9996%。
+        # 现在 eff 的唯一实现在 viewer/kernel/params.py，两处阈值同源，
+        # 矛盾带宽由 params.invariant_gap() 直接算出并进日志/接口。
+        # 2026-10-31 决策①：展示口径与生效口径拆开。
+        #   eff   —— 样本量本身有多足（面板上那句"置信度"用它）
+        #   eff_w —— 再乘权重门：<40 归零、40–500 线性升、≥500 恒等 1
+        # 原来只有 eff 一个数，于是 n=200 时权重按 0.992 满功率生效，
+        # 而 evidence.judge 同时说"样本不足、无权裁决"—— 同一个 n，两个相反的断言。
+        _n_obs = n1 + n3 + n5 + n10
+        eff = _PARAMS.eff_of(_n_obs)          # 样本量置信度 0→1（含 T+1）
+        eff_w = _PARAMS.eff_weight(_n_obs)    # 生效置信度（过裁决门后）
+        hit_score = 1.0 + eff_w * (score - 0.5) * 2.0            # 中性=1.0
         cov_n = cover.get(k, 0)
         cov_conf = _cover_conf(cov_n)                            # 覆盖置信度 0→1
         # 2026-10-29：覆盖度再乘 eff —— 覆盖广只说明「触发得多」，不说明「触发得准」。
         # 旧版让 extref（实盘样本 n=2）靠 cov_n 拿到 3.75% 权重，等于给噪声分配仓位。
-        cov_blend = COVER_FLOOR + (1.0 - COVER_FLOOR) * cov_conf * eff
+        # 2026-10-31：改乘 eff_w（过门槛后的生效置信度），理由同上一条 —— 覆盖度修正
+        # 也是个"准不准"的判断，样本不过门就不该修。
+        cov_blend = COVER_FLOOR + (1.0 - COVER_FLOOR) * cov_conf * eff_w
         prior = SIGNAL_PRIOR.get(k, 1.0)
         # 2026-10-29：先验随样本量让位。prior 恒为乘数时，样本再多也压不过它 ——
         # 实测 tech 有 1032 条实盘样本、超额 -0.88%，却因 prior=1.45 长期占权重第一；
         # inst 超额 +2.86% 反而排第五。现在先验只在样本少时生效，数据多了退回 1.0。
-        prior_eff = 1.0 + (prior - 1.0) * (1.0 - eff)
+        # 2026-10-31：同样改用 eff_w。先验"让位"本来是个信任转移，
+        # 让给一个没过裁决门的样本量等于把控制权交给噪声。
+        if prior_mode == "data_only":
+            # 影子口径：先验彻底不参与，等价于"如果当初没有我手工排的那份顺序，
+            # 数据会把这十二路排成什么样"。其余因子照旧，保证与生产口径可比。
+            prior_eff = 1.0
+        else:
+            prior_eff = 1.0 + (prior - 1.0) * (1.0 - eff_w)
         # 收益维度修正：命中率高但超额为负的信号在这里被压下来（详见 _ret_multiplier）
         _sr1, _sr5 = _f(r["sum_ret_t1"], 0.0), _f(r["sum_ret_t5"], 0.0)
         ex_ret = _excess_ret(n1, _sr1, n5, _sr5)
@@ -2071,6 +2117,9 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
         detail[k] = {"prior": prior, "prior_eff": round(prior_eff, 3),
                      "hit_t1": s1, "hit_t3": s3, "hit_t5": s5, "hit_t10": s10,
                      "n1": n1, "n3": n3, "n5": n5, "n10": n10, "conf": eff,
+                     "n_obs": _n_obs, "conf_w": round(eff_w, 4),
+                     "tier": _PARAMS.tier_of(_n_obs),
+                     "tier_label": _PARAMS.TIER_LABEL[_PARAMS.tier_of(_n_obs)],
                      "cov_n": cov_n, "cov_conf": cov_conf, "cov_blend": cov_blend,
                      "ret_mul": round(rmul, 3),
                      "excess_ret": (round(ex_ret, 5) if ex_ret is not None else None),
@@ -2105,6 +2154,87 @@ def _compute_weights(con: sqlite3.Connection) -> tuple:
     tot2 = sum(clipped.values()) or 1.0
     new_w = {k: v / tot2 for k, v in clipped.items()}
     return new_w, detail
+
+
+_SHADOW_SWITCH_RULE = ("切换条件（两条同时满足）：① 该路影子权重连续 20 个交易日高于生产；"
+                       "② 该路对应信号税后超额为正。只满足①不切 —— "
+                       "那可能只是把噪声排得更靠前。")
+
+_SHADOW_DDL = """
+CREATE TABLE IF NOT EXISTS signal_weight_shadow (
+    asof       TEXT NOT NULL,
+    signal_key TEXT NOT NULL,
+    w_prod     REAL,
+    w_data     REAL,
+    diff_pp    REAL,
+    n_obs      INTEGER,
+    tier       TEXT,
+    created_at TEXT,
+    PRIMARY KEY (asof, signal_key)
+)"""
+
+
+def _save_shadow(con, prod_w, data_w, detail) -> int:
+    """落当日影子权重（每个信号一行）。**不参与任何计算**。
+
+    主键是 (asof, signal_key)：同一天重跑 rescore 会覆盖而不是累加 ——
+    否则一天跑三次就会让这条信号在"连续 20 个交易日"的判据里被算成 3 天。
+    """
+    con.execute(_SHADOW_DDL)
+    asof, ts, n = _today(), _now(), 0
+    for k in SIGNAL_KEYS:
+        if k not in prod_w or k not in data_w:
+            continue
+        d = detail.get(k) or {}
+        con.execute(
+            "INSERT INTO signal_weight_shadow"
+            " (asof,signal_key,w_prod,w_data,diff_pp,n_obs,tier,created_at)"
+            " VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(asof,signal_key) DO UPDATE SET"
+            " w_prod=excluded.w_prod, w_data=excluded.w_data, diff_pp=excluded.diff_pp,"
+            " n_obs=excluded.n_obs, tier=excluded.tier, created_at=excluded.created_at",
+            (asof, k, prod_w[k], data_w[k], (data_w[k] - prod_w[k]) * 100.0,
+             int(d.get("n_obs") or 0), str(d.get("tier") or ""), ts))
+        n += 1
+    con.commit()
+    return n
+
+
+def load_shadow(con, days: int = 20) -> dict:
+    """最近 N 个交易日的影子 vs 生产权重，按信号汇总。
+
+    判据写在返回里：**某一路影子权重连续高于生产、且该路税后超额为正**，
+    才构成"可以切"的证据。只给差值不给判据，等于让人凭感觉切。
+    """
+    try:
+        rows = con.execute(
+            "SELECT asof, signal_key, w_prod, w_data, diff_pp, n_obs, tier"
+            " FROM signal_weight_shadow ORDER BY asof DESC LIMIT ?", (int(days) * 20,)).fetchall()
+    except sqlite3.Error:
+        return {"ok": True, "n_days": 0, "rows": [],
+                "switch_rule": _SHADOW_SWITCH_RULE,
+                "note": "影子表尚未建立（还没跑过 rescore）"}
+    dayset = sorted({r[0] for r in rows}, reverse=True)[:int(days)]
+    keep = [r for r in rows if r[0] in set(dayset)]
+    by = {}
+    for asof, k, wp, wd, diff, nobs, tier in keep:
+        b = by.setdefault(k, {"signal_key": k, "n_days": 0, "w_prod_last": None,
+                              "w_data_last": None, "diff_pp_last": None,
+                              "n_obs": nobs, "tier": tier, "data_ahead_days": 0})
+        b["n_days"] += 1
+        if b["w_prod_last"] is None:
+            b["w_prod_last"] = round(float(wp or 0), 4)
+            b["w_data_last"] = round(float(wd or 0), 4)
+            b["diff_pp_last"] = round(float(diff or 0), 2)
+        if (wd or 0) > (wp or 0):
+            b["data_ahead_days"] += 1
+    out = sorted(by.values(), key=lambda x: -(x["diff_pp_last"] or 0))
+    return {
+        "ok": True, "n_days": len(dayset), "asof": dayset[0] if dayset else None,
+        "rows": out,
+        "switch_rule": _SHADOW_SWITCH_RULE,
+        "note": ("影子权重 = 只用数据（不用先验），归一化口径与生产一致。"
+                 "它不参与任何评分、排序、组合；这里只记录差异，不改任何权重。"),
+    }
 
 
 def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
@@ -2189,8 +2319,19 @@ def rescore(con: sqlite3.Connection, log: bool = True) -> dict:
     # 2026-10-29 实测被误读：技术面权重 0.1689→0.1499（-1.9%，未达 2% 阈值）明明变了，
     # 接口却报 adjusted=0。故另给 changed（真实变动路数，阈值 1e-4），供界面与日志直接引用。
     _changed = sum(1 for k in SIGNAL_KEYS if abs(new_w.get(k, 0) - old.get(k, 0)) >= 1e-4)
+    # 决策②：影子权重同期计算并落表。**只记录不生效** —— 上面的 new_w 一个字节都没被它影响。
+    # 为什么不在这里切：全量回测 9 个信号只有 1 个税后为正，此时让数据主导权重，
+    # 学出来的是一组负期望排序。先攒 20 个交易日，看影子权重是否真的更稳。
+    shadow = None
+    if getattr(_PARAMS, "SHADOW_WEIGHTS_ENABLED", False):
+        try:
+            data_w, _d2 = _compute_weights(con, prior_mode="data_only")
+            shadow = {"ok": True, "asof": _today(),
+                      "rows": _save_shadow(con, new_w, data_w, detail)}
+        except Exception as e:  # noqa: BLE001  影子失败绝不能影响生产权重
+            shadow = {"ok": False, "error": str(e)[:160]}
     return {"weights": new_w, "adjusted": len(changes), "changed": _changed,
-            "detail": detail, "walk_forward": wf}
+            "detail": detail, "walk_forward": wf, "shadow": shadow}
 
 
 def _band_counts(vals: list) -> tuple:
@@ -2555,6 +2696,9 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     # 权重快照：前端信号条要同时显示「命中数」和「权重%」，两个口径必须对齐
     sig_stats["_w"] = {k: round(float(weights.get(k, 0.0)), 4) for k in SIGNAL_KEYS}
     sig_stats["_prior"] = {k: SIGNAL_PRIOR.get(k, 1.0) for k in SIGNAL_KEYS}
+    # tier 语义随运行记录一起落库/出接口：界面上「core 是什么意思」只能从这里取，
+    # 不允许前端自己再编一句「核心持仓」。
+    sig_stats["_tier"] = {"core_k": len(core_syms), "definition": TIER_DEFINITION}
     # 池价格状态（普跌联动，2026-10-15）：与宽度同屏落库，market_view 与反向证据共用
     regime = _pool_regime(bars_map)
     if regime:
@@ -2567,6 +2711,12 @@ def _generate_inner(con, run_date, force, progress) -> dict:
     con.execute("DELETE FROM prediction_run WHERE run_date=?", (td,))
     items = []
     for i, (sym, sc) in enumerate(picked):
+        # 2026-10-31 整改（测评 P1「core 档没有解释」项）：tier 只是**截断位次**。
+        # 原实现 core = 综合分排序前 core_k 名，但界面上把它写成「核心」——
+        # 一个位次词被读成了质量结论（"值得重仓 / 更可能涨"）。
+        # 真实情况是：core 与 watch 的收益差**从未被检验过**，本系统没有这个证据。
+        # 所以不改下游用法（fund_masters / selfpick 都在用 tier），
+        # 只把定义钉在唯一出口上，随接口一起返回，见 TIER_DEFINITION。
         tier = "core" if i < len(core_syms) else "watch"
         k = bars_map.get(sym) or []
         entry = _f(k[-1].get("c")) if k else None

@@ -65,6 +65,12 @@ import sqlite3
 import time
 from collections import defaultdict
 
+# 2026-10-31 整改（测评 P0-D）：序列长度门槛不再写在本文件。
+# 原第 392/494 行各有一个 `if n < 130` / `if n < 1020`，与 params.py 的样本量阈值
+# 长得一模一样，唯一区别是语义（这里问"序列够不够算窗口"，那里问"样本够不够裁决"）。
+# 语义不同可以，来源不同不行 —— 所以数字搬走，解释留在 params.py 里。
+from viewer.kernel import params as _PARAMS
+
 log = logging.getLogger("selection")
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -389,7 +395,7 @@ def refresh_evidence(conn: sqlite3.Connection, full: bool = True) -> dict:
 
     for code, bars in _iter(kc, since):
         n = len(bars)
-        if n < 130:
+        if n < _PARAMS.MIN_BARS_SHORT_SIGNAL:
             continue
         cl = [x[2] for x in bars]
         vl = [x[5] for x in bars]
@@ -491,7 +497,7 @@ def refresh_evidence(conn: sqlite3.Connection, full: bool = True) -> dict:
     acc2 = defaultdict(lambda: [0, 0.0, 0.0, 0, 0])
     for code, bars in _iter(kc, since2):
         n = len(bars)
-        if n < 1020:
+        if n < _PARAMS.MIN_BARS_LONG_ALIGN:
             continue
         cl = [x[2] for x in bars]
         for i in range(500, n - 500):

@@ -1,0 +1,53 @@
+/* ============================================================================
+   表头统一口径（2026-10-30 进哥要求：「表头细节不一致的一律抹平」）
+   ----------------------------------------------------------------------------
+   为什么要有这个文件：
+     全站表头的基线写在 visual-upgrade.css 的 `thead th, th`（12px / 玻璃底 / 600），
+     但下面这些地方各自又压了一层，导致「同一个面板里两张表长得不一样」：
+       app.css      .wt-tb th            11.5px            → 关注池/低位突破/资金流/研究
+       app.css      .lab-table th        11.5px            → 策略实验室
+       app.css      .dtb-hd              11px + 另一种底   → 信号战绩/分市况
+       app.css      #p-buffett .bf-table 12px + #EEF2F5    → 巴菲特
+       app.css      #p-resonance .res-tb 白底 + 字重500    → 共振
+       etf.css      .etf-jltab thead th  白底              → ETF（白底 vs 面板底）
+       ann_event.css.aenv-tbl th         11px              → 公告事件
+       app.js 里约 17 处 <th style="font-weight:500">     → 字重不齐
+   做法：
+     本文件在 index.html 里**最后加载**，并对 4 个维度（字号/底色/字重/字距/下边线）
+     加 !important 硬性覆盖。以后要调表头，只改这里，别再去各目录里撒例外。
+     唯一不动的是 padding —— 各表密度不同（卡片表 9px、时间轴 5px）是刻意的，
+     强行统一会把 23 列/时间轴这类密表撑爆。
+   ============================================================================ */
+
+:root {
+  --th-fs: var(--fs-sm, 12px);                                    /* 表头字号：全站 12px */
+  --th-bg: color-mix(in srgb, var(--topbar) 88%, var(--accent) 4%);/* 表头底：玻璃色，跟主题走 */
+  --th-line: color-mix(in srgb, var(--accent) 30%, var(--border)); /* 表头下边线 */
+}
+
+/* ---------- 传统 <table> 表头 ---------- */
+th {
+  font-size: var(--th-fs) !important;
+  font-weight: 600 !important;
+  letter-spacing: .3px !important;
+  color: var(--muted) !important;
+  background: var(--th-bg) !important;
+  border-bottom: 1.5px solid var(--th-line) !important;
+}
+
+/* ---------- .dtb 网格表（信号战绩 / 分市况）表头 ---------- */
+.dtb-hd {
+  font-size: var(--th-fs) !important;
+  font-weight: 600 !important;
+  letter-spacing: .3px !important;
+  color: var(--muted) !important;
+  background: var(--th-bg) !important;
+  border-bottom: 1.5px solid var(--th-line) !important;
+}
+
+/* 表头里的角标/副标题（如「长窗worth 250/500/750」）不许把字号往下带 */
+th .sm, th small, th sub, .dtb-hd .sm, .dtb-hd small {
+  font-size: calc(var(--th-fs) - 2px) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}

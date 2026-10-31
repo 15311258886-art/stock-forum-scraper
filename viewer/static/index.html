@@ -10,20 +10,34 @@
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" />
   <!-- 前端版本号唯一真源：/api/version 从这里解析；改 app.js/app.css 必须跟着加（见文件末尾脚注） -->
-  <meta name="app-version" content="20261030-d33b" />
+  <!-- 2026-10-31 rhythm1：loadToday() 增加「先显示 X 分钟前的快照」提示（后端改 SWR 后的配套文案） -->
+  <!-- 2026-10-31 rhythm2：资金流向面板的「休市/盘中节奏」说明在区间口径下也要显示（rhythm_note） -->
+  <!-- 2026-10-31 wggroup1：修复关注池「＋ 新分组 / ✎ 改名」点了没反应（后端两层缓存写后未同步失效）+ 前端乐观更新 -->
+  <!-- 2026-10-31 wggroup2：收掉 QA 复核提出的 3 条 —— ①watch_check 轮询不再清 watch_list 缓存（每 90s 一次 15s 重算）②分组管理「删除/改名/新增」补乐观更新 ③删除当前选中分组后 selGroup 回落「全部」 -->
+  <!-- 2026-10-31 wggroup3：收掉同形状残留 3 处 —— 行内「删」/「移出本组」/「编辑·保存」改乐观更新（本地先落地 + renderWatch，loadWatch 后台校准），并同步标签条的组计数 n_items -->
+  <!-- 2026-10-31 wggroup4：空表占位文案分流 —— 组视图里「只是本组空了」不再误报「池子为空」，改为显示本组无票 + 池内总数 -->
+  <!-- 2026-10-31 layout1：「今日决策/今日看板」版面去噪 —— 四要素收成紧凑档、历史背景与旁证
+       折叠、看板结论压成一行；「资金风向」并入「资金动向·资金温度」消除与一类导航撞名 -->
+  <meta name="app-version" content="20261031-layout3" />
   <title>股票讨论实时查看器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
   <link id="theme-link" rel="stylesheet" href="static/themes/dark-dashboard.css" />
-  <link rel="stylesheet" href="static/app.css?v=20261030-wtinp1" />
+  <link rel="stylesheet" href="static/app.css?v=20261031-layout10" />
   <link rel="stylesheet" href="static/etf.css?v=20261017-etf-2" />
   <link rel="stylesheet" href="static/visual-upgrade.css" />
   <link rel="stylesheet" href="static/bili_methods.css?v=20261012-biliconsensus" />
   <!-- 抖音博主语料（2026-10-20）：独立样式层，颜色走主题变量，暗/浅自适应 -->
-  <link rel="stylesheet" href="static/douyin_corpus.css?v=20261025-dyinteg2" />
+  <link rel="stylesheet" href="static/douyin_corpus.css?v=20261031-layout10" />
   <link rel="stylesheet" href="static/funnel.css?v=20261029-aireview5" />
   <link rel="stylesheet" href="static/industry_leaders.css?v=20260922-il1" />
   <!-- AI 复盘面板（2026-10-29）：独立样式层，颜色全走主题变量，暗/浅自适应 -->
   <link rel="stylesheet" href="static/ai_review.css?v=20261031-airscore1" />
+  <!-- 资金风向面板（2026-10-30 D35）：独立样式层，暖/冷=资金活跃度，不是涨跌色 -->
+  <link rel="stylesheet" href="static/lhb_weather.css?v=20261030-lhbw1" />
+  <!-- 公告实证面板 + VIZ 图表基元（2026-10-31）：独立样式层，颜色全走主题变量 -->
+  <link rel="stylesheet" href="static/ann_event.css?v=20261030-thlow7" />
+  <!-- 表头统一口径（2026-10-30）：必须最后加载，硬性覆盖各面板自己的字号/底色例外 -->
+  <link rel="stylesheet" href="static/table-head.css?v=20261030-th2" />
 </head>
 <body>
   <!-- 全局操作栏（2026-09-23 合并）：原先「顶栏 64px + 独立刷新状态条 43px」两行共占首屏 107px，
@@ -69,6 +83,14 @@
   <div class="disclaimer-bar" id="disclaimerBar" role="note">
     <span class="db-ico">⚠</span>
     <span class="db-txt">个人研究工具，所有数据 / 结论仅供学习参考，<b>不构成任何投资建议</b>。据此操作风险自负。</span>
+    <!-- D51（2026-10-31）：全局数据水位。原先「数据截至哪天」只散落在各面板内部，
+         要逐页点开才知道手里这份东西新不新；国际事件、实盘战绩这类隔日才更新的域，
+         不标出来很容易被当成今天的判断。summary 只给「最新 / 最旧」，点开看各域明细。
+         折叠免责声明时这一项仍然保留（收起的是免责文字，不是数据时效）。 -->
+    <details class="db-water" id="dbWater">
+      <summary id="dbWaterSum">🕓 数据水位 加载中…</summary>
+      <div class="db-water-body" id="dbWaterBody"></div>
+    </details>
     <button class="db-fold" id="disclaimerFold" title="折叠/展开">收起 ▴</button>
   </div>
 
@@ -117,11 +139,26 @@
            ② 今天什么动作必亏（连板开板=派发，T+5 超额 −6.13%，t=−10.68）
            数据来自 /api/harvest（后端 harvest.py 读 kline_daily.db 增量沉淀）。 -->
       <div class="panel" id="p-harvest"></div>
+      <!-- 资金风向（2026-10-30 D35 阶段二）：龙虎榜从「选股依据」**降级**为市场温度计。
+           产品口径：只描述资金活跃度（上榜家数占比 / 上榜股次日表现），刻意不给任何买卖暗示；
+           结构与集中度只有 27/25 天样本，只展示并带角标，不参与定档。
+           数据来自 /api/lhb_weather（只读后端 lhb_weather_daily 表，计算在
+           `python -m viewer.lhb_weather --save` 时做，请求线程从不现算）。 -->
+      <div class="panel" id="p-lhb_weather"></div>
       <!-- 开源情报（2026-10-30 进哥需求）：GitHub 上流行的量化说法，用本系统严格口径重测。
            只抽规则不抄代码；结论分 有效/已推翻/不稳定/显著但无利。
            数据来自 /api/oss（后端 oss_mine.py，由 oss_daily 16:00 离进程任务产出）。 -->
       <div class="panel" id="p-oss"></div>
       <div class="panel" id="p-selection"></div>
+      <!-- 执行可行性（2026-10-31 进哥需求，测评 P1-A）：名单 ≠ 买得进。
+           四个必填字段（资金规模 / 持仓只数 / 持有期 / 佣金方案）→ 逐票参与率与容量上界。
+           刻意不预填默认值：缺一项就显示缺哪一项，不拿默认数顶替。 -->
+      <div class="panel" id="p-executability"></div>
+      <!-- 系统健康（2026-10-31 决策⑤）：调度任务成败 + 数据新鲜度。
+           回答"管道还在不在转"——此前失败只写日志、日志没人看：
+           build_exclusion 连续 11 次全失败、a_shares_snapshot 连失两天却记成完成。
+           数据来自 /api/health（后端 health.py，只读）。 -->
+      <div class="panel" id="p-health"></div>
   <!-- 量化信号（2026-10-16 进哥需求）：第三维信号源，面板内五子视图
        因子全景 / 多因子选股 / 因子回测 / 菜谱预设 / 量化因子的自我学习与成长。
        数据来自 /api/quant（后端 quant.py 产出，查看器只读）。 -->
@@ -162,6 +199,11 @@
       <div class="panel" id="p-watch_alerts"></div>
       <!-- 信号实证（P4 · 2026-10-27 收尾）：信号 alpha 回测实证可视化。容器静态预置，渲染由 app.js renderBacktest 懒加载。 -->
       <div class="panel" id="p-backtest"></div>
+      <!-- 公告实证（2026-10-31）：把 115.8 万条公告跑出来的事件研究做成图表 ——
+           回答"公告里的利好/利空标签，哪些是真的、哪些是脑补"。
+           数据来自 static/ann_event_data.js（由 research/gen_ann_event_js.py 从
+           research/out/announcement_event_study.md 生成），**纯静态、零请求、零后端改动**。 -->
+      <div class="panel" id="p-ann_event"></div>
       <!-- 增强功能（2026-09-27 新增，隔离增量）：智能选股/资金流向/估值诊股/研报评级/多资产/资讯公告。
            数据来自独立模块（emapi + moneyflow/screener/valuation/research/multiquote/newsfeed），
            零 JOIN 既有业务表，渲染层零改动。 -->
@@ -260,8 +302,18 @@
   </div>
 
   <!-- 新闻/公告分类规则：由 viewer/newsclass.py（唯一真源）在服务启动时重写出这份文件；改词表只改 py 再重启 -->
+  <!-- VIZ 图表基元（2026-10-31）：零依赖 SVG，必须早于任何用到它的面板脚本加载。
+       ann_event_data.js 是纯数据（window.ANN_EV），ann_event.js 是渲染层（window.ANN）。
+
+       ⚠ 必须排在 app.js **之前**，不能图省事放到后面：
+       app.js 在**脚本顶层**就会执行 initNav()，深链接（#research/ann_event）会在那一刻
+       立即调 selectNav → ANN.load()。若本段排在 app.js 之后，此刻 window.ANN 还是 undefined，
+       面板会直接落到「脚本未加载」的兜底提示（2026-10-31 实测踩过）。 -->
+  <script src="static/viz.js?v=20261030-thlow7"></script>
+  <script src="static/ann_event_data.js?v=20261030-thlow7"></script>
+  <script src="static/ann_event.js?v=20261030-thlow7"></script>
   <script src="static/news_rules.js?v=20261007-fast"></script>
-  <script src="static/app.js?v=20261030-researchfix2"></script>
+  <script src="static/app.js?v=20261031-layout10"></script>
   <script src="static/screener_extra.js?v=20261007-b125"></script>
   <script src="static/industry_leaders.js?v=20261008-il1"></script>
   <script src="static/bottleneck.js?v=20261024-bn1"></script>

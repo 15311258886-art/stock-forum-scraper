@@ -22,7 +22,10 @@ const TABS = [
   ['overview', 'summary', '汇总', ['.kline-chip[data-sym]', '.wt-sym[data-wt-open]'], null],
   ['overview', 'prediction', '每日预测', ['.kline-chip[data-sym]'], null],
   // 2026-10-15 新增：博主共振（内置四支柱：个股共振/战法体系/信源画像/自我提升）
-  ['overview', 'resonance', '博主共振', ['.res-card', '.res-sc-h', '.res-kb-item'], null],
+  // 2026-10-31：博主共振改为**不钻取**。实测该面板 30,050 字里 `[data-sym]`/`.stk`/`.chip` 全为 0，
+  //   即它是一张纯展示页（战法表 + 回测档案 + 图谱条目），本来就没有可点的个股节点；
+  //   原配的 `.res-card` 是一张无点击事件的展示卡，点它必然 open:none → 每轮假红。
+  ['overview', 'resonance', '博主共振', [], null],
   ['money', 'lhb', '游资龙虎榜', ['.kline-chip[data-sym]'], null],
   ['money', 'lhb_sectors', '板块动向', ['.ol-chip', '.bf-bn[data-bf-open]'], null],
   ['money', 'stocks', '当前讨论股票', ['.stk-card[data-sym]'], null],
@@ -38,7 +41,10 @@ const TABS = [
   ['info', 'policy', '政策风向', ['.pol-stk', '.pol-item'], null],
   ['info', 'news', '个股快讯公告', ['.wt-sym[data-wt-open]'], null],
   // 2026-10-15 补：市场情绪（B站视频语「情绪/大势」堆，此前漏在 TABS 外）
-  ['info', 'bili_sentiment', '市场情绪', ['.bl-item', '.bp-item', '.stk[data-sym]'], null],
+  // 2026-10-31 修正：本项原写死 'info'，但 10-17 架构重排后 bili_sentiment 已归「资金动向」(money)，
+  //   于是巡检一直在访问 #info/bili_sentiment —— navFromHash 找不到该 tab 就落回首项，
+  //   面板从未被渲染，报「len=0」是**巡检自己的映射过期**，不是面板坏了。
+  ['money', 'bili_sentiment', '市场情绪', ['.bl-item', '.bp-item', '.stk[data-sym]'], null],
   ['players', 'players', '选手与渠道', ['tr[data-sym]', '.stk[data-sym]'], null],
   ['players', 'operating', '正在操作股票', ['.stk[data-sym]'], null],
   ['players', 'niusan', '牛散追踪', ['.stk[data-sym]'], null],
@@ -46,11 +52,13 @@ const TABS = [
   ['players', 'cohold', '近5日共同买入', ['tr[data-sym]'], null],
   ['players', 'persons', '相关人物', ['.stk[data-sym]'], null],
   // 2026-10-15 P2-1 已把 社区共识/信源胜率榜 合并进「外部荐股验证」面板内子导航
-  ['opinion', 'extref_soft', '外部荐股验证', ['.ex-signal', '.ex-src'], null],
-  ['opinion', 'research', '研报评级', ['.wt-sym[data-wt-open]'], null],
-  // 2026-10-15 补：博主荐股 / 当红参赛股（NAV 里存在但 TABS 一直缺位）
-  ['opinion', 'blogger', '博主荐股', ['.bl-row', 'tr[data-sym]'], null],
-  ['opinion', 'contest', '当红参赛股', ['tr[data-sym]', '.ct-row'], null],
+  // 2026-10-31：以下三条**已从巡检移除**——app.js 记录「2026-10-29 进哥拍板：博主荐股 /
+  //   外部荐股验证 / 当红参赛股 三页已物理删除」（NAV 里不再有这三个 tab，opinion 只剩研报评级）。
+  //   保留检测只会每轮报「面板:缺」，是尺子对不上现实，不是功能坏。
+  // ['opinion', 'extref_soft', '外部荐股验证', ['.ex-signal', '.ex-src'], null],   // 已下线
+  // ['opinion', 'blogger', '博主荐股', ['.bl-row', 'tr[data-sym]'], null],          // 已下线
+  // ['opinion', 'contest', '当红参赛股', ['tr[data-sym]', '.ct-row'], null],       // 已下线
+  ['opinion', 'research', '研报评级', ['.wt-sym[data-wt-open]', '.wt-code[data-wt-open]'], null],
   ['watch', 'watch', '关注池', ['tr[data-sym]', '.wt-sym[data-wt-open]'], null],
   ['watch', 'watch_alerts', '到价提醒', [], null],
   ['watch', 'screener', '智能选股', ['.wt-sym[data-wt-open]'], null],
@@ -59,7 +67,10 @@ const TABS = [
   ['watch', 'diag', '个股诊断', [], 'diag'],
   ['watch', 'multiquote', '多资产', [], null],
   // 2026-10-13 补：板块二「长期低位震荡」两页签（lowbox 扫描表 / lowbox_radar 突破雷达）纳入全量审计
-  ['watch', 'lowbox', '长期低位', ['.wt-sym[data-wt-open]', '[data-lb-add]'], null],
+  // 2026-10-31 修假红：原选择器写 `.wt-sym[data-wt-open]`，但 lowbox 表里的代码链接是
+  //   `<a class="wt-code" data-wt-open=…>`（app.js lowboxTable），从不匹配 → 一路退到
+  //   `[data-lb-add]`（「加入自选」按钮，本来就不开弹层）→ 每轮报「钻:BUTTON.btn → 开:none」。
+  ['watch', 'lowbox', '长期低位', ['.wt-code[data-wt-open]', '[data-wt-open]', '[data-lb-more]', '[data-lb-add]'], null],
   ['watch', 'lowbox_radar', '突破雷达', [], null],
   ['learn', 'strategy_lab', '策略回测', ['.sl-item'], null],
   ['learn', 'learn_tracks', '学习轨道管理', ['.kb-track-item', '.kb-src'], null],
@@ -81,9 +92,18 @@ async function drill(page, entrySels) {
       }
       return null;
     };
-    const host = document.querySelector('#p-' + (window.__curTab || '')) || document;
-    const el = findFirst(host) || findFirst(document);
-    if (!el) return { clicked: false, reason: 'no-entry' };
+    const tab = window.__curTab || '';
+    const host = document.querySelector('#p-' + tab) || document;
+    let el = findFirst(host);
+    // 2026-10-31：入口常被收在面板内的 <details> 里（数据表折叠），此时 offsetParent 为空，
+    //   旧实现会 fallback 到**整个 document**，于是点到导航栏/刷新按钮上，
+    //   报出「钻:BUTTON.btn → 开:none」这种既不是功能坏、也定位不到问题的假红。
+    //   改为：先在面板内展开所有 details 再找一次；仍找不到就诚实报 no-visible-entry，不跨面板乱点。
+    if (!el && host !== document) {
+      host.querySelectorAll('details:not([open])').forEach((d) => { d.open = true; });
+      el = findFirst(host);
+    }
+    if (!el) return { clicked: false, reason: host === document ? 'no-entry' : 'no-visible-entry' };
     const tag = el.tagName + (el.dataset.sym ? '[sym=' + el.dataset.sym + ']' : '') + (el.className ? '.' + String(el.className).split(' ')[0] : '');
     try { el.click(); } catch (e) { return { clicked: false, reason: 'click-throw:' + e.message, tag }; }
     return { clicked: true, tag };
@@ -245,6 +265,16 @@ async function panelInfo(page, tab) {
           open = await detectOpen(page);
           if (open.open) break;
         }
+        // 2026-10-31：有些面板点开是**行内展开**（详情区直接铺在面板里），
+        //   不是弹层，detectOpen 只认 drawer/branchModal/fundModal 三种，于是判成 none。
+        //   这类面板（如博主共振的 .res-card）每轮都假红 → 补一条「面板内容明显变长」的判据。
+        if (!open.open) {
+          const after = await panelInfo(page, tab);
+          const grew = (after.len || 0) - (info.len || 0);
+          if (after.found && grew > Math.max(60, (info.len || 0) * 0.05)) {
+            open = { open: true, what: 'inline-expand', dLen: grew };
+          }
+        }
       }
       await closeAll(page);
       await sleep(500);
@@ -262,43 +292,53 @@ async function panelInfo(page, tab) {
       + (errs.length ? ' ⚠err:' + JSON.stringify(errs.slice(-2)) : ''));
   }
 
-  // 巴菲特研报专项（learn 固定子项，渲染进 #p-buffett；研报以 bfModal 弹层打开）
+  // 基金经理策略（learn 固定子项，自包含 iframe；巴菲特作为「价值」一脉在 iframe 内）
+  //   2026-10-31 修假红：原检测 `#p-buffett` 的 `.bf-card` —— 该 tab 早已并入基金经理策略 iframe
+  //   （app.js `loadFundMasters()`，NAV fixed 项 key=fundmasters），顶层面板根本不存在，
+  //   于是每轮巡检都报「面板:缺 / 期次卡:0」。这不是功能缺失，是尺子过期。
+  //   改为：iframe 是否真的加载 → 框内分类 / 标的有多少 → 点一个标的看详情区是否展开。
+  //   注意：iframe 内容不计入宿主 innerText，所以面板 len 恒为 0，不能拿 len 判空。
   try {
-    await page.evaluate(() => { location.hash = '#learn/buffett'; });
-    await sleep(3000);
-    const bf = await page.evaluate(() => {
-      const box = document.querySelector('#p-buffett');
-      if (!box) return { rows: 0, clicked: false, exists: false };
-      const cards = box.querySelectorAll('.bf-card');
-      const first = box.querySelector('.bf-card .bf-open') || box.querySelector('.bf-card');
-      if (first) first.click();
-      return { rows: cards.length, clicked: !!first, exists: true };
+    await page.evaluate(() => { location.hash = '#learn/fundmasters'; });
+    await sleep(4000);
+    const fmTop = await page.evaluate(() => {
+      const box = document.querySelector('#p-fundmasters');
+      const f = box ? box.querySelector('iframe') : null;
+      return { panel: !!box, iframe: !!f, src: f ? f.src : '' };
     });
-    let bfOpen = { open: false, what: 'none', dLen: 0 };
-    for (let i = 0; i < 14; i++) {
-      await sleep(500);
-      bfOpen = await page.evaluate(() => {
-        const m = document.querySelector('#bfModal');
-        const f = m ? m.querySelector('.bf-modal-iframe') : null;
-        const open = !!(m && m.classList.contains('open') && f && f.src && f.src.indexOf('about:blank') < 0);
-        if (!open) return { open: false, what: 'none', dLen: 0 };
-        const fr = f.contentDocument || f.contentWindow ? null : null;
-        return { open: true, what: 'bfModal', dLen: 0, src: f.src };
+    const fr = page.frames().find((x) => x.url().indexOf('/fund_masters/') >= 0);
+    let fmIn = { cats: 0, chips: 0, hasBuffett: false, clicked: false, detailOpen: false, detailLen: 0 };
+    if (fr) {
+      const pre = await fr.evaluate(() => ({
+        cats: document.querySelectorAll('.cat').length,
+        chips: document.querySelectorAll('.chip').length,
+        hasBuffett: /巴菲特/.test(document.body.innerText || ''),
+      }));
+      const clk = await fr.evaluate(() => { const c = document.querySelector('.chip'); if (c) c.click(); return !!c; });
+      await sleep(1200);
+      const post = await fr.evaluate(() => {
+        const d = document.querySelector('.detail');
+        return { detailOpen: !!(d && !d.classList.contains('hidden')), detailLen: d ? (d.innerText || '').length : 0 };
       });
-      if (bfOpen.open) break;
+      fmIn = Object.assign({}, pre, { clicked: clk }, post);
     }
-    // 关闭弹层
-    await page.evaluate(() => { const x = document.querySelector('#bfModal .bf-modal-x'); if (x) x.click(); });
-    const bfInfo = await panelInfo(page, 'buffett');
-    rows.push({ cat: 'learn', tab: 'buffett', label: '巴菲特选股', info: { ...bfInfo, entries: bf.rows }, drill: { clicked: bf.clicked, tag: 'bf-card' }, open: bfOpen, errs: [] });
-    console.log(`${bf.exists && bf.clicked && bfOpen.open ? '✓' : '✗'} 巴菲特选股 | 期次卡:${bf.rows} 钻:${bf.clicked ? 'bf-card' : '无'} → 开:${bfOpen.what}(${bfOpen.src ? bfOpen.src.split('/').pop() : '-'})`);
-  } catch (e) { console.log('✗ 巴菲特选股 异常:' + e.message.slice(0, 120)); }
+    const fmOpen = { open: fmIn.detailOpen, what: fmIn.detailOpen ? 'fm-iframe-detail' : 'none',
+      dLen: fmIn.detailLen, src: fmTop.src };
+    const fmInfo = { found: fmTop.iframe, iframe: true, len: fmIn.cats, tables: fmIn.cats,
+      cards: fmIn.chips, entries: fmIn.chips, loading: false };
+    rows.push({ cat: 'learn', tab: 'fundmasters', label: '基金经理策略', info: fmInfo,
+      drill: { clicked: fmIn.clicked, tag: '.chip' }, open: fmOpen, errs: [] });
+    console.log(`${fmTop.iframe && fmIn.clicked && fmIn.detailOpen ? '✓' : '✗'} 基金经理策略 | iframe:${fmTop.iframe ? '有' : '无'} 分类:${fmIn.cats} 标的:${fmIn.chips} 含巴菲特:${fmIn.hasBuffett ? '是' : '否'} → 开:${fmOpen.what}(${fmIn.detailLen}字)`);
+  } catch (e) { console.log('✗ 基金经理策略 异常:' + e.message.slice(0, 120)); }
 
   await page.screenshot({ path: 'audit_last.png' });
   const out = { generated: new Date().toISOString(), rows, badResponses: [...new Set(bad)] };
   fs.writeFileSync('audit_clickthrough_result.json', JSON.stringify(out, null, 2), 'utf8');
 
-  const problem = rows.filter((r) => !r.info.found || r.info.loading || r.info.len < 40 || r.errs.length
+  // iframe 型面板（基金经理策略）：宿主 innerText 恒为 0，len 是「分类数」不是字数，
+  //   故改用「框内标的总数 > 0」判空，否则会一直假红。
+  const thin = (r) => (r.info.iframe ? !(r.info.cards > 0) : r.info.len < 40);
+  const problem = rows.filter((r) => !r.info.found || r.info.loading || thin(r) || r.errs.length
     || (r.drill && r.drill.clicked && r.open && !r.open.open)
     || (r.klineInk !== undefined && !(r.klineInk > 1000)));
   console.log('\n================ 汇总 ================');

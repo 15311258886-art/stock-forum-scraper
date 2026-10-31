@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -708,15 +709,22 @@ def generate(con: sqlite3.Connection, run_date: str | None = None,
             pass
         # 2026-10-26 干净宇宙：剔除博主噪声/ST/无K线（进哥：不在垃圾堆里挑垃圾）
         # 四支柱候选池同样禁止从博主噪声/退市/无K线票里选。
+        # 2026-10-31 整改（测评 P0-B）：原来是 `try: … clean_codes(…) … except: pass`。
+        # 这一处最危险 —— 它连"剔了几只"都不打印，失败直接 pass，
+        # 于是四支柱候选池在读不到剔除池时**原样往下跑**，ST 可以进四支柱。
+        # 改为 fail-closed，并把剔除数写进 status（让界面上看得见这一步做过什么）。
+        from universe_filter import clean_codes, ExclusionPoolUnavailable
         try:
-            from universe_filter import clean_codes
             _before = len(codes)
-            codes = clean_codes(codes)
+            codes = clean_codes(codes, strict=True)
             if len(codes) != _before:
                 _STATUS.update(stage="取候选池",
                                detail="剔除池-=%d" % (_before - len(codes)))
-        except Exception:  # noqa: BLE001
-            pass
+        except ExclusionPoolUnavailable as _e:
+            logging.getLogger(__name__).error(
+                "[pillars] 剔除池不可用，按 fail-closed 停止四支柱：%s", _e)
+            return {"ok": False, "error": "exclusion_pool_unavailable",
+                    "detail": str(_e)[:300]}
         if not codes:
             return {"ok": False, "error": "候选池为空"}
         kc = P.load_kcache()
@@ -738,12 +746,16 @@ def generate(con: sqlite3.Connection, run_date: str | None = None,
         _STATUS.update(stage="市场状态", detail=td)
         ms = market_state(bars_map, td)
         try:
-            con.execute("INSERT INTO market_state_log(trade_date,state,breadth_json,note,created_at)"
-                        " VALUES(?,?,?,?,?) ON CONFLICT(trade_date) DO UPDATE SET "
+            # 2026-10-30 P1-a：同一列有两个写入方（本函数 / resonance.state_history），
+            #   规则不同，必须留下"这条是谁判的"。ensure_column 幂等，只在写域里跑。
+            from viewer import state_basis as _SB
+            _SB.ensure_column(con)
+            con.execute("INSERT INTO market_state_log(trade_date,state,breadth_json,note,created_at,basis)"
+                        " VALUES(?,?,?,?,?,?) ON CONFLICT(trade_date) DO UPDATE SET "
                         "state=excluded.state,breadth_json=excluded.breadth_json,"
-                        "note=excluded.note,created_at=excluded.created_at",
+                        "note=excluded.note,created_at=excluded.created_at,basis=excluded.basis",
                         (td, ms["state"], json.dumps(ms["breadth"], ensure_ascii=False),
-                         "；".join(ms["rules"]), _now()))
+                         "；".join(ms["rules"]), _now(), _SB.BASIS_PILLARS))
         except Exception:  # noqa: BLE001
             pass
 
@@ -1150,6 +1162,11 @@ def pillar_self_learn(con: sqlite3.Connection, td: str) -> dict:
                 "avg_alpha": (None if per[(p, pp)]["avg_alpha"] is None
                               else round(per[(p, pp)]["avg_alpha"], 6)),
                 "ic": (round(ic_bp[(p, pp)], 4) if ic_bp[(p, pp)] is not None else None),
+                # 2026-10-30 P1-a：`n=0` 有两种含义，必须能区分，否则以后有人当成 bug 删掉。
+                #   unmatured=True  = 该周期的结算窗口还没走完（例如 10-16 才首次运行，
+                #                    到今天 11 个交易日，T+20 一个都到期不了）；
+                #   unmatured=False = 窗口已过但确实没有可比样本。
+                "unmatured": per[(p, pp)]["n"] == 0,
             } for pp in (1, 3, 5, 10, 20)} for p in SELF_LEARN_PILLARS},
         "oos": oos,
         "kcache_fresh": fresh,

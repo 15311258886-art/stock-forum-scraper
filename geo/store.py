@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS geo_events (
     event_date    TEXT,               -- 事件日期 YYYY-MM-DD
     intensity     INTEGER DEFAULT 1,  -- 强度 1-5
     direction     TEXT,               -- 方向判断（明确指示，如"利多能源/军工，利空出行"）
-    certainty     REAL DEFAULT 0.6,   -- 确定性 0-1
     summary       TEXT,               -- 摘要（发生了什么）
     transmission  TEXT,               -- 传导逻辑（一笔带过的因果链）
     sectors_up    TEXT,               -- 受益板块（逗号分隔）
@@ -50,6 +49,33 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE geo_events ADD COLUMN panel TEXT DEFAULT 'general'")
     if "cross_check" not in cols:
         conn.execute("ALTER TABLE geo_events ADD COLUMN cross_check TEXT")
+    # 2026-10-31（D48 收尾）：删除 certainty 列。
+    #   该列存的是人工手填常量（0.60~0.90 共 13 档），前端早已改为按信源家数分档展示，
+    #   API 也不再需要它。留在库里只会诱导后来者重新拿它当"模型把握度"用。
+    #   DROP COLUMN 不可逆：删除前把整列导出到 backups/ 留档（含 eid + title，可回溯）。
+    if "certainty" in cols:
+        try:
+            import os
+            from datetime import datetime as _dt
+            bak_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backups")
+            os.makedirs(bak_dir, exist_ok=True)
+            rows = [dict(r) for r in conn.execute(
+                "SELECT eid, title, certainty FROM geo_events").fetchall()]
+            # sqlite3.Row → dict（普通连接返回 tuple，统一按位置取值）
+            out = []
+            for r in rows:
+                if isinstance(r, dict):
+                    out.append(r)
+                else:
+                    out.append({"eid": r[0], "title": r[1], "certainty": r[2]})
+            path = os.path.join(bak_dir, "geo_certainty_%s.json" % _dt.now().strftime("%Y%m%d-%H%M%S"))
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=1)
+            conn.execute("ALTER TABLE geo_events DROP COLUMN certainty")
+            conn.commit()
+        except Exception:
+            # 迁移失败不影响主流程：_shape() 仍会 pop 掉该字段，API 不会吐出它
+            pass
     conn.commit()
 
 
@@ -87,7 +113,6 @@ def import_seed(conn: sqlite3.Connection, path=None) -> dict:
             "event_date": e.get("event_date", ""),
             "intensity": int(e.get("intensity") or 1),
             "direction": e.get("direction", ""),
-            "certainty": float(e.get("certainty") or 0.6),
             "summary": e.get("summary", ""),
             "transmission": e.get("transmission", ""),
             "sectors_up": ",".join(_j(e.get("sectors_up"))),
@@ -118,6 +143,9 @@ def import_seed(conn: sqlite3.Connection, path=None) -> dict:
 
 def _shape(r: sqlite3.Row) -> dict:
     d = dict(r)
+    # 2026-10-31：certainty 已废弃（人工手填的常量，不是计算值）。库里已 DROP COLUMN，
+    # 这里再 pop 一次是给旧库快照 / 未迁移环境兜底，确保 API 永远不会吐出该字段。
+    d.pop("certainty", None)
     d["symbols_up"] = _j(d.get("symbols_up"))
     d["symbols_down"] = _j(d.get("symbols_down"))
     d["sources"] = _j(d.get("sources"))

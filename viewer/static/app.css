@@ -1398,7 +1398,10 @@ tr:has(> td.td-fresh.fr-stale) > td:first-child { box-shadow: inset 3px 0 0 var(
 
 /* 中栏 · 排名表 */
 .lab-table { width: 100%; border-collapse: collapse; }
-.lab-table th, .lab-table td { padding: 6px 8px; font-size: 12px; border-bottom: 1px solid var(--border); }
+/* 2026-10-30：中栏只有 578px，10 列在 12px/8px padding 下会挤到 665px、溢出叠到右栏上。
+   收窄内边距与字号，并给容器兜一个横向滚动（窄窗口时在自己栏内滚，不再压到邻栏）。 */
+.lab-body { overflow-x: auto; }
+.lab-table th, .lab-table td { padding: 5px 6px; font-size: 11.5px; border-bottom: 1px solid var(--border); }
 .lab-table th { background: var(--topbar); color: var(--muted); font-weight: 600; position: sticky; top: 0; z-index: 1; cursor: help; }
 .lab-table th.num, .lab-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .lab-table tbody tr { cursor: pointer; }
@@ -2171,7 +2174,49 @@ button[data-code-open] { background: none; border: 0; padding: 0; margin: 0; fon
 .wt-blog { display: inline-block; margin-left: 4px; font-size: 11px; line-height: 1; padding: 2px 6px; border-radius: 999px;
   color: var(--warn); background: #fff7ed; border: 1px solid #fed7aa; vertical-align: middle; cursor: default; }
 .wt-bell { margin-left: 4px; font-size: 11px; vertical-align: middle; cursor: default; }
-.wt-strat { white-space: normal; }
+/* ===== 关注池表格（2026-10-30 重排，进哥：「同一板块两张表完全不一样」）=====
+   病根：`.wt-tb td{white-space:nowrap}` 比 `.wt-strat{white-space:normal}` 特异度更高，
+   于是战法信号单元格永远不换行 → 列宽 = 命中最多的那一行的「一行摊开」宽度（实测 1612px），
+   表格被顶到 2335px、溢出容器 1061px，右侧列被挤出屏幕；换个分组命中少 → 又缩回 200px。
+   同一面板同一套表头，宽度随数据跳舞，看起来就是"两张完全不同的表"。
+   治法：表格改 table-layout:fixed + 百分比列宽（列宽只跟容器有关，与数据无关），
+   战法信号独占唯一的弹性列、允许换行，列宽恒定；chip 用独立的 .stg 类（不再借用可点的 .wt-chip）。 */
+#p-watch .wt-watch { table-layout: fixed; }
+#p-watch .wt-watch th { padding: 9px 12px; }
+#p-watch .wt-watch td { padding: 10px 12px; height: 46px; }
+#p-watch .wt-watch td.wt-strat { white-space: normal; vertical-align: top; height: 92px; }
+/* 斑马纹已去掉（2026-10-30）：全站表格本来就只有细线分隔，这里加条纹反而与其它面板不一致；
+   且 92px 行高下条纹会被大块色块切断，看着比不加更乱。悬停高亮保留。 */
+#p-watch .wt-watch tbody tr:hover td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+#p-watch .wt-watch td.wt-c1 { overflow: hidden; text-overflow: ellipsis; }
+/* 数值列统一右对齐 + 等宽数字（加入时价/当前价/涨跌/入手值得率/关注天数/加入至今），表头同侧对齐 */
+#p-watch .wt-watch th:nth-child(2), #p-watch .wt-watch th:nth-child(3), #p-watch .wt-watch th:nth-child(4),
+#p-watch .wt-watch th:nth-child(5), #p-watch .wt-watch th:nth-child(8), #p-watch .wt-watch th:nth-child(9),
+#p-watch .wt-watch td:nth-child(2), #p-watch .wt-watch td:nth-child(3), #p-watch .wt-watch td:nth-child(4),
+#p-watch .wt-watch td:nth-child(5), #p-watch .wt-watch td:nth-child(8), #p-watch .wt-watch td:nth-child(9) {
+  text-align: right; font-variant-numeric: tabular-nums; }
+#p-watch .wt-watch th:last-child, #p-watch .wt-watch td:last-child { text-align: right; }
+#p-watch .wt-watch .wt-ops { justify-content: flex-end; }
+#p-watch .wt-watch td.wt-note { max-width: none; }
+#p-watch .wt-watch .wt-ops { display: flex; flex-wrap: wrap; gap: 4px 9px; align-items: center; }
+
+/* 战法方向统计（▲看涨 / ＝中立 / ▼看跌）：一块小徽章，别跟下面的 chip 抢注意力 */
+#p-watch .wt-st-verdict { display: inline-flex; align-items: center; gap: 1px; margin: 0 0 6px;
+  padding: 1px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; line-height: 18px;
+  white-space: nowrap; border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--topbar) 70%, transparent); }
+#p-watch .wt-st-sep { color: var(--muted); font-weight: 400; opacity: .55; padding: 0 1px; }
+#p-watch .wt-st-neu { color: var(--muted); }
+
+/* 战法 chip：小方块（不是胶囊，免得跟可点的筛选器撞脸），按方向着色，纯静态无 hover */
+#p-watch .wt-st-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; min-height: 44px; align-content: flex-start; }
+#p-watch .stg { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 11px; line-height: 16px;
+  white-space: nowrap; color: var(--text);
+  background: color-mix(in srgb, var(--text) 7%, transparent); }
+#p-watch .stg-bull { color: var(--bull); background: color-mix(in srgb, var(--bull) 9%, transparent); }
+#p-watch .stg-bear { color: var(--bear); background: color-mix(in srgb, var(--bear) 9%, transparent); }
+#p-watch .wt-st-none { align-items: center; }
+#p-watch .stg-more { color: var(--muted); background: color-mix(in srgb, var(--text) 5%, transparent); cursor: help; }
 .wt-warn { color: var(--warn, #f59e0b); font-weight: 600; }
 .wt-note { color: var(--muted); font-size: 12px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wt-ops { display: flex; gap: 10px; }
@@ -2319,6 +2364,11 @@ select.wt-inp { max-width: 200px; }
 .dd-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin: 0 0 8px; }
 .dd-note { font-size: 12px; color: var(--muted, #888); }
 .bf-note-inline { margin-left: 8px; font-size: 11px; color: var(--muted, #888); cursor: help; }
+/* 2026-10-31：`.bf-src` 在本文件 3688 行还被另一个面板当成「来源徽标」定义过（accent 底色 +
+   白字 + 700），而资金流区间曲线的来源行正是用 `.bf-src` 渲染的 —— 时段说明插进去若沿用上面的
+   --muted 灰，就是青底灰字（实测对比度 1.4:1，等于看不见）。这里只覆盖「`.bf-src` 内的说明」：
+   继承白字、去掉加粗；其他位置的 .bf-note-inline 样式一字不动，也没有新造 class。 */
+.bf-src .bf-note-inline { color: inherit; font-weight: 500; opacity: .95; }
 /* 2026-10-05 资金流「日期区间」控件条（王总要求：日期要看成「多少号到多少号」，不许笼统累计）。
    沿用已有 bf-* 调色（--bull 红=流入 / --bear 绿=流出），不新造色，深色主题自动跟随。 */
 .bf-range-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -4618,3 +4668,390 @@ span.miss{
 .lift-mid { background: rgba(79,70,229,.10); color: #4338ca; border: 1px solid rgba(79,70,229,.28); }
 .lift-watch { display: inline-block; font-size: var(--fs-xs); color: var(--muted);
   cursor: help; white-space: nowrap; vertical-align: middle; }
+
+/* ===== 通用数据表 .dtb（2026-10-30）==========================================
+   起因：进哥截图反馈「信号战绩」整表挤在左边、右边一大片空白、列与列区分不出来。
+   根因是表格用 inline style 只写了 grid-template-columns，**漏了 display:grid**，
+   浏览器按普通 block 渲染 → 每行 7 个格子各自换行竖排。
+   这里把「怎么排」收回 CSS：列宽由内联 --dtb-cols 变量注入，表头与数据行共用同一个
+   变量，所以两表列宽天然对齐；以后再加表只需换列宽，不会再出现漏一行就塌掉。
+   颜色全部走主题令牌（--bull/--bear 红涨绿跌），四套主题自动适配。 */
+#p-prediction .dtb-wrap { margin: 10px 0 16px; }
+#p-prediction .dtb-cap { display: flex; align-items: baseline; gap: 8px; margin: 0 0 7px 2px;
+  font-size: var(--fs-md); font-weight: 700; color: var(--text); }
+#p-prediction .dtb-cap span { font-size: var(--fs-xs); font-weight: 400; color: var(--muted); }
+#p-prediction .dtb { border: 1px solid var(--border); border-radius: var(--r-lg);
+  overflow: hidden; background: var(--panel, #fff); }
+#p-prediction .dtb-hd,
+#p-prediction .dtb-row { display: grid;
+  grid-template-columns: var(--dtb-cols, repeat(7, minmax(0, 1fr))); gap: 10px; align-items: center; }
+#p-prediction .dtb-hd { padding: 8px 14px;
+  background: color-mix(in srgb, var(--topbar) 55%, var(--panel));
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-xs); font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+#p-prediction .dtb-row { padding: 9px 14px; font-size: var(--fs-sm); color: var(--text);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  transition: background .12s; }
+#p-prediction .dtb-body .dtb-row:last-child { border-bottom: 0; }
+#p-prediction .dtb-body .dtb-row:nth-child(even) {
+  background: color-mix(in srgb, var(--topbar) 34%, transparent); }
+#p-prediction .dtb-row:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+/* 数值列右对齐 + 等宽数字：同一列的小数点会自然对齐，一眼能比大小 */
+#p-prediction .dtb-hd .num,
+#p-prediction .dtb-row .num { text-align: right; font-variant-numeric: tabular-nums; }
+#p-prediction .dtb-row .num i { font-style: normal; font-size: var(--fs-2xs); opacity: .62; margin-left: 1px; }
+#p-prediction .dtb-row .num.up { color: var(--bull); font-weight: 600; }
+#p-prediction .dtb-row .num.dn { color: var(--bear); font-weight: 600; }
+#p-prediction .dtb-row .num.flat { color: var(--muted); }
+#p-prediction .dtb-row .num.cur { font-weight: 700; }
+#p-prediction .dtb-zero { color: color-mix(in srgb, var(--muted) 50%, transparent); }
+#p-prediction .dtb-name { font-weight: 600; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+/* 末列是「裁决 / 稳定性」胶囊：数字列右对齐会把右缘贴到它脸上，这里补出视觉间隔 */
+#p-prediction .dtb-hd > :last-child,
+#p-prediction .dtb-row > :last-child { padding-left: 12px; }
+#p-prediction .dtb-dim { color: var(--muted); font-weight: 400; }
+#p-prediction .dtb-pill { display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: var(--fs-xs); font-weight: 600; line-height: 1.55; white-space: nowrap; }
+
+
+/* ===================== 低位突破表：固定列宽 + 详情弹层（2026-10-30 砍列配套）=====================
+   进哥拍板：23 列 → 18 列，PE/ROE/负债率/股息率/估值分 折进「详情」。
+   列宽交给 <colgroup> 百分比 + table-layout:fixed（与关注池战法表同一套做法），
+   好处：① 一屏放得下不再横向滚；② 宽度不随数据长短跳动（上一版 1274↔2335px 的教训）。
+
+   ★ 关键一条：visual-upgrade.css 有全局 `td, th { padding: 11px 13px }`，
+     18 列 × 26px = 468px 全喂给了内边距，数字被挤成「92…」。
+     这里把本表单元格内边距收到 4px 6px，腾出来的宽度才是真正的列宽。 */
+#p-lowbox .lowbox-tb.lb-main { table-layout: fixed; width: 100%; }
+#p-lowbox .lowbox-tb.lb-main th { padding: 9px 6px; }
+#p-lowbox .lowbox-tb.lb-main td { padding: 5px 6px; }
+#p-lowbox .lowbox-tb.lb-main th,
+#p-lowbox .lowbox-tb.lb-main td { overflow: hidden; text-overflow: ellipsis; }
+#p-lowbox .lowbox-tb.lb-main td.lb-nowrap { white-space: nowrap; }
+#p-lowbox .lowbox-tb.lb-main td.lb-name { white-space: normal; }
+#p-lowbox .lowbox-tb.lb-main td.lb-ops { white-space: nowrap; overflow: visible; }
+#p-lowbox .lowbox-tb.lb-main td.lb-ops .btn.xs { padding: 2px 6px; font-size: 11px; line-height: 1.5; }
+#p-lowbox .lowbox-tb.lb-main td.lb-ops .btn.xs + .btn.xs { margin-left: 3px; }
+
+/* 详情弹层：2~3 列卡片式键值对，与全站 .modal-card 视觉一致 */
+.lb-modal { max-width: 640px; }
+.lb-grp { margin: 0 0 12px; }
+.lb-grp h4 { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .3px; }
+.lb-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 8px; }
+.lb-kv { display: flex; align-items: baseline; gap: 8px; padding: 5px 9px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: color-mix(in srgb, var(--topbar) 45%, transparent); min-width: 0; }
+.lb-k { font-size: 11px; color: var(--muted); flex: 0 0 auto; }
+.lb-v { font-size: 13px; font-weight: 600; color: var(--text); margin-left: auto;
+  font-variant-numeric: tabular-nums; text-align: right; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-v.bull { color: var(--bull); }
+.lb-v.bear { color: var(--bear); }
+.lb-v.muted { color: var(--muted); font-weight: 400; }
+@media (max-width: 720px) { .lb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 质量列只有 ✓ / ⚠ 一个记号，居中比靠左好看；列宽固定后左侧留白会显得错位 */
+#p-lowbox .lowbox-tb.lb-main td:nth-child(4) { text-align: center; }
+#p-lowbox .lowbox-tb.lb-main th:nth-child(4) { text-align: center; }
+
+/* ===== 2026-10-31 版面去噪（进哥：「很多重叠重复的东西，看着乱」）=====
+   体检依据（1440 宽实测「今日决策」页）：整页 1669px，其中四要素徽章 489px / 777 字，
+   而四张卡的正文合计只有 699 字 —— 解释比结论还多，这是"乱"的真正来源。
+   处置原则：**结论占版面，元信息进折叠/悬停**。四要素一条不删（A1 纪律不变），
+   只是默认收成「数据日 + 可信度 + ⓘ」。 */
+
+/* 1) 四要素紧凑档：只留 数据日 + 可信度，不换行 */
+.du-meta-group.du-compact { flex-wrap: nowrap; gap: 4px 6px; max-width: 100%; overflow: hidden; }
+.du-meta-group.du-compact .du-meta { font-size: 11px; padding: 0 6px; }
+
+/* 2) 卡片头：meta 另起一行、单行、超长省略（不再顶在标题右侧把标题挤成两行） */
+.td-hd { flex-wrap: wrap; }
+.td-hd-meta { flex: 1 1 100%; margin-left: 0; margin-top: 3px; min-width: 0; }
+.td-hd-meta .du-meta-group { flex-wrap: nowrap; max-width: 100%; overflow: hidden; }
+
+/* 3) 历史背景：3 行常驻说明 → 1 行可展开（data-historical 标记与全部正文一字未减） */
+.hist-fold { padding: 0; }
+.hist-fold > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 8px; padding: 8px 14px; }
+.hist-fold > summary::-webkit-details-marker { display: none; }
+.hist-fold > summary::before { content: "▸"; color: #8a8578; font-size: 11px; }
+.hist-fold[open] > summary::before { content: "▾"; }
+.hist-fold > summary b { font-size: 12.5px; color: #57534a; letter-spacing: .02em; }
+.hist-fold .hist-fold-hint { font-size: 11.5px; color: #8a8578; margin-left: auto; }
+.hist-fold[open] { padding: 0 14px 12px; }
+.hist-fold[open] > summary { padding: 8px 0 4px; }
+
+/* 4) 「旁证」折叠区：量化信号 + ETF 融合两条证据流，原来与四卡平铺并列（各 108/178px），
+      读起来像"还有五张卡"，主次被打乱。收进一个默认收起的 details。 */
+.td-evidence { margin-top: 14px; border: 1px solid var(--border, #e5e0d5);
+  border-radius: 10px; background: var(--panel, #fff); }
+.td-evidence > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 10px; padding: 9px 14px; font-size: 12.5px; color: var(--muted, #6B7280); }
+.td-evidence > summary::-webkit-details-marker { display: none; }
+.td-evidence > summary::before { content: "▸"; color: var(--accent, #0E7490); font-size: 11px; }
+.td-evidence[open] > summary::before { content: "▾"; }
+.td-evidence > summary b { font-size: 13px; color: var(--text, #1A1A1A); }
+.td-ev-name { color: var(--muted, #6B7280); }
+.td-ev-hint { margin-left: auto; font-size: 11.5px; }
+.td-evidence[open] { padding-bottom: 8px; }
+.td-evidence[open] > summary { border-bottom: 1px solid var(--border, #e5e0d5); margin-bottom: 6px; }
+.td-evidence .td-quant-ref, .td-evidence .td-etf-fusion { padding: 0 14px; }
+
+/* 5) 今日看板：大号结论条 + 五行说明 → 一行结论 + 折叠口径。
+      "资金主攻 X（净买 Y 亿）"这句在决策页已出现两次，本页不再第三种字号重复。 */
+.dash-lead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px;
+  padding: 10px 14px; margin: 0 0 12px; border: 1px solid var(--border, #e5e0d5);
+  border-left: 4px solid var(--accent, #0E7490); border-radius: 10px; background: var(--panel, #fff); }
+.dash-lead-k { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--on-accent, #fff);
+  background: var(--accent, #0E7490); border-radius: 999px; padding: 2px 9px; }
+.dash-lead-v { font-size: 14px; font-weight: 600; color: var(--text, #1A1A1A); }
+.dash-lead-m { font-size: 11.5px; color: var(--muted, #6B7280); margin-left: auto; }
+.dash-note { margin: 0 0 12px; font-size: 12px; color: var(--muted, #6B7280); }
+.dash-note > summary { cursor: pointer; color: var(--accent, #0E7490); }
+.dash-note[open] { padding: 4px 0 4px 2px; line-height: 1.7; }
+
+/* 6) 重点方向目录项：可点跳转（原来重复列净买/龙头/评分，与下方主线卡完全同数） */
+.ml-focus-jump { cursor: pointer; }
+.ml-focus-jump:hover { border-color: var(--accent, #0E7490); }
+.ml-card-flash { outline: 2px solid var(--accent, #0E7490); outline-offset: 2px; }
+
+/* ===== 2026-10-31 第二轮版面去噪（进哥：「显示过于重复、内容过于杂乱」）=====
+   依据是量出来的，不是感觉：全站 42 个面板逐个量「说明性文字 / 总字数」与页高。
+   三处最重的：市场情绪 115,000px（3865 条视频平铺）、入手概率每行复读同样 3 个值、
+   今日决策同页同一个数据日出现 6 遍。 */
+
+/* 1) 市场情绪 · 证据堆按博主折叠
+   原来 3865 条逐条铺开 = 11.5 万像素；折叠后每位博主一行，summary 直接带最近一条标题，
+   不展开也知道最新说了什么。首屏 10 位，其余进「另外 N 位」。 */
+.bc-ev .bc-blog { margin: 8px 0; border: 1px solid var(--line, #e5e7eb);
+  border-radius: 10px; background: var(--panel, #fff); }
+.bc-ev .bc-blog > summary { list-style: none; cursor: pointer; display: flex;
+  flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px 12px; }
+.bc-ev .bc-blog > summary::-webkit-details-marker { display: none; }
+.bc-ev .bc-blog > summary::before { content: "▸"; color: var(--accent, #0E7490); font-size: 11px; }
+.bc-ev .bc-blog[open] > summary::before { content: "▾"; }
+.bc-blog-n { font-size: 11.5px; color: var(--muted, #888); }
+.bc-blog-d { font-size: 11.5px; color: var(--muted, #888); }
+.bc-blog-t { flex: 1 1 260px; min-width: 0; font-size: 12.5px; color: var(--text, #333);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-ev .bc-blog > ul { margin: 0; padding: 6px 12px 8px; list-style: none;
+  border-top: 1px dashed var(--line, #e5e7eb); }
+.bc-ev .bc-more { margin: 8px 0; }
+.bc-ev .bc-more > summary { cursor: pointer; padding: 6px 12px; font-size: 12px;
+  color: var(--accent, #0E7490); }
+
+/* 2) 今日汇总 · 个股卡只留增量信息
+   head 已有名称/代码/板块/结论徽章/帖数，进度条已有比例，summary 又复述一遍多空计数。
+   这里只保留「在说的理由」，引文默认 2 条。 */
+.pd-why { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  color: var(--muted, #888); margin-right: 6px; }
+.pd-qmore { margin-top: 4px; }
+.pd-qmore > summary { cursor: pointer; font-size: 11.5px; color: var(--accent, #0E7490); }
+
+/* 3) 入手概率 · 合并档位列 + 同值上提
+   全表同值的「场景判据 / 动作建议」提到表下说一次；行内只留五维分子（分母进表头 title）。 */
+.gr-mini { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 6px;
+  font-size: 11px; font-weight: 700; vertical-align: 1px; }
+.rate-common { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+  margin: 8px 0 0; padding: 8px 12px; font-size: 12px; color: var(--muted, #6B7280);
+  border: 1px dashed var(--line, #e5e7eb); border-radius: 8px; background: var(--panel, #fff); }
+.rate-common b { color: var(--text, #1A1A1A); }
+.rate-common-n { font-size: 11px; opacity: .85; }
+
+/* 4) 今日汇总 · 长尾折叠（个股/板块只列前几只，其余点开）
+   「今天情绪怎么样」是结论，「被提到过的第 27 只票」是附录，不该把结论挤出首屏。 */
+.pd-more { margin: 8px 0 4px; }
+.pd-more > summary { cursor: pointer; font-size: 12px; padding: 6px 10px;
+  color: var(--accent, #0E7490); border: 1px dashed var(--line, #e5e7eb); border-radius: 8px; }
+.pd-more > .pd-list { margin-top: 8px; }
+.pd-sec-n { font-size: 11.5px; font-weight: 400; color: var(--muted, #888); margin-left: 8px; }
+.tl-note-once { margin: 6px 0 10px; }
+
+/* 5) 入手概率 · 算法口径折叠（常驻 4 行 → 1 行前提 + 点开看细节） */
+.rate-bp-legend .rtl-more { margin-top: 6px; }
+.rate-bp-legend .rtl-more > summary { cursor: pointer; font-size: 11.5px; color: var(--accent, #0E7490); }
+.rate-bp-legend .rtl-more p { margin: 6px 0 0; font-size: 12px; line-height: 1.65; }
+
+/* ===== 2026-10-31 第三轮去重（进哥：「内容特别相似的应该合并」）=====
+   ① 海外舆情·热点：「因国外舆情转弱，建议降低仓位」这类**全局情绪状态**被后端
+      _decision() 拼进了每条事件的结论，4 张卡说同一句 → 提到面板顶部说一次。
+   ② 消息面汇总：「国际」条目的研判结论（decision）与「国际局势」面板逐字相同
+      → 本页只留「发生了什么」，研判给跳转。 */
+
+/* ① 共同结论条（面板级，卡片内不再重复） */
+.ov-hs-global { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 10px;
+  margin: 0 0 12px; padding: 10px 14px; border: 1px solid var(--border, #e5e7eb);
+  border-left: 4px solid var(--accent, #0E7490); border-radius: 10px;
+  background: var(--panel, #fff); }
+.ov-hs-global-tag { flex: 0 0 auto; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  color: var(--on-accent, #fff); background: var(--accent, #0E7490);
+  border-radius: 999px; padding: 2px 10px; }
+.ov-hs-global-txt { flex: 1 1 300px; min-width: 0; font-size: 13px; line-height: 1.65;
+  color: var(--text, #1A1A1A); }
+.ov-hs-global-n { font-size: 11.5px; color: var(--muted, #6B7280); }
+
+/* ② 消息面汇总的「看研判 →」跳转（替掉原来复述的那段研判结论） */
+.bf-goto { font-size: 11.5px; color: var(--accent, #0E7490);
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%);
+  text-decoration: none; white-space: nowrap; }
+.bf-goto:hover { text-decoration: underline; }
+
+/* 热点卡头部：原本写在结论末尾的「强共振 / 温和放大 / 传导偏弱」定性命名的判断，
+   移到放大系数旁边（结论里那句「确定性 X，情绪放大 Y 倍」与这里的数值重复，已剥掉） */
+.ov-hs-ampread { font-style: normal; font-size: 11px; color: var(--muted, #6B7280);
+  margin-left: 5px; }
+
+/* ===== 2026-10-31 第四轮（进哥：「显示过于重复、内容过于杂乱」）=====
+   热点卡 ③ 之后的四段（驱动源 / 传导路径 / 放大·衰减 / 国内源交叉比对）是**证据**，
+   不是结论，却与结论同等占版面 → 17 张卡叠出 1.3 万像素。收进默认收起的 details，
+   列表顶部给一键展开。数据一个字没删。 */
+.ov-hs-evbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 10px; }
+.ov-hs-evbtn { font-size: 12px; line-height: 1.4; padding: 4px 12px; cursor: pointer;
+  color: var(--accent, #0E7490);
+  /* 暗色主题里 --accent 是品牌红 #DA291C，直接做文字色在近黑底上偏暗（实测对比不足）。
+     混 35% 的 --text：浅色下更深、暗色下更亮，两套主题都不吃亏。 */
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%);
+  background: var(--panel, #fff);
+  border: 1px solid var(--border, #e5e7eb); border-radius: 999px; }
+.ov-hs-evbtn:hover { border-color: var(--accent, #0E7490); }
+.ov-hs-evbar-n { font-size: 11.5px; color: var(--muted, #6B7280); }
+
+.ov-hs-ev { margin-top: 10px; border: 1px solid var(--border, #e5e7eb); border-radius: 9px;
+  background: var(--panel, #fff); }
+.ov-hs-ev > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap;
+  align-items: baseline; gap: 8px; padding: 7px 12px; font-size: 12px;
+  color: var(--muted, #6B7280); }
+.ov-hs-ev > summary::-webkit-details-marker { display: none; }
+.ov-hs-ev > summary::before { content: "▸"; color: var(--accent, #0E7490);
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%);
+  font-size: 11px; }
+.ov-hs-ev[open] > summary::before { content: "▾"; }
+.ov-hs-ev[open] > summary { border-bottom: 1px solid var(--border, #e5e7eb);
+  margin-bottom: 4px; }
+.ov-hs-ev-body { padding: 2px 12px 10px; }
+.ov-hs-ev-body .ov-hs-block:first-child, .ov-hs-ev-body .ov-hs-drivers:first-child { margin-top: 2px; }
+
+/* 第五轮：第 6 条起收成「标题行」——17 条 × 500px 的完整卡扫盘翻不到第 10 条。
+   收起时只留头部（序号 / 标题 / 地域 / 方向 / 热度），点标题展开该条。
+   内容全部在 DOM 里，数据一个字没删。 */
+.ov-hs-card.ov-hs-mini { padding: 9px 16px; }
+.ov-hs-card.ov-hs-mini:not(.open) > *:not(.ov-hs-head) { display: none; }
+.ov-hs-card.ov-hs-mini > .ov-hs-head { cursor: pointer; }
+.ov-hs-card.ov-hs-mini:not(.open):hover { border-color: var(--accent, #0E7490); }
+.ov-hs-mini-meta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.ov-hs-mini-tip { font-size: 11.5px; color: var(--accent, #0E7490);
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%);
+  white-space: nowrap; }
+.ov-hs-card.ov-hs-mini.open > .ov-hs-head { padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border, #e5e7eb); margin-bottom: 8px; }
+
+/* ===== 可信度分档 chip（D48，2026-10-31） =====
+   替代原「确定性 82%」「置信 0.75」这类人工填写、不可复现的百分比。
+   显示为「可信度 较高 · 5 家信源 · 收录 6 条原报道」，档位由信源家数决定，
+   依据一律是可数事实，用户可自行复核。
+   颜色不与涨跌（红涨绿跌）撞车：高档沿用品牌强调色与正文色混合（浅色下更深、
+   暗色下更亮），中/低档用弱色，仅作强弱提示，不承载方向语义。 */
+.cred-chip { display: inline-flex; align-items: baseline; gap: 4px;
+  font-size: 11.5px; color: var(--muted, #6B7280); white-space: nowrap; }
+.cred-chip b { font-weight: 700; font-size: 12px; color: var(--text, #1A1A1A); }
+.cred-chip.hi b { color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%); }
+.cred-chip.mid b { color: var(--text, #1A1A1A); font-weight: 600; }
+.cred-chip.lo b { color: var(--muted, #6B7280); font-weight: 600; }
+.cred-chip i { font-style: normal; font-size: 11px; color: var(--muted, #6B7280); }
+.cred-chip.geo-conf { font-size: 11.5px; }
+.cred-chip.ov-hs-conf b { font-size: 13px; }
+.ov2-move-meta .cred-chip { margin-left: 2px; }
+
+/* ===== 国际局势「证据链」折叠 + 交叉印证徽章（D49，2026-10-31） =====
+   原页 10,130px：交叉印证两列 2,882px + 来源列表 1,187px = 40% 高度，
+   而这四处列的基本是同一批来源。收进 details，卡面只留一个「内外一致/分歧」徽章。
+   与「海外热点」页同一套交互：顶部一键全开。 */
+.geo-evbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 10px; }
+.geo-ev-toggle { font-size: 12px; line-height: 1.4; padding: 4px 12px; cursor: pointer;
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%);
+  background: var(--panel, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 999px; }
+.geo-ev-toggle:hover { border-color: var(--accent, #0E7490); }
+.geo-evbar-n { font-size: 11.5px; color: var(--muted, #6B7280); }
+
+.geo-ev { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border, #e5e7eb); }
+.geo-ev > summary { font-size: 11.5px; cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 5px;
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%); }
+.geo-ev > summary::-webkit-details-marker { display: none; }
+.geo-ev > summary::before { content: "▸"; font-size: 10px; }
+.geo-ev[open] > summary::before { content: "▾"; }
+.geo-ev:hover > summary { text-decoration: underline; }
+.geo-ev-body { margin-top: 8px; }
+.geo-ev-body .geo-cc { margin-top: 2px; }
+
+/* 卡面只留的结论级徽章：国内外是否指向同一方向 */
+.geo-cc-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 9px; }
+.geo-cc-badge.ok { color: var(--bull); background: color-mix(in srgb, var(--bull) 12%, transparent); }
+.geo-cc-badge.warn { color: var(--warn, #f59e0b); background: color-mix(in srgb, var(--warn, #f59e0b) 14%, transparent); }
+.geo-cc-badge.wait { color: var(--muted); background: color-mix(in srgb, var(--muted) 16%, transparent); }
+
+/* ===== 全局数据水位（D51，2026-10-31）=====
+   免责条右侧常驻：summary 只给「最新 / 最旧」，点开列各数据域明细。
+   明细用绝对定位下拉，不撑高免责条、不推挤正文。 */
+.disclaimer-bar .db-water { position: relative; flex: 0 0 auto; font-size: 11.5px; line-height: 1.4; }
+.db-water > summary { list-style: none; cursor: pointer; white-space: nowrap; padding: 2px 9px;
+  border-radius: 999px; color: var(--text, #222); background: var(--panel, #fff);
+  border: 1px solid color-mix(in srgb, var(--bear, #15803d) 32%, transparent); }
+.db-water > summary::-webkit-details-marker { display: none; }
+.db-water > summary:hover { border-color: var(--accent, #0E7490); }
+/* 免责条全局规则 .disclaimer-bar b{color:var(--bear)} 会把水位里的日期也染绿，这里覆盖回正文色 */
+.db-water b { color: var(--text, #222) !important; font-weight: 700; }
+.db-water i { font-style: normal; color: var(--muted, #6B7280); }
+.db-water em.db-water-warn { font-style: normal; margin-left: 6px; color: var(--warn, #b45309); font-weight: 600; }
+.db-water[open] > summary { border-color: var(--accent, #0E7490); }
+
+/* top 从 details 自身底边算（details 在免责条里是垂直居中的），+6px 仍会压住免责条下沿，故留 14px */
+.db-water-body { position: absolute; right: 0; top: calc(100% + 14px); z-index: 80;
+  width: 700px; max-width: 92vw; padding: 8px 11px; font-size: 11.5px; color: var(--text, #222);
+  background: var(--panel, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .16); }
+.db-water-row { display: grid; grid-template-columns: 84px 114px 46px 1fr; gap: 8px; padding: 3px 0;
+  border-bottom: 1px dashed var(--border, #e5e7eb); align-items: baseline; }
+.db-water-row.hd { color: var(--muted, #6B7280); font-size: 11px; }
+.db-water-row:last-of-type { border-bottom: 0; }
+.db-water-row.stale .db-water-date { color: var(--warn, #b45309); font-weight: 600; }
+.db-water-name { font-weight: 600; }
+.db-water-date { font-variant-numeric: tabular-nums; }
+.db-water-ago, .db-water-src { color: var(--muted, #6B7280); }
+/* 来源描述本来就是一句话（含更新方式），截断会丢掉「什么时候更新」这个关键信息，
+   改为允许换行、最多两行——一行够用时不会多占高度。 */
+.db-water-src { white-space: normal; line-height: 1.4; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.db-water-foot { margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--border, #e5e7eb);
+  color: var(--muted, #6B7280); font-size: 10.5px; line-height: 1.5; }
+
+/* ===== 国际局势「前 5 条完整 / 其余标题行」（D52，2026-10-31） =====
+   证据链折叠后页高仍 7,993px：17 条研判全部完整展开，每条五段论述。
+   与「海外热点」页同一套两级结构：前 5 条完整，其余收成一行（分类/强度/日期/标题/
+   方向/可信度/内外一致），点标题展开该条；顶部按钮两层一起开合。
+   标题行保留方向、可信度、印证结论——这三样是「要不要点开」的判断依据，
+   收起来等于逼人全点一遍。正文与证据链一个字没删，只是默认不占版面。 */
+/* 标题行跨满整行：原网格是 auto-fill 两列（每列 ≥430px），挤在半列里标题只能显示十来个字，
+   会换行或截成一串省略号；跨列后是整齐的一列清单，扫读快。 */
+.geo-card.geo-mini { grid-column: 1 / -1; padding: 9px 13px; }
+.geo-card.geo-mini .geo-body { display: none; }
+.geo-card.geo-mini.open .geo-body { display: block; margin-top: 2px; }
+.geo-card.geo-mini > .geo-head { cursor: pointer; margin-bottom: 6px; }
+.geo-card.geo-mini > .geo-head:hover .geo-title { color: color-mix(in srgb, var(--accent, #0E7490) 70%, var(--text, #1A1A1A) 30%); }
+/* flex:1 默认按内容宽度参与计算，nowrap 时会撑开换行；必须 flex-basis:0 才真正可截断 */
+.geo-card.geo-mini .geo-title { flex: 1 1 0; min-width: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.geo-card.geo-mini > .geo-dir { margin-bottom: 0; flex-wrap: nowrap; }
+/* 方向字段本身是一整句（「【研判】利空 A/B/C 链…」），全显示会把标题行撑成 2~3 行、
+   高度参差。清单态限单行、超出省略——点开该条即可看全文，这里只需要判断"要不要点"。 */
+.geo-card.geo-mini > .geo-dir .geo-dir-badge { flex: 1 1 auto; min-width: 0; display: inline-block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* 清单态去掉胶囊底色：一句话铺满半行时，色块会变成一条重色横杠，压过标题。
+     方向仍靠红/绿文字编码（红涨绿跌），不靠底色。完整卡保留胶囊。 */
+  background: transparent; padding-left: 0; padding-right: 0; }
+.geo-card.geo-mini > .geo-dir .cred-chip,
+.geo-card.geo-mini > .geo-dir .geo-cc-badge { flex: 0 0 auto; }
+.geo-mini-tip { margin-left: auto; font-size: 11.5px; white-space: nowrap; cursor: pointer;
+  color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%); }
+.geo-card:not(.geo-mini) .geo-mini-tip { display: none; }

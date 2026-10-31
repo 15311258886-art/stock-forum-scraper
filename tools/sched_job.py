@@ -174,7 +174,11 @@ def _build_exclusion():
     / 无K线，重建 exclusion_pool。进哥「不在垃圾堆里挑垃圾」——把已知该剔除的票集中管理，
     漏斗与四支柱都在【全A − 剔除池】的干净宇宙里选。需在快照/抖音之后跑（依赖最新 stock_names/blogger_overlap）。"""
     import build_exclusion
-    return build_exclusion.main()
+    # 2026-10-31 整改（测评 P0-B）：显式传空 argv。
+    # 原为 `return build_exclusion.main()`，而 main() 内部 `ap.parse_args()` 读的是
+    # **本进程的** sys.argv —— 里面带着 "build_exclusion" 这个词，对方参数表里没有它，
+    # 于是 argparse 打用法后抛 SystemExit(2)。11 次执行 11 次退出码 2、0 次成功。
+    return build_exclusion.main(["--writer", "sched_job"])
 
 
 def _indicators_daily():
@@ -493,6 +497,25 @@ def _review_score_daily():
             pass
 
 
+def _board_flow_range_daily():
+    """板块资金流日线（board_flow_daily）日更（2026-10-30 新增）。
+
+    为什么会有这个任务：`board_flow_daily` 此前**没有任何调度**，唯一写入路径
+    `board_flow_range.ensure_daily` 只由「区间资金面板请求」间接调用 →
+    用户不打开那个面板，表就永远不更新（实测停更 21 个交易日，217 行全落在 2026-10-08）。
+
+    为什么必须出进程：这条链是「HTTP 收数 + 结构解析」，虽然 IO 为主，但本项目铁律是
+    **纯 Python 长任务一律不留在服务进程内**（会占 GIL 冻结所有接口）。
+    真实开销：datacenter 报表「按日拉全板块」，一天 4 个请求（industry 1 页 / concept 3 页）。
+
+    为什么调 `run_daily_sync` 而不是别的：本文件是短命子进程，`print` 完就 `return 0` 退出，
+    "起 daemon 线程后立即返回"的写法会被 CPython 关解释器时腰斩（lhb_daily 为此骗了 11 天）。
+    `run_daily_sync` 一路同步到底，返回体带 `ok`：`ok is False` → `main()` 判 rc=1 → 父进程退避重试。
+    """
+    import board_flow_range
+    return board_flow_range.run_daily_sync(_con().conn)
+
+
 JOBS = {
     "quant": _quant_cache,             # 2026-10-29：量化面板全市场因子计算（离进程 + 落盘，供 /api/quant 读缓存）
     "etf_payload": _etf_cache,         # 2026-10-29：ETF 面板（左栏复用 quant 因子引擎，实测 >60s，必须离进程）
@@ -505,6 +528,7 @@ JOBS = {
     "evolve_daily": _evolve_daily,
     "bili_scan": _bili_scan,
     "lhb_daily": _lhb_daily,
+    "board_flow_range_daily": _board_flow_range_daily,   # 2026-10-30：板块资金流日线日更（18:30 后）
     "hotspots": _hotspots,
     "kline_prewarm": _kline_prewarm,
     "a_shares_snapshot": _a_shares_snapshot,   # 2026-10-26：全A报价+估值+宇宙日更
@@ -534,6 +558,12 @@ def main() -> int:
     name = sys.argv[1]
     t0 = time.time()
     print("[%s] start %s" % (name, time.strftime("%Y-%m-%d %H:%M:%S")), flush=True)
+    # 2026-10-31（决策⑤）：任务的成败除了打日志，还要落一行 job_runs。
+    # 理由见 viewer/health.py 的模块说明 —— 历史上两次"静默停摆"（build_exclusion
+    # 11 次全失败、a_shares_snapshot 连失两天却记成完成）都不是没有日志，
+    # 是日志没人看。"连续失败 N 次"才是一个能扫一眼就发现问题的数字。
+    # 记录放在 finally 里，保证 正常返回 / 软失败 / SystemExit / 异常 四条路都留痕。
+    rc, err = 0, ""
     try:
         r = JOBS[name]()
         # 2026-10-29：把「返回值 ok=False」也判为失败。
@@ -543,13 +573,32 @@ def main() -> int:
         # 失败必须以非 0 退出，才能让父进程走退避重试，而不是把失败记成完成。
         if isinstance(r, dict) and r.get("ok") is False:
             print("[%s] FAILED(soft) %.1fs %s" % (name, time.time() - t0, str(r)[:400]), flush=True)
-            return 1
-        print("[%s] ok %.1fs %s" % (name, time.time() - t0, str(r)[:400]), flush=True)
-        return 0
-    except Exception:  # noqa: BLE001
+            rc, err = 1, "ok=False %s" % str(r)[:400]
+        else:
+            print("[%s] ok %.1fs %s" % (name, time.time() - t0, str(r)[:400]), flush=True)
+    except SystemExit as e:  # noqa: BLE001
+        # 2026-10-31 整改（测评 P0-B）：SystemExit 继承 **BaseException**，不被下面的
+        # `except Exception` 捕获。后果不是"报错很难看"，是**彻底看不见**：
+        # build_exclusion 的 argparse 抛 SystemExit(2) 时，这里既不打印 FAILED、
+        # 也不打印 traceback，父进程只看到一行干净的 start ——
+        # 自 2026-10-26 上线起 11 次执行 11 次失败、0 次成功，没有任何人发现。
+        # 任何任务内部只要可能调用 argparse / sys.exit / raise SystemExit，都必须在此落成 FAILED。
+        print("[%s] FAILED(SystemExit=%r) after %.1fs"
+              % (name, getattr(e, "code", None), time.time() - t0), flush=True)
+        traceback.print_exc()
+        rc, err = 1, "SystemExit(%r)" % (getattr(e, "code", None),)
+    except Exception as e:  # noqa: BLE001
         print("[%s] FAILED after %.1fs" % (name, time.time() - t0), flush=True)
         traceback.print_exc()
-        return 1
+        rc, err = 1, "%s: %s" % (type(e).__name__, str(e)[:300])
+    finally:
+        # 记录本身坏掉不能连累任务结论 —— 写失败只打印，退出码照旧由 rc 决定。
+        try:
+            from viewer import health as _H
+            _H.record_job_run(name, rc == 0, started=t0, rc=rc, error=err)
+        except Exception as _e:  # noqa: BLE001
+            print("[%s] 运行记录写入异常（不影响退出码）：%s" % (name, _e), flush=True)
+    return rc
 
 
 if __name__ == "__main__":

@@ -530,12 +530,25 @@ def test_prod_checkpoint_all_done_and_complete():
 @pytest.mark.parametrize("month,expect_count", [("2016-01", 7027), ("2016-02", 4303),
                                                ("2026-09", 11061)])
 def test_prod_backfilled_month_inventory(month, expect_count):
-    """工程师抽测基线：2016-01=7027、2016-02=4303、2026-09=11061（含 watchdesk 旧行）。"""
+    """工程师抽测基线：2016-01=7027、2016-02=4303、2026-09=11061（含 watchdesk 旧行）。
+
+    2026-10-31 改：原来是 `n == expect_count`。这条在 10-31 变红（2026-09 变成 11065），
+    追下去**不是数据坏了**：按 (code, notice_date, title) 分组有 629 组同名，
+    但每组的 url 全不相同 —— 是「同一天发了多份同标题的独立文件」（如恒瑞同日的
+    多份临床批件、深交所对同一公司的多份监管函），按标题去重会删掉真公告。
+    详见 `tools/audit_ann_dupes.py`（该工具刻意不提供删除入口）。
+
+    于是把断言改成"**只能涨不能掉**"：
+      · 公告库是只增的，晚到的公告会让库存变大 —— 这是正常，不该让测试变红；
+      · 但库存**变少**说明有东西被删/被覆盖，那才是这条测试真正要守的事。
+    这样它既不随日历变红，又仍然拦得住"数据丢了"。
+    """
     con = _prod()
     try:
         n = con.execute("SELECT COUNT(*) FROM stock_ann WHERE notice_date LIKE ?",
                         (month + "%",)).fetchone()[0]
-        assert n == expect_count, "%s 库存 %d != 基线 %d" % (month, n, expect_count)
+        assert n >= expect_count, ("%s 库存 %d **少于**抽测基线 %d —— 只增的库不该变少，"
+                                   "先查有没有被删/被覆盖" % (month, n, expect_count))
         state = con.execute("SELECT * FROM ann_backfill_state WHERE window_start=?",
                             (month + "-01",)).fetchone()
         assert state is not None

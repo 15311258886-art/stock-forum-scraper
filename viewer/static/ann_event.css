@@ -1,0 +1,215 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   公告实证面板 + VIZ 图表基元 样式层（2026-10-31）
+
+   配色纪律（同 viz.js）：
+     · 只引用主题变量，不写死色值 → 暗色 / 浅色主题自动跟随；
+     · 涨=红(--bull) 跌=绿(--bear) 是 A 股惯例，与欧美相反，别"纠正"它；
+     · 不显著的条目统一降到 45% 不透明度，这是**语义**不是装饰 ——
+       统计上不成立的东西，视觉上就不该和成立的一样醒目。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 容器 ───────────────────────────────────────────────────────────── */
+.aenv {
+  --aenv-bull: var(--bull, #F2544C);
+  --aenv-bear: var(--bear, #1FB873);
+  --aenv-muted: var(--muted, #A6ABB5);
+  --aenv-line: var(--border, #2C313B);
+  --aenv-panel: var(--panel, #20232B);
+  padding: 2px 2px 24px;
+}
+
+.aenv-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin: 0 0 14px;
+}
+.aenv-title {
+  font-size: var(--fs-xl, 22px); font-weight: 700; letter-spacing: .2px;
+  color: var(--text, #fff); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.aenv-sub {
+  font-size: var(--fs-sm, 12px); font-weight: 400; color: var(--aenv-muted); letter-spacing: 0;
+}
+.aenv-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.aenv-chip {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--aenv-line); background: var(--panel2, color-mix(in srgb, var(--text, #fff) 5%, transparent));
+  font-size: var(--fs-xs, 11px); color: var(--aenv-muted); white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.aenv-chip.hot { color: var(--aenv-bull); border-color: color-mix(in srgb, var(--aenv-bull) 45%, transparent); }
+.aenv-chip.rule { color: var(--warn, #E0A33E); border-color: color-mix(in srgb, var(--warn, #E0A33E) 40%, transparent); }
+
+/* ── 一句话结论 ─────────────────────────────────────────────────────── */
+.aenv-verdict {
+  border: 1px solid var(--aenv-line);
+  border-left: 3px solid var(--accent, #DA291C);
+  border-radius: var(--vz-r-lg, 14px);
+  background: var(--panel2, color-mix(in srgb, var(--text, #fff) 4%, transparent));
+  padding: 16px 18px; margin-bottom: 16px;
+}
+.aenv-v-tag {
+  display: inline-block; font-size: var(--fs-2xs, 10px); letter-spacing: .14em;
+  color: var(--accent, #DA291C); font-weight: 700; margin-bottom: 7px;
+}
+.aenv-v-text {
+  font-size: var(--fs-lg, 16px); line-height: 1.75;
+  /* 正文略降不透明度、加粗处回到满不透明度 —— 用**明度差**做强调。
+     早先图省事把 <b> 染成 --bull 红，结果「真的跌」是红的、而图里跌是绿的，
+     同一个面板里自相矛盾。收益类量的方向色只留给图表，正文不参与。 */
+  color: color-mix(in srgb, var(--text, #fff) 76%, transparent);
+}
+.aenv-v-text b { color: var(--text, #fff); font-weight: 700; }
+.aenv-v-note {
+  margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--aenv-line);
+  font-size: var(--fs-sm, 12px); line-height: 1.75; color: var(--aenv-muted);
+}
+
+/* ── 卡片 ───────────────────────────────────────────────────────────── */
+.aenv-card {
+  border: 1px solid var(--aenv-line); border-radius: var(--vz-r-lg, 14px);
+  background: var(--aenv-panel); padding: 16px 18px 18px; margin-bottom: 16px;
+}
+.aenv-card-hd {
+  font-size: var(--fs-lg, 16px); font-weight: 700; color: var(--text, #fff);
+  margin-bottom: 6px; line-height: 1.5;
+}
+.aenv-card-desc {
+  font-size: var(--fs-sm, 12px); line-height: 1.8; color: var(--aenv-muted);
+  margin-bottom: 12px; max-width: 96ch;
+}
+.aenv-card-bd { margin-top: 4px; }
+
+/* ── 提示框（散点陷阱说明等） ──────────────────────────────────────── */
+.aenv-callout {
+  margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--aenv-line); font-size: var(--fs-md, 13px); line-height: 1.85;
+  color: var(--text, #fff); background: color-mix(in srgb, var(--text, #fff) 4%, transparent);
+}
+.aenv-callout.warn {
+  border-color: color-mix(in srgb, var(--warn, #E0A33E) 45%, transparent);
+  background: color-mix(in srgb, var(--warn, #E0A33E) 8%, transparent);
+}
+.aenv-callout b { color: var(--warn, #E0A33E); }
+.aenv-callout-fix {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--aenv-line);
+  font-size: var(--fs-sm, 12px); color: var(--aenv-muted);
+}
+.aenv-callout-fix b { color: var(--text, #fff); }
+
+/* ── 三条用法 ───────────────────────────────────────────────────────── */
+.aenv-rules { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.aenv-rule {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--aenv-line); background: color-mix(in srgb, var(--text, #fff) 4%, transparent);
+}
+.aenv-rno {
+  flex: 0 0 auto; width: 22px; height: 22px; line-height: 22px; text-align: center;
+  border-radius: 6px; font-size: var(--fs-sm, 12px); font-weight: 700;
+  color: var(--text, #fff);
+  background: color-mix(in srgb, var(--bull, #F2544C) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bull, #F2544C) 38%, transparent);
+}
+.aenv-rt { font-size: var(--fs-md, 13.5px); font-weight: 700; color: var(--text, #fff); margin-bottom: 4px; }
+.aenv-rx { font-size: var(--fs-sm, 12.5px); line-height: 1.85; color: var(--aenv-muted); }
+.aenv-rx b { color: var(--text, #fff); font-variant-numeric: tabular-nums; }
+
+/* ── 明细表 ─────────────────────────────────────────────────────────── */
+.aenv-tblwrap { overflow-x: auto; margin-top: 4px; }
+.aenv-tbl {
+  width: 100%; border-collapse: collapse; font-size: var(--fs-sm, 12.5px);
+  font-variant-numeric: tabular-nums;
+}
+.aenv-tbl th {
+  text-align: left; padding: 8px 9px; font-weight: 600; white-space: nowrap;
+  color: var(--aenv-muted); font-size: var(--fs-xs, 11px);
+  border-bottom: 1px solid var(--aenv-line);
+  position: sticky; top: 0; background: var(--aenv-panel);
+}
+.aenv-tbl th.r, .aenv-tbl td.r { text-align: right; }
+.aenv-tbl td {
+  padding: 7px 9px; border-bottom: 1px solid color-mix(in srgb, var(--aenv-line) 55%, transparent);
+  color: var(--text, #fff);
+}
+.aenv-tbl tbody tr:hover { background: color-mix(in srgb, var(--text, #fff) 6%, transparent); }
+.aenv-tbl .mono { font-family: Consolas, Monaco, "Courier New", monospace; }
+.aenv-mb { display: inline-block; margin-left: 7px; }
+.aenv-tbl tr.tone-neutral td:first-child b { color: var(--aenv-muted); }
+
+.aenv-tag {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  font-size: var(--fs-2xs, 10px); border: 1px solid transparent; white-space: nowrap;
+}
+.aenv-tag.bad {
+  color: var(--aenv-bear);
+  border-color: color-mix(in srgb, var(--aenv-bear) 38%, transparent);
+  background: color-mix(in srgb, var(--aenv-bear) 12%, transparent);
+}
+.aenv-tag.good {
+  color: var(--aenv-bull);
+  border-color: color-mix(in srgb, var(--aenv-bull) 38%, transparent);
+  background: color-mix(in srgb, var(--aenv-bull) 12%, transparent);
+}
+.aenv-tag.neutral { color: var(--aenv-muted); border-color: var(--aenv-line); }
+
+.aenv-judge {
+  display: inline-block; padding: 1px 7px; border-radius: 4px;
+  font-size: var(--fs-2xs, 10px); font-weight: 600; white-space: nowrap;
+}
+.aenv-judge.bear { color: var(--aenv-bear); background: color-mix(in srgb, var(--aenv-bear) 15%, transparent); }
+.aenv-judge.bull { color: var(--aenv-bull); background: color-mix(in srgb, var(--aenv-bull) 15%, transparent); }
+.aenv-judge.ns { color: var(--aenv-muted); background: color-mix(in srgb, var(--text, #fff) 9%, transparent); }
+
+.aenv-tblnote {
+  margin-top: 10px; font-size: var(--fs-xs, 11px); line-height: 1.8;
+  color: var(--aenv-muted);
+}
+.aenv-tblnote b { color: var(--text, #fff); }
+
+/* ── 局限 ───────────────────────────────────────────────────────────── */
+.aenv-limit { border-style: dashed; }
+.aenv-ul {
+  margin: 8px 0 0; padding-left: 20px; font-size: var(--fs-sm, 12.5px);
+  line-height: 1.9; color: var(--aenv-muted);
+}
+.aenv-ul li { margin-bottom: 5px; }
+.aenv-bl {
+  margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+  background: color-mix(in srgb, var(--text, #fff) 5%, transparent); border: 1px solid var(--aenv-line);
+  font-size: var(--fs-sm, 12px); line-height: 1.85; color: var(--aenv-muted);
+}
+.aenv-bl b { color: var(--warn, #E0A33E); }
+.aenv-src {
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--aenv-line);
+  font-size: var(--fs-xs, 11px); color: var(--aenv-muted); line-height: 1.9;
+}
+.aenv-src code {
+  font-family: Consolas, Monaco, monospace; font-size: 10.5px;
+  padding: 1px 5px; border-radius: 4px;
+  background: color-mix(in srgb, var(--text, #fff) 9%, transparent); color: var(--text, #fff);
+}
+
+/* ── VIZ 基元通用 ──────────────────────────────────────────────────── */
+.vz {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  overflow: visible;
+}
+.vz text { font-family: inherit; }
+.vz-legend {
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  margin: 2px 0 10px; font-size: var(--fs-xs, 11px); color: var(--aenv-muted);
+}
+.vz-lg-i { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.vz-lg-i i {
+  display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+}
+.vz-empty {
+  padding: 22px; text-align: center; font-size: var(--fs-sm, 12px);
+  color: var(--aenv-muted); border: 1px dashed var(--aenv-line); border-radius: 10px;
+}
+
+/* 窄屏：左侧类别标签收窄，避免挤压绘图区 */
+@media (max-width: 900px) {
+  .aenv-head { align-items: flex-start; }
+  .aenv-card { padding: 13px 12px 15px; }
+}

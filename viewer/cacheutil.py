@@ -199,8 +199,26 @@ _EM_SUPPRESS_SECONDS = 60.0
 
 
 def mark_eastmoney_failure() -> None:
-    """记录一次东财失败；30s 窗口内累计达阈值则进入抑制（短期跳过东财主源）。"""
-    global _em_limited_until
+    """记录一次东财失败；30s 窗口内累计达阈值则进入抑制（短期跳过东财主源）。
+
+    2026-10-30 修复（严重 · 熔断器从上线起一次都没生效）：
+        原实现只写了 `global _em_limited_until`，而函数体后面第 208 行又对
+        `_em_fail_stamps` **赋了新值**（`_em_fail_stamps = [...]`）→ Python 编译期据"函数内
+        有赋值"判定它是**局部变量** → 第 206 行 `_em_fail_stamps.append(now)` 读的是尚未
+        绑定的局部名 → 必抛
+        `UnboundLocalError: cannot access local variable '_em_fail_stamps' where it is
+        not associated with a value`。
+        唯一调用点（`viewer/server.py` 的 `_em_get_json`）当时**没有 try/except 包裹**，于是
+        东财一失败就向上抛异常，`_em_json` 注释里写的"网络失败时不反查、直接交给腾讯兜底"
+        那条兜底路径永远走不到；`eastmoney_suppressed()` 也永远是 `False`。
+    修法：把本函数**读+写**涉及的模块级可变名全部声明为 global。
+    另两个同族函数已核对，无同型缺陷（不需要 global）：
+        · `mark_eastmoney_success()` 只读 `_em_fail_stamps` 并调 `.pop(0)`，**没有赋值**绑定
+          该名字 → 不会变局部；空列表也有 `if _em_fail_stamps:` 保护。
+        · `eastmoney_suppressed()` 只读 `_em_limited_until`，无赋值。
+        · `reset_eastmoney_state()` 已声明 `global _em_limited_until` 且对列表只调 `.clear()`。
+    """
+    global _em_limited_until, _em_fail_stamps
     now = time.time()
     with _em_limited_lock:
         _em_fail_stamps.append(now)

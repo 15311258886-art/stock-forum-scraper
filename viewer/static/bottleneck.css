@@ -1,0 +1,95 @@
+/* 供应链瓶颈猎手样式（2026-10-24）· 浅色科技风，套用 .wt-* 体系配色 */
+.bn-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.bn-head h2 { font-size: 19px; margin: 0; color: #0f172a; }
+.bn-meta { font-size: 12px; color: #94a3b8; }
+.bn-summary { font-size: 13px; color: #475569; margin: 4px 0 10px; line-height: 1.6; }
+.bn-disclaimer { font-size: 11px; color: #94a3b8; background: #f8fafc; border: 1px dashed #e2e8f0;
+  border-radius: 6px; padding: 6px 10px; margin: 8px 0; line-height: 1.5; }
+
+/* 主题 chips */
+.bn-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+.bn-chip { border: 1px solid #e2e8f0; background: #fff; color: #475569; border-radius: 16px;
+  padding: 5px 14px; font-size: 13px; cursor: pointer; transition: all .15s; }
+.bn-chip:hover { border-color: #0E7490; color: #0E7490; }
+.bn-chip.active { background: #0E7490; border-color: #0E7490; color: #fff; font-weight: 600; }
+
+/* 区块 */
+.bn-sec { margin: 16px 0; }
+.bn-sec-hd { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 8px;
+  padding-left: 9px; border-left: 3px solid #0E7490; }
+
+/* 链条图 */
+.bn-chain { display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 10px; }
+.bn-layer { min-width: 150px; flex: 1; background: #fff; border: 1px solid #eef2f7; border-radius: 8px; padding: 8px; }
+.bn-layer-hd { font-size: 12px; font-weight: 700; color: #0E7490; margin-bottom: 6px; }
+.bn-layer-nodes { display: flex; flex-direction: column; gap: 5px; }
+.bn-node { font-size: 12px; color: #334155; background: #f1f5f9; border-radius: 5px; padding: 4px 7px; line-height: 1.4; }
+
+/* 瓶颈卡片 */
+.bn-grp-hd { font-size: 13px; font-weight: 700; margin: 12px 0 6px; padding: 3px 10px; border-radius: 5px; display: inline-block; }
+.bn-grp-hd.bn-s { background: #fef3c7; color: #b45309; }
+.bn-grp-hd.bn-a { background: #ecfeff; color: #0E7490; }
+.bn-grp-hd.bn-b { background: #f1f5f9; color: #475569; }
+.bn-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.bn-card { background: #fff; border: 1px solid #eef2f7; border-left: 4px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; }
+.bn-card.bn-s { border-left-color: #d97706; }
+.bn-card.bn-a { border-left-color: #0E7490; }
+.bn-card.bn-b { border-left-color: #94a3b8; }
+.bn-card-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.bn-rating { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  border-radius: 5px; font-size: 12px; font-weight: 800; color: #fff; }
+.bn-rating.s { background: #d97706; }
+.bn-rating.a { background: #0E7490; }
+.bn-rating.b { background: #64748b; }
+.bn-rating.sm { font-size: 11px; min-width: 18px; height: 18px; }
+.bn-seg { font-size: 14px; font-weight: 600; color: #0f172a; }
+.bn-layer-tag { font-size: 11px; color: #94a3b8; margin-left: auto; }
+.bn-dims { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+.bn-dim { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.bn-dim.red { background: #fee2e2; color: #b91c1c; }
+.bn-dim.green { background: #dcfce7; color: #15803d; }
+.bn-thesis { font-size: 12.5px; color: #334155; line-height: 1.55; margin-bottom: 6px; }
+.bn-pc { display: flex; flex-direction: column; gap: 2px; font-size: 12px; margin-bottom: 6px; }
+.bn-pro { color: #15803d; }
+.bn-con { color: #b91c1c; }
+.bn-cands { font-size: 11.5px; color: #64748b; }
+.bn-cands code, .bn-name ~ code, code { background: #f1f5f9; border-radius: 4px; padding: 1px 5px; font-size: 11.5px; color: #0E7490; }
+
+/* 排名表 */
+.bn-tb { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.bn-tb th { background: #f8fafc; color: #64748b; font-weight: 600; text-align: left; padding: 7px 8px; border-bottom: 1px solid #e2e8f0; }
+.bn-tb td { padding: 7px 8px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.bn-tb .num { text-align: right; font-variant-numeric: tabular-nums; }
+.bn-row { cursor: pointer; transition: background .12s; }
+.bn-row:hover { background: #f0f9ff; }
+.bn-name { font-weight: 600; color: #0f172a; }
+.bn-seg-cell { font-size: 11.5px; }
+.bn-signal { color: #d97706; letter-spacing: 1px; }
+.bn-signal-off { color: #e2e8f0; }
+.bn-light { display: inline-block; min-width: 18px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 1px 6px; }
+.bn-light.red { background: #fee2e2; color: #b91c1c; }
+.bn-light.yellow { background: #fef3c7; color: #b45309; }
+.bn-light.green { background: #dcfce7; color: #15803d; }
+.bn-margin { font-size: 11px; }
+.bn-tip { margin-top: 6px; font-size: 11.5px; }
+
+/* 告警 */
+.bn-warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 14px 16px; margin: 10px 0; }
+.bn-warn-title { font-weight: 700; color: #c2410c; margin-bottom: 6px; }
+.bn-warn-body { font-size: 13px; color: #9a3412; }
+
+/* 抽屉 */
+.bn-drawer-mask { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; justify-content: flex-end; z-index: 9999; }
+.bn-drawer { width: 460px; max-width: 92vw; height: 100%; background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; animation: bnSlide .18s ease-out; }
+@keyframes bnSlide { from { transform: translateX(30px); opacity: .4; } to { transform: none; opacity: 1; } }
+.bn-drawer-hd { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #eef2f7; font-size: 16px; }
+.bn-drawer-hd .bn-close { margin-left: auto; border: none; background: #f1f5f9; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; color: #475569; font-size: 14px; }
+.bn-drawer-hd .bn-close:hover { background: #e2e8f0; }
+.bn-drawer-body { padding: 14px 16px; overflow-y: auto; }
+.bn-dsec { margin-bottom: 14px; }
+.bn-dsec h4 { font-size: 13px; color: #0E7490; margin: 0 0 4px; }
+.bn-dsec p { font-size: 13px; color: #334155; line-height: 1.6; margin: 0; }
+.bn-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bn-red { color: #b91c1c; font-size: 12.5px; }
+.bn-yellow { color: #b45309; font-size: 12.5px; }

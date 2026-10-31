@@ -127,10 +127,14 @@ def _env_weight(con: sqlite3.Connection) -> tuple:
     """
     base = R._load_weights(con)
     mkt = ""
+    mkt_basis = "unknown"
     try:
-        r = con.execute("SELECT state FROM market_state_log "
-                        "ORDER BY trade_date DESC LIMIT 1").fetchone()
-        mkt = (r["state"] or "") if r else ""
+        # 2026-10-30 P1-a：这里**只报告**来源，不改变"按 state 挑权重"的行为。
+        from viewer import state_basis as _SB
+        _last = _SB.latest(con)
+        if _last:
+            mkt = (_last.get("state") or "")
+            mkt_basis = _last.get("basis") or "unknown"
     except Exception:  # noqa: BLE001
         mkt = ""
 
@@ -173,7 +177,16 @@ def _env_weight(con: sqlite3.Connection) -> tuple:
     for k in ("strategy", "senti", "engine"):
         w[k] = max(0.0, float(w.get(k) or 0.0)) / total
     w["blogger"] = 0.0
-    snap = {"w": w, "src": src, "mkt": mkt, "fit_date": base.get("fit_date", "")}
+    snap = {"w": w, "src": src, "mkt": mkt, "fit_date": base.get("fit_date", ""),
+            # 2026-10-30 P1-b 埋点（**只报告，不改取权重行为**）：
+            #   `evo_weight.by_state_json` 里那套 per-state 权重是用 evolve 的 y 口径学的，
+            #   而 evolve 的 y 固定是「次日买入、持 5 日」的超额（evolve.py:306-322）。
+            #   本函数选票也留 T+5 结算窗口，两者目前一致。把这件事写进快照，
+            #   是为了以后改口径时**先有证据**，而不是先改行为。
+            "mkt_basis": mkt_basis,
+            "fit_horizon": E.FIT_HORIZON,
+            "pick_horizon": 5,
+            "horizon_match": (E.FIT_HORIZON == 5)}
     return w, mkt, src, json.dumps(snap, ensure_ascii=False)
 
 
@@ -503,9 +516,12 @@ def build_history(con: sqlite3.Connection, bars: dict | None = None,
     w, mkt, wsrc, wsnap = _env_weight(con)
     rules = _adopted_rules(con)
     mkt_by_day = {}
+    basis_of = {}
     try:
-        for r in con.execute("SELECT trade_date, state FROM market_state_log"):
-            mkt_by_day[r["trade_date"]] = r["state"] or ""
+        from viewer import state_basis as _SB
+        for x in _SB.rows(con):
+            mkt_by_day[x["trade_date"]] = x["state"] or ""
+            basis_of[x["trade_date"]] = x["basis"]
     except Exception:  # noqa: BLE001
         pass
 

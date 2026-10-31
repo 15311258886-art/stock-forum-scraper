@@ -1445,9 +1445,39 @@ function pdRenderRows(arr, maxPosts) {
     const cls = pdBadgeCls(x.verdict_key);
     const wp = Math.round((x.pos || 0) / x.posts * 100);
     const wn = Math.round((x.neg || 0) / x.posts * 100);
-    const quotes = (x.quotes || []).map((q) =>
+    const qHtml = (q) =>
       `<div class="pd-q"><span class="badge ${pdBadgeCls(q.label === "看多" ? "bull" : q.label === "看空" ? "bear" : "neu")}">${esc(q.label)}</span> ` +
-      `<b>${esc(q.author)}</b> <span class="s">${esc(q.time || "")}</span>：${esc(q.text)}${esc((x.text_len || "") ? "" : "…")}</div>`).join("");
+      `<b>${esc(q.author)}</b> <span class="s">${esc(q.time || "")}</span>：${esc(q.text)}${esc((x.text_len || "") ? "" : "…")}</div>`;
+    // 2026-10-31 版面去噪：引文原来一次铺 4 条（每行 60+ 字），一屏只放得下两只票。
+    // 默认给 2 条，其余折叠 —— 结论区不动，只是不再让"样例"淹没"结论"。
+    const qAll = x.quotes || [];
+    const quotes = qAll.slice(0, 2).map(qHtml).join("") +
+      (qAll.length > 2
+        ? `<details class="pd-qmore"><summary>还有 ${qAll.length - 2} 条原始引文</summary>${qAll.slice(2).map(qHtml).join("")}</details>`
+        : "");
+    // 后端的 summary 是「近24小时有 32 帖点名宁德时代（300750），属电气设备，看多 0、看空 0、
+    // 中立 32 → 结论「中立」…；在说的理由：…」—— 名称/代码/板块/多空计数/结论在上面的 head
+    // 与进度条里已经各显示一次，这里只留真正增量信息「在说的理由」。
+    // 前缀识别失败（后端换了措辞）就整段保留，绝不吃掉内容。
+    // 后端现在直接给 reason（结构化）。有它就只显示理由；没有（空串）就**整段不显示** ——
+    // 因为「N 帖点名 / 名称代码 / 板块 / 多空计数 / 结论」在卡片头、进度条、结论徽章里
+    // 已经各显示一次，再复述一遍就是同页第三次说同一件事。
+    // 老接口没有 reason 字段时，回退到从 summary 里截「在说的理由」，再不行整段保留。
+    const sumRaw = String(x.summary || "");
+    // 后端的结构化字段是 reasons（数组，_mini 已算好），不是 reason。
+    const rArr = Array.isArray(x.reasons) ? x.reasons.filter(Boolean) : null;
+    const mReason = sumRaw.match(/在说的理由[：:]\s*([\s\S]+)$/);
+    const reasonOnly = rArr !== null
+      ? rArr.join("、").trim()
+      : (Object.prototype.hasOwnProperty.call(x, "reason")
+          ? String(x.reason || "").trim()
+          : (mReason ? mReason[1].trim() : null));
+    const sumTxt = reasonOnly === null ? sumRaw : reasonOnly;
+    const sumCls = "pd-sum pd-sum-reason";
+    // 理由为空 = 这批帖子里没有可提取的方向性理由（多为"顺口提到"），此时不占一行留白。
+    const sumHtml = sumTxt
+      ? `<div class="${sumCls}">${reasonOnly !== null ? '<i class="pd-why">理由</i>' : ""}${esc(sumTxt)}</div>`
+      : "";
     // 2026-10-02 王总反馈「帖子里的股票代码点不动，我还得自己去找个股查询」。
     // 名称/代码都走全站通用的 codeLink（data-code-open → 个股详情抽屉，自动加载完所有结果，
     // 不用再点「开始查询 / 开始诊断」那一下）。
@@ -1462,7 +1492,7 @@ function pdRenderRows(arr, maxPosts) {
         <span class="pd-cnt">${x.posts} 帖</span>
       </div>
       <div class="pd-bar"><span class="pd-bull" style="width:${wp}%"></span><span class="pd-bear" style="width:${wn}%"></span></div>
-      <div class="pd-sum">${esc(x.summary || "")}</div>
+      ${sumHtml}
       ${quotes ? `<div class="pd-quotes">${quotes}</div>` : ""}
     </div>`;
   }).join("");
@@ -1477,8 +1507,17 @@ function renderPostDigest(pd, posts) {
   const boards = pd.boards || [];
   const stocks = pd.stocks || [];
   const maxPosts = Math.max(1, ...boards.map((b) => b.posts || 0), ...stocks.map((s) => s.posts || 0));
-  const rows = pdRenderRows(stocks, maxPosts);
-  const brows = pdRenderRows(boards, maxPosts);
+  // 2026-10-31 版面去噪：本页实测 10,577 字 / 9,404px —— 每只票 6 行（徽章+进度条+理由+2 条引文），
+  //   几十只票平铺下来就是 10 屏。结论（总论+Top 几只）在首屏，长尾收进折叠，别让"被提到过的票"
+  //   把"今天情绪怎么样"这个结论挤到看不见。
+  const STOCK_FOLD = 8, BOARD_FOLD = 6;
+  const rows = pdRenderRows(stocks.slice(0, STOCK_FOLD), maxPosts);
+  const rowsRest = pdRenderRows(stocks.slice(STOCK_FOLD), maxPosts);
+  const brows = pdRenderRows(boards.slice(0, BOARD_FOLD), maxPosts);
+  const browsRest = pdRenderRows(boards.slice(BOARD_FOLD), maxPosts);
+  const fold = (n, inner, label) => n > 0
+    ? `<details class="pd-more"><summary>另外 ${n} ${label}（点开看）</summary><div class="pd-list">${inner}</div></details>`
+    : "";
   const rowsHtml = (s) => (s || "<div class='pd-none'>这一层暂时没有可归纳的样本</div>");
   const det = toArr(posts).map((p) =>
     `<tr data-kind="post" data-id="${escAttr(p.id)}"><td>${esc(p.author)}</td><td>${esc(fmtTimeText(p.post_time, "—"))}</td><td>${sentBadge(p.sentiment)}</td><td>${esc(p.text || "").slice(0, 60)}…</td></tr>`).join("");
@@ -1492,12 +1531,12 @@ function renderPostDigest(pd, posts) {
     </div>
 
     ${stocks.length ? `
-    <div class="pd-sec">按个股（谁在被聊、聊出来是看涨还是看跌）</div>
-    <div class="pd-list">${rowsHtml(rows)}</div>` : ""}
+    <div class="pd-sec">按个股（谁在被聊、聊出来是看涨还是看跌）<span class="pd-sec-n">共 ${stocks.length} 只，列前 ${Math.min(STOCK_FOLD, stocks.length)} 只</span></div>
+    <div class="pd-list">${rowsHtml(rows)}${fold(stocks.length - STOCK_FOLD, rowsRest, "只")}</div>` : ""}
 
     ${boards.length ? `
-    <div class="pd-sec">按行业 / 板块</div>
-    <div class="pd-list">${rowsHtml(brows)}</div>` : ""}
+    <div class="pd-sec">按行业 / 板块<span class="pd-sec-n">共 ${boards.length} 个，列前 ${Math.min(BOARD_FOLD, boards.length)} 个</span></div>
+    <div class="pd-list">${rowsHtml(brows)}${fold(boards.length - BOARD_FOLD, browsRest, "个板块")}</div>` : ""}
 
     ${pd.general ? `<div class="pd-gen">${esc(pd.general.summary || "")}</div>` : ""}
 
@@ -3214,13 +3253,21 @@ function renderSentiment(d) {
     <!-- 2026-10-20 进哥：情绪板块里给豆包单独立框 + 在情绪地图上标出来源。
          为什么强调「不混算」：豆包整理的这 69 条是**观点语料**（博主在讲板块/大盘），
          而下方 bars 与情绪地图是**逐帖多空标注**计数（淘股吧/东财帖子）。
-         两者口径不同，合成一个数会让"看多多少"变得既不可解释也不可复现。 -->
+         两者口径不同，合成一个数会让"看多多少"变得既不可解释也不可复现。
+         2026-10-31 去重：这段口径原来以 2 行常驻（占本页说明文字 39%），而下方标题
+         「来源：论坛帖子」已经在说同一件事。改为一行 + 折叠 —— **「不混算」这条隔离
+         声明一个字没删**，只是默认不占版面。 -->
     <div class="dy-src-legend">
       <span class="dy-src">豆包整理</span>
-      <span>本页情绪有<b>两个来源</b>：上方「豆包舆情」框 = 豆包整理的博主观点；下方多空计数与情绪地图 = 论坛帖子实际看多看空。二者<b>不混算</b>。</span>
+      <span>本页情绪有<b>两个来源</b>，且<b>不混算</b>。</span>
+      <details class="dy-src-more"><summary>两个来源分别是什么</summary>
+        <div class="dy-src-txt">上方「豆包舆情」框 = 豆包整理的博主观点；下方多空计数与情绪地图 =
+          论坛帖子实际看多看空，<b>不含豆包整理内容</b>。两者口径不同，合成一个数会让「看多多少」
+          既不可解释也不可复现，因此始终分开显示、不做加权合并。</div>
+      </details>
     </div>
     <div class="bars" style="margin-bottom:16px">${bars}</div>
-    <h3 style="margin:6px 0 10px">情绪地图（按股票聚合多空 · 来源：论坛帖子，不含豆包整理内容）</h3>
+    <h3 style="margin:6px 0 10px">情绪地图（按股票聚合多空 · 来源：论坛帖子）</h3>
     ${stockLegend(d)}
     ${missing > 0 ? `<div class="hint" style="margin-bottom:12px">有 <b>${missing}</b> 个代码未取到名称（多为冷门标的或网络未连通）。可点上方「补全股票名称」联网查询；也可在 <code>config/stock_names.yaml</code> 中手工补充，格式：<code>600519: [贵州茅台, 贵州茅台酒股份有限公司]</code>。</div>` : ""}
     <div class="grid">${map || "<div class='empty'>暂无情绪分布</div>"}</div>`;
@@ -3811,7 +3858,19 @@ function loadHotspots() {
 }
 
 function loadToday() {
-  return api("/api/today_decision").then((d) => { TODAY.data = d; renderToday(); });
+  // 2026-10-31：后端 /api/today_decision 改为「先给上次算好的结果（_stale）+ 后台重算」
+  // （现场实测冷算 52~57s、热态 16.8s，用户不能为这个面板干等）。
+  // 照 loadDashboard 的既有写法提示一次：必须让他知道「眼前这份是几分钟前的快照」，
+  // 否则旧数据会被当成实时行情看。文案不说「自动更新」（本页没有对该接口的轮询），
+  // 只说「稍后刷新即为最新」，这样不管用户是点刷新还是重新进面板，话都站得住。
+  return api("/api/today_decision").then((d) => {
+    TODAY.data = d;
+    renderToday();
+    if (d && d._stale) {
+      const m = Math.max(1, Math.round((d._cache_age || 0) / 60));
+      showToast(`今日决策：先显示 ${m} 分钟前的快照，后台正在重算，稍后刷新即为最新。`);
+    }
+  });
 }
 function tdPct(v) { return v == null ? "—" : fmtPct(v); }
 function tdCls(v) { return v == null ? "" : (v >= 0 ? "bull" : "bear"); }
@@ -3834,6 +3893,13 @@ function tdTimepointOf(d) {
   if (d.generated_at) parts.push("生成于 " + d.generated_at);
   // 两者皆无：返回空串 → dataUnitMeta 自动渲染「时点未知」，不写"今日"/"最新"
   return parts.join(" · ");
+}
+
+/* ---- 1.1b 短时点（2026-10-31 版面去噪）：卡头只留「数据日 X」这个真正影响判断的信号，
+   "收盘后 / 生成于 HH:MM:SS" 进悬停与 ⓘ —— 每张卡都重复一遍生成时刻，看完等于没看。 ---- */
+function tdShortTimepointOf(d) {
+  d = d || {};
+  return d.data_date ? "数据日 " + d.data_date : "";
 }
 
 /* ---- 1.2 行/卡可信度档位判定（official=官方/交易所级；community=社区统计级；model=模型推断级） ---- */
@@ -3885,14 +3951,18 @@ function tdHistoryBackground(d) {
   const dd = d.data_date ? String(d.data_date).slice(0, 10) : "—";
   // 历史区块：仅当后端给的 data_date 落后于今天才渲染，并用 data-historical 属性标记，
   // 供审计/样式把「历史背景」与「今日」严格区分开，旧数据绝不混入今日判词。
+  // 2026-10-31 版面去噪：原为 3 行常驻说明（101px），实质只有一句「这份数据不是今天的」。
+  //   改为一行常驻 + 折叠详情 —— A2 硬隔离标记（data-historical）与全部说明文字一字未减，
+  //   只是默认收起。审计仍可读到，读者不必每次先读三行免责。
   return `
-    <section class="hist-bg" data-historical="true" aria-label="历史区块">
-      <div class="hist-hd"><b>历史背景</b><span class="hist-tag">非今日数据 · 与今日结论严格隔离</span></div>
+    <details class="hist-bg hist-fold" data-historical="true" aria-label="历史区块">
+      <summary><b>历史背景</b><span class="hist-tag">数据日 ${esc(dd)} · 非今日</span>
+        <span class="hist-fold-hint">旧数据已与今日结论隔离，点开看说明</span></summary>
       <div class="hist-txt">本页「今日决策」基于数据日 <b>${esc(dd)}</b> 生成，早于当前日期，属历史背景。
         以下内容只描述截至 ${esc(dd)} 的存量状态，不代表今日实时状态；今日结论请等数据刷新后再看。</div>
       <div class="hist-note">已触碰 A2 新鲜度硬隔离：历史背景区块独立成区，旧数据不会混入「今日」判词，
         也不会在「数据截至」之外伪装成最新消息。</div>
-    </section>`;
+    </details>`;
 }
 
 /* ---- 1.4 结论条（今日一句话）四要素 meta：全部真实字段 → 缺失时透传空串 ---- */
@@ -3907,6 +3977,7 @@ function tdTodayVerdictMeta(d) {
       ? ""
       : "sector_chain / lhb_sector_focus / pillar_item / lhb_stocks（后端聚合）",
     timepoint: tdTimepointOf(d),
+    tpShort: tdShortTimepointOf(d),
     caliber: d.basis
       ? "方向=主线研判；机会=可推进/四支柱入选；风险=净流出+情绪；详见下方口径说明"
       : "",
@@ -3916,6 +3987,9 @@ function tdTodayVerdictMeta(d) {
 }
 
 /* ---- 1.5 四张卡片（方向/机会/风险/我的票）卡头四要素 meta ---- */
+/* 2026-10-31 版面去噪：src 文案本身也削短了 —— 原来那句
+   "sector_chain 主线梯队 / pillar_item 四支柱入选（政策漏斗/超跌修复/竞价冲浪）"
+   在 571px 宽的卡里要折 3 行，读者看到的是路径而不是结论。完整出处仍在悬停与 ⓘ 里。 */
 function tdCardMeta(kind, d) {
   d = d || {};
   const M = {
@@ -3924,11 +3998,11 @@ function tdCardMeta(kind, d) {
       cal: "净买额单位：亿元；评分=资金40%+龙头30%+覆盖20%+梯队10%",
     },
     opportunity: {
-      src: "sector_chain 主线梯队 / pillar_item 四支柱入选（政策漏斗/超跌修复/竞价冲浪）",
+      src: "sector_chain 主线梯队 / pillar_item 四支柱",
       cal: "主线可推进名单；预测核心无当日涨跌幅时以 note 说明",
     },
     risk: {
-      src: "lhb_sector_focus / lhb_stocks / postdigest 近24h情绪",
+      src: "lhb_sector_focus / lhb_stocks / postdigest",
       cal: "板块净流出与个股净卖出单位：亿元；情绪为近24h帖子统计",
     },
     watch: {
@@ -3941,6 +4015,7 @@ function tdCardMeta(kind, d) {
   return {
     source: m.src,
     timepoint: tdTimepointOf(d),
+    tpShort: tdShortTimepointOf(d),
     caliber: m.cal,
     trust: t.trust,
     trustNote: t.trustNote,
@@ -4453,10 +4528,12 @@ function renderToday() {
   const codeA = (code, name) => codeLink(code, { text: name || code, cls: "td-sym" });
 
   // [改点 1] 卡片 meta 预构造：传空 meta 的 d 缺失场景由组件自动降级（来源缺失/时点未知/待明确/未知）
-  const dirMeta   = dataUnitBadge(tdCardMeta("direction", d));
-  const oppMeta   = dataUnitBadge(tdCardMeta("opportunity", d));
-  const riskMeta  = dataUnitBadge(tdCardMeta("risk", d));
-  const watchMeta = dataUnitBadge(tdCardMeta("watch", d));
+  // 2026-10-31：四要素改用 compact 档 —— 卡头只留「数据日 + 可信度 + ⓘ」，
+  //   来源/口径退进悬停与 ⓘ 弹层（信息不减，版面不再被路径字符串占满）。
+  const dirMeta   = dataUnitBadge(tdCardMeta("direction", d), { compact: true });
+  const oppMeta   = dataUnitBadge(tdCardMeta("opportunity", d), { compact: true });
+  const riskMeta  = dataUnitBadge(tdCardMeta("risk", d), { compact: true });
+  const watchMeta = dataUnitBadge(tdCardMeta("watch", d), { compact: true });
 
   // ① 方向（资金主攻 + 龙头 + 阶段判词）
   const dirHtml = dirs.length ? dirs.map((x, i) => `
@@ -4502,7 +4579,7 @@ function renderToday() {
     <div class="td-verdict tone-${escAttr(tone)}" data-historical="${_tdHist ? "true" : "false"}">
 <span class="td-v-tag">今日一句话</span>
       <b class="td-v-text">${esc(d.verdict || "—")}</b>
-      <span class="td-v-meta">${dataUnitMeta(tdTodayVerdictMeta(d))}</span>
+      <span class="td-v-meta">${dataUnitMeta(tdTodayVerdictMeta(d), { compact: true, keepTime: true })}</span>
     </div>
     <div class="td-grid" data-historical="${_tdHist ? "true" : "false"}">
       <div class="td-card td-c-dir">
@@ -4526,8 +4603,16 @@ function renderToday() {
         <div class="td-foot"><a href="#watch/watch_alerts" onclick="selectNav('watch','watch_alerts',true);return false;">展开「到价提醒」 ›</a></div>
       </div>
     </div>
-    <div id="td-quant-ref" class="td-quant-ref"></div>
-    <div id="td-etf-fusion" class="td-etf-fusion"></div>
+    <!-- 2026-10-31 版面去噪：量化信号条 + ETF 融合条原本与四卡**平铺并列**，
+         各自 108px/178px，读起来像"还有五张卡"，主次被打乱。
+         二者性质相同 —— 都是别的面板的同源摘要（旁证），故收进一个默认折叠的「旁证」区：
+         summary 上写明有哪几条，点开才是细节。数据照常加载（渲染进 DOM 才折叠，不影响取数）。 -->
+    <details class="td-evidence">
+      <summary><b>旁证</b><span class="td-ev-name">量化信号 · ETF资金流 · 跨境传导 · 宽基仓位 · 信息面</span>
+        <span class="td-ev-hint">与上面四卡同源，展开看细节</span></summary>
+      <div id="td-quant-ref" class="td-quant-ref"></div>
+      <div id="td-etf-fusion" class="td-etf-fusion"></div>
+    </details>
     <details class="td-basis"><summary>口径说明（这些结论是怎么来的）</summary><div class="td-basistxt">${esc(d.basis || "")}</div></details>
   `;
   renderQuantRefMount();
@@ -4698,7 +4783,10 @@ function renderBrief(kind) {
       (x.sectors.length ? `影响板块：${x.sectors.slice(0, 6).map((s) => esc(s)).join("、")}` : "")
         + (x.note ? (x.sectors.length ? " · " : "") + esc(x.note) : "")
         + (toArr(x.symbols).length ? " · " + toArr(x.symbols).slice(0, 4).map((s) => briefSym(s.code, s.name)).join(" ") : ""),
+      // 2026-10-31 去重：国际条目只给「发生了什么」，研判结论留在「国际局势」面板，
+      //   这里给一个跳转（同一段 decision 原本在两个面板逐字出现两遍）。
       esc(x.tag) + (x.date ? `<br>${esc(x.date)}` : "")
+        + (x.link ? `<br><a class="bf-goto" data-goto="${escAttr(x.link)}" href="#${escAttr((catOf(x.link) || {}).key || "overseas")}/${escAttr(x.link)}">看研判 →</a>` : "")
     )).join("");
     const body = (d.stale_warn ? `<div class="bf-warn">⚠️ ${esc(d.stale_warn)}</div>` : "")
       + briefSec("影响板块 · 被最多消息点到", `${secs.length} 个`,
@@ -4708,6 +4796,10 @@ function renderBrief(kind) {
       + briefSec("各源数据日", "时效自查（陈旧源不会混进 Top）",
           `<div class="bf-freshrow">${toArr(d.freshness).map((f) => `<span class="bf-fresh">${esc(f.label)} <b>${esc(f.latest)}</b></span>`).join("")}</div>`, "—");
     box.innerHTML = briefShell(verdict, `窗口 ${d.window_hours} 小时 · 生成于 ${esc(d.generated_at)}`, body, d.basis);
+    // 「看研判 →」：跳到该条消息的完整研判面板（分类由 showTab 自己查，不写死 #overseas/）
+    $$(".bf-goto", box).forEach((a) => {
+      a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.goto); };
+    });
     return;
   }
 
@@ -4853,22 +4945,28 @@ function renderDashboard() {
   const focus = ml.focus || [];
 
   // ---- 重点方向（置顶，单列出来，用颜色标出） ----
+  /* 2026-10-31 版面去重：这条"重点方向"条原来每项都重复写「净买 X 亿 · 龙头 Y · 评分 Z」，
+     而这些字段在下面每张主线卡的卡头（ml-stats / 龙头行）里都有 —— 同一组数字在一屏里出现两次。
+     现在它退化成**目录**：只留排名 + 板块名 + 评级，点一下滚到对应主线卡。 */
   const focusHtml = focus.length ? `
     <div class="ml-focus">
-      <div class="ml-focus-t">今日重点方向 · 建议优先跟踪</div>
+      <div class="ml-focus-t">今日重点方向 · 点一下跳到对应主线</div>
       <div class="ml-focus-list">
-        ${focus.map((f, i) => `
-          <span class="ml-focus-item lv-${escAttr(f.level || "hot")}">
+        ${focus.map((f, i) => {
+          const j = rows.findIndex((r) => r.sector === f.sector);
+          return `
+          <span class="ml-focus-item lv-${escAttr(f.level || "hot")}${j >= 0 ? " ml-focus-jump" : ""}"
+                ${j >= 0 ? `role="button" tabindex="0" data-jump="mlc-${j}" title="跳到「${escAttr(f.sector)}」主线卡"` : ""}>
             <b class="ml-focus-rank">${i + 1}</b>
             <span class="ml-focus-name">${esc(f.sector)}</span>
-            <span class="ml-focus-meta">净买 ${f.net_yi} 亿 · 龙头 ${esc(f.leader_name || "—")} · 评分 ${f.score}</span>
-          </span>`).join("")}
+          </span>`;
+        }).join("")}
       </div>
       <div class="ml-focus-note">判定依据：资金净买居前 + 龙头封板 + 同题材多点上榜 + 分支延伸度。仅为方向参考，非买卖建议。</div>
     </div>` : "";
 
   // ---- 每条主线一张卡 ----
-  const card = (m) => {
+  const card = (m, i) => {
     const lv = m.level || "cool";
     const leader = m.leader_code ? `
       <div class="ml-row">
@@ -4902,7 +5000,7 @@ function renderDashboard() {
       </div>` : "";
 
     return `
-      <div class="ml-card lv-${escAttr(lv)}">
+      <div class="ml-card lv-${escAttr(lv)}" id="mlc-${i}">
         <div class="ml-head">
           <span class="ml-rating lv-${escAttr(lv)}">${esc(m.rating || "观察")}</span>
           <b class="ml-sector">${esc(m.sector)}</b>
@@ -4935,16 +5033,20 @@ function renderDashboard() {
 
   box.innerHTML = `
     ${renderAuctionBlock(d.auction)}   <!-- 2026-10-01 集合竞价：开盘前第一眼看的情绪，放整屏最上面 -->
-    <div class="td-verdict"><span class="td-v-tag">结论</span>
-      <b class="td-v-text">${dashVerdict}</b>
-      <span class="td-v-meta">数据截至 ${esc(ml.date || "—")}</span></div>
-    <div class="hint" style="margin-bottom:12px">
-      <b>主线研判</b> —— 不列涨停榜，只答三件事：<b>资金在哪个方向</b> · <b>谁是龙头</b> · <b>同链条里谁还没动</b>。
-      ${dataDayBadge(ml.date)}<span class="dd-note">数据截至 <b>${esc(ml.date || "—")}</b>（生成于 ${esc(d.generated_at || "—")}）。</span>
-      <b>方向参考，非买卖建议</b>。
+    <!-- 2026-10-31 版面去重：原来这里是「大号结论条（td-verdict）」+「五行版面说明（hint）」两层，
+         而"资金主攻 X（净买 Y 亿）"这句在「今日决策」的一句话和 ① 方向卡里已经说过两遍，
+         同一句话在三个地方以三种字号出现 —— 这正是进哥说的"重叠重复"。
+         本页的不可替代内容是**每条主线的龙头/梯队/分支明细**，故结论压成一行、说明收进折叠。 -->
+    <div class="dash-lead">
+      <span class="dash-lead-k">主线研判</span>
+      <b class="dash-lead-v">${dashVerdict}</b>
+      <span class="dash-lead-m">${dataDayBadge(ml.date)}生成于 ${esc(d.generated_at || "—")} · 方向参考，非买卖建议</span>
     </div>
+    <details class="dash-note"><summary>这一页在回答什么</summary>
+      不列涨停榜，只答三件事：<b>资金在哪个方向</b> · <b>谁是龙头</b> · <b>同链条里谁还没动</b>。
+      与「今日决策」的分工：决策页给一句话与四张卡，本页只展开主线内部结构。</details>
     ${focusHtml}
-    ${rows.length ? rows.map(card).join("") : `<div class="empty">暂无主线数据。请先运行 sector_chain.py 生成。</div>`}
+    ${rows.length ? rows.map((m, i) => card(m, i)).join("") : `<div class="empty">暂无主线数据。请先运行 sector_chain.py 生成。</div>`}
 
     <div class="detail-sub" style="margin-top:20px">牛散共识 —— 共 <b>${con.star_count == null ? "—" : con.star_count}</b> 位牛散（跨≥2只股票），多方同持：</div>
     ${coholdRows ? `<table><thead><tr><th>个股</th><th class="num">同持牛散</th><th>名单</th></tr></thead><tbody>${coholdRows}</tbody></table>` : `<div class="empty">暂无协同持股</div>`}
@@ -4955,6 +5057,19 @@ function renderDashboard() {
 
   $$("#p-dashboard .kline-chip[data-sym]").forEach((el) => {
     el.onclick = () => openStock(el.dataset.sym, el);
+  });
+
+  /* 重点方向的目录项：点一下滚到对应主线卡（页面长的时候不用自己找） */
+  $$("#p-dashboard .ml-focus-jump").forEach((el) => {
+    const go = () => {
+      const t = document.getElementById(el.dataset.jump);
+      if (!t) return;
+      t.scrollIntoView({ behavior: "smooth", block: "center" });
+      t.classList.add("ml-card-flash");
+      setTimeout(() => t.classList.remove("ml-card-flash"), 1200);
+    };
+    el.onclick = go;
+    el.onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); go(); } };
   });
 
   /* 分支标签点开 = 展开「都有谁 / 谁在买 / 谁在说 / 怎么判断」——
@@ -6101,7 +6216,7 @@ function renderOverseasSentiment(d) {
     const srcs = toArr(m.sources).map((s) => `<span class="ov-driver">${esc(s)}</span>`).join(" ");
     return `<div class="ov2-move ${dc}">
       <div class="ov2-move-hd"><span class="ov-hs-idx">#${i + 1}</span><b${m.title_en ? ` title="原文：${escAttr(m.title_en)}"` : ""}>${esc(m.title)}</b><span class="ov2-move-regs">${regs}</span></div>
-      <div class="ov2-move-meta"><span class="ov-hs-dir-badge ${dc}">${esc(m.direction || "")}</span><span class="chip-s">热度 ${m.heat}</span>${m.confidence != null ? `<span class="chip-s">置信 ${m.confidence}</span>` : ""}${m.amp != null ? `<span class="chip-s">放大 ${m.amp}</span>` : ""}</div>
+      <div class="ov2-move-meta"><span class="ov-hs-dir-badge ${dc}">${esc(m.direction || "")}</span><span class="chip-s">热度 ${m.heat}</span>${toArr(m.sources).length ? credChip(toArr(m.sources).length) : ""}${m.amp != null ? `<span class="chip-s">放大 ${m.amp}</span>` : ""}</div>
       ${syms ? `<div class="ov2-move-row"><span class="s">关联海外标的：</span>${syms}</div>` : ""}
       <div class="ov2-move-row"><span class="s">驱动源(国外)：</span>${srcs || "—"}</div>
     </div>`;
@@ -6254,10 +6369,88 @@ function hotspotForecast(h) {
     <div class="ov-hs-fc-groups">${group(upD, "up", "可能上涨")}${group(dnD, "down", "可能下跌")}</div></div>`;
 }
 
+/* 按句切分（保留句末标点），只留够长的句子 —— 太短的不算"重复结论" */
+function _sentSplit(t) {
+  const out = [], s = String(t || "");
+  let cur = "";
+  for (let i = 0; i < s.length; i++) {
+    cur += s[i];
+    if ("。！？；".indexOf(s[i]) >= 0) { if (cur.trim()) out.push(cur.trim()); cur = ""; }
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out.filter((x) => x.length >= 8);
+}
+/* 公共句提取：在 N 段文本里反复出现的那几句，就是"共性判断"，不该逐张卡复读。
+   判据（2026-10-31 按实测分布定，不是拍脑袋）：**≥3 张卡共享 且 覆盖 ≥20%**。
+   为什么不按 60%：实测最高重复只有 4/17=23%（「因国外舆情转弱，建议降低仓位」），
+   按过半阈值会一条都提不出来 —— 而它确实是共性判断，不是某条事件特有。
+   为什么不按 2 次：2 次可能只是措辞撞车（如"结构性分化：做多 券商、黄金"），提上去反而丢信息。 */
+function commonSentences(texts, minHit, minRatio) {
+  const arr = toArr(texts).map((t) => _sentSplit(t));
+  const n = arr.filter((x) => x.length).length;
+  if (n < 3 || n < (minHit || 3)) return [];
+  const cnt = new Map();
+  arr.forEach((sents) => { new Set(sents).forEach((s) => cnt.set(s, (cnt.get(s) || 0) + 1)); });
+  const out = [];
+  cnt.forEach((c, s) => {
+    if (c < (minHit || 3) || c / n < (minRatio || 0.2)) return;
+    if (/\d/.test(s)) return;   // 含具体数字的句子（"确定性 0.75…"）是数值撞车，不是共性
+    out.push(s);
+  });
+  return out.sort((a, b) => b.length - a.length);   // 长句优先剥，避免短句先剥后长句残缺
+}
+
+/* 拆开 _decision() 拼的尾部元信息：「确定性 0.75，情绪放大 1.6 倍（强共振/情绪放大）。」
+   这两个数卡片头已经各自显示一遍（放大系数 / 置信），再在结论里复述一次就是纯冗余；
+   但「强共振 / 温和放大 / 传导偏弱」是定性命名的判断，**不能丢**，移到头部去。 */
+/* 结论尾部的元信息剥离（D48，2026-10-31）。
+   后端已不再往结论里拼「确定性 0.75」——那是人工填的 base + 0.03×条数，属于伪精度。
+   这里同时兼容库里尚未重算的历史文本（旧格式带「确定性 X，」前缀），
+   并单独把「情绪放大 X 倍（强共振 / 温和放大 / 传导偏弱）」这句定性判断剥出来，
+   挪到卡片头放大系数旁显示——结论正文只留方向与主攻/回避。 */
+const HOT_TAIL_OLD_RE = /确定性\s*[\d.]+\s*[，,]\s*情绪放大\s*[\d.]+\s*倍（([^）]*)）。?/;
+const HOT_TAIL_RE = /情绪放大\s*[\d.]+\s*倍（([^）]*)）。?/;
+function splitHotDecision(dec) {
+  const s = String(dec || "");
+  const m = s.match(HOT_TAIL_OLD_RE) || s.match(HOT_TAIL_RE);
+  return { body: (m ? s.replace(m[0], "") : s).trim(), ampRead: m ? m[1] : "" };
+}
+/* 与后端 _amp_reading 同一套阈值：>1.3 强共振 / ≥1.05 温和放大 / 其余传导偏弱。
+   后端不给这个词时前端自己按同一规则推，规则可解释、不引入新数字。 */
+function hsAmpRead(amp) {
+  const a = Number(amp);
+  if (!isFinite(a)) return "";
+  if (a > 1.3) return "强共振/情绪放大";
+  if (a >= 1.05) return "温和放大";
+  return "传导偏弱";
+}
+
+/* 热点列表首屏完整展开的条数（其余收成标题行）。5 条 ≈ 2500px，正好一屏半以内。 */
+const HOT_TOP_N = 5;
+
 function renderOverseasHotspots(list) {
   const all = toArr(list);
   ensureOverseasShell();
   if (!all.length) { $("#ov-sub-hotspots").innerHTML = `<div class="empty">暂无国外驱动热点。请点「刷新海外舆情(联网)」。</div>`; return; }
+  // 2026-10-31 去重：后端 _decision() 把「因国外舆情转弱，建议降低仓位」这类**共性判断**
+  //   拼进了每条事件的结论里，于是多张卡说同一句。共性判断应该在面板上说一次，不该逐卡复读。
+  //   数据一个字不删（decision 原样在库里、接口里也在），这里只改展示：提出去、卡片内不再重复。
+  const common = commonSentences(all.map((h) => h.decision));
+  const stripCommon = (t) => {
+    if (!common.length) return String(t || "");
+    let s = String(t || "");
+    common.forEach((c) => { s = s.split(c).join(""); });
+    return s.trim();
+  };
+  const hitN = common.length
+    ? all.filter((h) => common.some((c) => String(h.decision || "").indexOf(c) >= 0)).length
+    : 0;
+  const globalBar = common.length ? `
+    <div class="ov-hs-global">
+      <span class="ov-hs-global-tag">共性判断</span>
+      <div class="ov-hs-global-txt">${common.map((c) => esc(c)).join("")}
+        <span class="ov-hs-global-n">（适用于其中 ${hitN} 条热点，卡片内不再重复；原文仍在数据里）</span></div>
+    </div>` : "";
   const cards = all.map((h, i) => {
     const dirClass = (h.direction || "").indexOf("利空") >= 0 ? "dir-bear" : (h.direction || "").indexOf("利多") >= 0 ? "dir-bull" : "dir-mix";
     const secs = toArr(h.domestic_sectors).map((s) => `<span class="badge sec">${esc(s)}</span>`).join(" ");
@@ -6267,35 +6460,100 @@ function renderOverseasHotspots(list) {
     const drivers = drvAll.slice(0, 6).map((s) => `<span class="ov-driver">${esc(s)}</span>`).join(" ")
       + (drvAll.length > 6 ? `<span class="ov-driver-more">等 ${drvAll.length} 家</span>` : "");
     const regs = toArr(h.driver_regions).map((r) => `<span class="badge ${regionClass(r)}">${regionLabel(r)}</span>`).join(" ");
-    // 结论（决策导向）：直接给方向与主攻 / 回避，不再罗列证据条目
-    const dec = h.decision
-      ? `<div class="ov-hs-decision"><span class="ov-hs-dec-tag">结论</span><div class="ov-hs-dec-txt">${esc(h.decision)}</div></div>`
+    // 结论（决策导向）：直接给方向与主攻 / 回避，不再罗列证据条目。
+    //   公共句与尾部元信息（确定性/放大倍数）都剥掉：前者已在面板顶部说一次，
+    //   后者卡片头的「放大系数 / 置信」已经显示，编号信息不重复占版面。
+    const _hd = splitHotDecision(h.decision);
+    const _ampRead = _hd.ampRead || hsAmpRead(h.amplification_factor);
+    const decOnly = stripCommon(_hd.body);
+    const dec = decOnly
+      ? `<div class="ov-hs-decision"><span class="ov-hs-dec-tag">结论</span><div class="ov-hs-dec-txt">${esc(decOnly)}</div></div>`
       : "";
     // ---- 结构化结论：① 事件概述 → ② 关键传导变量 → ③ 涨跌预判（按细分领域列代表公司）----
     const ov = h.overview
       ? `<div class="ov-hs-block"><span class="ov-hs-sub">① 事件概述</span><div class="ov-hs-text">${esc(h.overview)}</div></div>` : "";
     const vars = toArr(h.variables).map((v) => `<span class="badge var">${esc(v)}</span>`).join(" ");
     const fc = hotspotForecast(h);
-    return `<div class="ov-hs-card ${dirClass}">
-      <div class="ov-hs-head"><span class="ov-hs-idx">#${i + 1}</span><span class="ov-hs-title">${esc(h.title)}${h.title_en ? `<span class="ov-src-en" title="原文：${escAttr(h.title_en)}">原文</span>` : ""}</span>${regs}</div>
+    // 2026-10-31 第四轮（进哥：「还有显示过于重复、内容过于杂乱」）：
+    //   ③ 之后原本平铺四段 —— 驱动源 / 传导路径 / 放大·衰减判断 / 与国内源交叉比对，
+    //   它们全是**证据**（支撑 ①②③ 的推理材料，不是结论），却跟结论一样占满版面，
+    //   17 张卡叠出 1.3 万像素。收进一个 details：卡面只留「结论 + ①②③ 三步判断」，
+    //   要追证据时展开（列表顶部有「展开全部证据链」一键）。数据一个字没删，只是默认不占版面。
+    const hasEv = drivers || h.transmission || h.amplification || h.cross_check;
+    // 第三处重复：卡底「关联国内板块」与 ③「按细分领域」的板块名是同一批（③ 还多给了涨跌方向），
+    //   同一张卡说两遍。有 ③ 时把这一行移进证据链；没有 ③ 的卡（无涨跌预判）留在卡面，
+    //   否则这张卡就完全没有板块信息了。
+    const secRow = `<div class="ov-hs-sec"><span class="s">关联国内板块：</span>${secs || "<span class='s'>—</span>"}</div>`;
+    const secOnCard = fc ? "" : secRow;
+    const evid = (hasEv || fc) ? `
+      <details class="ov-hs-ev">
+        <summary>证据链：关联板块 · 驱动源 · 传导路径 · 放大/衰减 · 国内源交叉比对</summary>
+        <div class="ov-hs-ev-body">
+          ${fc ? secRow : ""}
+          ${drivers ? `<div class="ov-hs-drivers"><span class="s">驱动源（国外）：</span>${drivers}</div>` : ""}
+          ${h.transmission ? `<div class="ov-hs-block"><span class="ov-hs-sub">传导路径（提升性影响分析）</span><div class="ov-hs-text">${esc(h.transmission)}</div></div>` : ""}
+          ${h.amplification ? `<div class="ov-hs-block"><span class="ov-hs-sub">放大 / 衰减判断</span><div class="ov-hs-text">${esc(h.amplification)}</div></div>` : ""}
+          ${h.cross_check ? `<div class="ov-hs-block"><span class="ov-hs-sub">与国内源交叉比对</span><div class="ov-hs-text">${esc(h.cross_check)}</div></div>` : ""}
+        </div>
+      </details>` : "";
+    // 2026-10-31 第五轮：17 条热点每条都是 500px 的完整卡，扫盘时根本翻不到第 10 条。
+    //   前 5 条完整展开（结论 + ①②③），第 6 条起收成一行标题行（方向 + 热度），
+    //   点标题展开该条，或点顶部按钮一次全开。内容全部在 DOM 里，数据一个字没删。
+    // 可信度（D48）：按可数事实分档——全部驱动源家数 + 收录原报道条数。
+    //   原「置信 0.75」= 传导表 base 0.6 + 0.03×条数，是人工基准推出来的伪精度，不再显示。
+    let _nEv = 0;
+    try {
+      const _ev = h.evidence;
+      // 接口层有时给数组、有时给 JSON 字符串（库里存的是字符串，API 可能已解析）
+      _nEv = Array.isArray(_ev) ? _ev.length : (JSON.parse(_ev || "[]") || []).length;
+    } catch (e) { _nEv = 0; }
+    const credHtml = credChip(drvAll.length, `收录 ${_nEv} 条原报道`, "ov-hs-conf");
+    const isMini = i >= HOT_TOP_N;
+    const miniMeta = isMini
+      ? `<span class="ov-hs-mini-meta"><span class="ov-hs-dir-badge ${dirClass}">${esc(h.direction || "")}</span><span class="ov-hs-heat">热度 ${h.heat ?? "—"}</span><span class="ov-hs-mini-tip">展开</span></span>`
+      : "";
+    return `<div class="ov-hs-card ${dirClass}${isMini ? " ov-hs-mini" : ""}">
+      <div class="ov-hs-head"><span class="ov-hs-idx">#${i + 1}</span><span class="ov-hs-title">${esc(h.title)}${h.title_en ? `<span class="ov-src-en" title="原文：${escAttr(h.title_en)}">原文</span>` : ""}</span>${regs}${miniMeta}</div>
       <div class="ov-hs-dir"><span class="ov-hs-dir-badge ${dirClass}">${esc(h.direction || "")}</span>
-        <span class="ov-hs-amp" title="放大系数：>1 为放大，<1 为衰减">放大系数 <b>${h.amplification_factor ?? "—"}</b></span>
-        <span class="ov-hs-conf" title="置信度">置信 <b>${h.confidence ?? "—"}</b></span>
+        <span class="ov-hs-amp" title="放大系数 = 1 +（信源数-1）×0.1 ± 内外同步加成（>1 放大，<1 衰减）">放大系数 <b>${h.amplification_factor ?? "—"}</b>${_ampRead ? `<i class="ov-hs-ampread">${esc(_ampRead)}</i>` : ""}</span>
+        ${credHtml}
         <span class="ov-hs-heat">热度 ${h.heat ?? "—"}</span></div>
       ${dec}
       ${ov}
       ${vars ? `<div class="ov-hs-block"><span class="ov-hs-sub">② 关键传导变量</span><div class="ov-hs-vars">${vars}</div></div>` : ""}
       ${fc}
-      <div class="ov-hs-sec"><span class="s">关联国内板块：</span>${secs || "<span class='s'>—</span>"}</div>
-      <div class="ov-hs-drivers"><span class="s">驱动源（国外）：</span>${drivers || "<span class='s'>—</span>"}</div>
-      <div class="ov-hs-block"><span class="ov-hs-sub">传导路径（提升性影响分析）</span><div class="ov-hs-text">${esc(h.transmission || "")}</div></div>
-      <div class="ov-hs-block"><span class="ov-hs-sub">放大 / 衰减判断</span><div class="ov-hs-text">${esc(h.amplification || "")}</div></div>
-      <div class="ov-hs-block"><span class="ov-hs-sub">与国内源交叉比对</span><div class="ov-hs-text">${esc(h.cross_check || "")}</div></div>
+      ${secOnCard}
+      ${evid}
     </div>`;
   }).join("");
+  const miniN = Math.max(0, all.length - HOT_TOP_N);
   $("#ov-sub-hotspots").innerHTML = `
-    <div class="hint" style="margin-bottom:12px">模块二：由「国外新闻」驱动，自动汇总热点事件并做<b>提升性影响分析</b>。重点追踪四类事件：<b>地缘冲突与战争 / 洪涝等自然灾害 / 重大科研论文发布 / 粮食歉收与减产</b>。每条按「<b>结论</b> → ① 事件概述 → ② 关键传导变量（油价·粮价等）→ ③ 涨跌预判（按细分领域列代表性公司）」输出，并给出传导路径与放大 / 衰减判断。所列公司为各细分领域代表性标的，用于定位观察方向，不构成投资建议。</div>
+    <div class="hint" style="margin-bottom:12px">模块二：由「国外新闻」驱动，自动汇总热点事件并做<b>提升性影响分析</b>。重点追踪四类事件：<b>地缘冲突与战争 / 洪涝等自然灾害 / 重大科研论文发布 / 粮食歉收与减产</b>。每条按「<b>结论</b> → ① 事件概述 → ② 关键传导变量（油价·粮价等）→ ③ 涨跌预判（按细分领域列代表性公司）」输出；传导路径与放大 / 衰减判断收在每卡「证据链」里，需要时展开。所列公司为各细分领域代表性标的，用于定位观察方向，不构成投资建议。</div>
+    ${globalBar}
+    <div class="ov-hs-evbar"><button type="button" class="ov-hs-evbtn" id="ov-hs-ev-toggle">${miniN ? `展开全部 ${all.length} 条（含证据链）` : "展开全部证据链"}</button><span class="ov-hs-evbar-n">共 ${all.length} 条热点${miniN ? `，前 ${HOT_TOP_N} 条完整展开、其余 ${miniN} 条为标题行（点标题即可展开，内容未删）` : "，证据默认收起（内容未删，点开即见）"}</span></div>
     <div class="ov-hs-list">${cards}</div>`;
+  // 一键展开/收起：证据链 + 标题行两级一起控（17 张卡逐张点太费事）
+  const evBtn = $("#ov-hs-ev-toggle");
+  if (evBtn) {
+    let allOpen = false;
+    evBtn.onclick = () => {
+      allOpen = !allOpen;
+      $$("#ov-sub-hotspots .ov-hs-ev").forEach((d) => { d.open = allOpen; });
+      $$("#ov-sub-hotspots .ov-hs-mini").forEach((c) => { c.classList.toggle("open", allOpen); });
+      evBtn.textContent = allOpen
+        ? (miniN ? `收起为前 ${HOT_TOP_N} 条` : "收起证据链")
+        : (miniN ? `展开全部 ${all.length} 条（含证据链）` : "展开全部证据链");
+    };
+  }
+  // 标题行点击展开该条（内容一直都在 DOM 里，只是默认不显示）
+  $$("#ov-sub-hotspots .ov-hs-mini > .ov-hs-head").forEach((el) => {
+    el.onclick = () => {
+      const card = el.parentElement;
+      card.classList.toggle("open");
+      const tip = el.querySelector(".ov-hs-mini-tip");
+      if (tip) tip.textContent = card.classList.contains("open") ? "收起" : "展开";
+    };
+  });
   // 代表个股 → 个股详情抽屉（与「当前讨论股票」卡片、近期热点「涉及标的」同一个入口，行为一致）
   $$("#ov-sub-hotspots .stk[data-hp-sym]").forEach((el) => {
     el.onclick = () => openStock(el.dataset.hpSym, el);
@@ -6326,6 +6584,41 @@ function renderGeoEvents(d) {
   paintGeoInto("p-geo_events", d, { label: "国际局势", showCatBar: true, showNews: true, showRefresh: true });
 }
 
+/* ================= 可信度分档（D48，2026-10-31） =================
+   原「确定性 82%」「置信 0.75」是**人工填写的常量**，不是可复现的计算：
+   geo 事件库 certainty 共 13 档（0.60~0.90）全部来自 _append_geo_events_*.py 手写
+   （该列已于 2026-10-31 从库和 API 中删除，不再输出）；
+   热点 confidence = 传导表 base(0.6) + 0.03×报道条数，本质也是人工基准 + 条数
+   （仅保留在库内供 predictor 做热度加权，API 已不再外抛）。
+   以百分比呈现等于给出伪精度——判断类工具里，一个「82%」会被人直接拿去做仓位决策，
+   而这个数谁也复现不出来。
+   改为「档位 + 可数依据」，用户可以自己核：
+     较高 = 信源 ≥4 家；中等 = 2–3 家；偏低 = 单一信源。
+   更强的信号（国内外是否一致、证据条数）仍逐条列出，那不依赖任何人填数。 */
+function credTier(nsrc) {
+  const n = Number(nsrc) || 0;
+  if (n >= 4) return { label: "较高", cls: "hi" };
+  if (n >= 2) return { label: "中等", cls: "mid" };
+  return { label: "偏低", cls: "lo" };
+}
+const CRED_TIP = "可信度按可数事实分档：信源 ≥4 家=较高，2–3 家=中等，单一信源=偏低。"
+  + "不再显示百分比——原「确定性/置信」是人工填写的常量，不可复现。";
+function credChip(nsrc, extra, cls) {
+  const t = credTier(nsrc);
+  const basis = `${Number(nsrc) || 0} 家信源${extra ? " · " + extra : ""}`;
+  return `<span class="cred-chip ${t.cls}${cls ? " " + cls : ""}" title="${escAttr(CRED_TIP)}">`
+    + `可信度 <b>${t.label}</b><i>${escAttr(basis)}</i></span>`;
+}
+
+/* 交叉印证数据是否「真有内容」的唯一判据（D49）。
+   库里 46 条事件有 27 条 cross_check 存的是空数组 []，而 `typeof [] === "object"`，
+   旧的 `cc && typeof cc === "object"` 把它们全算成"有交叉印证"——于是顶部 chip 报 17、
+   卡面渲染空壳框。两处必须用同一个判据，否则统计和画面永远对不上。 */
+function geoCcOk(cc) {
+  return !!(cc && typeof cc === "object" && !Array.isArray(cc)
+    && (toArr(cc.foreign).length || toArr(cc.domestic).length));
+}
+
 // 面板归属 → 分类筛选状态 key
 function _geoPanelKey(cid) {
   if (cid === "p-geo_policy") return "policy";
@@ -6344,7 +6637,13 @@ function paintGeoInto(cid, d, opts) {
   const cats = toArr(st.categories);
   const events = toArr(d.events);
   const news = toArr(d.news);
-  const byCat = st.by_category || {};
+  // 2026-10-31（D49 顺带修）：分类计数原先取后端 stats.by_category（**全库 46 条**分布），
+  //   而列表只渲染当前面板过滤后的 17 条 —— 于是「全部 17」旁边挂着「地缘军事 8、关税贸易 8…」，
+  //   加起来 35 条，点进去却只有几条。现在一律按当前面板的事件集合现算，
+  //   「全部」= 各分类之和，数字与列表永远对得上。
+  //   全库总量仍在 stats.total 里，需要时看 chips 的 title。
+  const byCat = {};
+  events.forEach((e) => { const k = e.category || "other"; byCat[k] = (byCat[k] || 0) + 1; });
   const honesty = (d.meta && d.meta.honesty) ? d.meta.honesty : "";
   const key = _geoPanelKey(cid);
   if (GEO.cats[key] == null) GEO.cats[key] = "all";
@@ -6352,15 +6651,27 @@ function paintGeoInto(cid, d, opts) {
   // 本面板交叉印证统计（按事件内 cross_check 口径）
   const vloc = { "一致": 0, "分歧": 0, "待观察": 0 };
   let ccTotal = 0;
-  events.forEach((e) => { const cc = e.cross_check; if (cc && typeof cc === "object") { ccTotal++; if (vloc[cc.verdict] != null) vloc[cc.verdict]++; } });
+  events.forEach((e) => { const cc = e.cross_check; if (geoCcOk(cc)) { ccTotal++; if (vloc[cc.verdict] != null) vloc[cc.verdict]++; } });
+
+  // 「重大 / 涉及标的」同样按当前面板现算：原先直接取后端全库统计，
+  //   会出现「本页 17 条，涉及标的 94」这种对不上的组合（94 是全库 46 事件的标的数）。
+  const majorN = events.filter((e) => Number(e.intensity) >= 4).length;
+  const symSet = new Set();
+  events.forEach((e) => {
+    toArr(e.symbols_up).forEach((s) => { if (s && s.code) symSet.add(String(s.code)); });
+    toArr(e.symbols_down).forEach((s) => { if (s && s.code) symSet.add(String(s.code)); });
+  });
 
   const chips = [
-    ["研判事件", st.total != null ? st.total : events.length],
-    ["重大(强度≥4)", st.major_count != null ? st.major_count : "—"],
+    // 「研判事件」= 当前面板实际渲染条数（与下方「全部 N」同源）。
+    //   原取 st.total（全库 46），与列表 17 条并存，两个数字打架。
+    //   全库总量放 title，想看全量时悬停即可。
+    ["研判事件", events.length, st.total != null ? `本面板 ${events.length} 条；全库共 ${st.total} 条` : ""],
+    ["重大(强度≥4)", majorN],
     ["交叉印证", ccTotal],
-    ["涉及标的", st.symbols_n != null ? st.symbols_n : "—"],
+    ["涉及标的", symSet.size],
     ["更新于", st.updated_at ? String(st.updated_at).slice(0, 16) : "—"],
-  ].map(([k, v]) => `<span class="geo-chip"><b>${esc(String(v))}</b><span>${esc(k)}</span></span>`).join("");
+  ].map(([k, v, tip]) => `<span class="geo-chip"${tip ? ` title="${escAttr(tip)}"` : ""}><b>${esc(String(v))}</b><span>${esc(k)}</span></span>`).join("");
 
   const verdictBar = o.showVerdict !== false ? `
     <div class="geo-verdicts">
@@ -6375,7 +6686,16 @@ function paintGeoInto(cid, d, opts) {
     `</div>` : "";
 
   const list = (GEO.cats[key] === "all" ? events : events.filter((e) => e.category === GEO.cats[key]));
-  const cards = list.map((e) => {
+  // 2026-10-31 第六轮（进哥：「国际局势确实偏长，该收就收」）：
+  //   证据链折叠后仍有 7,993px —— 因为 17 条研判全部完整展开，每条都带
+  //   「摘要 + 传导逻辑 + 板块/原材料/个股 + 研判结论 + 接下来看」五段。
+  //   这与「海外热点」页同一个病灶：一次看 17 条完整论述，翻不到第 10 条。
+  //   沿用同一套两级结构：前 GEO_TOP_N 条完整，其余收成「分类+标题+方向+可信度」一行，
+  //   点标题展开该条；顶部按钮一键全部展开（含证据链）。内容一字未删，只是默认不占版面。
+  const GEO_TOP_N = 5;
+  const miniN = Math.max(0, list.length - GEO_TOP_N);
+  const cards = list.map((e, i) => {
+    const isMini = i >= GEO_TOP_N;
     const dc = geoDirClass(e.direction);
     const upS = toArr(e.symbols_up).map((s) => `<span class="stk" data-sym="${escAttr(s.code)}" title="点击查看 ${escAttr(s.name)}">${esc(s.name)}<em>${esc(s.code)}</em></span>`).join("");
     const dnS = toArr(e.symbols_down).map((s) => `<span class="stk down" data-sym="${escAttr(s.code)}" title="点击查看 ${escAttr(s.name)}">${esc(s.name)}<em>${esc(s.code)}</em></span>`).join("");
@@ -6385,16 +6705,36 @@ function paintGeoInto(cid, d, opts) {
     const srcs = toArr(e.sources).map((s) => `<a class="geo-src" href="${escAttr(s.url || "#")}" target="_blank" rel="noopener" title="${escAttr(s.region || "")}">${esc(s.name || s.region || "来源")}${s.lang ? " · " + esc(s.lang) : ""}</a>`).join(" ");
     const catMeta = cats.find((c) => c.key === e.category) || {};
     const cc = e.cross_check;
-    const ccHtml = cc && typeof cc === "object" ? `
+    // 2026-10-31 第五轮（D49）证据链折叠 + 空壳修正
+    //   ① 空壳 bug：46 条事件里有 27 条 cross_check 是空数组 []，而旧判断 `typeof cc === "object"`
+    //      对数组同样成立 → 每张卡都渲染一个空的「信源交叉印证 · 待观察」框，比不显示更误导
+    //      （读者会以为"印证过了、结论是待观察"）。改为只认 dict 且某一侧确有内容。
+    //   ② 折叠：交叉印证两列 + 来源列表合计占该页 24% 高度（实测 2,882px + 1,187px），
+    //      而且两处列的基本是同一批来源。全部收进「证据链」details，卡面只留
+    //      「内外一致 / 分歧 / 待观察」一个徽章——那是结论级信息，一眼要看。
+    const ccOk = geoCcOk(cc);
+    const nF = ccOk ? toArr(cc.foreign).length : 0;
+    const nD = ccOk ? toArr(cc.domestic).length : 0;
+    const nSrc = toArr(e.sources).length;
+    const ccCls = ccOk ? (cc.verdict === "一致" ? "ok" : (cc.verdict === "分歧" ? "warn" : "wait")) : "";
+    const ccBadge = ccOk
+      ? `<span class="geo-cc-badge ${ccCls}" title="国内外信源是否指向同一方向（逐条原文在下方证据链里）">内外${esc(cc.verdict || "待观察")}</span>`
+      : "";
+    const ccHtml = ccOk ? `
       <div class="geo-cc">
-        <div class="geo-cc-head"><span class="geo-sub">信源交叉印证</span><span class="geo-cc-verdict ${cc.verdict === "一致" ? "ok" : (cc.verdict === "分歧" ? "warn" : "wait")}">${esc(cc.verdict || "待观察")}</span></div>
+        <div class="geo-cc-head"><span class="geo-sub">信源交叉印证</span><span class="geo-cc-verdict ${ccCls}">${esc(cc.verdict || "待观察")}</span></div>
         <div class="geo-cc-cols">
-          <div class="geo-cc-col"><b>🌐 国外视角</b>${toArr(cc.foreign).map((f) => `<div class="geo-cc-item"><a href="${escAttr(f.url || "#")}" target="_blank" rel="noopener">${esc(f.src)}</a>：${esc(f.claim)}</div>`).join("")}</div>
-          <div class="geo-cc-col"><b>🇨🇳 国内视角</b>${toArr(cc.domestic).map((f) => `<div class="geo-cc-item"><a href="${escAttr(f.url || "#")}" target="_blank" rel="noopener">${esc(f.src)}</a>：${esc(f.claim)}</div>`).join("")}</div>
+          <div class="geo-cc-col"><b>🌐 国外视角</b>${toArr(cc.foreign).map((f) => `<div class="geo-cc-item"><a href="${escAttr(f.url || "#")}" target="_blank" rel="noopener">${esc(f.src)}</a>：${esc(f.claim)}</div>`).join("") || "<span class='s'>—</span>"}</div>
+          <div class="geo-cc-col"><b>🇨🇳 国内视角</b>${toArr(cc.domestic).map((f) => `<div class="geo-cc-item"><a href="${escAttr(f.url || "#")}" target="_blank" rel="noopener">${esc(f.src)}</a>：${esc(f.claim)}</div>`).join("") || "<span class='s'>—</span>"}</div>
         </div>
         ${cc.note ? `<div class="geo-cc-note">📌 ${esc(cc.note)}</div>` : ""}
       </div>` : "";
-    return `<div class="geo-card ${dc}">
+    const evBody = (ccHtml || srcs)
+      ? `${ccHtml}${srcs ? `<div class="geo-srcs"><span class="s">来源原文：</span>${srcs}</div>` : ""}` : "";
+    const evLabel = `证据链：${ccOk ? `交叉印证（外 ${nF} 条 / 内 ${nD} 条）` : "来源原文"}${nSrc ? ` · 来源 ${nSrc} 条` : ""}`;
+    const evid = evBody
+      ? `<details class="geo-ev"><summary>${evLabel}</summary><div class="geo-ev-body">${evBody}</div></details>` : "";
+    return `<div class="geo-card ${dc}${isMini ? " geo-mini" : ""}">
       <div class="geo-head">
         <span class="geo-cat-badge" title="${escAttr(catMeta.desc || "")}">${esc(catMeta.icon || "")} ${esc(e.cat_label || e.category)}</span>
         <span class="geo-int int-${e.intensity || 1}" title="强度 ${e.intensity}/5">${esc(e.intensity_text || "")}</span>
@@ -6403,17 +6743,20 @@ function paintGeoInto(cid, d, opts) {
       </div>
       <div class="geo-dir">
         <span class="geo-dir-badge ${dc}">${esc(e.direction || "—")}</span>
-        ${e.certainty != null ? `<span class="geo-conf" title="研判确定性">确定性 <b>${Math.round((Number(e.certainty) || 0) * 100)}%</b></span>` : ""}
+        ${credChip(nSrc, "", "geo-conf")}
+        ${ccBadge}
+        ${isMini ? `<span class="geo-mini-tip">展开 ▾</span>` : ""}
       </div>
+      <div class="geo-body">
       ${e.summary ? `<div class="geo-summary">${esc(e.summary)}</div>` : ""}
       ${e.transmission ? `<div class="geo-block"><span class="geo-sub">传导逻辑</span><div class="geo-text">${esc(e.transmission)}</div></div>` : ""}
-      ${ccHtml}
       ${(ups || dns) ? `<div class="geo-sec"><span class="s">板块影响：</span>${ups}${dns}</div>` : ""}
       ${com ? `<div class="geo-sec"><span class="s">涉及原材料：</span>${com}</div>` : ""}
       ${(upS || dnS) ? `<div class="geo-sec"><span class="s">代表个股：</span><span class="geo-up">${upS}</span><span class="geo-dn">${dnS}</span></div>` : ""}
       ${e.decision ? `<div class="geo-dec"><span class="geo-dec-tag">研判结论</span><div class="geo-dec-txt">${esc(e.decision)}</div></div>` : ""}
       ${e.watch ? `<div class="geo-watch">🔭 接下来看：${esc(e.watch)}</div>` : ""}
-      ${srcs ? `<div class="geo-srcs"><span class="s">来源：</span>${srcs}</div>` : ""}
+      ${evid}
+      </div>
     </div>`;
   }).join("");
 
@@ -6446,11 +6789,39 @@ function paintGeoInto(cid, d, opts) {
     </div>
     ${verdictBar}
     ${catBar}
+    ${list.length ? `<div class="geo-evbar"><button type="button" class="geo-ev-toggle">${miniN ? `展开全部 ${list.length} 条（含证据链）` : "展开全部证据链"}</button><span class="geo-evbar-n">共 ${list.length} 条事件${miniN ? `；后 ${miniN} 条默认收成一行，点标题展开` : ""}；交叉印证原文与来源链接默认收起，点开即见（内容未删）</span></div>` : ""}
     <div class="geo-list">${cards || `<div class="empty">该分类下暂无研判事件。</div>`}</div>
     ${newsWrap}`;
 
   $$(sel + " .geo-cat").forEach((a) => { a.onclick = () => { GEO.cats[key] = a.dataset.cat; paintGeoInto(cid, d, o); }; });
   $$(sel + " .stk[data-sym]").forEach((el) => { el.onclick = () => openStock(el.dataset.sym, el); });
+  // 一键开合全部证据链：17~46 张卡逐张点太费事（与「海外热点」页同一套交互）
+  // 一键开合：两层一起（先展开全部标题行，再展开证据链），与「海外热点」页同一套交互
+  const evBtn = host.querySelector(".geo-ev-toggle");
+  if (evBtn) {
+    let evOpen = false;
+    evBtn.onclick = () => {
+      evOpen = !evOpen;
+      $$(sel + " .geo-mini").forEach((c) => {
+        c.classList.toggle("open", evOpen);
+        const tip = c.querySelector(".geo-mini-tip");
+        if (tip) tip.textContent = evOpen ? "收起 ▴" : "展开 ▾";
+      });
+      $$(sel + " .geo-ev").forEach((d) => { d.open = evOpen; });
+      evBtn.textContent = evOpen
+        ? (miniN ? `收起为前 ${GEO_TOP_N} 条` : "收起全部证据链")
+        : (miniN ? `展开全部 ${list.length} 条（含证据链）` : "展开全部证据链");
+    };
+  }
+  // 点标题行展开 / 收起该条（内容一直都在 DOM 里，只是默认不显示）
+  $$(sel + " .geo-mini > .geo-head").forEach((el) => {
+    el.onclick = () => {
+      const card = el.parentElement;
+      card.classList.toggle("open");
+      const tip = card.querySelector(".geo-mini-tip");
+      if (tip) tip.textContent = card.classList.contains("open") ? "收起 ▴" : "展开 ▾";
+    };
+  });
   const rb = $("#btnGeoRefresh");
   if (rb) rb.onclick = geoRefresh;
 }
@@ -7520,13 +7891,13 @@ function labOosBadge(m) {
   const r = (m.oos_return == null) ? null : Number(m.oos_return);
   const rr = (r == null) ? "" : `（样本外 ${r >= 0 ? "+" : ""}${r.toFixed(1)}%）`;
   if (m.oos_validated) {
-    return `<span class="lab-badge lab-badge-ok" title="窗口按 70/30 切分，样本外收益${rr}；实盘通常较样本内低 30%-50%，勿直接外推">✓ 已样本外验证</span>`;
+    return `<span class="lab-badge lab-badge-ok" title="窗口按 70/30 切分，样本外收益${rr}；实盘通常较样本内低 30%-50%，勿直接外推">✓ 已验证</span>`;
   }
   if (m.oos_status === "insufficient") {
-    return `<span class="lab-badge lab-badge-mute" title="样本外交易笔数不足，未做验证">样本外未验证</span>`;
+    return `<span class="lab-badge lab-badge-mute" title="样本外交易笔数不足，未做验证">未验证</span>`;
   }
   if (m.oos_status === "ok") {
-    return `<span class="lab-badge lab-badge-warn" title="样本内为正但样本外转弱/转负，疑似过拟合${rr}">样本外转弱·疑似过拟合</span>`;
+    return `<span class="lab-badge lab-badge-warn" title="样本内为正但样本外转弱/转负，疑似过拟合${rr}">转弱·疑过拟合</span>`;
   }
   return `<span class="lab-badge lab-badge-mute">—</span>`;
 }
@@ -8591,22 +8962,176 @@ function wtPrompt(title, defVal) {
     ov.addEventListener("click", (e) => { if (e.target === ov) finish(null); });
   });
 }
-/* 标签行内快捷操作：随时新增分组 / 双击改名（含默认的关注重点/观察中/基金池）。 */
+/* 标签行内快捷操作：随时新增分组 / 双击改名（含默认的关注重点/观察中/基金池）。
+ *
+ * 2026-10-31 修复（进哥：点「＋ 新分组」/「✎」毫无反应，弹窗里确认了也没变化）：
+ *   根因在后端 —— /api/watch_list 同时挂在两层缓存上（函数内 _api_cache 的 SWR +
+ *   _do_GET 里 _TTL_ROUTES 的 HTTP 级 _TTL_CACHE），而后端「写后失效」只清了内层一层，
+ *   于是 POST 明明 200 成功、DB 里分组也建好了，紧接着的 GET /api/watch_list 却仍原样
+ *   回放那份旧 body（实测响应带冻结的 _cache_age），标签条一个都不多 → 看起来就是"没反应"。
+ *   后端已同步修掉（server.py: _api_cache_invalidate 覆盖 TTL 层 + 把 /api/watch_list
+ *   移出 _TTL_ROUTES）。前端这里再加一道「乐观更新」，理由有二：
+ *     ① 取价链路本身要 3~14 秒（三个行情源竞速），等 loadWatch() 回来才渲染 = 点了以后
+ *        十几秒都没动静，用户必然以为没生效、反复点；本文件 openWatchNoteModal 已是同款做法。
+ *     ② 分组是纯本地结构（不含行情），完全可以先本地生效、再用服务端结果校准。
+ *   loadWatch() 保留：它是权威数据，回来后整块重渲染，真值覆盖乐观值。 */
+function wtGroupLocalList() {
+  if (!WATCH.data || typeof WATCH.data !== "object") WATCH.data = {};
+  if (!Array.isArray(WATCH.data.groups)) WATCH.data.groups = [];
+  return WATCH.data.groups;
+}
+/* 乐观新增：把服务端返回的 id/name 直接补进本地分组表并重渲染（不碰任何行情字段）。 */
+function wtApplyGroupAdd(id, name) {
+  const gs = wtGroupLocalList();
+  if (gs.some((g) => String(g.id) === String(id) || g.name === name)) return;
+  const maxOrder = gs.reduce((m, g) => Math.max(m, Number(g.sort_order) || 0), 0);
+  gs.push({ id, name, kind: "mix", color: "", sort_order: maxOrder + 10, is_default: 0, n_items: 0 });
+  renderWatch();
+}
+/* 乐观改名：就地改本地分组表并重渲染，null 时表示服务端没回确切名字（用用户输入的）。 */
+function wtApplyGroupRename(gid, name) {
+  const gs = wtGroupLocalList();
+  const g = gs.find((x) => String(x.id) === String(gid));
+  if (!g || !name || g.name === name) return;
+  g.name = name;
+  renderWatch();
+}
+
+/* —— 标的一级的乐观更新（2026-10-31 三项体验隐患收口，进哥：删一只票要等十几秒才消失）——
+ *
+ * 与上面分组那套是同一个病根、同一套解法：写接口（/api/watch_item_remove、
+ * /api/watch_item_group_remove、/api/watch_item_update）本身都是毫秒级纯 SQL，慢的是
+ * 紧随其后的 loadWatch() —— /api/watch_list 要现取行情（三个源竞速）+ 值得率评分 +
+ * 战法复算，热路径 3~14 秒、冷路径十几秒。等它回来才渲染 = 点了以后十几秒毫无动静，
+ * 用户必然重复点击（第二次点还会 select 到已经不存在的行）。
+ * 所以：服务端确认 r.ok 之后先改本地结构 + renderWatch()，再把 loadWatch() 丢到后台校准。
+ * 失败一律不动本地状态（不预写、只回滚），只 setHint 报错 —— 不会出现「删了又回来」。
+ *
+ * 多一层约束（分组那套没有的）：标签条上的 <b>N</b> 是 groups[].n_items，后端按
+ * DISTINCT item_id 统计；只要动了某个 item 的分组归属，就必须同步加减对应组的计数，
+ * 否则「全部 34 / 短期 2」这类数字会和表格行数对不上 —— 那比慢半拍更刺眼。 */
+function wtGroupLocal(gid) {
+  const gs = (WATCH.data && WATCH.data.groups) || [];
+  return gs.find((g) => String(g.id) === String(gid)) || null;
+}
+/* 组计数增减（clamp 到 0：并发写或重复点击时也不出负数） */
+function wtBumpGroupCount(gid, delta) {
+  const g = wtGroupLocal(gid);
+  if (!g) return;
+  g.n_items = Math.max(0, (Number(g.n_items) || 0) + (Number(delta) || 0));
+}
+/* 兜底组：与服务端 watchlib._default_group_id 同义（is_default=1 优先，否则第一个组） */
+function wtDefaultGroupLocal() {
+  const gs = (WATCH.data && WATCH.data.groups) || [];
+  return gs.find((g) => Number(g.is_default) === 1) || gs[0] || null;
+}
+/* a) 从池中移除一只标的：本地删行 + 所属各组计数 -1，返回被删对象（找不到返回 null）。 */
+function wtApplyItemRemove(iid) {
+  if (!WATCH.data || !Array.isArray(WATCH.data.items)) return null;
+  const idx = WATCH.data.items.findIndex((x) => String(x.id) === String(iid));
+  if (idx < 0) return null;
+  const gone = WATCH.data.items.splice(idx, 1)[0];
+  for (const g of (gone.groups || [])) wtBumpGroupCount(g.id, -1);
+  renderWatch();
+  return gone;
+}
+/* b) 移出本组（不是删票）：只把当前组从 item.groups 里摘掉、该组计数 -1，标的仍留在池中；
+ *    组视图下因为过滤失效会立刻从表格消失，其他组/「全部」视图仍能看到它。
+ *    一组都不剩时服务端会回退默认组（标的永不留空组），本地同步这一步。 */
+function wtApplyItemGroupRemove(iid, gid) {
+  const it = wtFind(iid);
+  if (!it) return false;
+  const before = (it.groups || []).length;
+  const kept = (it.groups || []).filter((g) => String(g.id) !== String(gid));
+  if (kept.length === before) { renderWatch(); return false; }   // 本地本就不在该组（数据已旧）
+  it.groups = kept;
+  wtBumpGroupCount(gid, -1);
+  if (!it.groups.length) {
+    const dg = wtDefaultGroupLocal();
+    if (dg) {
+      it.groups = [{ id: dg.id, name: dg.name, color: dg.color || "", sort_order: null }];
+      wtBumpGroupCount(dg.id, +1);
+    }
+  }
+  it.n_groups = it.groups.length;
+  if (String(it.group_id) === String(gid) && it.groups.length) it.group_id = it.groups[0].id;
+  renderWatch();
+  return true;
+}
+/* c) 编辑弹窗保存：把「弹窗真正提交的字段」就地写回本地 item 再重渲染。
+ *    字段严格对齐 openWatchEditModal 的 payload（watchCollectForm）：name / kind / groups /
+ *    target_price / alert_dir —— 注意它**不含 note**，所以备注不会被这里覆盖（备注走
+ *    openWatchNoteModal，那条路径本来就是乐观的）。
+ *    不写 worth / avoid / lift / strat_hits / 行情字段：那些由服务端复算，本地没有依据，
+ *    保持原值等 loadWatch() 用真值覆盖。 */
+function wtApplyItemUpdate(iid, body) {
+  const it = wtFind(iid);
+  if (!it || !body) return false;
+  const oldGids = (it.groups || []).map((g) => String(g.id));
+  if (typeof body.name === "string") it.name = body.name;
+  if (body.kind === "stock" || body.kind === "fund") it.kind = body.kind;
+  /* target_price：空 → null；能转数字就转（服务端 _to_float 亦为 float 或 None），
+     保持与 list_items 返回同型，免得再开编辑框时 input 里出现 "12.30" 这种字符串差异。 */
+  const rawTp = body.target_price;
+  if (rawTp === null || rawTp === undefined || rawTp === "") {
+    it.target_price = null;
+  } else {
+    const tp = Number(rawTp);
+    it.target_price = isNaN(tp) ? null : tp;
+  }
+  it.alert_dir = (body.alert_dir === "above" || body.alert_dir === "below") ? body.alert_dir : "";
+  if (Array.isArray(body.groups)) {
+    const seen = new Set();
+    const next = [];
+    for (const raw of body.groups) {
+      const gid = String(raw);
+      if (seen.has(gid)) continue;
+      seen.add(gid);
+      const old = (it.groups || []).find((g) => String(g.id) === gid);
+      const meta = wtGroupLocal(gid);
+      if (old) next.push(old);                                   // 已在组内：保留原组内 sort_order
+      else if (meta) next.push({ id: meta.id, name: meta.name, color: meta.color || "", sort_order: null });
+    }
+    if (!next.length) {                                          // 全不勾 → 服务端回退默认组
+      const dg = wtDefaultGroupLocal();
+      if (dg) next.push({ id: dg.id, name: dg.name, color: dg.color || "", sort_order: null });
+    }
+    const nextIds = next.map((g) => String(g.id));
+    for (const gid of nextIds) if (!oldGids.includes(gid)) wtBumpGroupCount(gid, +1);
+    for (const gid of oldGids) if (!nextIds.includes(gid)) wtBumpGroupCount(gid, -1);
+    it.groups = next;
+    it.n_groups = next.length;
+    it.group_id = next.length ? next[0].id : null;
+  }
+  renderWatch();
+  return true;
+}
 async function watchQuickAddGroup() {
   const nm = await wtPrompt("新增分组", "");
   if (!nm) return;
   const r = await api("/api/watch_group_add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nm }) })
     .catch((e) => ({ ok: false, error: apiErrText(e) }));
-  setHint(r.ok ? `已新增分组「${nm}」。` : ("新增失败：" + (r.error || "")));
-  if (r.ok) loadWatch();
+  if (r.ok) {
+    /* 乐观生效：立刻看到新标签，不等慢接口 */
+    wtApplyGroupAdd(r.id, r.name || nm);
+    setHint(`已新增分组「${r.name || nm}」。`);
+    loadWatch();          // 权威数据校准（异步，不阻塞上面的渲染）
+    return;
+  }
+  setHint("新增失败：" + (r.error || ""));
 }
 async function watchRenameGroup(gid, oldName) {
   const nm = await wtPrompt("修改分组名", oldName || "");
   if (!nm || nm === oldName) return;
   const r = await api("/api/watch_group_rename", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: gid, name: nm }) })
     .catch((e) => ({ ok: false, error: apiErrText(e) }));
-  setHint(r.ok ? "分组已改名。" : ("改名失败：" + (r.error || "")));
-  if (r.ok) loadWatch();
+  if (r.ok) {
+    wtApplyGroupRename(gid, nm);
+    setHint("分组已改名。");
+    loadWatch();          // 权威数据校准
+    return;
+  }
+  setHint("改名失败：" + (r.error || ""));
 }
 
 /* 备注编辑弹窗（2026-10-14 进哥需求④）：写/改对该标的的看法。走 /api/watch_item_update
@@ -8651,6 +9176,14 @@ function renderWatch() {
   const d = WATCH.data || {};
   const groups = d.groups || [];
   const all = d.items || [];
+  /* 2026-10-31 ③：当前选中的分组若已不存在（刚被删除 / 别的窗口删了 / 服务端已清理），
+     必须回落「全部」。否则下面的过滤会把 items 筛成空数组，页面显示
+     「池子为空。点右上「＋ 加入自选」…」——用户会误以为整个池子被清空了，
+     而实际只是选中了一个不存在的组。此判定放在过滤之前，一次改彻底。 */
+  if (WATCH.selGroup !== "all" && WATCH.selGroup !== ""
+      && !groups.some((g) => String(g.id) === String(WATCH.selGroup))) {
+    WATCH.selGroup = "all";
+  }
   /* 多对多（2026-10-14）：组视图按关联组 groups 匹配（一只票可在多个组同时出现） */
   const items = all.filter((it) => WATCH.selGroup === "all"
     || (it.groups || []).some((g) => String(g.id) === String(WATCH.selGroup)));
@@ -8679,8 +9212,16 @@ function renderWatch() {
   const noQuoteHint = noQuote
     ? `<div class="hint wt-noquote"><b>${noQuote} 只标的当前无有效行情</b>（停牌 / 未开盘 / 当日无成交）——当前价与涨跌一律显示 «—»，<b>不以 0 或 -100% 充数</b>；这类标的也不参与到价检测。</div>`
     : "";
-  const rows = items.map(watchRow).join("") ||
-    `<tr><td colspan="10" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
+  /* 空表占位按「池子真空」还是「只是本组空了」分流（2026-10-31，进哥上一轮 ③ 的同类误导）：
+     原本文案一律写「池子为空。点右上「＋ 加入自选」…」，但组视图里某组恰好清空时
+     （刚把最后一只「移出本组」、或新建的空组如「正热板块 / 值得关注」），池子里其实还有
+     几十只 —— 照搬这句话会让人以为数据丢了。组视图且池中确实还有票时，明说「本组还没有标的」
+     并把池内总数写出来，给出正确的下一步（切「全部」/ 其它分组 / 直接加进本组）。 */
+  const inGroupView = WATCH.selGroup !== "all" && String(WATCH.selGroup) !== "";
+  const emptyRowHtml = (inGroupView && all.length > 0)
+    ? `<tr><td colspan="10" class="muted wt-empty">本组还没有标的 —— 池中共有 <b>${all.length}</b> 只，切到「全部」或其它分组即可看到；也可以点右上「＋ 加入自选」把它直接加进本组。</td></tr>`
+    : `<tr><td colspan="10" class="muted wt-empty">池子为空。点右上「＋ 加入自选」把想盯的股票 / 基金收进来。</td></tr>`;
+  const rows = items.map(watchRow).join("") || emptyRowHtml;
   host.innerHTML = `
     <div class="wt-head">
       <h2>关注池 <span class="muted wt-sub">${d.checked_at ? "更新于 " + esc(d.checked_at) : ""}</span></h2>
@@ -8694,12 +9235,12 @@ function renderWatch() {
     <div class="wt-tabs">${tabs}</div>
     ${noQuoteHint}
     <div class="wt-tw"><table class="wt-tb wt-watch"><colgroup>
-      <col><!-- 代码/名称 弹性 -->
-      <col style="width:86px"><col style="width:86px"><col style="width:84px"><col style="width:82px">
-      <col style="width:200px"><!-- 战法信号 锁窄 -->
-      <col style="width:200px"><!-- 备注 给足 -->
-      <col style="width:74px"><col style="width:90px">
-      <col><!-- 操作 弹性 -->
+      <col style="width:15%"><!-- 代码/名称：名称不许省略号，留足 -->
+      <col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6.6%">
+      <col><!-- 战法信号：唯一弹性列，吃掉全部剩余宽度（约 1/3，够放 2 行 chip） -->
+      <col style="width:9%"><!-- 备注 -->
+      <col style="width:5.6%"><col style="width:6.5%">
+      <col style="width:12%"><!-- 操作：组视图要塞下「↑ ↓ 移出 编辑 删」五个动作 -->
     </colgroup><thead><tr>
       <th>代码 / 名称</th><th title="加入自选那一刻的价格快照">加入时价</th><th>当前价</th><th>涨跌</th>
       <th title="screener 入手值得率评分 0~100：≥70 值博(红) / 40~69 观望(黄) / &lt;40 偏弱(灰)">入手值得率</th>
@@ -8869,19 +9410,29 @@ function watchRow(it, idx, arr) {
       + `<b class="bull">▲${nb}</b><span class="wt-st-sep">/</span>`
       + `<b class="wt-st-neu">＝${nn}</b><span class="wt-st-sep">/</span>`
       + `<b class="bear">▼${nr}</b></span>`;
-    const chips = hits.map((h) => {
-      const sname = (h && typeof h === "object") ? (h.sname || "") : h;
+    /* chip 渲染（2026-10-30）：列宽固定后一屏放得下 2 行，按 看涨→中立→看跌 排序取前 6 个，
+       其余折成 «＋N» 悬浮看全名 —— 每行高度一致，重要信号永远在前，表格也不会被撑爆。 */
+    const CHIP_MAX = 4;
+    const rank = (h) => { const s = (h && h.stance) || "neu"; return s === "bull" ? 0 : (s === "neu" ? 1 : 2); };
+    const sorted = hits.slice().sort((a, b) => rank(a) - rank(b));
+    const nameOf = (h) => ((h && typeof h === "object") ? (h.sname || "") : h);
+    const chipCls = (st) => "stg" + (st === "bull" ? " stg-bull" : (st === "bear" ? " stg-bear" : " stg-neu"));
+    const chips = sorted.slice(0, CHIP_MAX).map((h) => {
+      const sname = nameOf(h);
       const wr = (h && typeof h === "object") ? h.win_rate : null;
       const st = (h && typeof h === "object") ? (h.stance || "neu") : "neu";
       const dirTxt = st === "bull" ? "看涨" : st === "bear" ? "看跌" : "中立";
       const title = (wr !== null && wr !== undefined && wr !== "")
         ? `战法信号 · 胜率 ${wr}% · ${dirTxt}` : `战法信号 · ${dirTxt}`;
-      const cls = "wt-chip" + (st === "bull" ? " st-bull" : st === "bear" ? " st-bear" : " st-neu");
-      return `<span class="${cls}" title="${escAttr(title)}">${esc(sname)}</span>`;
-    }).join(" ");
-    stratCell = verdict + `<div class="wt-st-chips">${chips}</div>`;
+      return `<span class="${chipCls(st)}" title="${escAttr(title)}">${esc(sname)}</span>`;
+    }).join("");
+    const restHits = sorted.slice(CHIP_MAX);
+    const moreChip = restHits.length
+      ? `<span class="stg stg-more" title="${escAttr(restHits.map(nameOf).join(" / "))}">＋${restHits.length}</span>`
+      : "";
+    stratCell = verdict + `<div class="wt-st-chips">${chips}${moreChip}</div>`;
   } else {
-    stratCell = '<span class="muted">—</span>';
+    stratCell = '<div class="wt-st-chips wt-st-none"><span class="muted">—</span></div>';
   }
   /* 备注列（2026-10-14 进哥需求：战法信号后面加一栏写自己对该标的的看法）。
      有内容显示原文（悬停看全文，超长省略号），空则给「＋ 备注」弱提示；点单元格弹编辑框。 */
@@ -8904,7 +9455,7 @@ function watchRow(it, idx, arr) {
       ? '<span class="wt-op wt-op-dis" title="已在组底">↓</span>'
       : `<span class="wt-op" data-wt-down="${it.id}" title="下移">↓</span>`;
     ops = up + down
-      + `<span class="wt-op" data-wt-gdel-item="${it.id}" title="仅移出本组，池中保留">移出本组</span>` + ops;
+      + `<span class="wt-op" data-wt-gdel-item="${it.id}" title="仅移出本组，池中保留">移出</span>` + ops;
   }
   const dragAttr = inGroup ? ` draggable="true" data-wt-drag="${it.id}"` : "";
   return `<tr${dragAttr}>
@@ -9010,8 +9561,15 @@ function watchMarkAllRead() {
 function watchRemoveItem(id) {
   const it = wtFind(id);
   if (!confirm(`从池中移除 ${it ? (it.name || it.symbol) : "该标的"}？`)) return;
+  /* 2026-10-31：POST 是毫秒级纯 SQL，慢的是 loadWatch()（取价 3~14 秒）。
+     r.ok 之后先本地删行 + 重渲染（连带把所属各组计数 -1），loadWatch 放后台校准。 */
   api("/api/watch_item_remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-    .then(() => { setHint("已从池中移除。"); return loadWatch(); })
+    .then((r) => {
+      if (!r || r.ok === false) { setHint("移除失败：" + ((r && r.error) || "未知错误")); return; }
+      wtApplyItemRemove(id);
+      setHint("已从池中移除。");
+      return loadWatch();
+    })
     .catch((e) => setHint("移除失败：" + apiErrText(e)));
 }
 /* 移出当前分组（2026-10-14 多对多）：仅移出本组、池中保留；confirm 明示，避免误删全池。 */
@@ -9019,8 +9577,16 @@ function watchGroupRemoveItem(id) {
   const it = wtFind(id);
   if (!it) return;
   if (!confirm(`把「${it.name || it.symbol}」移出当前分组？\n仅移出本组，池中保留。`)) return;
-  api("/api/watch_item_group_remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: it.id, group_id: WATCH.selGroup }) })
-    .then((r) => { setHint(r.ok ? "已移出本组（池中保留）。" : ("操作失败：" + (r.error || ""))); return loadWatch(); })
+  /* 2026-10-31：与 watchRemoveItem 同款 —— 成功后本地摘掉本组并同步计数，组视图里该行
+     立刻消失；标的仍在 WATCH.data.items（可能还在别的组），「全部」视图照样看得到。 */
+  const gid = WATCH.selGroup;
+  api("/api/watch_item_group_remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: it.id, group_id: gid }) })
+    .then((r) => {
+      if (!r || r.ok === false) { setHint("操作失败：" + ((r && r.error) || "未知错误")); return; }
+      wtApplyItemGroupRemove(it.id, gid);
+      setHint("已移出本组（池中保留）。");
+      return loadWatch();
+    })
     .catch((e) => setHint("操作失败：" + apiErrText(e)));
 }
 
@@ -9117,8 +9683,20 @@ function openWatchEditModal(item) {
     btn.disabled = true; btn.textContent = "保存中…";
     try {
       const r = await api("/api/watch_item_update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) { setHint("保存失败：" + (r.error || "未知错误")); return; }
-      overlay.remove(); setHint("已保存。"); loadWatch();
+      if (!r || r.ok === false) {
+        setHint("保存失败：" + ((r && r.error) || "未知错误"));
+        /* 服务端可能已存下 name/kind 而只是 set_groups 失败（如并发删了目标组），
+           本地按失败不预写、保持原样；这里补一次后台校准，免得界面与库里长期不一致。
+           校准失败只走 reportLoadError，不会盖掉上面这句报错。 */
+        loadWatch();
+        return;
+      }
+      overlay.remove();
+      /* 2026-10-31：成功后先把弹窗提交的字段就地写回本地 item 再重渲染（毫秒级可见），
+         loadWatch() 放后台校准 —— 否则要等 3~14 秒取价回来才看到自己改的目标价。 */
+      wtApplyItemUpdate(item.id, body);
+      setHint("已保存。");
+      loadWatch();
     } catch (e) { setHint("保存异常：" + apiErrText(e)); }
     finally { btn.disabled = false; btn.textContent = "保存"; }
   };
@@ -9184,10 +9762,17 @@ function openWatchGroupMgrModal() {
       b.onclick = async () => {
         const gid = b.dataset.gsave;
         const inp = overlay.querySelector(`.wt-gname[data-gid="${gid}"]`);
-        const r = await api("/api/watch_group_rename", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: gid, name: inp.value.trim() }) })
+        const newName = inp.value.trim();
+        const r = await api("/api/watch_group_rename", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: gid, name: newName }) })
           .catch((e) => ({ ok: false, error: apiErrText(e) }));
         setHint(r.ok ? "分组已改名。" : ("改名失败：" + (r.error || "")));
-        if (r.ok) { overlay.remove(); loadWatch(); }
+        if (r.ok) {
+          /* 2026-10-31 ②：与 watchRenameGroup 同一套乐观更新 —— 否则要等 loadWatch() 全量
+             重算回来（取价链路实测 15s）标签条才变，观感等于"点了没反应"。 */
+          wtApplyGroupRename(gid, r.name || newName);
+          overlay.remove();
+          loadWatch();
+        }
       };
     });
     overlay.querySelectorAll("[data-gdel]").forEach((b) => {
@@ -9197,7 +9782,18 @@ function openWatchGroupMgrModal() {
         const r = await api("/api/watch_group_remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: gid }) })
           .catch((e) => ({ ok: false, error: apiErrText(e) }));
         setHint(r.ok ? `已删除分组，${r.moved || 0} 只标的已改挂其它分组。` : ("删除失败：" + (r.error || "")));
-        if (r.ok) { overlay.remove(); loadWatch(); }
+        if (r.ok) {
+          /* 2026-10-31 ②：删除是分组管理里唯一没有乐观更新的路径（QA 实测界面要 15.0~15.65s
+             才反映，期间标签条纹丝不动 = 本次要修的同一个症状）。这里先本地摘掉这颗标签。
+             ③：若删的正是当前选中的组，必须同时回落「全部」，否则表格空白 + 误报「池子为空」。 */
+          if (WATCH.data && Array.isArray(WATCH.data.groups)) {
+            WATCH.data.groups = WATCH.data.groups.filter((g) => String(g.id) !== String(gid));
+          }
+          if (String(WATCH.selGroup) === String(gid)) WATCH.selGroup = "all";
+          renderWatch();
+          overlay.remove();
+          loadWatch();
+        }
       };
     });
   };
@@ -9208,7 +9804,12 @@ function openWatchGroupMgrModal() {
     const r = await api("/api/watch_group_add", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nm }) })
       .catch((e) => ({ ok: false, error: apiErrText(e) }));
     setHint(r.ok ? "已新增分组。" : ("新增失败：" + (r.error || "")));
-    if (r.ok) { overlay.remove(); loadWatch(); }
+    if (r.ok) {
+      /* 2026-10-31 ②：同 watchQuickAddGroup，先本地生效再异步校准。 */
+      wtApplyGroupAdd(r.id, r.name || nm);
+      overlay.remove();
+      loadWatch();
+    }
   };
 }
 
@@ -9228,11 +9829,19 @@ function openWatchGroupMgrModal() {
 // selectNav 会在 app.js 顶层语句执行途中就调用 loadHarvest，声明放后面会直接 TDZ
 // （实测报 "Cannot access 'HARVEST' before initialization"）。
 const HARVEST = { data: null, busy: false };
+// 资金风向（2026-10-30 D35 阶段二）：后端只读 lhb_weather_daily，前端只在进入面板时拉一次。
+const LHBW = { data: null, busy: false };
 // 2026-10-30：开源情报（GitHub 规则重测）。同样必须声明在 NAV 之前 ——
 // 深链 #overview/oss 会走同一条 TDZ 路径。
 const OSS = { data: null, busy: false };
 // 2026-10-30：选股方向（短线证伪 + 低波池）。同样必须在 NAV 之前声明。
 const SELECT = { data: null, busy: false, expandPool: false };
+// 2026-10-31：执行可行性（测评 P1-A）。测评原话是「容量不是收益的附属品，是能否上车的门槛」。
+// 本面板刻意不预填任何数字：四个字段必须由人自己给，缺一项就只显示缺哪一项 ——
+// 用默认值算出来的"可行"，是给别人看的可行。
+const EXECP = { data: null, busy: false, aum: "", nh: "", days: "", fee: "", codes: "", calib: null };
+// ① 成本口径表：纯静态定义，加载一次即可（不随输入变化）
+const COSTB = { data: null, loading: false };
 
 const NAV = [
   // 2026-10-17 架构重排（墨衡方案 v1.0）：统一命名 / 分组 / 跨类迁移；所有 tab 标识保持不变，深链接不变。
@@ -9249,9 +9858,17 @@ const NAV = [
     { group: "当日信号" },
     // 2026-10-31 进哥需求：先看「局」，再选票。不预测点位，只识别阶段与必亏动作。
     { tab: "harvest", label: "大势研判" },
+    // ⚠️ 2026-10-31 进哥反馈「资金风向跟资金动向不是一个意思吗」—— 原来这里挂着一个
+    //   「资金风向」，而左栏一级分类叫「资金动向」，一字之差、内容也确实是同一批龙虎榜资金
+    //   （lhb_weather 读的正是 lhb_sector_focus，即「板块动向」那张表）。
+    //   处置：本项**迁入「资金动向」组**、改名「资金温度」，作为「板块动向」的子视图，
+    //   让"按板块看明细"与"按日看温度"落进同一个入口；旧深链 #overview/lhb_weather
+    //   由 selectNav 的 TAB_HOME 自动扶正，不会失效。
     // 2026-10-30 进哥需求：短线（今天买明天卖）与中长期（底部持有）两个方向。
     // 实测结果与直觉相反，面板如实呈现正反对照，不给安慰性结论。
     { tab: "selection", label: "选股方向" },
+    // 2026-10-31 进哥需求（测评 P1-A）：名单出来了不等于买得进。四字段 → 能不能装下。
+    { tab: "executability", label: "执行可行性" },
     // 2026-10-30 进哥需求：GitHub 上的量化规则在我们的数据上重测。
     // 定位是「方法论校验」，不是又一个荐股源 —— 只回答"这个说法成立吗"。
     { tab: "oss", label: "开源情报" },
@@ -9269,7 +9886,12 @@ const NAV = [
   // ② 资金动向（原「钱往哪走」）：资金 + 人气，改名使命名语域统一（名词短语、首字可定位）
   { key: "money", label: "资金动向", icon: "¥", items: [
     { tab: "lhb", label: "游资龙虎榜" },
-    { tab: "lhb_sectors", label: "板块动向" },
+    // 2026-10-31：「板块动向」升为主项、「资金温度」作子项 —— 同一张 lhb_sector_focus，
+    //   一个看"板块明细"、一个看"逐日温度曲线"，是同一个东西的两个切面。
+    //   原来它们分居两个一级分类（一个在「资金动向」、一个在「今日总览·当日信号」并叫「资金风向」），
+    //   属于典型的"同一份数据两个入口、两个名字"。
+    { tab: "lhb_sectors", label: "板块动向", lead: true, mg: "lhbflow" },
+    { tab: "lhb_weather", label: "资金温度", child: true, mg: "lhbflow" },
     { tab: "moneyflow", label: "资金流向" },
     { tab: "industry-leaders", label: "龙头全景" },
     { group: "人气" },
@@ -9334,6 +9956,15 @@ const NAV = [
   // 非盘中决策、也非知识库动态轨道（DYN_CATS），items 原样生效，不污染首屏与其他大类。
   { key: "research", label: "信号实证", icon: "⚙", items: [
     { tab: "backtest", label: "信号回测" },
+    // 2026-10-31 进哥需求（「图表或更清晰的元素少了一点」）：
+    // 把 115.8 万条公告跑出来的事件研究做成图表 —— 回答"公告里的利好/利空标签哪些是真的"。
+    // 与「信号回测」同类但不重叠：信号回测验的是"因子有没有 alpha"，
+    // 本面板验的是"事件本身有没有方向"。数据纯静态（static/ann_event_data.js），零请求。
+    { tab: "ann_event", label: "公告实证" },
+    // 2026-10-31 决策⑤：任务有没有在成功、数据停在哪一天。
+    // 放本组而不新开一级导航 —— 它与上面两项同一性质（验证系统本身靠不靠谱），
+    // 区别只是验的对象从「因子有没有 alpha」变成「管道还在不在转」。
+    { tab: "health", label: "系统健康" },
   ] },
   { key: "learn", label: "复盘成长", icon: "✎", pinned: true, items: [
     // ⚠️ 本类子项由两个来源动态生成（见 itemsOfCat 的 learn 分支），此处 items 仅为占位。
@@ -9355,6 +9986,13 @@ function catOf(tab) { return NAV.find((c) => c.items.some((i) => i.tab === tab))
    两级分工（2026-09-23 晚回调）：左栏负责「大类」，稳定不跳动、一眼看全；
    子类移到内容区顶部横向平铺（见 paintSubnav），逐个点选更顺手。
    renderNav() 只绑事件、不写 hash、不切面板，故可被异步数据随时安全调用（无递归风险）。 */
+/* tab 的「家」—— 记录每个 tab 实际归属的一级分类，供 selectNav 做深链纠偏。
+   只在 tab 搬过家时需要登记；没登记的按 URL 里的分类走。 */
+const TAB_HOME = {
+  // 2026-10-31：原「今日总览 · 资金风向」并入「资金动向」组，改名「资金温度」。
+  lhb_weather: "money",
+};
+
 function renderNav() {
   const side = $("#sidenav");
   if (!side) return;
@@ -9752,10 +10390,26 @@ function rateGradeChip(r, tip2) {
   const tip = escAttr([r.grade_desc || "", r.advice || tip2 || ""].filter(Boolean).join(" ｜ "));
   return `<span class="gr-chip ${cls}" title="${tip}"><b>${esc(g)}</b>${esc(r.tier_label || "")}</span>`;
 }
+/* 2026-10-31 版面去噪：原来每行写「位置 24/30 · 场景 30/30 · 持续 15/15 · 量价 15/15 · 企稳 7/10」，
+   分母逐行重复了 5 次 —— 一行 48 字，30 行就是 1,440 字的纯冗余。
+   分母是固定的（30/30/15/15/10），提到表头说一次；行内只留分子。 */
+const RATE_DIM_TIP = "五维分解（满分）：位置 30 · 场景 30 · 持续 15 · 量价 15 · 企稳 10（完整五维见行内悬停）";
 function rateDimText(r) {
   const d = r.dim || {};
   if (d.pos == null) return "";
-  return `位置 ${d.pos}/30 · 场景 ${d.scene}/30 · 持续 ${d.persist}/15 · 量价 ${d.vp}/15 · 企稳 ${d.stab}/10`;
+  return `位置 ${d.pos} · 场景 ${d.scene} · 持续 ${d.persist} · 量价 ${d.vp} · 企稳 ${d.stab}`;
+}
+/* 2026-10-31：一行五维 = 「位置 24 · 场景 30 · 持续 15 · 量价 15 · 企稳 10」，30 行就是 750 字的
+   分数串。而五维里真正影响判断的只有**最弱的那一维**（用户想知道"它差在哪"）。
+   行内改报短板，完整五维仍在 title 与 rateDimText 里，一条不删。 */
+function rateDimWeak(r) {
+  const d = r.dim || {};
+  if (d.pos == null) return "";
+  const dims = [["位置", d.pos, 30], ["场景", d.scene, 30], ["持续", d.persist, 15],
+    ["量价", d.vp, 15], ["企稳", d.stab, 10]].filter((x) => x[1] != null);
+  if (!dims.length) return "";
+  const w = dims.slice().sort((a, b) => (a[1] / a[2]) - (b[1] / b[2]))[0];
+  return (w[1] / w[2]) >= 0.9 ? "五维无明显短板" : `短板 ${w[0]} ${w[1]}/${w[2]}`;
 }
 function rateTick(tick, n) {
   if (!tick) return '<span class="muted">—</span>';
@@ -9841,7 +10495,17 @@ function rateTrackCell(r, bm) {
     ${st ? `<span class="tk-s">${st}</span>` : ""}
   </span>`;
 }
-function rateRow(r, i, bm) {
+/* o.commonHint / o.commonAdvice：全表同值时由 rateTable 提到表头，行内不再重复。
+   2026-10-31 版面去噪：实测 Top30 榜里「低位温和放量·吸筹特征」「可分批建仓；跌破买入价 -6% 离场」
+   「A+ 积极关注」三样在 30 行里一模一样出现 30 次 —— 这是排版上的复读，不是信息。
+   注意：这不是写死"不显示"，而是**只有当全表同值才上提**；榜里出现第二种场景/建议时，
+   它照旧逐行显示（判据仍是区分度，不是固定字段）。 */
+function rateRow(r, i, bm, o) {
+  o = o || {};
+  const hintTxt = o.commonHint ? "" : esc(r.hint || r.scenario || "");
+  const advTxt = o.commonAdvice ? "" : esc(r.advice || "");
+  const dimTxt = esc(rateDimWeak(r));
+  const tipParts = [r.hint || r.scenario || "", rateDimText(r), r.advice || ""].filter(Boolean);
   return `<tr>
     <td class="wt-c1">${i + 1}</td>
     <td><button type="button" class="wt-sym" data-wt-open="${escAttr(r.code)}">${esc(r.code)}</button></td>
@@ -9850,31 +10514,62 @@ function rateRow(r, i, bm) {
     <td class="rate-ideal">${rateIdealCell(r)}</td>
     <td class="rate-track">${rateTrackCell(r, bm)}</td>
     <td>${r.pos_pct == null ? '<span class="muted">—</span>' : Number(r.pos_pct).toFixed(0) + "%"}</td>
-    <td class="rate-score">${r.score == null ? '<span class="muted">—</span>' : `<b>${r.score}</b>`}</td>
-    <td>${rateGradeChip(r)}</td>
-    <td class="sc-hint rate-hint">
-      <span class="rh-1">${esc(r.hint || r.scenario || "")}</span>
-      <span class="rh-2">${esc(rateDimText(r))}${(r.advice && r.hint) ? " ｜ " : ""}${esc(r.advice || "")}</span>
+    <td class="rate-score">${r.score == null ? '<span class="muted">—</span>' : `<b>${r.score}</b>`}` +
+      `${rateGradeMini(r)}</td>
+    <td class="sc-hint rate-hint" title="${escAttr(tipParts.join(" ｜ "))}">
+      ${hintTxt ? `<span class="rh-1">${hintTxt}</span>` : ""}
+      <span class="rh-2">${dimTxt}${advTxt ? " ｜ " + advTxt : ""}</span>
     </td>
   </tr>`;
 }
+/* 档位徽标（紧凑版）：原来独占一列，而这一列在 Top 榜里常常整列同值（全是 A+ 积极关注）。
+   并进入手概率格里只留「等级 + 颜色」，等级名进 title —— 列数 −1，行高也跟着降。 */
+function rateGradeMini(r) {
+  const g = r.grade || "";
+  if (!g) return "";
+  const cls = "gr-" + (r.grade_cls || "d");
+  const tip = escAttr([g, r.tier_label || "", r.grade_desc || ""].filter(Boolean).join(" "));
+  return `<span class="gr-mini ${cls}" title="${tip}">${esc(g)}</span>`;
+}
 function rateTable(d) {
   const bm = d.buy_map || {};
-  const body = (d.rows || []).map((r, i) => rateRow(r, i, bm)).join("") ||
-    `<tr><td colspan="10" class="muted wt-empty">全市场没有可评分的股票（行情源异常？），请稍后重试。</td></tr>`;
+  const rowsArr = d.rows || [];
+  // 全表同值才上提（判据是"有没有区分度"，不是固定字段名）
+  const uniqOf = (arr) => {
+    const s = new Set(arr.map((v) => String(v == null ? "" : v).trim()).filter(Boolean));
+    return s.size === 1 ? Array.from(s)[0] : "";
+  };
+  const opts = {
+    commonHint: uniqOf(rowsArr.map((r) => r.hint || r.scenario)),
+    commonAdvice: uniqOf(rowsArr.map((r) => r.advice)),
+  };
+  const body = rowsArr.map((r, i) => rateRow(r, i, bm, opts)).join("") ||
+    `<tr><td colspan="9" class="muted wt-empty">全市场没有可评分的股票（行情源异常？），请稍后重试。</td></tr>`;
   // 2026-10-12 A+B：把「最值得入手」这一格的两个层级讲清楚 ——
   // 免得「可分批」被读成"综合了五维/资料库之后的结论"（进哥的原始质疑）。
+  // 2026-10-31：这段口径原来常驻 4 行（约 190 字）压表头之上。留下"这一格只看价格、
+  //   可分批要双确认"两个**会影响怎么读表**的前提，推导与例外收进折叠。
   const legend = `<div class="rate-bp-legend">
-    <b>最值得入手</b> 这一格是<b>纯价格结构</b>算法：现价回撤（近 20 日振幅×3，限 5%~25%）与
-    近 60 日收盘 20% 分位（支撑）取较高者、且不超过现价 —— 只看日K，
-    <b>不含换手率 / 量能 / 资金流 / 情绪 / 板块</b>。
-    <span class="lg-buy">可分批</span> = <b>双确认</b>：价格已到测算买点 <b>且</b> 右侧「档位」达到 A / A+（五维换手综合 ≥85 分）；
-    档位不够时只报「已到测算买点」、不给「可分批」。鼠标停在该格上可看这只票的具体依据。
+    <b>最值得入手</b> 这一格是<b>纯价格结构</b>算法 —— 只看日K，<b>不含</b>换手率 / 量能 / 资金流 / 情绪 / 板块。
+    <span class="lg-buy">可分批</span> = 价格已到测算买点 <b>且</b> 五维档位 ≥ A（双确认）。
+    <details class="rtl-more"><summary>算法与判定细节</summary>
+      <p>测算买点 = 现价回撤（近 20 日振幅×3，限 5%~25%）与近 60 日收盘 20% 分位（支撑）取较高者，且不超过现价；可手填覆盖。</p>
+      <p>档位不到 A 时只报「已到测算买点」、不给「可分批」。鼠标停在该格上可看这只票的具体依据。</p>
+    </details>
   </div>`;
+  // 2026-10-31：档位列并入「入手概率」（列数 10→9）；全表同值的场景/建议提到表下说明里写一次，
+  // 行内不再复读。分母说明挂到「提示」表头 title 上（RATE_DIM_TIP）。
+  const commonNote = (opts.commonHint || opts.commonAdvice)
+    ? `<div class="rate-common"><b>本榜统一</b>` +
+      (opts.commonHint ? `<span>场景判据：${esc(opts.commonHint)}</span>` : "") +
+      (opts.commonAdvice ? `<span>动作建议：${esc(opts.commonAdvice)}</span>` : "") +
+      `<span class="rate-common-n">（全榜同值，故不再逐行重复；出现差异时会回落成逐行显示）</span></div>`
+    : "";
   return `<div class="wt-tw"><table class="wt-tb sc-dn-tb"><thead><tr>
     <th>#</th><th>代码</th><th>名称</th><th>现价</th><th>最值得入手</th><th>跟踪（锚点→今）</th>
-    <th>位置分位</th><th>入手概率</th><th>档位</th><th>提示（场景判据 · 五维分解 · 动作建议）</th>
-  </tr></thead><tbody>${body}</tbody></table></div>` + legend;
+    <th>位置分位</th><th>入手概率 / 档位</th>
+    <th title="${escAttr(RATE_DIM_TIP)}">提示（短板 · 动作建议）</th>
+  </tr></thead><tbody>${body}</tbody></table></div>` + commonNote + legend;
 }
 function rateDayCard(day, open) {
   const isToday = day.snap_date === new Date().toISOString().slice(0, 10);
@@ -9903,7 +10598,6 @@ function rateDayCard(day, open) {
         ${RATE_TTL.map((n) => `<th>T+${n} 收盘价 / 比值</th>`).join("")}
         <th>档位</th>
       </tr></thead><tbody>${rows}</tbody></table>
-      <div class="tl-note">基准＝归档当天的入市价；T+N 取其后第 N 个交易日收盘价（前复权）。未到期的格子留空，不是 0。</div>
       ${pendingWhy(day, uniqPend)}
     </div>
   </div>`;
@@ -9916,9 +10610,12 @@ function pendingWhy(day, uniqPend) {
   const base = items[0].base_bar && items[0].base_bar.date ? items[0].base_bar.date : "";
   const td = day.trade_date || "";
   if (!base) return "";
+  // 2026-10-31：原来 11 张归档卡各写一遍「不会补 0，0 会被读成平盘，是假信号」——
+  //   那句是整块的口径，已提到 tl-note-once 里说一次。这里只留**这一天独有**的事实：
+  //   基准落在哪根 K 线上、为什么不是榜单行情日。
   return `<div class="tl-note tl-note-warn">当前 ${uniqPend.length} 个刻度待到期：日线基准是 <b>${base}</b>` +
     (td && td !== base ? `（榜单行情日 ${td}，其日线尚未发布，故基准落在 ${base}）` : "") +
-    `。之后每走完 N 个交易日这格自动出现比值，<b>不会补 0</b>（0 会被读成平盘，是假信号）。</div>`;
+    `。</div>`;
 }
 function rateTimelineBlock(st) {
   if (st.tlLoading) return `<div class="hint wt-empty">时间轴计算中…需补各票日线（约几秒到半分钟）。</div>`;
@@ -9945,6 +10642,11 @@ function rateTimelineBlock(st) {
   return `<div class="rate-sec">
     <div class="rate-sec-h"><h3>时间轴</h3><span class="muted">按归档日回看「入市价 → 后来收盘价」，每一行是你做判断那天</span></div>
     <div class="tl-summary">${sumRow}</div>
+    <!-- 2026-10-31：这句口径原来写在**每一张**归档日卡片里（实测 11 张表重复同一句，约 500 字）。
+         口径是"这批表怎么算的"，属于整块的性质，只说一次就够；每张卡只保留它自己独有的
+         「待到期卡在哪根 K 线」提示（pendingWhy，各日不同）。 -->
+    <div class="tl-note tl-note-once">基准＝归档当天的入市价；T+N 取其后第 N 个交易日收盘价（前复权）。
+      未到期的格子留空，<b>不填 0</b>（0 会被读成平盘，是假信号）。</div>
     <div class="tl-cards">${cards}</div>
     <div class="hint wt-foot">样本口径：每个归档日取前 ${esc(tl.per_day || st.tlPer)} 名、${esc(tl.days_window || st.tlWindow)} 个归档日。「胜率」＝ T+N 收盘价 ≥ 入市价的比例；「待到期」＝还没走到 N 个交易日，留空不填 0。</div>
   </div>`;
@@ -10128,9 +10830,20 @@ function renderLowbox() {
   $$("#p-lowbox [data-lb-add]").forEach((el) => {
     el.onclick = () => openWatchAddModal(null, { symbol: el.dataset.lbAdd });
   });
+  $$("#p-lowbox [data-lb-more]").forEach((el) => {
+    el.onclick = () => lowboxDetail(Number(el.dataset.lbMore));
+  });
 }
+/* ===== 低位突破表：23 列 → 18 列（2026-10-30 进哥拍板）=====
+   实测：23 列在 1274px 面板里表宽 1953px，横向要滚 678px —— 右边 6 列等于看不见。
+   砍掉 PE / ROE / 负债率 / 股息率 / 估值分 这 5 列（411px），折进「详情」弹层；
+   同时上 <colgroup> 百分比 + table-layout:fixed（与关注池战法表同一套做法），
+   宽度不再随数据长短跳动，一屏放得下，扫票不用再左右拖。
+   注意：质量列只留 ✓ / ⚠ 记号，具体缺项文本进弹层 —— 长文本会把固定列宽顶变形。 */
+let LB_ROWS = [];
 function lowboxTable(d) {
   const rows = d.rows || [];
+  LB_ROWS = rows;
   if (!rows.length) return `<div class="muted wt-empty">没有符合条件的标的（试试放宽低位阈值、箱体时长或质量档）。</div>`;
   const trs = rows.map((r, i) => {
     // 国资系：十大股东背景(state_tag) + 实控人国资(holder_tag) 双标
@@ -10142,26 +10855,25 @@ function lowboxTable(d) {
     // 长窗worth 三档（250/500/750）；缺档标 «—»
     const lwParts = r.lw_parts || {};
     const lw3 = ["w250", "w500", "w750"].map((k) =>
-      lwParts[k] != null ? `<b>${Math.round(lwParts[k])}</b>` : "«—»").join("/");
+      lwParts[k] != null ? `<b>${Math.round(lwParts[k])}</b>` : `<span class="muted">—</span>`).join("/");
     const lwCls = r.long_worth != null ? (r.long_worth >= 70 ? "bull" : r.long_worth >= 40 ? "" : "muted") : "";
     // 突破状态（达瓦斯箱顶 + 量比）
     const bo = r.bo_state || "in_box";
     const vr = r.vol_ratio != null ? r.vol_ratio : null;
     const boCls = bo === "breakout" ? "bull" : bo === "stand_top" ? "bull2" : bo === "near" ? "" : "muted";
-    const boTxt = wtBoStateLabel(bo) + (vr != null ? ` · 量比${vr}` : "");
+    const boTxt = wtBoStateLabel(bo) + (vr != null ? `<br><span class="muted" style="font-size:10px">量比${vr}</span>` : "");
     const boHot = (bo === "breakout" || (vr != null && vr >= 1.5)) ? " wt-hot" : "";
-    // 质量标记
-    const qf = r.quality_flag ? `<span class="wt-chip warn" title="质量过滤未通过项 / 数据缺失">${esc(r.quality_flag)}</span>` : `<span class="bull">✓</span>`;
+    // 质量标记：只留记号（✓ / ⚠），缺项明细进「详情」
+    const qf = r.quality_flag
+      ? `<span class="wt-chip warn" title="${escAttr(r.quality_flag)}">⚠</span>`
+      : `<span class="bull">✓</span>`;
     const pctCls = r.pct_all != null && r.pct_all <= 30 ? "bull" : "";
     const slopeCls = r.slope_yr_pct != null && Math.abs(r.slope_yr_pct) < 8 ? "muted" : "";
-    const roeCls = r.roe != null ? (r.roe >= 10 ? "bull" : r.roe < 0 ? "bear" : "") : "";
-    const drCls = r.dr != null && r.dr > 70 ? "bear" : "";
-    const dyCls = r.dy != null && r.dy >= 2 ? "bull" : "";
     const scCls = r.score != null ? (r.score >= 70 ? "bull" : r.score >= 50 ? "" : "muted") : "";
     return `<tr>
       <td>${i + 1}</td>
-      <td><a class="wt-code" data-wt-open="${esc(r.code)}">${esc(r.code)}</a><br><span class="muted">${esc(r.name || "")}</span>${r.avoid && r.avoid.level ? " " + avoidBadge(r.avoid) : ""}${r.lift && r.lift.level ? " " + liftBadge(r.lift, { watch: true }) : ""}</td>
-      <td class="${scCls}"><b>${r.score != null ? r.score : "—"}</b>${(r.state_bonus ? `<br><span class="muted">+${r.state_bonus}国资</span>` : "")}</td>
+      <td class="lb-name"><a class="wt-code" data-wt-open="${esc(r.code)}">${esc(r.code)}</a><br><span class="muted">${esc(r.name || "")}</span>${r.avoid && r.avoid.level ? " " + avoidBadge(r.avoid) : ""}${r.lift && r.lift.level ? " " + liftBadge(r.lift, { watch: true }) : ""}</td>
+      <td class="${scCls}"><b>${r.score != null ? r.score : "—"}</b>${(r.state_bonus ? `<br><span class="muted" style="font-size:10px">+${r.state_bonus}国资</span>` : "")}</td>
       <td>${qf}</td>
       <td>${r.current != null ? r.current : "—"}</td>
       <td class="${pctCls}">${r.pct_all != null ? r.pct_all + "%" : "—"}</td>
@@ -10169,28 +10881,108 @@ function lowboxTable(d) {
       <td>${r.box_low != null ? r.box_low : "—"}</td>
       <td>${r.box_high != null ? r.box_high : "—"}</td>
       <td>${r.box_years != null ? r.box_years : "—"}</td>
-      <td>${r.box_range_pct != null ? r.box_range_pct + "%" : "—"}</td>
+      <td>${r.box_range_pct != null ? (Math.abs(r.box_range_pct) >= 100 ? Math.round(r.box_range_pct) : r.box_range_pct) + "%" : "—"}</td>
       <td>${r.cv_pct != null ? r.cv_pct + "%" : "—"}</td>
       <td class="${slopeCls}">${r.slope_yr_pct != null ? r.slope_yr_pct + "%" : "—"}</td>
-      <td class="${lwCls}" title="长窗worth·250/500/750日（30:40:30加权）"><span class="muted sm">250/500/750</span><br>${lw3}</td>
-      <td>${r.pe != null ? r.pe : "—"}</td>
-      <td class="${roeCls}">${r.roe != null ? r.roe + "%" : "—"}</td>
-      <td class="${drCls}">${r.dr != null ? r.dr + "%" : "—"}</td>
-      <td class="${dyCls}">${r.dy != null ? r.dy + "%" : "—"}</td>
-      <td>${r.val_score != null ? r.val_score : "—"}</td>
-      <td title="${esc(ah)}">${ah}${ahBadge}</td>
+      <td class="${lwCls}" title="长窗worth：250/500/750日三档（30:40:30加权），明细见详情">${lw3}</td>
+      <td class="lb-nowrap" title="${esc(ah)}">${ah}${ahBadge}</td>
       <td>${govCell}</td>
       <td class="${boCls}${boHot}">${boTxt}</td>
-      <td><button class="btn xs" data-lb-add="${esc(r.code)}">入池</button></td>
+      <td class="lb-ops"><button class="btn xs" data-lb-add="${esc(r.code)}">入池</button><button class="btn xs" data-lb-more="${i}">详情</button></td>
     </tr>`;
   }).join("");
-  return `<div class="wt-tw"><table class="wt-tb lowbox-tb"><thead><tr>
-    <th>#</th><th>代码/名称</th><th>综合分</th><th>质量</th><th>现价</th><th>上市分位</th><th>近3年分位</th>
-    <th>箱底</th><th>箱顶</th><th>时长(年)</th><th>振幅</th><th>波动率</th><th>年化斜率</th>
-    <th>长窗worth<br><span class="sm muted">250/500/750</span></th><th>PE</th><th>ROE</th><th>负债率</th>
-    <th>股息率</th><th>估值分</th><th>实控人</th><th>国资系</th><th>突破状态</th><th>操作</th>
+  // 18 列百分比：合计 100。数值列按「实际内容宽度」给，实控人/突破状态/操作给宽
+  const COLS = [2.6, 8.6, 5.0, 2.8, 4.2, 5.2, 5.6, 4.2, 4.2, 3.6, 4.8, 4.4, 4.8, 7.0, 6.4, 7.4, 9.6, 9.6];
+  const cg = COLS.map((w) => `<col style="width:${w}%">`).join("");
+  return `<div class="wt-tw"><table class="wt-tb lowbox-tb lb-main">
+    <colgroup>${cg}</colgroup>
+    <thead><tr>
+    <th>#</th><th>代码/名称</th><th>综合分</th><th title="质量过滤：✓ 通过 / ⚠ 有缺项，明细见详情">质量</th><th>现价</th><th title="现价在全历史里的分位">上市分位</th><th>近3年分位</th>
+    <th>箱底</th><th>箱顶</th><th title="箱体时长（年）">时长</th><th title="箱体内振幅">振幅</th><th>波动率</th><th title="箱体内年化斜率">斜率</th>
+    <th title="长窗worth：250/500/750日三档（30:40:30加权）">长窗</th><th>实控人</th><th>国资系</th><th>突破状态</th><th>操作</th>
   </tr></thead><tbody>${trs}</tbody></table></div>`;
 }
+
+/* 「详情」弹层：装原先表里放不下的 5 列（PE/ROE/负债率/股息率/估值分）+ 其余明细。
+   数据取 LB_ROWS（lowboxTable 渲染时缓存），不再单独请求接口。 */
+function lowboxDetail(i) {
+  const r = LB_ROWS[i];
+  if (!r) return;
+  // 后端 PE / 负债率 是原始 float（94.18487562），直接 print 会糊一屏。
+  // 统一两位小数；>=100 取整（振幅这类上千的百分数保留小数没意义）。
+  const f2 = (v) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    if (!isFinite(n)) return null;
+    return Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 100) / 100;
+  };
+  const num = (v, unit) => (f2(v) == null ? `<span class="lb-v muted">—</span>` : `<span class="lb-v">${f2(v)}${unit || ""}</span>`);
+  const kv = (k, vHtml) => `<div class="lb-kv"><span class="lb-k">${k}</span>${vHtml}</div>`;
+  const roeCls = r.roe != null ? (r.roe >= 10 ? "bull" : r.roe < 0 ? "bear" : "") : "muted";
+  const drCls = r.dr != null && r.dr > 70 ? "bear" : "";
+  const dyCls = r.dy != null && r.dy >= 2 ? "bull" : "";
+  const cls = (c) => (c ? "lb-v " + c : "lb-v");
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal-card lb-modal" role="dialog" aria-label="低位突破详情">
+      <h3 style="margin:0 0 2px">${esc(r.code)} ${esc(r.name || "")}
+        <span class="muted" style="font-size:12px;font-weight:400">综合分 ${r.score != null ? r.score : "—"}${r.state_bonus ? "（含国资 +" + r.state_bonus + "）" : ""}</span></h3>
+      <div class="hint" style="margin:0 0 12px">原先表里这 5 列放不下 → 折进这里。表格只留「形态 + 突破」，估值与财务在这里看。</div>
+      <div class="lb-grp">
+        <h4>估值 / 财务（原表 PE·ROE·负债率·股息率·估值分）</h4>
+        <div class="lb-grid">
+          ${kv("PE", num(r.pe))}
+          ${kv("ROE", `<span class="${cls(roeCls)}">${f2(r.roe) != null ? f2(r.roe) + "%" : "—"}</span>`)}
+          ${kv("负债率", `<span class="${cls(drCls)}">${f2(r.dr) != null ? f2(r.dr) + "%" : "—"}</span>`)}
+          ${kv("股息率", `<span class="${cls(dyCls)}">${f2(r.dy) != null ? f2(r.dy) + "%" : "—"}</span>`)}
+          ${kv("估值分", num(r.val_score))}
+          ${kv("质量", r.quality_flag ? `<span class="lb-v bear" style="font-size:11px">${esc(r.quality_flag)}</span>` : `<span class="lb-v bull">✓ 通过</span>`)}
+        </div>
+      </div>
+      <div class="lb-grp">
+        <h4>位置 / 箱体</h4>
+        <div class="lb-grid">
+          ${kv("现价", num(r.current))}
+          ${kv("上市分位", num(r.pct_all, "%"))}
+          ${kv("近3年分位", num(r.pct_3y, "%"))}
+          ${kv("箱底", num(r.box_low))}
+          ${kv("箱顶", num(r.box_high))}
+          ${kv("箱体时长", num(r.box_years, " 年"))}
+          ${kv("振幅", num(r.box_range_pct, "%"))}
+          ${kv("波动率", num(r.cv_pct, "%"))}
+          ${kv("年化斜率", num(r.slope_yr_pct, "%"))}
+        </div>
+      </div>
+      <div class="lb-grp">
+        <h4>长窗 worth（250 / 500 / 750 日，30:40:30 加权）</h4>
+        <div class="lb-grid">
+          ${kv("250日", num((r.lw_parts || {}).w250 != null ? Math.round(r.lw_parts.w250) : null))}
+          ${kv("500日", num((r.lw_parts || {}).w500 != null ? Math.round(r.lw_parts.w500) : null))}
+          ${kv("750日", num((r.lw_parts || {}).w750 != null ? Math.round(r.lw_parts.w750) : null))}
+        </div>
+      </div>
+      <div class="lb-grp">
+        <h4>背景 / 突破</h4>
+        <div class="lb-grid">
+          ${kv("实控人", `<span class="lb-v" style="font-size:12px">${esc(r.actual_holder || "—")}</span>`)}
+          ${kv("国资系", `<span class="lb-v" style="font-size:12px">${esc(r.state_tag || r.holder_tag || "—")}</span>`)}
+          ${kv("突破状态", `<span class="lb-v" style="font-size:12px">${esc(wtBoStateLabel(r.bo_state || "in_box"))}</span>`)}
+          ${kv("量比", num(r.vol_ratio))}
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" data-lb-close>关闭</button>
+        <button class="btn primary" data-lb-add2="${esc(r.code)}">加入关注池</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector("[data-lb-close]").onclick = close;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector("[data-lb-add2]").onclick = () => { close(); openWatchAddModal(null, { symbol: r.code }); };
+}
+
 
 /* ================= 长期底部埋伏（2026-10-21 进哥需求）=================
    与「低位突破」的分工（别混）：
@@ -10824,6 +11616,23 @@ function renderScreener() {
 }
 
 /* ---------- 资金流向 ---------- */
+/* 2026-10-31（QA 项 5 不通过）：板块资金流的「今日休市 / 盘中·每小时刷新 / 收盘定稿」时段说明。
+   后端 `_market_note()` 一直有给，但前端只在「分时曲线」分支渲染过（`!rOn` 守卫）；
+   而默认口径是**区间**（单日=最新交易日），`loadBoardRange()` 照样并行发请求、回来就接管整屏，
+   于是这句话一次都没被用户看到。取值规则：
+     ① 优先后端新增的纯节奏字段 `rhythm_note`（只讲节奏，任何口径都成立）；
+     ② 后端未重启（没有该字段）时退化为完整 `market_note`，但**仅限单日口径** ——
+        用户自选多日起止时，整句里「曲线为最近交易日 X 数据」是错话，宁可整段不显示；
+     ③ 都拿不到 → 空串，调用方不输出该 span。 */
+function bfFlowNote(rf, cur) {
+  const c = cur || FEAT.moneyflow.curve || {};
+  const rhythm = String(c.rhythm_note || "").trim();
+  const full = String(c.market_note || "").trim();
+  if (rhythm) return rhythm;
+  const days = ((rf && rf.ok && rf.trade_days) || []).length;
+  return days > 1 ? "" : full;
+}
+
 /* 2026-10-05：区间口径单独一个 loader（起止日期由前端状态决定，默认空=后端取最新交易日）。
    单日 + 区间两条链并行，谁先回来谁先渲染，别让第一屏等接口。 */
 function loadBoardRange(force) {
@@ -10935,6 +11744,9 @@ function renderMoneyflow() {
     const rMax = (rdAll && rdAll[rdAll.length - 1]) || ((rf && rf.end) || "");
     const rDlabel = rDays.length > 1 ? `${rStart} 至 ${rEnd}（${rDays.length} 个交易日）`
       : (rDays.length === 1 ? `${rEnd} 单日` : "—");
+    // 2026-10-31（QA 项 5 不通过）：时段说明在本函数的**两个**分支都要用到（分时 / 区间），
+    // 取值规则见 bfFlowNote()。原先只有分时分支渲染，而默认口径走区间分支 → 一个字都不显示。
+    const bfNote = bfFlowNote(rf, cur);
     const snapRows = ((snap.rows) || []).slice(0, 60);
     // 2026-09-28 按王总要求：代表股多列几只且可点击；上方各列收紧，宽度让给代表股。
     // 超大单 / 大单只有东财源才给（新浪源恒为空）——全空就不渲染这两列，
@@ -10995,7 +11807,7 @@ function renderMoneyflow() {
               ? `<span class="bf-chip bf-chip-up">净流入 <b>${statUp}</b></span>` +
                 `<span class="bf-chip bf-chip-dn">净流出 <b>${statDn}</b></span>` : "")}
             ${!rOn && lastTs ? `<span class="bf-time-badge">时间：${esc(lastTs)}</span>` : ""}
-            ${!rOn && cur.market_note ? `<span class="bf-note-inline" title="${escAttr(cur.market_note)}">${esc(cur.market_note)}</span>` : ""}</span>
+            ${!rOn && bfNote ? `<span class="bf-note-inline" title="${escAttr(bfNote)}">${esc(bfNote)}</span>` : ""}</span>
         </div>
         <div class="bf-range-bar">
           <a class="bf-range-pill${FEAT.moneyflow.boardMode === "single" ? " active" : ""}" data-bf-range-mode="single" title="口径=最新交易日单日，默认展示口径">单日 · 最新交易日</a>
@@ -11338,12 +12150,16 @@ function renderBoardFlowCurve() {
     const svg = bfRangeCurveSvg(rf);
     if (svg) {
       const st = rf.stats || {};
+      // 2026-10-31（QA 项 5 不通过）：区间口径下也要显示时段说明。
+      // 只**追加**在既有分段末尾，不重排 `.bf-src` 原有内容（口径/交易日数/来源/补抓提示）。
+      const rangeNote = bfFlowNote(rf, FEAT.moneyflow.curve || {});
       host.innerHTML = svg
         + `<div class="bf-src">口径 ${esc(rf.start || "—")} ~ ${esc(rf.end || "—")} · `
         + `${st.days} 个交易日 · 全池 ${st.boards} 个板块（净流入 ${st.up} / 净流出 ${st.down}） · `
         + `来源：${esc(rf.source_label || rf.source || "—")}`
         + `${(rf.warming ? " · 日线后台补抓中，稍后刷新" : "")}`
-        + `${(rf.note || []).length ? " · " + (rf.note || []).map(esc).join(" / ") : ""}</div>`;
+        + `${(rf.note || []).length ? " · " + (rf.note || []).map(esc).join(" / ") : ""}`
+        + `${rangeNote ? ` · <span class="bf-note-inline" title="${escAttr(rangeNote)}">${esc(rangeNote)}</span>` : ""}</div>`;
       return;
     }
   }
@@ -11358,10 +12174,16 @@ function renderBoardFlowCurve() {
   }
   const first = c.first_ts || (c.axis || [])[0] || "";
   const late = bfSessionX(first) > 5;
+  // 2026-10-31（项 5 兜底）：区间口径可能"ok 但画不出图"（日线还在后台补抓，svg 为空），
+  // 此时会退回到这里画分时曲线；rOn 仍是 true，上面 chips 行那句 `!rOn && bfNote` 不会渲染，
+  // 所以这条来源行也要能带上时段说明，否则又回到"一个字都看不到"。
+  const _rf = FEAT.moneyflow.range || null;
+  const _fallbackNote = (_rf && _rf.ok) ? bfFlowNote(_rf, c) : "";
   host.innerHTML = bfFlowCurveSvg(c) +
     `<div class="bf-src">${c.data_date ? "数据日 " + esc(c.data_date) + " · " : ""}来源：${esc(c.source_label || c.source || "—")} · 更新于 ${esc(c.updated_at || "—")}`
     + `${c.sample_count ? " · 采样点 " + c.sample_count : ""}${c.cached_at ? " · 库内缓存于 " + esc(c.cached_at) : ""}`
-    + `${late ? ` · 曲线自 ${esc(first)} 起（查看器当日启动后才开始采样，全天完整曲线需交易时段保持开启）` : ""}</div>`;
+    + `${late ? ` · 曲线自 ${esc(first)} 起（查看器当日启动后才开始采样，全天完整曲线需交易时段保持开启）` : ""}`
+    + `${_fallbackNote ? ` · <span class="bf-note-inline" title="${escAttr(_fallbackNote)}">${esc(_fallbackNote)}</span>` : ""}</div>`;
 }
 
 function stopBoardFlowAuto() {
@@ -12945,6 +13767,10 @@ function paintSubnav(cat, tab) {
 
 /* 切换导航。push=true 时写 hash（由 hashchange 统一驱动渲染，避免两处逻辑分叉） */
 function selectNav(catKey, tabKey, push) {
+  // 2026-10-31 导航归类后的深链兜底：tab 换了归属分类时，旧链接不能静默落到"首项"。
+  // 「资金风向」→「资金动向 · 资金温度」是第一次出现这种迁移，故建一张显式映射表；
+  // 以后再有 tab 换组，往这里加一行即可（比在 selectNav 里写 if 更不容易漏）。
+  if (tabKey && TAB_HOME[tabKey] && TAB_HOME[tabKey] !== catKey) catKey = TAB_HOME[tabKey];
   // 离开「突破雷达」时停掉其 5 分钟轮询，避免无意义复评请求
   if (CURRENT && CURRENT.tab === "lowbox_radar" && tabKey !== "lowbox_radar") {
     const _st = FEAT.lowbox;
@@ -13070,6 +13896,20 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "harvest") {
     loadHarvest().catch((e) => reportLoadError("大势研判", e));
   }
+  // 资金风向（2026-10-30 D35 阶段二）：只读落库的逐日温度，进入时按需加载
+  if (tab === "lhb_weather") {
+    loadLhbWeather().catch((e) => reportLoadError("资金风向", e));
+  }
+  // 公告实证（2026-10-31）：纯静态数据，无接口请求。ANN 由 static/ann_event.js 提供；
+  // 脚本万一没加载（旧缓存），给一句人话而不是让面板空白。
+  if (tab === "ann_event") {
+    if (window.ANN && window.ANN.load) window.ANN.load();
+    else {
+      const _b = $("#p-ann_event");
+      if (_b) _b.innerHTML = '<div class="empty">公告实证脚本未加载（static/ann_event.js）。'
+        + '请强制刷新页面（Ctrl+F5）后再试。</div>';
+    }
+  }
   // 开源情报（2026-10-30）：GitHub 规则重测结果，进入时按需加载
   if (tab === "oss") {
     loadOSS().catch((e) => reportLoadError("开源情报", e));
@@ -13077,6 +13917,15 @@ function selectNav(catKey, tabKey, push) {
   // 选股方向（2026-10-30）：短线证伪 + 低波池，进入时按需加载
   if (tab === "selection") {
     loadSelection().catch((e) => reportLoadError("选股方向", e));
+  }
+  // 执行可行性（2026-10-31）：纯表单驱动，进入时只渲染空表，不发请求
+  // （没有四个字段就不该有请求 —— 否则后端要拿默认值去算，那正是这次要灭的东西）
+  if (tab === "executability") {
+    renderExecutability();
+  }
+  // 系统健康（2026-10-31 决策⑤）：进入时按需加载，后端有 60 秒缓存
+  if (tab === "health") {
+    loadHealth().catch((e) => reportLoadError("系统健康", e));
   }
   // 避雷名单（2026-10-21 dy9）：低分卡归因显式面板，进入时按需加载
   if (tab === "avoid") {
@@ -13124,7 +13973,7 @@ function selectNav(catKey, tabKey, push) {
   // 信号回测实证（P4 · 2026-10-27 收尾）：进入即懒加载，已加载则纯重绘（零请求）
   if (tab === "backtest") {
     if (BTK.data) renderBacktest();
-    else loadBacktest();
+    else loadSignalBacktest();
   }
   // 入手概率（2026-10-05 新板块，与「智能选股」并列）：进入即渲染，已拿过数据就只重绘
   if (tab === "rate") {
@@ -13188,17 +14037,33 @@ function selectNav(catKey, tabKey, push) {
    （表 signal_backtest：17 信号 × 3 前向窗口 = 51 行；口径 = 触发信号后 N 日超额收益）。
    界面打通「实证 → 当前消费权重」链路：表格按夏普降序展示各信号胜率/平均超额收益/夏普，
    底部对照 config.SIGNAL_WEIGHTS 当前实际被评分消费的权重，标出"有实证 / 无实证对照"。 */
-const BTK = { data: null, loading: false, filter: "all" };
-function loadBacktest() {
+const BTK = { data: null, loading: false, filter: "all", shadow: null, combo: null };
+/* ⚠️ 2026-10-31 整改（测评 P0-C ⑤）：本函数原名 `loadBacktest`，与文件后面
+   「策略回测」的 `loadBacktest(isRetry)`（约在 15198 行，打 /api/backtest）**同名**。
+   JS 的函数声明提升会让后定义的那个覆盖先定义的 ⇒ 本 tab 调用时实际执行的是策略回测，
+   于是「信号回测」面板**从来没有请求过 /api/signal/backtest**，
+   表现为"面板一直空着/加载不出来"，而控制台不报错、接口也没 404 ——
+   因为根本没有人去调它。这是本轮最典型的「没有报错的故障」。
+   改为 loadSignalBacktest，与策略回测的 loadBacktest 分开。 */
+function loadSignalBacktest() {
   const box = ensurePanel("backtest");
   if (!box) return;
   if (BTK.data) { renderBacktest(); return; }
   if (BTK.loading) return;
   BTK.loading = true;
   box.innerHTML = `<div class="empty">正在读取信号回测实证…</div>`;
-  api("/api/signal/backtest")
-    .then((d) => { BTK.loading = false; BTK.data = d; renderBacktest(); })
-    .catch((e) => { BTK.loading = false; reportLoadError("信号回测", e); });
+  // 决策②：影子权重与回测结果一起拉。拉失败不影响主表（影子是参照，不是结论）。
+  Promise.all([
+    api("/api/signal/backtest").catch((e) => ({ ok: false, error: apiErrText(e) })),
+    api("/api/shadow_weights").catch(() => null),
+    api("/api/signal/combo?limit=40").catch(() => null),
+  ]).then(([d, sh, cb]) => {
+    BTK.loading = false;
+    BTK.data = d;
+    if (sh && sh.ok) BTK.shadow = sh;
+    if (cb && cb.ok) BTK.combo = cb;
+    renderBacktest();
+  });
 }
 function btColor(x) {
   const n = Number(x);
@@ -13209,6 +14074,60 @@ function btNum(x, p) {
   if (x == null || !isFinite(Number(x))) return "—";
   return Number(x).toFixed(p == null ? 2 : p);
 }
+/* ================= 信号交集（决策③） =================
+   两个**同方向**信号在同一天同一只票上同时触发时，收益有没有比单用更好。
+   四分类必须显示：因为「超额为正」有四种完全不同的成因，
+   只显示第一个类别，等于把后三类也包装成好消息。 */
+function _btComboSection(cb) {
+  if (!cb || !cb.ok) return "";
+  const rows = cb.rows || [];
+  const head = '<tr style="color:#888">'
+    + '<th style="text-align:left;padding:5px 8px">组合（同时触发）</th>'
+    + '<th style="text-align:left;padding:5px 8px">方向</th>'
+    + '<th style="text-align:right;padding:5px 8px">窗口</th>'
+    + '<th style="text-align:right;padding:5px 8px">样本</th>'
+    + '<th style="text-align:right;padding:5px 8px">超额(基准)</th>'
+    + '<th style="text-align:right;padding:5px 8px">超额(成分)</th>'
+    + '<th style="text-align:right;padding:5px 8px">q(BH)</th>'
+    + '<th style="text-align:left;padding:5px 8px">判断</th></tr>';
+  const body = rows.length ? rows.map((r) => {
+    const evb = r.edge_vs_base, evp = r.edge_vs_parts, q = r.q_bh;
+    const col = r.verdict === "候选" ? "#c0392b"
+      : (r.verdict === "赚的是市况" ? "#b8860b" : "#888");
+    const dir = r.direction === "sell"
+      ? '<span style="color:#0a7d3b">卖</span>' : '<span style="color:#c0392b">买</span>';
+    const pct = (x) => (x == null || !isFinite(Number(x)) ? "—"
+      : (Number(x) * 100).toFixed(2) + "%");
+    return '<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08))">'
+      + '<td style="padding:5px 8px">' + esc(String(r.a)) + ' × ' + esc(String(r.b)) + '</td>'
+      + '<td style="padding:5px 8px">' + dir + '</td>'
+      + '<td style="padding:5px 8px;text-align:right">' + btNum(r.fwd, 0) + '</td>'
+      + '<td style="padding:5px 8px;text-align:right">' + btNum(r.n, 0) + '</td>'
+      + '<td style="padding:5px 8px;text-align:right;color:' + btColor(evb)
+      + ';font-weight:600">' + pct(evb) + '</td>'
+      + '<td style="padding:5px 8px;text-align:right;color:' + btColor(evp) + '">' + pct(evp) + '</td>'
+      + '<td style="padding:5px 8px;text-align:right;color:'
+      + (q != null && Number(q) < 0.05 ? "#c0392b" : "#888") + '">'
+      + (q == null ? "—" : Number(q).toFixed(3)) + '</td>'
+      + '<td style="padding:5px 8px;color:' + col + '">' + esc(String(r.verdict || "")) + '</td>'
+      + '</tr>';
+  }).join("") : '<tr><td colspan="8" class="empty">暂无样本足够的组合</td></tr>';
+  return '<div style="background:var(--panel,#111827);border:1px solid var(--border,rgba(255,255,255,.1));'
+    + 'border-radius:8px;padding:12px 14px;margin-top:14px">'
+    + '<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#ddd">'
+    + '信号交集 · 两个同方向信号同时触发</div>'
+    + '<div style="font-size:11px;color:#777;line-height:1.75;margin-bottom:8px">'
+    + esc(cb.note || "") + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+    + '<thead>' + head + '</thead><tbody>' + body + '</tbody></table>'
+    + '<div style="font-size:11px;color:#777;margin-top:8px;line-height:1.75">'
+    + '<b style="color:#b8860b">「赚的是市况」</b> = 超额(基准)为正、超额(成分)却不为正 —— '
+    + '组合并不比单独用这两个信号更好，只是这段时间市场本身在动。'
+    + '<b style="color:#888">不显著</b> = BH 校正后 q≥0.05，属于「检验了很多次」的产物。'
+    + '口径 ' + esc(cb.calc_version || "—") + '。'
+    + '</div></div>';
+}
+
 function renderBacktest() {
   const box = ensurePanel("backtest");
   if (!box) return;
@@ -13221,6 +14140,12 @@ function renderBacktest() {
   const s = d.summary || {};
   const w = d.weights || {};
   const shown = BTK.filter === "all" ? rows : rows.filter((r) => String(r.fwd) === String(BTK.filter));
+  // 决策①：当前视图里各层各有多少条 —— 放在首卡副标题，
+  // 因为"17 行里有 12 行其实不足以裁决"是这张表最该先说的事。
+  const nDec = shown.filter((r) => r.tier === "decidable").length;
+  const nProv = shown.filter((r) => r.tier === "provisional").length;
+  const nObs = shown.filter((r) => r.tier === "observe").length;
+  const tierSub = "可裁决 " + nDec + " · 观测中 " + nProv + (nObs ? " · 观测 " + nObs : "");
   const best = s.best ? `<b style="color:#c0392b">${esc(String(s.best))}</b>` : "—";
   const worst = s.worst ? `<b style="color:#0a7d3b">${esc(String(s.worst))}</b>` : "—";
   const card = (k, v, sub, col) =>
@@ -13230,7 +14155,7 @@ function renderBacktest() {
        <div style="font-size:11px;color:#777;margin-top:3px">${sub || ""}</div>
      </div>`;
   const cards = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-      ${card("实证样本", btNum(s.total, 0) + " 行", "17 信号 × 3 窗口")}
+      ${card("实证样本", btNum(s.total, 0) + " 行", tierSub)}
       ${card("正α（盈利方向）", btNum(s.positive_alpha, 0), "平均超额收益 > 0", "#c0392b")}
       ${card("负α（亏损方向）", btNum(s.negative_alpha, 0), "平均超额收益 < 0", "#0a7d3b")}
       ${card("最佳 / 最差信号", best + "<br>" + worst, "按夏普排序", "#e6e6e6")}
@@ -13246,19 +14171,39 @@ function renderBacktest() {
       <th style="text-align:left;padding:6px 8px">方向</th>
       <th style="text-align:right;padding:6px 8px">前向(日)</th>
       <th style="text-align:right;padding:6px 8px">样本数</th>
+      <th style="text-align:left;padding:6px 8px">样本层</th>
       <th style="text-align:right;padding:6px 8px">胜率</th>
       <th style="text-align:right;padding:6px 8px">平均超额收益</th>
       <th style="text-align:right;padding:6px 8px">夏普</th>
     </tr>`;
+  // 2026-10-31 决策①：样本层单独一列。三层制的目的就是让"看着像结论"和
+  // "真能当结论"在同一行里分得开 —— 只靠样本数那一列，300 和 30000 长得一样。
+  const tierCell = (r) => {
+    const t = String(r.tier || "");
+    const n = Number(r.n) || 0;
+    if (t === "decidable") {
+      return `<span style="color:#2e9e6b">可裁决</span>`;
+    }
+    if (t === "provisional") {
+      return `<span style="color:#b8860b" title="样本 ${n} 条：够看方向、不够下结论。${escAttr(String(r.tier_label || ""))}的信号不进组合、不改权重、不参与强/中判定。">观测中</span>`;
+    }
+    if (t === "observe") {
+      return `<span style="color:#888" title="样本 ${n} 条：太少，连方向都不给。">观测</span>`;
+    }
+    return `<span style="color:#888">—</span>`;
+  };
   const body = shown.map((r) => {
     const dir = r.direction === "sell"
       ? `<span style="color:#0a7d3b">卖</span>` : `<span style="color:#c0392b">买</span>`;
     const ret = Number(r.avg_ret), wr = Number(r.winrate), sh = Number(r.sharpe);
-    return `<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08))">
+    // 非可裁决的行整体压暗：不是不显示（信息仍有价值），而是不许它看起来像结论。
+    const dim = (r.tier && r.tier !== "decidable") ? "opacity:.6" : "";
+    return `<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08));${dim}">
         <td style="padding:6px 8px;white-space:nowrap">${esc(String(r.signal))}</td>
         <td style="padding:6px 8px">${dir}</td>
         <td style="padding:6px 8px;text-align:right">${btNum(r.fwd, 0)}</td>
         <td style="padding:6px 8px;text-align:right">${btNum(r.n, 0)}</td>
+        <td style="padding:6px 8px;white-space:nowrap">${tierCell(r)}</td>
         <td style="padding:6px 8px;text-align:right">${(isFinite(wr) ? (wr * 100).toFixed(1) + "%" : "—")}</td>
         <td style="padding:6px 8px;text-align:right;color:${btColor(ret)};font-weight:600">${(isFinite(ret) ? (ret * 100).toFixed(2) + "%" : "—")}</td>
         <td style="padding:6px 8px;text-align:right;color:${btColor(sh)};font-weight:600">${btNum(sh, 2)}</td>
@@ -13267,24 +14212,49 @@ function renderBacktest() {
   const table = `<div style="overflow:auto;max-height:46vh;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;margin-bottom:16px">
       <table style="width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums">
         <thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  // 决策②：影子权重是"如果不用先验、纯按数据排"的结果，只记录不生效。
+  // 与生产权重放在同一张表里，差多少一眼就能看出来 —— 分成两个页面就没人对比了。
+  const sh = (BTK.shadow && BTK.shadow.ok) ? BTK.shadow : null;
+  const shRows = (sh && sh.rows) || [];
+  const findSh = (k) => {
+    const key = String(k).toLowerCase();
+    const exact = shRows.find((r) => String(r.signal_key || "").toLowerCase() === key);
+    if (exact) return exact;
+    return shRows.find((r) => {
+      const s = String(r.signal_key || "").toLowerCase();
+      return s.includes(key.slice(0, 6)) || key.includes(s.slice(0, 6));
+    }) || null;
+  };
   const wkeys = Object.keys(w);
   const wbody = wkeys.length ? wkeys.map((k) => {
     const key = String(k).toLowerCase();
     const has = rows.some((r) => r.signal && String(r.signal).toLowerCase().includes(key.slice(0, 6)));
+    const s = findSh(k);
+    const dp = s && s.diff_pp_last != null ? Number(s.diff_pp_last) : null;
+    const sTxt = s
+      ? (Number(s.w_data_last) * 100).toFixed(1) + "%"
+        + (dp == null ? "" : (dp > 0 ? ' <span style="color:#2e9e6b">+' + dp.toFixed(1) + "pp</span>"
+          : dp < 0 ? ' <span style="color:#b8860b">' + dp.toFixed(1) + "pp</span>" : ""))
+      : "—";
     return `<tr style="border-bottom:1px solid var(--border,rgba(255,255,255,.08))">
         <td style="padding:5px 8px">${esc(String(k))}</td>
         <td style="padding:5px 8px;text-align:right">${btNum(w[k], 3)}</td>
+        <td style="padding:5px 8px;text-align:right" title="影子权重：不用先验、纯按数据排的结果；不生效">${sTxt}</td>
         <td style="padding:5px 8px">${has ? '<span style="color:#0a7d3b">✓ 有实证对照</span>' : '<span style="color:#b8860b">· 无实证对照</span>'}</td>
       </tr>`;
-  }).join("") : `<tr><td colspan="3" class="empty">当前未配置 SIGNAL_WEIGHTS</td></tr>`;
+  }).join("") : `<tr><td colspan="4" class="empty">当前未配置 SIGNAL_WEIGHTS</td></tr>`;
   const wsec = `<div style="background:var(--panel,#111827);border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;padding:12px 14px">
       <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:#ddd">当前消费权重对照（config.SIGNAL_WEIGHTS）</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="color:#888">
           <th style="text-align:left;padding:4px 8px">信号维度</th>
-          <th style="text-align:right;padding:4px 8px">权重</th>
+          <th style="text-align:right;padding:4px 8px">生产权重</th>
+          <th style="text-align:right;padding:4px 8px">数据版权重（影子）</th>
           <th style="text-align:left;padding:4px 8px">实证对照</th>
         </tr></thead><tbody>${wbody}</tbody></table>
+      ${sh
+        ? `<div style="font-size:11px;color:#777;margin-top:8px;line-height:1.75">${esc(sh.note || "")}<br>${esc(sh.switch_rule || "")}</div>`
+        : `<div style="font-size:11px;color:#777;margin-top:8px">影子权重还没有记录（跑过一次调权后出现）。它是"不用先验、纯按数据排"的结果，只记录不生效。</div>`}
     </div>`;
   box.innerHTML = `
     <div style="margin:0 0 4px;display:flex;align-items:baseline;gap:10px">
@@ -13293,8 +14263,11 @@ function renderBacktest() {
     </div>
     <div style="color:#888;font-size:12px;margin-bottom:14px">触发信号后 N 日超额收益实测，表格按夏普降序。
       <b style="color:#c0392b">红=盈利方向</b>、<b style="color:#0a7d3b">绿=亏损方向</b>（A股约定）。
+      <b style="color:#aaa">样本层</b>分三档：<span style="color:#2e9e6b">可裁决</span>（≥500，可当结论）、
+      <span style="color:#b8860b">观测中</span>（40–500，只给方向，不进组合、不改权重，整行压暗）、
+      <span style="color:#888">观测</span>（&lt;40，连方向都不给）。
       底部对照当前评分实际消费的权重，验证「实证 → 权重」链路一致。</div>
-    ${cards}${fbar}${table}${wsec}`;
+    ${cards}${fbar}${table}${wsec}${_btComboSection(BTK.combo)}`;
   $$(".bt-fbtn", box).forEach((b) => {
     b.onclick = () => { BTK.filter = b.dataset.f; renderBacktest(); };
   });
@@ -13419,8 +14392,15 @@ function navFromHash() {
   // 旧链接扶正后同步写回地址栏（replaceState 不触发 hashchange，避免递归）
   if (raw !== raw0) { try { history.replaceState(null, "", "#" + raw); } catch (e) { /* 无 history 环境：忽略 */ } }
   const [c, t] = raw.split("/");
-  const cat = NAV.find((x) => x.key === c);
+  // 2026-10-31：tab 搬家后的**旧深链**判定。原来只看 URL 里的分类，而 TAB_HOME 里登记的
+  // 搬家 tab（如 lhb_weather：今日总览→资金动向）在旧分类的 items 里已经不存在，
+  // 于是被判成"未知 tab"→ tab 置 null → 静默落到该分类首项（实测 #overview/lhb_weather
+  // 打开是「今日决策」，人还以为面板被删了）。改为**先按 tab 的归属分类找**。
+  const catKey = (t && TAB_HOME[t]) ? TAB_HOME[t] : c;
+  const cat = NAV.find((x) => x.key === catKey);
   if (!cat) return null;
+  // 地址栏与实际视图保持一致：否则刷新一次又回到旧分类，用户会以为"改了又变回去"。
+  if (catKey !== c) { try { history.replaceState(null, "", "#" + catKey + "/" + (t || "")); } catch (e) { /* 忽略 */ } }
   const items = itemsOfCat(cat);
   // 与 selectNav 同一套规则：`learn_<doc_key>` 的轨道由 kb_sources.yaml 运行时决定，
   // 首次深链接进入时列表还没拉回来。若这里按"未知就纠回首项"处理，会先落到「中短线炒股」，
@@ -13436,8 +14416,46 @@ function navFromHash() {
    用法：渲染函数里放 freshChip("geo") 占位；数据到达后 applyFreshChips 自动填充。 */
 let FRESH = null;
 function loadFreshness() {
-  api("/api/freshness").then((d) => { FRESH = d; applyFreshChips(); })
+  api("/api/freshness").then((d) => { FRESH = d; applyFreshChips(); fillWatermark(); })
     .catch(() => { /* 静默：角标不可用不影响主功能 */ });
+}
+/* 全局数据水位（D51，2026-10-31）
+   问题：各面板内部各自写着「数据日 2026-10-30」「数据截至 10-31」，但要逐页点开才知道；
+   国际研判事件、公开实盘战绩这类隔日甚至隔周才更新的域，不标出来很容易被当成今日判断。
+   做法：免责条右侧常驻一个 details，summary 只给「最新 / 最旧」，点开列各域明细。
+   数据源与各面板角标同源（/api/freshness），不另算一套，避免两处口径打架。 */
+const WATER_ORDER = [
+  ["forum", "论坛语料"],
+  ["overseas_sentiment", "海外舆情"],
+  ["overseas_hotspots", "国外驱动热点"],
+  ["geo", "国际研判事件"],
+  ["public_records", "公开实盘战绩"],
+];
+function fillWatermark() {
+  const sum = document.getElementById("dbWaterSum");
+  const body = document.getElementById("dbWaterBody");
+  if (!sum || !body || !FRESH || !FRESH.domains) return;
+  const items = WATER_ORDER
+    .map(([k, name]) => { const d = FRESH.domains[k]; return d ? { k, name, ...d } : null; })
+    .filter((x) => x && x.updated_at);
+  if (!items.length) { sum.textContent = "🕓 数据水位 暂不可用"; body.innerHTML = ""; return; }
+  const md = (v) => String(v || "").slice(5, 10).replace("-", "/");
+  // 日期是 YYYY-MM-DD[ HH:MM:SS]，按字符串比大小即可（同格式、补零），不必转 Date
+  const newest = items.reduce((a, x) => (String(x.updated_at) > String(a.updated_at) ? x : a));
+  const oldest = items.reduce((a, x) => (String(x.updated_at) < String(a.updated_at) ? x : a));
+  const staleN = items.filter((x) => x.stale).length;
+  sum.innerHTML = `🕓 数据水位 最新 <b>${esc(md(newest.updated_at))}</b>`
+    + ` · 最旧 <b>${esc(md(oldest.updated_at))}</b> <i>${esc(oldest.name)}</i>`
+    + (staleN ? ` <em class="db-water-warn">· ${staleN} 个域超 3 天</em>` : "");
+  body.innerHTML = `<div class="db-water-row hd"><span>数据域</span><span>截至</span><span>距今</span><span>来源 / 更新方式</span></div>`
+    + items.map((x) => `<div class="db-water-row${x.stale ? " stale" : ""}">`
+      + `<span class="db-water-name">${esc(x.name)}</span>`
+      + `<span class="db-water-date">${esc(String(x.updated_at).slice(0, 16))}</span>`
+      + `<span class="db-water-ago">${x.days_ago == null ? "—" : (x.days_ago <= 0 ? "今天" : x.days_ago + " 天前")}</span>`
+      + `<span class="db-water-src" title="${escAttr(x.source || "")}">${esc(String(x.source || ""))}</span>`
+      + `</div>`).join("")
+    + `<div class="db-water-foot">取「数据发生时间」（发帖时间 / 行情日 / 事件日），不是入库时间——离线重导不会把角标刷成假新鲜。`
+    + ` 陈旧阈值 3 天。</div>`;
 }
 function applyFreshChips() {
   if (!FRESH || !FRESH.domains) return;
@@ -14242,8 +15260,13 @@ function metaBadge(kind, value) {
 }
 /* 四要素统一标签组：来源 / 时点 / 口径 / 可信度 一行排布，悬停看明细，ⓘ 点击展开；
    任一要素缺失 → 整组按 A1 规则降权（置灰降透明度），缺哪项就明示哪项，不静默。 */
-function dataUnitMeta(meta) {
+/* 2026-10-31 进哥「版面重复、看着乱」整改（体检数据：今日决策页四要素徽章 489px/777 字，
+   而卡片正文只有 699 字 —— 解释比结论多）：
+   新增 compact 模式 —— 卡头只留「时点(短) + 可信度 + ⓘ」，来源与口径退进悬停提示与 ⓘ 弹层。
+   四要素一条不少（A1 纪律不变），只是**默认不占版面**：展开后仍是完整四行。 */
+function dataUnitMeta(meta, opts) {
   const m = meta || {};
+  const o = opts || {};
   const trust = TRUST_META[m.trust]
     ? trustBadge(m.trust, m.trustNote || "")
     : `<span class="du-meta du-missing" title="${escAttr("可信度未知：该数据单元未提供可信度档位（official/community/model），不能当作已验证")}">可信度·可信度未知</span>`;
@@ -14262,11 +15285,28 @@ function dataUnitMeta(meta) {
     `可信度：${(TRUST_META[m.trust] || {}).label || "未知"}` + (m.trust === "model" ? (m.trustNote ? `，验证命中率 ${m.trustNote}` : "，未验证") : ""),
   ];
   const info = lines.join("\n");
+  if (o.compact) {
+    // 紧凑档：只留时点(短)+可信度，其余进 title / ⓘ。缺项时仍按 A1 置灰降权。
+    // 注意：不传 trustNote —— 那句"基础为交易所披露，排序/评分为统计规则"在紧凑档里会把
+    // 一整行撑满（它就是体检里 777 字的主要来源之一），完整说明仍在 title 与 ⓘ 弹层里。
+    // 2026-10-31 第二轮去噪：紧凑档原来还带着「数据日 2026-10-30」，而同一页 4 张卡 + 一句话
+    //   + 历史隔离条各写一次 —— 全页同一个日期出现 6 遍。数据日是**页面级**事实，
+    //   同页只说一次就够（由「今日一句话」旁的 meta 与顶部数据日条承担）。
+    //   卡头的时点信息没有删，仍在 data-du-meta / title / ⓘ 弹层里（A1 四要素一条不少）。
+    //   o.keepTime=true 的那一处（页面级结论）保留可见时点。
+    const tpShort = m.tpShort || m.timepoint || "";
+    // 可信度未知（trust 缺档）时**不能**默认成 community（A1 要求明示缺失），沿用上面算好的缺失态
+    const trustC = TRUST_META[m.trust] ? trustBadge(m.trust, "") : trust;
+    const partsC = [o.keepTime && tpShort ? metaBadge("timepoint", tpShort) : "", trustC].filter(Boolean);
+    return `<span class="du-meta-group du-compact${missing ? " du-unit-missing" : ""}"`
+      + ` data-du-meta="${escAttr(info)}" title="${escAttr(info)}">${partsC.join("")}`
+      + `<button type="button" class="du-info" onclick="toggleDuMeta(this)" title="点击查看来源 / 时点 / 口径 / 可信度四要素">ⓘ</button></span>`;
+  }
   return `<span class="du-meta-group${missing ? " du-unit-missing" : ""}"`
     + ` data-du-meta="${escAttr(info)}" title="${escAttr(info)}">${parts.join("")}`
     + `<button type="button" class="du-info" onclick="toggleDuMeta(this)" title="点击查看四要素明细">ⓘ</button></span>`;
 }
-function dataUnitBadge(meta) { return dataUnitMeta(meta); }
+function dataUnitBadge(meta, opts) { return dataUnitMeta(meta, opts); }
 /* ⓘ 点击：轻量 toast 展示该数据单元的四要素明细（悬停 title 已可读；toast 复用 D2 现成能力，
    避免在 span 内插 block 元素破坏文档结构） */
 function toggleDuMeta(btn) {
@@ -14905,12 +15945,34 @@ function renderSigEvidenceBody() {
   const bwrGross = b.winrate != null ? (b.winrate * 100).toFixed(2) : "—";
   const color = { effective: "#1e7d5c", neutral: "#5b6470", adverse: "#c0392b", insufficient: "#9aa4b2" };
   const bgc = { effective: "#eefaf4", neutral: "#f3f4f6", adverse: "#fdeeec", insufficient: "#f6f7f9" };
-  const GRID = "grid-template-columns:1.4fr .68fr .82fr .72fr .82fr .6fr .92fr;gap:6px;align-items:center;";
+  /* 2026-10-30 修：原表用 inline grid-template-columns 却漏了 display:grid，
+     浏览器按普通 block 渲染 → 每行 7 个格子竖排、整表挤在左侧、右半屏全空（进哥截图反馈）。
+     改为类驱动 .dtb（列宽走 --dtb-cols 变量），表头与行共用同一变量保证列对齐；
+     顺带做斑马纹、悬停高亮、数值右对齐（tabular-nums）。
+     数值正负统一用 --bull(红涨) / --bear(绿跌) 令牌 —— 旧版正超额涂绿、负超额涂红，与 A 股习惯相反。
+     裁决列刻意不占红绿（红绿已被涨跌占用）：有效=文字色加粗底、有害=琥珀、其余=muted。 */
+  const COLS = "1.30fr .66fr .76fr .74fr .86fr .66fr .88fr";
+  const bgs = {
+    effective: "color-mix(in srgb, var(--accent) 13%, transparent)",
+    neutral: "color-mix(in srgb, var(--muted) 10%, transparent)",
+    adverse: "color-mix(in srgb, #b4791f 16%, transparent)",
+    insufficient: "color-mix(in srgb, var(--muted) 7%, transparent)",
+  };
+  const fgs = {
+    effective: "var(--accent)",
+    neutral: "var(--muted)",
+    adverse: "#c98a2b",
+    insufficient: "var(--muted)",
+  };
 
-  const head = `<div style="${GRID}padding:4px 8px 6px;font-size:11.5px;color:#8b95a3;border-bottom:1px solid #e7eaef">
-      <div>信号</div><div>样本</div><div title="已按双边成本扣费后的胜率">胜率</div>
-      <div title="税后胜率 − 税后基线胜率">超额</div>
-      <div title="已扣费的单次平均收益">税后收益</div><div>夏普</div><div>裁决</div></div>`;
+  const head = `<div class="dtb-hd">
+      <div>信号</div>
+      <div class="num">样本</div>
+      <div class="num" title="已按双边成本扣费后的胜率">胜率</div>
+      <div class="num" title="税后胜率 − 税后基线胜率">超额</div>
+      <div class="num" title="已扣费的单次平均收益">税后收益</div>
+      <div class="num" title="税后收益 / 波动">夏普</div>
+      <div>裁决</div></div>`;
 
   const line = (r) => {
     const wrn = r.winrate_net != null ? r.winrate_net : r.winrate;
@@ -14921,25 +15983,32 @@ function renderSigEvidenceBody() {
     const rn = ((r.avg_ret_net != null ? r.avg_ret_net : r.avg_ret) || 0) * 100;
     const rns = (rn >= 0 ? "+" : "") + rn.toFixed(2);
     const nn = r.n >= 10000 ? (r.n / 10000).toFixed(1) + "万" : String(r.n);
-    const c = color[r.verdict] || "#5b6470";
-    const g = bgc[r.verdict] || "#f6f7f9";
-    return `<div style="${GRID}padding:5px 8px;border-bottom:1px solid #f1f3f6;font-size:12.5px">
-      <div style="font-weight:600" title="${escAttr(r.reason)}">${esc(r.reason)}</div>
-      <div style="color:#8b95a3">${nn}</div>
-      <div title="税前胜率 ${wrG}%">${wr}%</div>
-      <div style="color:${ed >= 0 ? "#1e7d5c" : "#c0392b"};font-weight:600">${eds}pt</div>
-      <div style="color:${rn >= 0 ? "#1e7d5c" : "#c0392b"}">${rns}%</div>
-      <div style="color:#8b95a3">${r.sharpe_net != null ? r.sharpe_net : r.sharpe}</div>
-      <div><span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:11.5px;color:${c};background:${g}">${esc(r.label)}</span></div>
+    const c = fgs[r.verdict] || "var(--muted)";
+    const g = bgs[r.verdict] || bgs.insufficient;
+    const ud = (v) => (v > 0 ? "up" : v < 0 ? "dn" : "flat");
+    return `<div class="dtb-row">
+      <div class="dtb-name" title="${escAttr(r.reason)}">${esc(r.reason)}</div>
+      <div class="num dtb-dim">${nn}</div>
+      <div class="num" title="税前胜率 ${wrG}%">${wr}<i>%</i></div>
+      <div class="num ${ud(ed)}">${eds}<i>pt</i></div>
+      <div class="num ${ud(rn)}">${rns}<i>%</i></div>
+      <div class="num dtb-dim">${r.sharpe_net != null ? r.sharpe_net : r.sharpe}</div>
+      <div><span class="dtb-pill" style="color:${c};background:${g}">${esc(r.label)}</span></div>
     </div>`;
   };
 
   const buys = rows.filter((r) => r.direction === "buy");
   const sells = rows.filter((r) => r.direction === "sell");
-  const block = (title, arr) => arr.length
-    ? `<div class="bt-hint" style="margin:8px 0 2px;font-weight:600;color:#4a5462">${esc(title)}</div>` +
-      head + arr.map(line).join("")
-    : "";
+
+  const block = (title, arr) => {
+    if (!arr.length) return "";
+    /* 按税后超额从高到低：先看最该用的信号，省掉自己比数字的功夫 */
+    const sorted = arr.slice().sort((a, b) => (b.edge_wr || -9) - (a.edge_wr || -9));
+    return `<div class="dtb-wrap">
+        <div class="dtb-cap">${esc(title)}<span>共 ${arr.length} 个信号 · 按税后超额从高到低</span></div>
+        <div class="dtb" style="--dtb-cols:${COLS}">${head}<div class="dtb-body">${sorted.map(line).join("")}</div></div>
+      </div>`;
+  };
 
   const t = d.tech || {};
   const tf = d.tech_factor != null ? Number(d.tech_factor) : 1;
@@ -15023,21 +16092,24 @@ function renderSigRegimeBody() {
   });
 
   /* 稳定性标签：只有做过前后半段检验（stab 非空）才给结论，其余如实标"未检验" */
+  /* 稳定性标签：只有做过前后半段检验（stab 非空）才给结论，其余如实标"未检验" */
   const stabTag = (s) => {
-    if (s === "ok") return { t: "稳健有效", c: "#1e7d5c", b: "#eefaf4" };
-    if (s === "bad") return { t: "稳健有害", c: "#c0392b", b: "#fdeeec" };
-    if (s === "unstable") return { t: "前后不一致", c: "#8a6d1f", b: "#fdf6e3" };
-    return { t: "未检验", c: "#9aa4b2", b: "#f6f7f9" };
+    if (s === "ok") return { t: "稳健有效", c: "var(--accent)", b: "color-mix(in srgb, var(--accent) 13%, transparent)" };
+    if (s === "bad") return { t: "稳健有害", c: "#c98a2b", b: "color-mix(in srgb, #b4791f 16%, transparent)" };
+    if (s === "unstable") return { t: "前后不一致", c: "#c98a2b", b: "color-mix(in srgb, #b4791f 10%, transparent)" };
+    return { t: "未检验", c: "var(--muted)", b: "color-mix(in srgb, var(--muted) 8%, transparent)" };
   };
   const pt = (v) => (v == null ? "—" : ((v * 100 >= 0 ? "+" : "") + (v * 100).toFixed(1)));
-  const pcol = (v) => (v == null ? "#b6bec9" : (v >= 0 ? "#1e7d5c" : "#c0392b"));
-  const GRID = "grid-template-columns:1.5fr .92fr .74fr .74fr .74fr .98fr;gap:6px;align-items:center;";
+  const pcol = (v) => (v == null ? "var(--muted)" : (v >= 0 ? "var(--bull)" : "var(--bear)"));
+  const udc = (v) => (v == null ? "" : (v > 0 ? " up" : v < 0 ? " dn" : " flat"));
+  /* 同上：列宽由 --dtb-cols 注入，表头与行共用，避免再次"漏 display 就塌成竖排" */
+  const COLS = "1.6fr .92fr .74fr .74fr .74fr .96fr";
 
-  const head = `<div style="${GRID}padding:4px 8px 6px;font-size:11.5px;color:#8b95a3;border-bottom:1px solid #e7eaef">
+  const head = `<div class="dtb-hd">
       <div>信号（买入）</div>
-      <div title="当前市况下的税后超额胜率">当前·${esc(cur.regime_cn || "—")}</div>
-      ${REGS.map((x) => `<div title="该市况下的税后超额胜率">${esc(x.cn)}</div>`).join("")}
-      <div title="前后半段是否都成立">稳定性</div></div>`;
+      <div class="num" title="当前市况下的税后超额胜率">当前·${esc(cur.regime_cn || "—")}</div>
+      ${REGS.map((x) => `<div class="num" title="该市况下的税后超额胜率">${esc(x.cn)}</div>`).join("")}
+      <div>稳定性</div></div>`;
 
   const line = (nm) => {
     const m = byKey[nm] || {};
@@ -15045,14 +16117,14 @@ function renderSigRegimeBody() {
     const st = stabTag(cr.stab);
     const cell = (k) => {
       const r = m[k];
-      if (!r || r.edge_wr == null) return `<div style="color:#c3cad3">—</div>`;
-      return `<div style="color:${pcol(r.edge_wr)};font-weight:${k === curKey ? "700" : "500"}">${pt(r.edge_wr)}</div>`;
+      if (!r || r.edge_wr == null) return `<div class="num dtb-zero">—</div>`;
+      return `<div class="num${udc(r.edge_wr)}${k === curKey ? " cur" : ""}">${pt(r.edge_wr)}</div>`;
     };
-    return `<div style="${GRID}padding:5px 8px;border-bottom:1px solid #f1f3f6;font-size:12.5px">
-      <div style="font-weight:600" title="${escAttr(nm)}">${esc(nm)}</div>
-      <div style="color:${pcol(cr.edge_wr)};font-weight:700">${pt(cr.edge_wr)}</div>
+    return `<div class="dtb-row">
+      <div class="dtb-name" title="${escAttr(nm)}">${esc(nm)}</div>
+      <div class="num${udc(cr.edge_wr)} cur">${pt(cr.edge_wr)}</div>
       ${REGS.map((x) => cell(x.key)).join("")}
-      <div><span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:11.5px;color:${st.c};background:${st.b}">${st.t}</span></div>
+      <div><span class="dtb-pill" style="color:${st.c};background:${st.b}">${st.t}</span></div>
     </div>`;
   };
 
@@ -15076,7 +16148,7 @@ function renderSigRegimeBody() {
       <span style="color:${gradeColor}">样本诚实度：${eff != null ? eff.toFixed(1) : "—"} 个有效独立窗口 → ${esc(d.grade || "—")}</span>
       <span style="color:#8b95a3">（相邻交易日前向窗口重叠，n 笔≠n 个独立观测，不能拿 n 当显著性）</span>
     </div>
-    ${head}${names.map(line).join("")}
+    <div class="dtb" style="--dtb-cols:${COLS}">${head}<div class="dtb-body">${names.map(line).join("")}</div></div>
     <div class="bt-hint" style="margin-top:9px;line-height:1.7">
       <b>怎么读：</b>先看"稳定性"，标"稳健有害"的组合历史上两段都跑输同市况平均，不该作为买入依据；
       标"未检验/前后不一致"的不要当规律用。真正可落地的用法是<b>风控而非选股</b>：
@@ -16471,6 +17543,216 @@ function _hPctCell(label, val, q, unit, mode) {
     + '</div>';
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   资金风向（2026-10-30 D35 阶段二）
+   ──────────────────────────────────────────────────────────────────────────
+   产品口径（写死在代码里，别在后续迭代里"顺手加个建议"）：
+     · 这是**描述性**指标：参与度（上榜家数占比 / 净买入占成交额）+ 赚钱效应（上榜股次日表现）；
+     · 结构与集中度样本只有 27/25 天，后端 `pct` 恒为 null → 只展示、带角标、**不参与定档**；
+     · 任何文案不许出现"建议 / 看多 / 看空 / 可以买"；底部免责小字必须有（D35 §6）；
+     · 配色：暖橙=资金活跃、冷蓝=清淡，**不是**涨红跌绿 —— 免得和 harvest 的「红=危险」打架。
+   数据来源：/api/lhb_weather 只读 lhb_weather_daily，请求线程从不现算（全历史计算要 110 秒）。
+   ══════════════════════════════════════════════════════════════════════════ */
+const _LHBW_COLOR = { hot: "#f97316", neutral: "#94a3b8", cold: "#3b82f6" };
+const _LHBW_FILL = {
+  hot: "rgba(249,115,22,0.16)",
+  neutral: "rgba(148,163,184,0.10)",
+  cold: "rgba(59,130,246,0.14)",
+};
+const _LHBW_DENOM_SRC = {
+  indicators: "日线指标表逐日计数",
+  snapshot: "盘后快照逐日计数",
+  fallback: "5000 固定兜底",
+};
+
+function loadLhbWeather(force) {
+  const box = $("#p-lhb_weather");
+  if (box && !LHBW.data) {
+    box.innerHTML = '<div class="lhbw"><div class="lhbw-head">'
+      + '<div class="lhbw-title">资金风向</div></div>'
+      + '<div class="empty">正在读取资金风向（只读已落库的逐日结果）…</div></div>';
+  }
+  if (LHBW.data && !force) { renderLhbWeather(); return Promise.resolve(LHBW.data); }
+  LHBW.busy = true;
+  return api("/api/lhb_weather?days=120" + (force ? "&t=" + Date.now() : ""))
+    .catch((e) => {
+      const t = apiErrText(e);
+      // 上线过渡期：静态文件按请求从磁盘读，`app.js` 会立刻是新的，但后端进程里
+      // 还是旧代码（本路由尚未注册）。这时给一句人话，别让用户看到裸 404。
+      const lid = "接口尚未生效：需要重启一次查看器服务（本轮按约定不重启后台进程）。";
+      return { ok: false, error: /40[34]/.test(t) ? lid : t, _err: true };
+    })
+    .then((d) => { LHBW.data = d; LHBW.busy = false; renderLhbWeather(); });
+}
+
+/** 近 N 日温度曲线：三档背景带（按当日档位着色）+ score 折线。纯 SVG，零新依赖。 */
+function _lhbwChart(series) {
+  const W = 680, H = 190, L = 26, R = 10, T = 10, B = 22;
+  const pw = W - L - R, ph = H - T - B;
+  const n = series.length;
+  if (!n) return "";
+  const step = pw / n;
+  const y = (s) => T + (100 - Math.max(0, Math.min(100, s))) / 100 * ph;
+  const xc = (i) => L + (i + 0.5) * step;
+
+  let g = "";
+  // 背景带：每一天一格，颜色=当日档位（unknown 不着色）
+  series.forEach((d, i) => {
+    const f = _LHBW_FILL[d.state];
+    if (!f) return;
+    g += '<rect x="' + (L + i * step).toFixed(2) + '" y="' + T + '" width="'
+      + Math.max(step, 0.6).toFixed(2) + '" height="' + ph + '" fill="' + f + '"></rect>';
+  });
+  // 横向刻度 0/25/50/75/100
+  [0, 25, 50, 75, 100].forEach((v) => {
+    const yy = y(v);
+    g += '<line x1="' + L + '" y1="' + yy.toFixed(1) + '" x2="' + (W - R) + '" y2="'
+      + yy.toFixed(1) + '" stroke="rgba(148,163,184,0.35)" stroke-width="0.6"'
+      + (v === 50 ? "" : ' stroke-dasharray="2 3"') + '></line>'
+      + '<text x="' + (L - 5) + '" y="' + (yy + 3).toFixed(1) + '" text-anchor="end" '
+      + 'font-size="8" fill="#94a3b8">' + v + '</text>';
+  });
+  // 折线（null 断开，不插值 —— 没有分值的日子不该被画成一条平滑的假线）
+  let seg = [];
+  const flush = () => {
+    if (seg.length === 1) {
+      g += '<circle cx="' + seg[0][0].toFixed(1) + '" cy="' + seg[0][1].toFixed(1)
+        + '" r="1.8" fill="#475569"></circle>';
+    } else if (seg.length > 1) {
+      g += '<polyline fill="none" stroke="#334155" stroke-width="1.6" stroke-linejoin="round" '
+        + 'points="' + seg.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ") + '"></polyline>';
+    }
+    seg = [];
+  };
+  series.forEach((d, i) => {
+    const s = (d.score === null || d.score === undefined) ? null : Number(d.score);
+    if (s === null || !isFinite(s)) { flush(); return; }
+    seg.push([xc(i), y(s)]);
+  });
+  flush();
+  // 末点标记 + 数值
+  for (let i = series.length - 1; i >= 0; i -= 1) {
+    const s = series[i].score;
+    if (s === null || s === undefined) continue;
+    const st = series[i].state || "neutral";
+    g += '<circle cx="' + xc(i).toFixed(1) + '" cy="' + y(s).toFixed(1) + '" r="3.2" fill="'
+      + (_LHBW_COLOR[st] || _LHBW_COLOR.neutral) + '"></circle>';
+    break;
+  }
+  // 首末日期
+  const f0 = String(series[0].trade_date || "").slice(5);
+  const f1 = String(series[n - 1].trade_date || "").slice(5);
+  g += '<text x="' + L + '" y="' + (H - 7) + '" font-size="8.5" fill="#94a3b8">' + _HE(f0) + '</text>'
+    + '<text x="' + (W - R) + '" y="' + (H - 7) + '" text-anchor="end" font-size="8.5" '
+    + 'fill="#94a3b8">' + _HE(f1) + '</text>';
+
+  return '<svg class="lhbw-svg" viewBox="0 0 ' + W + ' ' + H + '" '
+    + 'role="img" aria-label="资金温度曲线">' + g + '</svg>';
+}
+
+function renderLhbWeather() {
+  const box = $("#p-lhb_weather");
+  if (!box) return;
+  const d = LHBW.data;
+  const head = '<div class="lhbw-head"><div class="lhbw-title">资金风向</div>'
+    + '<div class="lhbw-sub">龙虎榜上榜结构 ｜ 只描述资金活跃度，不是选股依据（DECISIONS.md D35）</div></div>';
+
+  if (!d) {
+    box.innerHTML = '<div class="lhbw">' + head + '<div class="empty">加载中…</div></div>';
+    return;
+  }
+  if (!d.ok) {
+    const msg = d.not_ready
+      ? (_HE(d.error || "尚未落库") + '<br><span style="color:var(--muted,#6b7280)">'
+         + _HE(d.note || "") + '</span>')
+      : _HE(d.error || "数据不可用");
+    box.innerHTML = '<div class="lhbw">' + head + '<div class="empty">' + msg + '</div></div>';
+    return;
+  }
+
+  const t = d.today || {};
+  const st = t.state || "unknown";
+  const dims = d.dims || [];
+  const series = d.series || [];
+
+  let h = '<div class="lhbw">' + head;
+
+  // ── 待算提示（表里有一行更新的、但当日全市场成交额/分母还没到齐）──
+  if (d.pending) {
+    h += '<div class="lhbw-pending">另有一行 <b>' + _HE(d.pending.trade_date) + '</b> 已入库'
+      + '（上榜 ' + _HE(d.pending.n_listed) + ' 家），但'
+      + _HE(d.pending.reason) + '。曲线与上方数字均截至 '
+      + _HE(t.trade_date) + '。</div>';
+  }
+
+  // ── ① 今日温度 ──────────────────────────────
+  const scoreTxt = (t.score === null || t.score === undefined) ? "—" : Number(t.score).toFixed(1);
+  const pctTxt = (t.score_pct === null || t.score_pct === undefined) ? null : Number(t.score_pct).toFixed(1);
+  const ratioTxt = dims[0] && dims[0].rows && dims[0].rows[0] ? dims[0].rows[0][1] : "—";
+  const netTxt = dims[0] && dims[0].rows && dims[0].rows[1] ? dims[0].rows[1][1] : "—";
+
+  h += '<div class="lhbw-hero is-' + _HE(st) + '">'
+    + '<div class="lhbw-hero-top">'
+    + '<span class="lhbw-state">' + _HE(t.state_cn || "未知") + '</span>'
+    + '<span class="lhbw-score">' + _HE(scoreTxt) + ' <i>/100 合成温度</i></span>'
+    + (pctTxt === null ? '' : '<span class="lhbw-pct-chip">处于近一年 ' + _HE(pctTxt) + ' 分位</span>')
+    + '</div>'
+    + '<div class="lhbw-desc">'
+    + '上榜 <b>' + _HE(t.n_listed === null || t.n_listed === undefined ? "—" : t.n_listed) + '</b> 家'
+    + '（占全市场有成交的 ' + _HE(ratioTxt) + '）、净买入占成交额 ' + _HE(netTxt) + '，'
+    + (pctTxt === null
+      ? '当日温度 <b>' + _HE(scoreTxt) + '</b>（历史不足 60 个交易日，暂不给分位）。'
+      : '合成温度 <b>' + _HE(scoreTxt) + '</b>，处于近一年 <b>' + _HE(pctTxt) + '</b> 分位。')
+    + '档位按滚动 250 日 33/67 分位切分（热 &gt; '
+    + _HE(t.q67 === null || t.q67 === undefined ? "—" : t.q67) + '，冷 &lt; '
+    + _HE(t.q33 === null || t.q33 === undefined ? "—" : t.q33) + '）。'
+    + '</div></div>';
+
+  // ── ② 四维卡 ────────────────────────────────
+  h += '<div class="lhbw-dims">';
+  dims.forEach((dm) => {
+    const ref = !dm.in_state;
+    const pct = (dm.pct === null || dm.pct === undefined) ? null : Number(dm.pct).toFixed(1);
+    h += '<div class="lhbw-dim' + (ref ? ' is-ref' : '') + '">'
+      + '<div class="lhbw-dim-h"><span>' + _HE(dm.label) + '</span>'
+      + (ref ? '<span class="lhbw-badge">' + _HE(dm.badge || "仅供参考") + '</span>'
+             : '<span class="lhbw-dim-pct">' + _HE(dm.pct_label || "") + ' ' + _HE(pct === null ? "—" : pct) + '</span>')
+      + '</div>';
+    (dm.rows || []).forEach((r) => {
+      h += '<div class="lhbw-dim-row"><span>' + _HE(r[0]) + '</span>'
+        + '<span class="v">' + _HE(r[1]) + '</span></div>';
+      if (r[2]) h += '<div class="lhbw-dim-hint">' + _HE(r[2]) + '</div>';
+    });
+    if (ref) {
+      h += '<div class="lhbw-dim-hint">样本仅 ' + _HE(dm.sample_days)
+        + ' 天（门槛 ' + _HE(d.min_sample_for_state) + ' 天），<b>不参与</b>档位计算，仅作背景参考。</div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+
+  // ── ③ 近 120 日温度曲线 ──────────────────────
+  const src = _LHBW_DENOM_SRC[t.denom_src] || t.denom_src || "—";
+  h += '<div class="lhbw-chart">'
+    + '<div class="lhbw-chart-h"><span>近 ' + _HE(series.length) + ' 个上榜日的资金温度</span>'
+    + '<span class="s">数据日 ' + _HE(t.trade_date) + ' ｜ 分母来源：' + _HE(src)
+    + '（' + _HE(t.n_listed) + ' / ' + _HE(t.denom) + ' 只）</span></div>'
+    + _lhbwChart(series)
+    + '<div class="lhbw-legend">'
+    + '<span><i style="background:' + _LHBW_COLOR.hot + '"></i>偏热（温度 &gt; 近一年 67 分位）</span>'
+    + '<span><i style="background:' + _LHBW_COLOR.neutral + '"></i>中性</span>'
+    + '<span><i style="background:' + _LHBW_COLOR.cold + '"></i>偏冷（温度 &lt; 近一年 33 分位）</span>'
+    + '<span>背景色=当日档位，折线=合成温度原值（0~100）</span>'
+    + '</div></div>';
+
+  // ── ④ 底部免责（必须有）────────────────────
+  h += '<div class="lhbw-foot">' + _HE(d.disclaimer || "本指标描述资金活跃度，不构成个股买卖依据。")
+    + (d.note ? '<br>' + _HE(d.note) : '')
+    + '</div></div>';
+
+  box.innerHTML = h;
+}
+
 function renderHarvest() {
   const box = $("#p-harvest");
   if (!box) return;
@@ -17683,19 +18965,42 @@ function buildBiliEvidence(rows, cat) {
   }
   const byB = {};
   rows.forEach((r) => { (byB[r.blogger] = byB[r.blogger] || []).push(r); });
-  const html = Object.keys(byB).sort().map((b) => {
-    const items = byB[b].map((r) => {
+  // 2026-10-31 版面去噪（进哥：「显示过于重复、内容过于杂乱」）：
+  //   原来把 3865 条逐条铺开 = 实测 **115,000px 高**（100+ 屏的证据压着 200 字的结论），
+  //   比例 1:577 —— 这已经不是"证据"，是把数据库倒在了页面上。
+  //   改为两层收：① 每位博主的视频收进 <details>，summary 上直接带「最近一条的日期+标题」，
+  //   不展开也知道最新说了什么；② 首屏只放最近更新的 10 位博主，其余进第二个 details。
+  //   数据一条不少，只是从"平铺"改成"可检索的堆"。
+  const blogs = Object.keys(byB).map((b) => {
+    const list = byB[b].slice().sort((x, y) => String(y.vdate || "").localeCompare(String(x.vdate || "")));
+    return { b, list, last: (list[0] || {}).vdate || "" };
+  }).sort((x, y) => String(y.last).localeCompare(String(x.last)));
+  const oneBlog = (o) => {
+    const items = o.list.map((r) => {
       const link = r.url
         ? `<a href="${escAttr(r.url)}" target="_blank" rel="noopener" style="color:var(--accent,#0E7490);text-decoration:none">${esc(r.title)}</a>`
         : esc(r.title);
       return `<li style="padding:3px 0;border-bottom:1px dashed rgba(128,128,128,.18)">` +
              `<span style="color:var(--muted,#888);font-size:12px;margin-right:8px">${esc(r.vdate || "")}</span>${link}</li>`;
     }).join("");
-    return `<div style="margin:10px 0;padding:10px 12px;background:var(--panel,#fff);border:1px solid var(--line,#e5e7eb);border-radius:10px">` +
-           `<div style="font-weight:600;margin-bottom:6px">@${esc(b)} <span style="color:var(--muted,#888);font-weight:400;font-size:12px">${byB[b].length} 条</span></div>` +
-           `<ul style="list-style:none;margin:0;padding:0">${items}</ul></div>`;
-  }).join("");
-  return `<div class="bc-ev"><div class="bc-ev-h">证据 · 原始视频堆（按博主聚合，${rows.length} 条）</div>${html}</div>`;
+    const head0 = o.list[0] || {};
+    return `<details class="bc-blog">` +
+      `<summary><b>@${esc(o.b)}</b>` +
+      `<span class="bc-blog-n">${o.list.length} 条</span>` +
+      `<span class="bc-blog-d">${esc(o.last)}</span>` +
+      `<span class="bc-blog-t">${esc(head0.title || "")}</span></summary>` +
+      `<ul>${items}</ul></details>`;
+  };
+  const HEAD = 10;
+  const rest = blogs.slice(HEAD);
+  const more = rest.length
+    ? `<details class="bc-more"><summary>另外 ${rest.length} 位博主 · ` +
+      `${rest.reduce((s, o) => s + o.list.length, 0)} 条（点开看）</summary>` +
+      `${rest.map(oneBlog).join("")}</details>`
+    : "";
+  return `<div class="bc-ev"><div class="bc-ev-h">证据 · 原始视频堆（按博主聚合，` +
+    `${rows.length} 条 / ${blogs.length} 位博主 · 按最近更新排序，点博主展开）</div>` +
+    `${blogs.slice(0, HEAD).map(oneBlog).join("")}${more}</div>`;
 }
 
 /* ============ 2026-10-11 王总第三回合②：B站 UP 主按类分组框 ============
@@ -18063,4 +19368,437 @@ function biliScanStratExplain(mkey, skey) {
   api("/api/bili/methods?cat=technical,value")
     .then((dd) => { BILI_METHODS.data = dd; draw(dd.methods || []); })
     .catch(() => draw([]));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 执行可行性（2026-10-31，测评 P1-A）
+//
+// 为什么要有这个面板：原来全站都在回答"买哪只、涨多少"，**没有一处回答"装不装得下"**。
+// 而容量不是收益的附属品 —— 一只 60 日均额 22 万的票，你就算判断对了，
+// 200 万资金放进去也会把自己的价格推走。测评里那条"名单里混进 22 万 ADV 的票"
+// 就是这么来的：它有信号、有分数、有理由，唯独没有"上不了车"这一层。
+//
+// 设计上的三条硬规矩：
+//  ① 四个字段（资金/只数/持有期/佣金）**并列必填**，缺一项就把缺的那项列出来，不补默认值；
+//  ② 容量给的是**区间**（上界点估计 + 下界 0 且可达），不给单一数字假装精确；
+//  ③ 「算不出来」和「不可行」必须分开显示 —— ADV 取不到时不能显示成"可行"。
+// ═══════════════════════════════════════════════════════════════════════════
+
+// 金额按「万/亿」读，避免一屏全是 0
+function _exMoney(v) {
+  if (v === null || v === undefined || v === "" || isNaN(v)) return "—";
+  const n = Number(v);
+  if (Math.abs(n) >= 1e8) return (n / 1e8).toFixed(2) + " 亿";
+  if (Math.abs(n) >= 1e4) return (n / 1e4).toFixed(0) + " 万";
+  return n.toFixed(0) + " 元";
+}
+
+// ① 成本口径表（决策①）：系统里两套都叫「成本」的数字并列展示。
+// 为什么必须并列：回测口径 15bp（含印花税、固定值）与执行口径 25~130bp
+// （按 ADV 分档、不含印花税）回答的是不同问题。只显示一个，另一个就会被
+// 当成"算错了"。这里不做折算、不标"哪个才是对的"，只把差异摆出来。
+function loadCostBasis() {
+  if (COSTB.loading || COSTB.data) return;
+  COSTB.loading = true;
+  api("/api/cost_basis")
+    .then((d) => { COSTB.data = d; COSTB.loading = false; renderExecutability(); })
+    .catch(() => { COSTB.loading = false; });
+}
+
+function _costBasisHtml(d) {
+  const list = (d && d.basis) || [];
+  const bt = list.filter((x) => x.key === "backtest")[0];
+  const ex = list.filter((x) => x.key === "execution")[0];
+  if (!bt || !ex) return "";
+  // 执行口径是区间不是单值：随单边佣金与 ADV 档变化，所以按当前佣金现算，不写死 25/130
+  const fee = Number(EXECP.fee) || 2.5;
+  const rts = ((ex.tiers) || []).map((t) => 2 * (fee + Number(t[1])));
+  const lo = rts.length ? Math.min.apply(null, rts) : null;
+  const hi = rts.length ? Math.max.apply(null, rts) : null;
+  const cell = (title, big, sub, lines, flag) =>
+    '<div style="flex:1 1 250px;background:var(--bg,#f9fafb);border-radius:6px;padding:9px 11px">'
+    + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280)">'
+    + esc(title) + ' <span style="color:#b8860b">· ' + esc(flag) + '</span></div>'
+    + '<div style="font-size:21px;font-weight:700;margin:3px 0">' + big + '</div>'
+    + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);line-height:1.65">'
+    + esc(sub) + '<br>' + lines.map(esc).join('<br>') + '</div></div>';
+  return '<div style="border:1px solid var(--line,#e5e7eb);border-radius:8px;padding:12px 14px;margin-bottom:12px">'
+    + '<div style="font-size:var(--fs-sm,13px);font-weight:600;margin-bottom:8px">'
+    + '系统里有两个「成本」，不是一个数</div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap">'
+    + cell(bt.name, (Number(bt.roundtrip_bp)).toFixed(0) + " bp", bt.used_for,
+           ["含：" + (bt.includes || []).join("、")], bt.flag)
+    + cell(ex.name, (lo == null ? "—" : lo.toFixed(0) + " ~ " + hi.toFixed(0)) + " bp", ex.used_for,
+           ["含：" + (ex.includes || []).join("、"),
+            "缺：" + (ex.excludes || []).join("、")], ex.flag)
+    + '</div>'
+    + '<div style="font-size:var(--fs-2xs,11px);color:#b45309;margin-top:8px;line-height:1.7">'
+    + '<b>这两个数不能相减。</b>' + esc((d.reconcile || {}).dont || "") + '</div>'
+    + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);margin-top:4px;line-height:1.7">'
+    + esc((d.reconcile || {}).direction_matters || "") + '</div></div>';
+}
+
+function _exField(id, label, ph, val, unit) {
+  return '<label style="display:flex;flex-direction:column;gap:4px;flex:1 1 150px">'
+    + '<span style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280)">' + label + '</span>'
+    + '<span style="display:flex;align-items:center;gap:4px">'
+    + '<input id="' + id + '" value="' + escAttr(val) + '" placeholder="' + escAttr(ph) + '" '
+    + 'style="flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line,#e5e7eb);'
+    + 'border-radius:5px;background:var(--bg,#fff);color:var(--fg,#111);font-size:var(--fs-sm,13px)">'
+    + (unit ? '<span style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280)">' + unit + '</span>' : '')
+    + '</span></label>';
+}
+
+function renderExecutability() {
+  const box = $("#p-executability");
+  if (!box) return;
+  const d = EXECP.data;
+  let h = '<div class="pred-head"><div class="pred-title">执行可行性 · 能不能真的买进</div></div>';
+
+  // ① 口径先说清，再看数 —— 否则下面的成本数会被拿去和回测那个 15bp 对账
+  if (!COSTB.data) loadCostBasis();
+  h += _costBasisHtml(COSTB.data);
+
+  h += '<div style="background:var(--card,#fff);border-radius:8px;padding:12px 14px;margin-bottom:12px">'
+    + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);margin-bottom:10px;line-height:1.7">'
+    + '四个字段<b>并列必填</b>。缺任何一项都不会替你补默认值 —— '
+    + '用默认资金、默认持有期算出来的"可行"，只是给别人看的可行。'
+    + '</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    + _exField("ex-aum", "资金规模", "如 200", EXECP.aum, "万元")
+    + _exField("ex-nh", "持仓只数", "如 5", EXECP.nh, "只")
+    + _exField("ex-days", "持有期", "如 20", EXECP.days, "交易日")
+    + _exField("ex-fee", "佣金", "如 2.5", EXECP.fee, "bp 单边")
+    + '</div>'
+    + '<div style="display:flex;gap:10px;margin-top:10px;align-items:flex-start;flex-wrap:wrap">'
+    + '<label style="flex:1 1 320px;display:flex;flex-direction:column;gap:4px">'
+    + '<span style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280)">要买的票（代码，逗号分隔）</span>'
+    + '<input id="ex-codes" value="' + escAttr(EXECP.codes) + '" placeholder="如 000001,600519,000544" '
+    + 'style="padding:6px 8px;border:1px solid var(--line,#e5e7eb);border-radius:5px;'
+    + 'background:var(--bg,#fff);color:var(--fg,#111);font-size:var(--fs-sm,13px)"></label>'
+    + '<button id="ex-go" style="align-self:flex-end;padding:7px 16px;border:0;border-radius:6px;'
+    + 'background:#2563eb;color:#fff;font-size:var(--fs-sm,13px);cursor:pointer">算一下</button>'
+    + '<button id="ex-sweep" title="3 / 10 / 20 交易日一起跑 —— 你不用先知道自己持有几天"'
+    + ' style="align-self:flex-end;padding:6px 14px;border:1px solid #2563eb;border-radius:6px;'
+    + 'background:transparent;color:#2563eb;font-size:var(--fs-sm,13px);cursor:pointer">三档对比</button>'
+    + '</div>'
+    + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);margin-top:7px;line-height:1.7">'
+    + '不知道自己的典型持有期？点「三档对比」：3 / 10 / 20 交易日一起跑，你认领一档就行，'
+    + '不用去翻交割单。<b>持有期只影响成本摊薄，不影响能不能买进</b> —— '
+    + '拿久一点不会让你多装钱，只会让手续费少吃掉一些。'
+    + '</div></div>';
+
+  if (EXECP.busy) {
+    h += '<div class="empty">正在按 60 日成交额算参与率…</div>';
+  } else if (d && d.ok === false) {
+    // 三种失败要分开说：缺字段 / 空列表 / 其它
+    if (d.error === "missing_required") {
+      const names = { aum: "资金规模", n_hold: "持仓只数", hold_days: "持有期", fee_bp: "佣金" };
+      const miss = (d.missing || []).map((k) => names[k] || k).join("、");
+      h += '<div style="border-left:3px solid #d97706;background:var(--card,#fff);border-radius:6px;'
+        + 'padding:10px 12px;line-height:1.8"><b style="color:#d97706">还差：' + esc(miss) + '</b>'
+        + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);margin-top:4px">'
+        + esc(d.note || "四项缺一不可。") + '</div></div>';
+    } else if (d.error === "empty_list") {
+      h += '<div class="empty">先在上面填要买的票 —— 容量上限由名单里<b>最不流动的那只</b>决定，'
+        + '没有票就没有约束对象。</div>';
+    } else {
+      h += '<div class="empty">算不出来：' + esc(d.error || "未知错误") + '</div>';
+    }
+  } else if (d && d.ok && Array.isArray(d.scenarios)) {
+    // 决策④：三档并排。这张表要回答的唯一问题是
+    // "同样一笔钱、同样几只票，我拿 3 天和我拿 20 天，差别到底在哪"。
+    const sc = d.scenarios || [];
+    const bpPct = (bp) => (bp == null ? "—" : Number(bp).toFixed(1) + " bp（" + (Number(bp) / 100).toFixed(2) + "%）");
+    h += '<div style="background:var(--card,#fff);border-radius:8px;padding:12px 14px;margin-bottom:10px">'
+      + '<div style="font-size:var(--fs-lg,16px);font-weight:700;margin-bottom:3px">三档持有期对比</div>'
+      + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);line-height:1.75;margin-bottom:10px">'
+      + esc(d.note || "") + '</div>'
+      + '<table class="tbl-detail"><thead><tr><th>持有期</th><th class="num">年轮换</th>'
+      + '<th class="num">单笔往返成本</th><th class="num">年化成本（中位）</th>'
+      + '<th class="num">最贵那只</th><th>能否买进</th></tr></thead><tbody>';
+    sc.forEach((s) => {
+      if (!s.ok) {
+        h += '<tr><td>' + esc(String(s.hold_days)) + ' 日</td><td colspan="5" style="color:#dc2626">'
+          + esc(s.error === "missing_required" ? "还差必填项：" + (s.missing || []).join("、")
+            : (s.error || "算不出来")) + '</td></tr>';
+        return;
+      }
+      const vcol = s.verdict === "feasible" ? "#16a34a" : "#dc2626";
+      const vtxt = s.verdict === "feasible" ? "装得下" : "装不下";
+      h += '<tr><td><b>' + esc(String(s.hold_days)) + ' 交易日</b></td>'
+        + '<td class="num">' + (s.annual_turns == null ? "—" : Number(s.annual_turns).toFixed(1)) + ' 次/年</td>'
+        + '<td class="num">' + (s.roundtrip_bp_median == null ? "—"
+          : Number(s.roundtrip_bp_median).toFixed(1) + " bp") + '</td>'
+        + '<td class="num">' + bpPct(s.annual_cost_bp_median) + '</td>'
+        + '<td class="num">' + bpPct(s.annual_cost_bp_max) + '</td>'
+        + '<td style="color:' + vcol + ';font-weight:600">' + vtxt + '</td></tr>';
+    });
+    h += '</tbody></table>'
+      + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);line-height:1.75;margin-top:9px">'
+      + '读法：三档的「能否买进」通常一样 —— 因为容量由 <b>单票下单额／当日成交额</b> 决定，'
+      + '跟拿多久无关。真正拉开差距的是年化成本：短线一年要交几十次手续费。'
+      + '所以短线打法的门槛不是"买不进"，是"赚的不够交费"。'
+      + '</div></div>';
+  } else if (d && d.ok) {
+    const cap = d.capacity || {};
+    const vcol = d.verdict === "feasible" ? "#16a34a" : "#dc2626";
+    const vtxt = d.verdict === "feasible" ? "装得下" : "装不下";
+    h += '<div style="border-left:3px solid ' + vcol + ';background:var(--card,#fff);'
+      + 'border-radius:6px;padding:10px 12px;margin-bottom:10px">'
+      + '<div style="font-size:var(--fs-lg,16px);font-weight:700;color:' + vcol + '">' + vtxt + '</div>'
+      + '<div style="font-size:var(--fs-sm,13px);line-height:1.9;margin-top:4px">'
+      + '容量上界：<b>' + _exMoney(cap.upper_point) + '</b>'
+      + '（' + esc(cap.formula || "AUM ≤ 参与率上限 × N × min(ADV)") + '）<br>'
+      + '拖后腿的是：<b>' + esc(d.binding_code || "—") + '</b>'
+      + '，它一只就把上限压到这个数。<br>'
+      + (d.cost_summary && d.cost_summary.annual_cost_bp_median != null
+        ? '持有 <b>' + esc(String(d.cost_summary.hold_days)) + ' 日</b>：单笔往返中位 <b>'
+          + Number(d.cost_summary.roundtrip_bp_median).toFixed(1) + ' bp</b>，一年做 '
+          + Number(d.cost_summary.annual_turns).toFixed(1) + ' 次 → 年化成本中位 <b>'
+          + Number(d.cost_summary.annual_cost_bp_median).toFixed(1) + ' bp（'
+          + (Number(d.cost_summary.annual_cost_bp_median) / 100).toFixed(2) + '%）</b><br>'
+        : '')
+      + '<span style="color:var(--muted,#6b7280)">' + esc(cap.note || "") + '</span>'
+      + '</div></div>';
+
+    const rows = d.per_code || [];
+    if (rows.length) {
+      h += '<table class="tbl-detail"><thead><tr><th>代码</th><th class="num">60日均额</th>'
+        + '<th class="num">你的单占比</th><th class="num">单笔往返成本</th>'
+        + '<th class="num">年化成本</th><th>结论</th></tr></thead><tbody>';
+      rows.forEach((p) => {
+        const bad = (p.flags || []).length > 0;
+        h += '<tr><td>' + esc(p.code) + (p.name ? ' ' + esc(p.name) : '') + '</td>'
+          + '<td class="num">' + _exMoney(p.adv) + '</td>'
+          + '<td class="num">' + (p.participation == null ? "—"
+            : (Number(p.participation) * 100).toFixed(3) + "%") + '</td>'
+          + '<td class="num">' + (p.cost_bp_roundtrip == null ? "—"
+            : Number(p.cost_bp_roundtrip).toFixed(1) + " bp") + '</td>'
+          + '<td class="num">' + (p.annual_cost_bp == null ? "—"
+            : (Number(p.annual_cost_bp) / 100).toFixed(2) + "%/年") + '</td>'
+          + '<td style="color:' + (bad ? "#dc2626" : "#16a34a") + '">'
+          + (bad ? esc((p.flags || []).join(" / ")) : "可行")
+          + (p.reason ? '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280)">'
+            + esc(p.reason) + '</div>' : '')
+          + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
+    h += '<div class="mt-dlg-un" style="margin-top:10px">参与率上限与成本分档都是<b>拍定值</b>'
+      + '（见 /api/params 的 CAPACITY_PARTICIPATION 与 COST_TIERS_BP），没有经过你的成交数据校准。'
+      + '容量上界是点估计、没有置信区间；下界是 0 且可达 —— 期望超额取置信下沿时 Δ≤0，'
+      + '再小的资金也装不下负期望。这里回答的是"装不装得下"，不是"该不该买"。</div>';
+  } else {
+    h += '<div class="empty">填齐四项 + 至少一只票，点「算一下」。</div>';
+  }
+
+  // 决策⑤：成本档位是拍定值这件事，必须一直挂在面板上 ——
+  // 不能等用户翻到报表才知道"10/20/35/60bp 是拍的"。
+  const cal = EXECP.calib;
+  if (cal && cal.ok) {
+    const nn = cal.n_priced || 0;
+    const need = cal.need_more || 0;
+    const ready = !!cal.ready;
+    h += '<div style="margin-top:10px;padding:9px 12px;border-radius:6px;line-height:1.85;'
+      + 'background:var(--card,#fff);border-left:3px solid ' + (ready ? "#16a34a" : "#d97706") + '">'
+      + '<b style="font-size:var(--fs-sm,13px)">成本档位：'
+      + (ready ? "已有足够成交样本，可校准" : "目前是拍定值，未经你的成交校准") + '</b>'
+      + '<div style="font-size:var(--fs-2xs,11px);color:var(--muted,#6b7280);margin-top:3px">'
+      + '当前档位 10 / 20 / 35 / 60 bp（按 60 日均额分档）。已标定 <b>' + nn + '</b> 笔'
+      + (need > 0 ? '，还差 <b>' + need + '</b> 笔（满 ' + (nn + need) + ' 笔）才够给建议。'
+        : '，已够给建议。')
+      + (ready ? "" : ' 样本不足时不给数字 —— 凑数的分档比没有分档更坏，因为它会被当成实测。')
+      + '<br>把券商导出的成交明细（CSV：日期 / 代码 / 买卖 / 数量 / 成交价）交给我导入，'
+      + '会自动累计到这里。校准只出建议，<b>不会自动改</b>参数。</div></div>';
+  }
+
+  box.innerHTML = h;
+  const go = $("#ex-go");
+  if (go) go.onclick = loadExecutability;
+  const sw = $("#ex-sweep");
+  if (sw) sw.onclick = () => {
+    // 把"三档"当场填进输入框再发请求 —— 不偷偷替换用户输入，
+    // 他能看见请求用的是哪三个数，也能改成任意组合（如 5,10,30）。
+    const el = $("#ex-days");
+    if (el) el.value = "3,10,20";
+    loadExecutability();
+  };
+}
+function loadExecutability() {
+  const g = (id) => { const el = $("#" + id); return el ? String(el.value || "").trim() : ""; };
+  EXECP.aum = g("ex-aum"); EXECP.nh = g("ex-nh");
+  EXECP.days = g("ex-days"); EXECP.fee = g("ex-fee"); EXECP.codes = g("ex-codes");
+  // 一行里塞多个代码时，把中文逗号/空格/分号都当分隔符（手输最容易出现这几种）
+  const codes = EXECP.codes.replace(/[，、；;\s]+/g, ",").replace(/,+/g, ",").replace(/^,|,$/g, "");
+  EXECP.codes = codes;
+  // 资金按「万元」输入，转成元再送后端；其余三项原样数字化（空 = 不传，让后端报缺）
+  const q = new URLSearchParams();
+  if (codes) q.set("codes", codes);
+  if (EXECP.aum !== "") q.set("aum", String(Number(EXECP.aum) * 10000));
+  if (EXECP.nh !== "") q.set("n", EXECP.nh);
+  if (EXECP.days !== "") q.set("days", EXECP.days);
+  if (EXECP.fee !== "") q.set("fee", EXECP.fee);
+  EXECP.busy = true;
+  renderExecutability();
+  // 决策⑤：成本校准状态与可行性一起拉（缓存一次，不必每次重算）。
+  // 拉失败不影响主结果 —— 校准是补充信息，不该把它变成"整页不可用"。
+  const calP = EXECP.calib ? Promise.resolve(EXECP.calib)
+    : api("/api/cost_calib").catch(() => null);
+  return Promise.all([api("/api/executability?" + q.toString())
+    .catch((e) => ({ ok: false, error: apiErrText(e) })), calP])
+    .then(([d, cal]) => {
+      EXECP.data = d;
+      if (cal && cal.ok) EXECP.calib = cal;
+      EXECP.busy = false;
+      renderExecutability();
+      return d;
+    });
+}
+
+
+// ══ 系统健康（2026-10-31 决策⑤）══════════════════════════════════════════════
+// 要说清的一件事：这个面板不是"仪表盘装饰"。它存在的原因是历史上两次静默停摆——
+//   · build_exclusion 11 次执行 11 次全失败、0 次成功，日志里只有一行干净的 start；
+//   · a_shares_snapshot 连失两天却在日志里回报成功，父进程据此记成"已完成"不再重试。
+// 两次都不是没有日志，是日志没人看。所以这里把"连续失败几次""数据停在哪天"做成
+// 一眼能扫到的数字，而不是让人去翻 viewer/logs/。
+const HLT = { data: null, busy: false, err: "" };
+
+const HLT_LEVEL = {
+  fresh:    { text: "全部正常", color: "#0a7d3b" },
+  degraded: { text: "任务有失败", color: "#b8860b" },
+  stale:    { text: "数据过期", color: "#c0392b" },
+  // unknown 必须单独一档，且颜色不能是绿——判不出不等于没事，这是本项目的一贯原则
+  unknown:  { text: "状态不明", color: "#6b7280" },
+};
+
+const HLT_FRESH = {
+  fresh:   { text: "新鲜", color: "#0a7d3b" },
+  stale:   { text: "过期", color: "#c0392b" },
+  unknown: { text: "判不出", color: "#6b7280" },
+};
+
+function _hltPill(level, map) {
+  const m = map[level] || { text: level, color: "#6b7280" };
+  return `<span style="display:inline-block;padding:1px 8px;border-radius:10px;`
+    + `font-size:var(--fs-2xs,11px);font-weight:600;color:${m.color};`
+    + `border:1px solid ${m.color}44;background:${m.color}11">${esc(m.text)}</span>`;
+}
+
+function loadHealth(force) {
+  const box = $("#p-health");
+  if (!box) return Promise.resolve(null);
+  if (HLT.busy) return Promise.resolve(HLT.data);
+  if (HLT.data && !force) { renderHealth(); return Promise.resolve(HLT.data); }
+  HLT.busy = true;
+  renderHealth();
+  return api("/api/health")
+    .then((d) => { HLT.data = d; HLT.err = ""; })
+    .catch((e) => { HLT.err = apiErrText(e); })
+    .then(() => { HLT.busy = false; renderHealth(); return HLT.data; });
+}
+
+function renderHealth() {
+  const box = $("#p-health");
+  if (!box) return;
+  let h = '<div class="pred-head"><div class="pred-title">系统健康 · 管道还在不在转</div>'
+    + '<button id="hlt-refresh" style="margin-left:auto;padding:5px 12px;border:1px solid var(--border,#2a3344);'
+    + 'border-radius:6px;background:transparent;color:inherit;font-size:var(--fs-sm,13px);cursor:pointer">'
+    + (HLT.busy ? "读取中…" : "刷新") + '</button></div>';
+
+  h += '<div style="color:var(--muted,#6b7280);font-size:var(--fs-xs,12px);margin-bottom:12px">'
+    + '滞后按<b>交易日</b>计算（周末与节假日不计入），基准是<b>今天</b>而不是库里最新日期 —— '
+    + '若拿库内最新日期当基准，整条采集链停摆时所有表都会"彼此一致"从而显示新鲜，'
+    + '而那恰恰是要抓的故障。'
+    + '<b style="color:#6b7280">「判不出」不等于正常。</b></div>';
+
+  if (HLT.err) {
+    h += `<div class="empty" style="color:#c0392b">读取失败：${esc(HLT.err)}</div>`;
+    box.innerHTML = h;
+    const b = $("#hlt-refresh"); if (b) b.onclick = () => loadHealth(true);
+    return;
+  }
+  if (!HLT.data) {
+    h += '<div class="empty">读取中…</div>';
+    box.innerHTML = h;
+    const b = $("#hlt-refresh"); if (b) b.onclick = () => loadHealth(true);
+    return;
+  }
+
+  const d = HLT.data;
+  if (d.ok === false) {
+    h += `<div class="empty" style="color:#c0392b">后端返回错误：${esc(d.detail || d.error || "")}</div>`;
+    box.innerHTML = h;
+    const b = $("#hlt-refresh"); if (b) b.onclick = () => loadHealth(true);
+    return;
+  }
+
+  // ── 总状态 ──
+  h += '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;'
+    + 'padding:10px 14px;border-radius:8px;border:1px solid var(--border,#2a3344);margin-bottom:14px">'
+    + '<div>' + _hltPill(d.level, HLT_LEVEL) + '</div>'
+    + '<div style="font-size:var(--fs-sm,13px)">'
+    + ((d.reasons || []).length
+      ? (d.reasons || []).map((r) => esc(r)).join("；")
+      : "任务与数据均在正常范围")
+    + '</div></div>';
+
+  // ── 数据新鲜度 ──
+  const fr = d.freshness || {};
+  h += '<div style="font-weight:600;margin:14px 0 6px">数据新鲜度</div>';
+  h += '<table class="tbl-detail"><thead><tr><th>数据</th><th>最新日期</th>'
+    + '<th class="num">滞后(交易日)</th><th>状态</th><th>说明</th></tr></thead><tbody>';
+  (fr.items || []).forEach((i) => {
+    h += '<tr><td>' + esc(i.label) + '</td>'
+      + '<td style="font-variant-numeric:tabular-nums">' + esc(i.last || "—") + '</td>'
+      + '<td class="num">' + (i.lag == null ? "—" : i.lag) + '</td>'
+      + '<td>' + _hltPill(i.status, HLT_FRESH) + '</td>'
+      + '<td style="color:var(--muted,#6b7280);font-size:var(--fs-2xs,11px)">'
+      + esc(i.detail || "") + '</td></tr>';
+  });
+  h += '</tbody></table>';
+
+  // ── 调度任务 ──
+  const jh = d.jobs || {};
+  const jobs = jh.jobs || [];
+  h += '<div style="font-weight:600;margin:18px 0 6px">调度任务 · 最近 '
+    + (jh.days || 7) + ' 天（' + jobs.length + ' 个）</div>';
+  if (!jobs.length) {
+    h += '<div class="empty">' + esc(jh.note || "没有运行记录") + '</div>';
+  } else {
+    h += '<table class="tbl-detail"><thead><tr><th>任务</th><th>最近运行</th>'
+      + '<th class="num">耗时(s)</th><th class="num">失败/次数</th>'
+      + '<th class="num">连续失败</th><th>状态</th></tr></thead><tbody>';
+    jobs.forEach((j) => {
+      const st = j.broken
+        ? '<span style="color:#c0392b;font-weight:600">连续失败</span>'
+        : (j.degraded ? '<span style="color:#b8860b">刚失败过</span>'
+          : '<span style="color:#0a7d3b">正常</span>');
+      h += '<tr><td>' + esc(j.job) + '</td>'
+        + '<td style="font-variant-numeric:tabular-nums;font-size:var(--fs-2xs,11px)">'
+        + esc(j.last_ended || "—") + '</td>'
+        + '<td class="num">' + (j.last_elapsed == null ? "—" : Number(j.last_elapsed).toFixed(1)) + '</td>'
+        + '<td class="num">' + j.fails + ' / ' + j.runs + '</td>'
+        + '<td class="num" style="font-weight:600;color:'
+        + (j.consec_fail >= 3 ? "#c0392b" : (j.consec_fail ? "#b8860b" : "inherit")) + '">'
+        + j.consec_fail + '</td>'
+        + '<td>' + st + '</td></tr>';
+      if (j.last_error) {
+        h += '<tr><td colspan="6" style="padding:0 8px 8px;color:#c0392b;'
+          + 'font-size:var(--fs-2xs,11px);font-family:ui-monospace,monospace;'
+          + 'white-space:pre-wrap;word-break:break-all">' + esc(j.last_error) + '</td></tr>';
+      }
+    });
+    h += '</tbody></table>';
+  }
+
+  h += '<div style="margin-top:14px;color:var(--muted,#6b7280);font-size:var(--fs-2xs,11px)">'
+    + '「连续失败 ≥3 次」判为需要处理；1–2 次留给重试机制自己消化 —— '
+    + '单次失败大概率是网络抖动，连续失败才是这个任务坏了。'
+    + '任务记录由 tools/sched_job.py 在每次运行结束时写入 job_runs 表。</div>';
+
+  box.innerHTML = h;
+  const b = $("#hlt-refresh");
+  if (b) b.onclick = () => loadHealth(true);
 }

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>公告实证 · 视觉自查（截图用）</title>
+<!--
+  视觉自查页（2026-10-31）：把「公告实证」面板脱离主应用单独渲染，
+  用于**截图后肉眼检查压字 / 溢出 / 对比度**。Node 侧的
+  tests/_ann_event_render.cjs 只能查结构，查不出视觉问题。
+
+  用法（本机已装 Edge）：
+    msedge --headless=new --disable-gpu --hide-scrollbars \
+           --window-size=1340,4600 --virtual-time-budget=5000 \
+           --screenshot=out.png "file:///<绝对路径>/tests/ann_event_preview.html"
+
+  看浅色主题就把下面 :root 的变量换成 themes/ 里另一套的值。
+  更省事的办法是对真机截图：
+    http://127.0.0.1:8765/?skipguide=1#research/ann_event
+  （?skipguide=1 是排障开关，会跳过首启引导弹窗，避免盖住内容）
+-->
+<style>
+  :root {
+    --bg: #16181D; --panel: #20232B; --panel2: #262A33; --surface: #1B1E25;
+    --text: #FFFFFF; --muted: #A6ABB5; --border: #2C313B;
+    --accent: #DA291C; --bull: #F2544C; --bear: #1FB873; --warn: #E0A33E;
+    --vz-r-lg: 14px;
+    --fs-2xs: 10px; --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px;
+    --fs-lg: 16px; --fs-xl: 22px;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif;
+         padding: 22px 26px 60px; max-width: 1280px; }
+  code { font-family: Consolas, Monaco, monospace; }
+</style>
+<link rel="stylesheet" href="../viewer/static/ann_event.css" />
+</head>
+<body>
+  <div class="panel" id="p-ann_event"></div>
+  <script src="../viewer/static/viz.js"></script>
+  <script src="../viewer/static/ann_event_data.js"></script>
+  <script src="../viewer/static/ann_event.js"></script>
+  <script>window.ANN.load();</script>
+</body>
+</html>

@@ -20,10 +20,12 @@
   ② 分时曲线：两级，**不混算**
        a) 东财 `fflow/kline?klt=1` —— Top N 板块串行节流取，**一次拿到当日全部分钟**，
           能立刻画出从 09:30 起的完整曲线；失败则该板块跳过。
-       b) 兜底：交易时段每 60s 采一次快照入库（board_flow_samples），当天累积成曲线。
+       b) 兜底：交易时段按节奏（viewer/rhythm.py，2026-10-30 起盘中每 30 分钟一轮）采快照
+          入库（board_flow_samples），当天累积成曲线。
      响应里带 `source` 字段，界面按实际来源标注。
-  ③ 节流缓存：快照 120s / 曲线 300s。把对外请求从「每次打开面板」降到「几分钟一次」，
-     从根上避开东财风控（王总明确：**不需要实时，几分钟一发即可**）。
+  ③ 节流缓存：快照 120s / 曲线按节奏（盘中 3600s、盘后 86400s，见 rhythm.intraday_curve_ttl）。
+     把对外请求从「每次打开面板」降到「一小时一次」，从根上避开东财风控
+     （王总明确：**不需要实时，几分钟一发即可**；2026-10-30 进哥进一步明确「一小时一次都行」）。
 
 【口径诚实声明（重要）】
   · 新浪 `netamount` 是**全部资金净流入额**（元），`ratioamount` 为其占比；
@@ -105,8 +107,10 @@ MEM_TOP = 60              # 只为表格前 N 行取代表股（每板块 1 次�
                           # 2026-09-28：前端最多渲染 60 行（app.js snapRows.slice(0,60)），
                           # 故取满 60——否则第 21 行起「代表股」只剩快照自带单个 leader（灰字不可点），
                           # 下半张表看起来"没信息"。并发不变（仍 10 worker），每秒请求速率不变，冷启约 4s。
-INTRADAY_TTL = 300        # 曲线缓存（秒）
-SAMPLE_GAP = 30           # 采样间隔（秒）—— 半分钟一个点，收盘即有 400+ 点
+INTRADAY_TTL = 300        # 曲线缓存（秒）—— 2026-10-30 起仅作 rhythm 不可用时的兜底默认值；
+                          # 运行时实际取值见 _r_curve_ttl()（盘中 3600 / 盘后 86400）
+SAMPLE_GAP = 30           # 采样间隔（秒）—— 2026-10-30 起仅作 rhythm 不可用时的兜底默认值；
+                          # 运行时实际取值见 _r_sample_gap()（盘中/盘前/午休 1800，盘后 0=不采）
 TOP_DEFAULT = 16          # 曲线默认板块数（双向各 8；每板块 1 次东财请求，控制总量避风控）
 SAMPLE_START_MIN = 9 * 60 + 30    # 采样窗口 09:30
 SAMPLE_END_MIN = 15 * 60 + 5      # 采样窗口 15:05（收盘后 5 分钟补最后一笔）
@@ -180,20 +184,99 @@ def _cache_get(key: str, ttl: int):
         node = _cache.get(key)
     if not node:
         return None
-    if time.time() - node.get("ts", 0) > ttl:
+    # 2026-10-31：条目可以自带 TTL（只有分时曲线会带，见 _cache_put 的 ttl 参数）。
+    # 取「条目 TTL 与调用方 TTL 的较小值」，保证「非定稿曲线只活 10 分钟」这条不会被
+    # 调用方传进来的 _r_curve_ttl()（盘后 86400）重新放大。
+    use_ttl = ttl
+    node_ttl = node.get("ttl")
+    if node_ttl is not None:
+        try:
+            use_ttl = min(int(ttl), int(node_ttl))
+        except (TypeError, ValueError):
+            use_ttl = ttl
+    if time.time() - node.get("ts", 0) > use_ttl:
         return None
     return node.get("data")
 
 
-def _cache_put(key: str, data) -> None:
+def _cache_get_any(key: str):
+    """取缓存里的旧值但**不判 TTL**，返回 `(data, age)`；没有就 `(None, None)`。
+
+    2026-10-31（终验：板块分时首点 1.8~2.0s → 加 SWR）：`_cache_get` 一过期就返回 None，
+    但 `_cache` 里的旧条目**并没有被删**（`_cache_put` 只覆盖 ts/data），旧值现成可用。
+    于是「过期」不再等于「让用户干等 2 秒重抓」，而是「先给旧画面 + 后台单飞重算」。
+    """
     with _cache_lock:
-        _cache[key] = {"ts": time.time(), "data": data}
+        node = _cache.get(key)
+    if not node or node.get("data") is None:
+        return None, None
+    try:
+        age = max(0.0, time.time() - float(node.get("ts") or 0))
+    except (TypeError, ValueError):
+        age = 0.0
+    return node.get("data"), age
+
+
+def _cache_put(key: str, data, ttl: int | None = None) -> None:
+    """写缓存。`ttl` 可选：给了就随条目存下来，读的时候与调用方 TTL 取较小值。
+
+    2026-10-31 为什么要它：盘后曲线 TTL 是 24 小时，但**非定稿**（截断）曲线若也锁 24 小时，
+    就等于「拿一整天的残缺数据换 7 秒速度」。所以非定稿条目自带 10 分钟 TTL，过期后由
+    SWR（先给旧值 + 后台重抓）自动补齐（见 intraday()）。其他调用方不传 ttl，行为一字不变。
+    """
+    with _cache_lock:
+        node = {"ts": time.time(), "data": data}
+        if ttl is not None:
+            node["ttl"] = int(ttl)
+        _cache[key] = node
 
 
 def clear_cache() -> None:
     """清空内存缓存（前端「强制刷新」用）。"""
     with _cache_lock:
         _cache.clear()
+
+
+# ---------------------------------------------------------------- 曲线 SWR（单飞重算）
+# 2026-10-31（终验实测：/api/board_flow_intraday 首点 1.997s / 1.776s）。
+# 根因：分时曲线**自己没有 SWR** —— `_cache_get` 一过期（或进程刚重启、内存为空）
+# 就直接落到 `_em_intraday` 现抓（16 个板块串行 + 板间 sleep 0.55s），请求线程干等。
+# 用户标准是「点开就要有画面」，所以盘中每小时那一次刷新也不该压在他的点击上：
+# 过期旧值先返回（带 _stale/_cache_age），后台单飞重算，算完替换缓存。
+# 单飞实现参照 viewer/server.py 的 `_swr_refresh`（同一 key 同时只允许一个刷新在飞）。
+_INTRA_SWR_INFLIGHT: set = set()
+_INTRA_SWR_LOCK = threading.Lock()
+
+
+def _intra_swr_kick(key: str, kind: str, top: int, conn) -> bool:
+    """后台重算一条分时曲线（同一 key 单飞）。返回是否真的起了线程。
+
+    ⚠️ 必须用 `force=True` 调 `intraday()`：缓存里那条已经过期，若走非 force 分支，
+    会再次命中「过期→起线程」的同一个判断，反复自我触发却永不重算。
+    后台线程的异常只记日志 —— 用户手里已经有旧值了，绝不能让他看到失败。
+    """
+    with _INTRA_SWR_LOCK:
+        if key in _INTRA_SWR_INFLIGHT:
+            return False
+        _INTRA_SWR_INFLIGHT.add(key)
+
+    def _run() -> None:
+        try:
+            intraday(kind=kind, top=top, force=True, conn=conn)
+        except Exception:  # noqa: BLE001
+            logger.exception("板块资金流曲线后台重算失败（用户已拿到旧值，界面不受影响）")
+        finally:
+            with _INTRA_SWR_LOCK:
+                _INTRA_SWR_INFLIGHT.discard(key)
+
+    try:
+        threading.Thread(target=_run, name="bf-intra-swr-%s" % kind, daemon=True).start()
+    except Exception:  # noqa: BLE001 —— 起不了线程就退回「本次直接慢一次」，不影响正确性
+        logger.exception("板块资金流曲线后台重算线程启动失败，本次退回同步抓取")
+        with _INTRA_SWR_LOCK:
+            _INTRA_SWR_INFLIGHT.discard(key)
+        return False
+    return True
 
 
 def ensure_schema(conn) -> None:
@@ -474,6 +557,135 @@ def snapshot(kind: str = DEFAULT_KIND, pz: int = 50, force: bool = False) -> dic
 
 
 # ---------------------------------------------------------------- 曲线 A：东财分钟
+# 2026-10-30：真打东财分钟接口的节流闸。此前每次进面板（或缓存过期）都会起 16 个串行请求
+# （板间 time.sleep(0.55)）→ 冷态实测 7.5s，且占住 GIL 拖慢同进程所有接口。
+# 用户明确「一小时更新一次都行」，于是盘中最多一小时抓一次；盘后（定稿）不再重复抓。
+_last_live_fetch = {"ts": 0.0, "date": "", "final": False}
+#   ts: monotonic 秒；date: 本进程最后一次抓的日期；final: 那次抓取是否发生在「收盘定稿后」
+_live_fetch_lock = threading.Lock()
+_FINAL_CAPTURE_FROM = "15:00:00"   # 曲线快照「算定稿」的最早落库时刻（收盘后才有完整尾盘）
+# 2026-10-31：收盘后「库内非定稿」的补抓重试冷却（秒）。旧实现是「一天只补一次」，
+# 那一次被东财限流打掉之后，截断曲线就锁一整天；改成 10 分钟一次的重试。
+_FINAL_RETRY_COOL = 600.0
+_last_final_attempt = {"ts": 0.0}   # monotonic 秒；最后一次「收盘后补抓」的尝试时刻
+# 非定稿曲线的缓存上限（秒）：10 分钟后由 SWR 先回旧值、后台重抓，直到补成定稿。
+_TTL_NONFINAL_MAX = 600
+
+
+def _is_final_capture(cached_at: str | None) -> bool:
+    """这份落库快照是不是「收盘后（≥15:00）抓的」= 当日完整曲线。
+
+    为什么必须区分：库里当日的行可能是盘中抓的。实测（2026-10-30 生产库）：
+      · industry 当日行落库于 14:40 → 曲线缺最后 20 分钟；
+      · concept  当日行落库于 11:07 → 只有半天。
+    若「定稿优先」不加这道校验，收盘后用户看到的会是一条**截断**的曲线，而且被缓存 24h，
+    等于把「优化等待」变成了「数据不全」。加上校验后：盘中抓的行不算定稿，
+    收盘后允许（且仅允许）补抓一次，抓完落库即成为真·定稿。格式按 "YYYY-MM-DD HH:MM:SS"
+    的落库时间（board_flow_intraday.updated_at）解析；解析不出来一律当「非定稿」。
+    """
+    s = str(cached_at or "")
+    if len(s) < 19:
+        return False
+    return s[11:19] >= _FINAL_CAPTURE_FROM
+
+
+# 2026-10-31：曲线「跑满全天」的判据线（末个分钟点不得早于此）。
+# 为什么不能只靠「落库时刻 ≥ 15:00」：休市日拿到的是**别的交易日**的行，落库时刻与那条
+# 曲线的数据日无关（e.g. 周六补抓落库时刻 10:20，曲线却是上一个周五的全天数据）。
+# 直接看曲线自己的末个时点最诚实。实测生产库 2026-10-30 concept 末点 11:08（半天）、
+# industry 末点 14:41（缺尾盘）—— 这两条都不能当定稿给用户。
+_COMPLETE_LAST_POINT = "14:50"
+
+
+def _curve_is_complete(res) -> bool:
+    """曲线末个分钟点是否已跑到 14:50 之后（= 尾盘完整）。轴格式 "HH:MM"。"""
+    axis = (res or {}).get("axis") or []
+    if not axis:
+        return False
+    last = str(axis[-1] or "")
+    if len(last) < 5 or last[2:3] != ":":
+        return False
+    return last[:5] >= _COMPLETE_LAST_POINT
+
+
+def _live_fetch_gate(force: bool, today_s: str, after_close: bool = False,
+                     already_final: bool = False) -> bool:
+    """现在是否允许真打东财分钟接口（2026-10-30 盘中降频）。
+
+    规则（间隔全部来自 rhythm，本函数不自己判断时段）：
+      · force=True（前端「立即刷新」）→ 一律放行，并记账（穿透节流，保留用户手动重试的能力）；
+      · 今天还没抓过 → 放行一次。这条是必需的：否则「08:30 盘前抓过上一交易日的曲线」
+        会占用节流窗口，导致 09:30 开盘后头一小时抓不到今天的曲线（面板一直显示昨天）；
+        也让「收盘后才启动服务、库里没有当日曲线」的场景能补上（否则整晚停在更早的数据上）；
+      · gap > 0（盘中/盘前/午休）→ 距上次抓取不足 gap 秒则拒绝；
+      · 收盘后（after_close / gap=0）→ 分两种（2026-10-31 修回归）：
+          - `already_final=True`（库内当日行已是收盘后抓的完整曲线）→ **拒绝**，这就是
+            「收盘后不再重抓」，一个字没变；
+          - `already_final=False`（库里是盘中抓的截断行）→ 允许补抓，但受 `_FINAL_RETRY_COOL`
+            （600 秒）冷却限制，即每 10 分钟最多重试一次。
+        ⚠️ 旧实现这里是「一天只允许补抓一次」。后果实测（2026-10-30 数据 + 东财限流）：
+        那一次补抓失败（industry 1.88s 起头就挂），额度被烧掉 → 之后整个周末都返回
+        concept 停在 11:08 的半天曲线，且缓存 24 小时。改造前 INTRADAY_TTL=300，5 分钟就重试，
+        东财恢复即补全。现在改成有冷却的重试：东财正常时收盘后 10 分钟内补齐并彻底锁定，
+        被限流时每 10 分钟后台试一次，用户侧拿到的始终是「秒回的旧值 + 明确归属日」。
+    返回 True 表示这次真会去打接口（已记账）；False 表示调用方应直接用兜底分支。
+    """
+    gap = _r_live_fetch_gap()
+    now_m = time.monotonic()
+    with _live_fetch_lock:
+        if force:
+            _last_live_fetch["ts"] = now_m
+            _last_live_fetch["date"] = today_s
+            _last_live_fetch["final"] = bool(after_close and already_final)
+            if after_close:
+                _last_final_attempt["ts"] = now_m
+            return True
+        if _last_live_fetch.get("date") != today_s:
+            _last_live_fetch["ts"] = now_m
+            _last_live_fetch["date"] = today_s
+            _last_live_fetch["final"] = False
+            if after_close:
+                _last_final_attempt["ts"] = now_m
+            return True
+        if after_close or gap <= 0:
+            if already_final:
+                logger.debug("东财分钟接口：库内已是收盘定稿，跳过重抓")
+                return False
+            last_try = float(_last_final_attempt.get("ts") or 0.0)
+            if last_try and (now_m - last_try) < _FINAL_RETRY_COOL:
+                logger.debug("东财分钟接口：非定稿补抓冷却中（已过 %.0fs，需 %.0fs），本次跳过",
+                             now_m - last_try, _FINAL_RETRY_COOL)
+                return False
+            _last_final_attempt["ts"] = now_m
+            _last_live_fetch["ts"] = now_m
+            _last_live_fetch["final"] = False
+            return True
+        if now_m - float(_last_live_fetch.get("ts") or 0.0) < gap:
+            logger.debug("东财分钟接口节流中（间隔 %ds 未到），本次跳过", gap)
+            return False
+        _last_live_fetch["ts"] = now_m
+        _last_live_fetch["final"] = after_close
+        return True
+
+
+def _curve_cache_ttl(final: bool, after_close: bool, trading_now) -> int:
+    """这条曲线结果该缓存多久（2026-10-31）。
+
+    · 定稿（收盘后/休市 + 曲线末点跑满）→ 用 rhythm 的 TTL（盘后 86400），锁一天；
+    · 收盘/休市窗口里的**非定稿**（截断行、兜底采样、失败体）→ 最多 600 秒。过期后由 SWR
+      先回旧值、后台重抓，东财一恢复就自动补全 —— 这就是修「截断曲线锁 24 小时」的回归。
+    · 盘中 → 一律用 rhythm 的 TTL（3600）。**刻意不在这里压到 600**：盘中压短会让
+      缓存在一小时内反复过期，SWR 用 force=True 绕过闸门，等于把东财请求放大 6 倍，
+      反而更容易被风控（那正是本次重构要避免的）。
+    """
+    base = _r_curve_ttl()
+    if final:
+        return base
+    if after_close or trading_now is False:
+        return min(_TTL_NONFINAL_MAX, base)
+    return base
+
+
 def _em_minute_curve(code: str) -> list | None:
     """东财单板块当日分钟资金流 → [(HH:MM, 主力净额)]。
 
@@ -519,7 +731,12 @@ def _em_minute_curve(code: str) -> list | None:
 
 
 def _em_intraday(kind: str, top: int) -> dict | None:
-    """东财分钟曲线：先取 Top N 板块，再逐板块串行取分钟（节流 0.55s）。"""
+    """东财分钟曲线：先取 Top N 板块，再逐板块串行取分钟（节流 0.55s）。
+
+    2026-10-30：本函数**只应由 intraday() 在 `_live_fetch_gate()` 放行后调用**。
+    它一次要串行打 16 个板块（板间 sleep 0.55s），冷态实测 7.5s 且全程占 GIL，
+    在请求线程里现算就是「点开面板卡 7 秒」。别再给它加新的调用点。
+    """
     snap = _em_snapshot(kind, pz=max(int(top) * 2, 30))
     if not snap:
         return None
@@ -575,6 +792,71 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 from auction import latest_trade_date, is_trading_day, market_trade_days  # noqa: E402
 
+# ---------------------------------------------------------------- 交易节奏（2026-10-30）
+# 为什么改成向 rhythm 取数：本模块此前把「盘中该多快」写死在三个常量里
+#   （INTRADAY_TTL=300 / SAMPLE_GAP=30 / live 抓取无间隔闸），等于把「实时」当默认目标。
+# 后果（主理人实测）：① 盘中每 30 秒做一次全板块快照采样（industry+concept 各两次新浪请求）；
+#   ② 每次进面板都可能重抓 16 个板块的东财分钟线（冷态 7.5s，串行 0.55s/板）；
+#   ③ 收盘后（用户复盘、最需要快的时段）这套「实时」节奏**照旧全速跑**，白烧 CPU 与 GIL。
+# 现在统一问 viewer/rhythm.py（唯一真源），本文件不再自己判断时段。
+# 导入失败时退化为原有常量（宁可慢，也不能因为一个新模块把面板搞挂）。
+try:  # noqa: E402
+    from viewer import rhythm as _rhythm
+except Exception:  # noqa: BLE001
+    _rhythm = None  # type: ignore[assignment]
+
+_LIVE_GAP_FALLBACK = 3600   # rhythm 不可用时的兜底：仍保留「一小时一次」的闸，不回退到无闸
+
+
+def _r_is_after_close() -> bool:
+    """交易日 15:05 之后（当日曲线已定稿）。rhythm 不可用 → False（保守：按原逻辑走）。"""
+    if _rhythm is None:
+        return False
+    try:
+        return bool(_rhythm.is_after_close())
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _r_sample_gap() -> int:
+    """采样间隔（秒）。rhythm 不可用 → SAMPLE_GAP。"""
+    if _rhythm is None:
+        return SAMPLE_GAP
+    try:
+        return int(_rhythm.intraday_sample_gap())
+    except Exception:  # noqa: BLE001
+        return SAMPLE_GAP
+
+
+def _r_curve_ttl() -> int:
+    """曲线缓存 TTL（秒）。rhythm 不可用 → INTRADAY_TTL。"""
+    if _rhythm is None:
+        return INTRADAY_TTL
+    try:
+        return int(_rhythm.intraday_curve_ttl())
+    except Exception:  # noqa: BLE001
+        return INTRADAY_TTL
+
+
+def _r_live_fetch_gap() -> int:
+    """允许重打东财分钟接口的最小间隔（秒）。rhythm 不可用 → _LIVE_GAP_FALLBACK。"""
+    if _rhythm is None:
+        return _LIVE_GAP_FALLBACK
+    try:
+        return int(_rhythm.intraday_live_fetch_gap())
+    except Exception:  # noqa: BLE001
+        return _LIVE_GAP_FALLBACK
+
+
+def _r_note() -> str:
+    """节奏说明一句话（拼进 market_note）。rhythm 不可用 → 空串（不比原来少信息）。"""
+    if _rhythm is None:
+        return ""
+    try:
+        return str(_rhythm.refresh_note() or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
 
 def _market_note(res: dict) -> dict:
     """给曲线结果补「数据属于哪天 / 今天开没开市」，前端照抄即可，不许自己猜日期。
@@ -596,6 +878,20 @@ def _market_note(res: dict) -> dict:
     else:
         how = "今日休市（%s）" % ("周末" if datetime.now().weekday() >= 5 else "节假日")
         res["market_note"] = "%s，曲线为最近交易日（%s）数据" % (how, res["data_date"])
+    # 2026-10-30：再把「本时段的数据节奏」如实拼上一句（如「今日交易日 · 盘中·每小时刷新」
+    # /「今日交易日 · 收盘定稿·不再实时抓取」）。用户盘中可以慢、可以旧，但**必须知道有多旧**，
+    # 否则他会误以为面板卡了。
+    # 2026-10-31 更正（QA 回归项 5 不通过，我原注释写错了）：原以为「前端 app.js 已直接渲染
+    # market_note，无需改前端」，实际 app.js:`bf-note-inline` 只在 `!rOn`（分时曲线）分支渲染，
+    # 而面板默认口径是区间（单日=最新交易日），`/api/board_flow_range` 一回来就接管整屏，
+    # market_note 一个字都不显示。区间口径画的是**日线区间**，整句里「曲线为最近交易日 X 数据」
+    # 那半句不成立（用户自己选了起止日期时更是错的），所以节奏那半句必须单独给出来，
+    # 让前端在区间分支只显示纯节奏描述。只增字段，不改 market_note 的既有拼法（老调用方不受影响）。
+    _rhythm_note = _r_note()
+    res["rhythm_note"] = _rhythm_note
+    if _rhythm_note:
+        _base = (res.get("market_note") or "").strip()
+        res["market_note"] = ("%s · %s" % (_base, _rhythm_note)) if _base else _rhythm_note
     return res
 
 
@@ -640,11 +936,16 @@ def _do_sample(conn, now: datetime) -> int:
 
 
 def maybe_sample(conn) -> int:
-    """交易时段内按 SAMPLE_GAP 节流采样一次。由后台线程调用；异常绝不外抛。
+    """交易时段内按规定间隔节流采样一次。由后台线程调用；异常绝不外抛。
 
-    2026-10-20 增加失败退避：连续 3 轮一无所获后，采样间隔从 SAMPLE_GAP(30s)
+    2026-10-20 增加失败退避：连续 3 轮一无所获后，采样间隔从基础间隔（原 SAMPLE_GAP=30s）
     放宽到 SAMPLE_FAIL_BACKOFF(300s)，网络劣化期不再每 30s 空烧一轮冻结接口；
     任一轮成功即清零退避、恢复正常节奏。
+
+    2026-10-30 节奏重构：基础间隔改为**运行时**问 viewer/rhythm.py（盘中/盘前/午休 1800s，
+    盘后 0=不采样）。原因（主理人实测）：旧值 30s 意味着盘中每半分钟就 industry+concept
+    各打两次新浪（一轮 4 个请求），而用户的原话是「一个小时更新一次都行」——
+    这些请求对他没有价值，只在给接口抢 GIL。基础间隔是 0 时**直接不采样**（不是「每轮都采」）。
     """
     try:
         now = datetime.now()
@@ -655,8 +956,13 @@ def maybe_sample(conn) -> int:
         m = now.hour * 60 + now.minute
         if not (SAMPLE_START_MIN <= m <= SAMPLE_END_MIN):
             return 0
+        base_gap = _r_sample_gap()
+        if base_gap <= 0:
+            # 0 = 本时段不采样（盘后已定稿）。必须在此处直接返回：
+            # 若拿 0 去比「距上次采样是否 < 0」，条件恒不成立 → 会退化成每轮（10s）都采。
+            return 0
         with _sample_lock:
-            gap = SAMPLE_GAP if _sample_fail_streak["n"] < 3 else SAMPLE_FAIL_BACKOFF
+            gap = base_gap if _sample_fail_streak["n"] < 3 else SAMPLE_FAIL_BACKOFF
             if now.timestamp() - _last_sample_ts["v"] < gap:
                 return 0
             _last_sample_ts["v"] = now.timestamp()
@@ -758,12 +1064,15 @@ def _persist_intraday(conn, kind: str, payload: dict) -> None:
         logger.debug("板块资金流曲线落库失败（忽略）", exc_info=True)
 
 
-def _load_intraday(conn, kind: str) -> dict | None:
+def _load_intraday(conn, kind: str, only_date: str | None = None) -> dict | None:
     """读已落库的东财曲线。
 
     按 kind 取**最近一条完整记录**——休市日/盘中抓到的曲线真实归属可能是别的日子，
     按「今天」查会查空，按日期降序找才能拿到；同时剔除残缺记录（如风控只成功 1 个板块），
     避免非交易日展示「只剩一根线」的脏数据。
+
+    2026-10-30 新增 `only_date`：只认指定交易日（「收盘定稿优先」分支要用它判断
+    「库里有没有今天这份」）。默认 None = 保持原有「最近一条」语义，老调用方行为不变。
     """
     if conn is None:
         return None
@@ -774,6 +1083,8 @@ def _load_intraday(conn, kind: str) -> dict | None:
     except Exception:  # noqa: BLE001
         return None
     for row in rows:
+        if only_date and row[0] != only_date:
+            continue
         try:
             body = json.loads(row[1] or "{}")
         except Exception:  # noqa: BLE001
@@ -799,31 +1110,109 @@ def intraday(kind: str = DEFAULT_KIND, top: int = TOP_DEFAULT,
     """板块资金流分时曲线。
 
     优先级（每级口径独立，绝不把两个源的点拼进同一条曲线）：
-      ① 东财分钟实时抓 → 成功即落库并返回（最完整 + 最新）
+      ⓵ 内存缓存新鲜命中 → 直接返回
+      ⓶ 过期但旧值仍在（2026-10-31 SWR）→ 先返回旧值（带 _stale/_cache_age），后台单飞重算
+      ⓿ 定稿（交易日收盘后 / 休市的最近交易日）→ 库内已有就直接返回，**绝不重抓东财**
+      ① 东财分钟实时抓 → 成功即落库并返回（最完整 + 最新；受 _live_fetch_gate 节流）
       ② 本机采样累积   → 当日已积累 ≥2 个点则返回（最新，但可能短）
       ③ 东财库内快照   → 当日抓到过就返回（完整，但可能略旧）
+
+    ⚠️ 返回结构自 2026-10-05 起被前端依赖（axis/series/source/source_label/updated_at/
+    data_date/trade_date/stale/market_note/kind/kind_label/ok …）：本次重构**只调整顺序与
+    节流**，一个字段都没改、没删、没改名。
+
+    ⓿ 为什么要有：15:05 之后当日曲线不会再变，而旧实现仍会为了一次点击串行重抓 16 个
+      板块（7.5s + 0.55s/板的 sleep，全程占 GIL）。用户盘后复盘时点开面板就要等 7 秒，
+      纯属浪费——这正是本次「盘后复盘优先」重构要消灭的等待。
     """
     kind = kind if kind in KINDS else DEFAULT_KIND
     top = max(4, min(int(top or TOP_DEFAULT), 24))
-    ck = "intra:%s:%d" % (kind, top)
+    # 2026-10-30：缓存 key 里并入「今天」。
+    # 为什么必须并：盘后曲线 TTL 被放宽到 86400s（24 小时，见 rhythm.intraday_curve_ttl）。
+    # 若 key 仍只有 (kind, top)，昨天 15:00 之后缓存的曲线会在**次日盘中前 5 个多小时**
+    # 继续命中（24h 还没过期）——用户早上打开就看到昨天的曲线，等于把「盘后 24h」
+    # 这个优化变成了新 bug。并进日期后，跨日必 miss，第二天开盘自动重抓。
+    ck = "intra:%s:%d:%s" % (kind, top, datetime.now().strftime("%Y-%m-%d"))
     if not force:
-        hit = _cache_get(ck, INTRADAY_TTL)
+        # 2026-10-30：TTL 由 rhythm 决定（盘中 1h / 盘后 24h），不再是写死的 INTRADAY_TTL。
+        hit = _cache_get(ck, _r_curve_ttl())
         if hit:
             return hit
+        # 2026-10-31：过期但旧值还在 → **先给旧画面**，后台单飞重算（原先这里直接往下走，
+        # 让请求线程等 `_em_intraday` 串行抓 16 个板块，实测首点 1.8~2.0s）。
+        # 必须 copy 一份再加标记：缓存里那个 dict 是共享对象，原地加 _stale 会污染后续命中。
+        _old, _age = _cache_get_any(ck)
+        if isinstance(_old, dict) and _old:
+            _intra_swr_kick(ck, kind, top, conn)
+            _stale = dict(_old)
+            _stale["_stale"] = True
+            _stale["_cache_age"] = int(_age or 0)
+            return _stale
 
     cfg = KINDS[kind]
     now_s = datetime.now().strftime("%H:%M:%S")
+    today_s = datetime.now().strftime("%Y-%m-%d")
 
-    # ① 东财实时
-    res = _em_intraday(kind, top)
-    if res:
-        res.update({"ok": True, "kind": kind, "kind_label": cfg["label"], "updated_at": now_s})
-        _market_note(res)
-        _persist_intraday(conn, kind, res)
-        _cache_put(ck, res)
-        return res
+    # ⓿ 收盘定稿优先：库里已有「今天这份**收盘后抓的**完整曲线」就直接用，绝不打东财分钟接口。
+    #   ⚠️ 必须校验「是不是收盘后抓的」：库里当日行可能来自盘中（实测 2026-10-30 生产库
+    #   industry 落库 14:40、concept 落库 11:07），直接返回会给用户一条截断曲线且缓存 24h。
+    #   非定稿行不算命中，往下走 ① → 由 _live_fetch_gate 放行「有冷却的补抓重试」（10 分钟一次）。
+    #
+    #   2026-10-31 扩充（终验：周末重启后首点仍 1.8s）：原判据只有 `is_after_close()`，
+    #   于是周六周日/节假日**永远走不到这个分支** —— 明明库里躺着最近交易日的曲线，
+    #   每次重启还要为一次点击重抓 2 秒。现补一条：
+    #     · 交易日 15:05 后 → 认库内「当日 + 收盘后抓的」那行（原逻辑不变）；
+    #     · 休市（`is_trading_day() is False`）→ 认库内「最近交易日」那行（这天不会再变了）。
+    #   休市这条多加了一道「曲线末点 ≥ 14:50」的完整性校验：实测 10-30 的 concept 行末点
+    #   只到 11:08（半天）、industry 只到 14:41，当定稿返回等于是拿截断曲线顶一整个周末。
+    #   不完整就往下走正常路径补抓（每 10 分钟重试一次，补齐后落库即锁 24h）。
+    #   注意 `is_trading_day()` 未知时返回 None，**不能**用 `not ...` 判（会把未知当休市）。
+    _after_close = _r_is_after_close()
+    _trading_now = is_trading_day()
+    _final_row = None
+    if conn is not None:
+        if _after_close:
+            _final_row = _load_intraday(conn, kind, only_date=today_s)
+            if _final_row and not _is_final_capture(_final_row.get("cached_at")):
+                _final_row = None
+        elif _trading_now is False:
+            _latest = latest_trade_date()
+            if _latest:
+                _final_row = _load_intraday(conn, kind, only_date=_latest)
+                if _final_row and not _curve_is_complete(_final_row):
+                    logger.info("板块资金流曲线：休市日库内 %s/%s 末点不足，按非定稿处理（将补抓一次）",
+                                kind, _latest)
+                    _final_row = None
+    if _final_row:
+        logger.info("板块资金流曲线：定稿命中库内快照（%s/%s，末点 %s），跳过东财重抓",
+                    kind, _final_row.get("data_date") or today_s,
+                    ((_final_row.get("axis") or [""])[-1] or ""))
+        _final_row.update({"ok": True, "kind": kind, "kind_label": cfg["label"], "updated_at": now_s})
+        _market_note(_final_row)
+        # 真定稿 → 用 rhythm 的 TTL（盘后 24h），这份数据今天不会再变，锁一天是对的。
+        _cache_put(ck, _final_row, ttl=_r_curve_ttl())
+        return _final_row
 
-    # ② 本机采样（当日、≥2 点才有意义）
+    # ① 东财实时（受节流闸；force=True 可穿透）
+    #    `already_final` 传 ⓿ 的判定结果：正常情况 ⓿ 命中定稿就直接 return 了，走不到这里；
+    #    留着它是为了防止将来 ⓿ 改成"不 return、继续往下走"时把定稿又重抓一遍。
+    res = None
+    if _live_fetch_gate(force, today_s, after_close=_after_close,
+                        already_final=bool(_final_row)):
+        res = _em_intraday(kind, top)
+        if res:
+            res.update({"ok": True, "kind": kind, "kind_label": cfg["label"], "updated_at": now_s})
+            _market_note(res)
+            _persist_intraday(conn, kind, res)
+            # 2026-10-31（修回归）：只有「收盘/休市窗口 + 曲线末点跑满」才算定稿、才配 24h。
+            # 抓到的是截断曲线（东财提前收工/限流只回了部分板块之外的情形）就只留 600s，
+            # 10 分钟后 SWR 会再补一次，直到补齐为止 —— 绝不把截断数据锁一整天。
+            _final_ok = bool(_curve_is_complete(res) and (_after_close or _trading_now is False))
+            _cache_put(ck, res, ttl=_curve_cache_ttl(_final_ok, _after_close, _trading_now))
+            return res
+
+    # ② 本机采样（当日、≥2 点才有意义）。**永远不算定稿**：采样曲线是兜底口径，
+    #    锁 24h 会把"东财恢复了本该换成完整曲线"的机会一起锁死。
     sample_res = None
     if conn is not None:
         try:
@@ -834,15 +1223,16 @@ def intraday(kind: str = DEFAULT_KIND, top: int = TOP_DEFAULT,
         sample_res.update({"ok": True, "kind": kind, "kind_label": cfg["label"],
                            "updated_at": now_s})
         _market_note(sample_res)
-        _cache_put(ck, sample_res)
+        _cache_put(ck, sample_res, ttl=_curve_cache_ttl(False, _after_close, _trading_now))
         return sample_res
 
-    # ③ 东财库内快照
+    # ③ 东财库内快照（可能略旧，但完整；跑满 + 收盘窗口才算定稿）
     db_res = _load_intraday(conn, kind)
     if db_res:
         db_res.update({"ok": True, "kind": kind, "kind_label": cfg["label"], "updated_at": now_s})
         _market_note(db_res)
-        _cache_put(ck, db_res)
+        _final_db = bool(_curve_is_complete(db_res) and (_after_close or _trading_now is False))
+        _cache_put(ck, db_res, ttl=_curve_cache_ttl(_final_db, _after_close, _trading_now))
         return db_res
 
     # 全都不行：若采样只有 1 个点，也返回出去（前端画成"起点"并如实标注）
@@ -850,16 +1240,18 @@ def intraday(kind: str = DEFAULT_KIND, top: int = TOP_DEFAULT,
         sample_res.update({"ok": True, "kind": kind, "kind_label": cfg["label"],
                            "updated_at": now_s, "warming_up": True})
         _market_note(sample_res)
-        _cache_put(ck, sample_res)
+        _cache_put(ck, sample_res, ttl=_curve_cache_ttl(False, _after_close, _trading_now))
         return sample_res
 
     data = {
         "ok": False, "kind": kind, "kind_label": cfg["label"], "axis": [], "series": [],
         "reason": ("分时曲线暂不可用：东财分钟接口被风控拦截（它会掐掉程序发起的密集请求），"
-                   "本机采样尚未积累到数据。查看器保持开启即会自动采样（每 30 秒一次），"
+                   "本机采样尚未积累到数据。查看器保持开启即会自动采样（盘中每 30 分钟一次），"
                    "交易时段稍后再看就有曲线；东财恢复时会自动补全当日完整曲线。"),
     }
-    _cache_put(ck, data)
+    # 失败体也不算定稿：收盘窗口里只留 600s，10 分钟后自动重试（旧实现是一天一次，
+    # 那次失败就等于一整天都没曲线）。
+    _cache_put(ck, data, ttl=_curve_cache_ttl(False, _after_close, _trading_now))
     return data
 
 

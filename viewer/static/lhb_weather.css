@@ -1,0 +1,209 @@
+/* 资金风向面板（2026-10-30 D35 阶段二）
+ * 独立样式层，颜色全走主题变量，暗/浅自适应（与 ai_review.css / funnel.css 同规矩）。
+ *
+ * ⚠ 配色语义：这里的暖色=「资金活跃」，冷色=「资金清淡」，**不是**涨红跌绿、也不是风险色。
+ *   所以刻意不用 --up/--down 与 renderHarvest 的「红=危险」色阶，避免两种语义在同一页打架。
+ */
+
+.lhbw {
+  --lhbw-hot: #f97316;      /* 偏热：橙 */
+  --lhbw-neutral: #94a3b8;  /* 中性：灰 */
+  --lhbw-cold: #3b82f6;     /* 偏冷：蓝 */
+  --lhbw-line: var(--line, #e5e7eb);
+  --lhbw-muted: var(--muted, #6b7280);
+  --lhbw-panel: var(--panel, #fff);
+}
+
+/* ── 头部 ─────────────────────────────────────────── */
+.lhbw .lhbw-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.lhbw .lhbw-title { font-size: var(--fs-lg, 16px); font-weight: 700; }
+.lhbw .lhbw-sub {
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+  line-height: 1.6;
+}
+
+/* ── 今日温度（主卡）──────────────────────────────── */
+.lhbw .lhbw-hero {
+  position: relative;
+  border: 1px solid var(--lhbw-line);
+  border-left: 4px solid var(--lhbw-neutral);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  background: var(--lhbw-panel);
+}
+.lhbw .lhbw-hero.is-hot { border-left-color: var(--lhbw-hot); }
+.lhbw .lhbw-hero.is-cold { border-left-color: var(--lhbw-cold); }
+.lhbw .lhbw-hero.is-neutral { border-left-color: var(--lhbw-neutral); }
+.lhbw .lhbw-hero-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.lhbw .lhbw-state {
+  font-size: var(--fs-xl, 22px);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.lhbw .is-hot .lhbw-state { color: var(--lhbw-hot); }
+.lhbw .is-cold .lhbw-state { color: var(--lhbw-cold); }
+.lhbw .is-neutral .lhbw-state { color: var(--lhbw-neutral); }
+.lhbw .lhbw-score {
+  font-size: var(--fs-lg, 16px);
+  font-weight: 600;
+  color: var(--fg, #111);
+}
+.lhbw .lhbw-score i {
+  font-style: normal;
+  font-weight: 400;
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+}
+.lhbw .lhbw-pct-chip {
+  font-size: var(--fs-xs, 11px);
+  color: var(--lhbw-muted);
+  border: 1px solid var(--lhbw-line);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.lhbw .lhbw-desc {
+  font-size: var(--fs-md, 13px);
+  line-height: 1.75;
+  color: var(--fg, #111);
+}
+
+/* ── 四维卡 ───────────────────────────────────────── */
+.lhbw .lhbw-dims {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.lhbw .lhbw-dim {
+  border: 1px solid var(--lhbw-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--lhbw-panel);
+}
+/* 只展示、不参与判定的两维：虚框 + 降饱和，一眼看出"这不是判据" */
+.lhbw .lhbw-dim.is-ref {
+  border-style: dashed;
+  background: transparent;
+}
+.lhbw .lhbw-dim-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: var(--fs-sm, 12px);
+  font-weight: 700;
+  color: var(--fg, #111);
+}
+.lhbw .lhbw-dim-pct {
+  font-weight: 400;
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+}
+.lhbw .lhbw-badge {
+  font-weight: 400;
+  font-size: var(--fs-2xs, 10px);
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 6px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.lhbw .lhbw-dim-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--fs-xs, 11px);
+  color: var(--lhbw-muted);
+  padding: 2px 0;
+}
+.lhbw .lhbw-dim-row .v {
+  font-size: var(--fs-md, 13px);
+  font-weight: 600;
+  color: var(--fg, #111);
+  font-variant-numeric: tabular-nums;
+}
+.lhbw .lhbw-dim-hint {
+  margin-top: 6px;
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+  line-height: 1.6;
+}
+
+/* ── 曲线 ─────────────────────────────────────────── */
+.lhbw .lhbw-chart {
+  border: 1px solid var(--lhbw-line);
+  border-radius: 12px;
+  padding: 14px 16px 10px;
+  background: var(--lhbw-panel);
+  margin-bottom: 12px;
+}
+.lhbw .lhbw-chart-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--fs-sm, 12px);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.lhbw .lhbw-chart-h .s {
+  font-weight: 400;
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+}
+.lhbw .lhbw-svg { width: 100%; height: auto; display: block; }
+.lhbw .lhbw-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+}
+.lhbw .lhbw-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+/* ── 底部免责 + 待算提示 ──────────────────────────── */
+.lhbw .lhbw-pending {
+  font-size: var(--fs-2xs, 10px);
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+/* 这行免责声明必须有（D35 §6：本指标只能当温度计，不能进个股判定） */
+.lhbw .lhbw-foot {
+  font-size: var(--fs-2xs, 10px);
+  color: var(--lhbw-muted);
+  border-top: 1px dashed var(--lhbw-line);
+  padding-top: 9px;
+  line-height: 1.7;
+}

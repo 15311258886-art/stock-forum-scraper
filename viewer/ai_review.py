@@ -216,6 +216,36 @@ BUDGET = {
 }
 
 
+def _regime_desc(bj: dict) -> str:
+    """把 `breadth_json` 里的**实测值**拼成一句当日描述，不引用任何判定规则。
+
+    为什么要这一步：`note` 列的含义随写入方漂移 —— resonance 写的是"今天为什么是这个
+    状态"，pillars 写的是规则原文。规则原文对模型来说是**噪声甚至误导**（它会把
+    "普跌 = 上涨占比<35%" 读成"今天上涨占比<35%"）。而实测值（up_ratio / median_pct）
+    两个口径的语义完全一致，可以直接说。
+
+    resonance 那批行只有 `{"bench_median_pct": null}` → 拼不出来，返回空串，
+    由调用方决定是否退回该行的 note。
+    """
+    if not isinstance(bj, dict):
+        return ""
+    parts = []
+    ur = bj.get("up_ratio")
+    up_n, pool_n = bj.get("up_n"), bj.get("pool_n")
+    if isinstance(ur, (int, float)) and not isinstance(ur, bool):
+        seg = "上涨占比 %.1f%%" % (float(ur) * 100.0)
+        if isinstance(up_n, (int, float)) and isinstance(pool_n, (int, float)) and pool_n:
+            seg += "（%d / %d 只）" % (int(up_n), int(pool_n))
+        parts.append(seg)
+    mp = bj.get("median_pct")
+    if isinstance(mp, (int, float)) and not isinstance(mp, bool):
+        parts.append("涨幅中位数 %+.2f%%" % float(mp))
+    idx = str(bj.get("index_note") or "").strip()
+    if idx:
+        parts.append(idx)
+    return "，".join(parts)
+
+
 def _sec_market(conn, date: str) -> dict:
     """市场环境。
 
@@ -266,12 +296,29 @@ def _sec_market(conn, date: str) -> dict:
             "amount_yi": round(amt / 1e8, 0),
         }
         out["note"] = "本库未接入指数收盘序列；市值加权涨幅为全市场市值加权，可近似指数涨跌。"
-    st = _q(
-        conn,
-        "SELECT state, note, created_at FROM market_state_log ORDER BY id DESC LIMIT 1",
-    )
-    if st:
-        out["regime"] = {"state": st[0]["state"], "note": _clip(st[0]["note"], 120)}
+    # 2026-10-30 P1-a：这张表有两个写入方（pillars / resonance），`note` 的含义也分两种：
+    #   resonance 写的是「今天为什么是这个状态」，pillars 写的是**判定规则原文**
+    #   （"普跌 = 上涨占比<35% 或 中位涨幅≤-1.2%；…"）。把规则原文当"当前市况说明"喂给
+    #   大模型，它会把规则当成今天的实况（"今天就是上涨占比<35%"）—— 这是错的。
+    #   所以：能用 breadth_json 里的实测值（up_ratio / median_pct）就自己拼一句；
+    #   只有 resonance 那一行才采用它的 note。
+    try:
+        from viewer import state_basis as _SB
+        _last = _SB.latest(conn)
+    except Exception:  # noqa: BLE001
+        _last = None
+    if _last:
+        _bj = _SB.breadth_of(_last)
+        _desc = _regime_desc(_bj)
+        _basis = _last.get("basis") or "unknown"
+        if not _desc and _basis == _SB.BASIS_RESONANCE:
+            _desc = _clip(_last.get("note"), 120)
+        out["regime"] = {
+            "state": _last.get("state"),
+            "as_of": _last.get("trade_date"),
+            "basis": _basis,          # pillars / resonance —— "这条标签是谁判的"
+            "note": _desc or "",
+        }
     return out
 
 

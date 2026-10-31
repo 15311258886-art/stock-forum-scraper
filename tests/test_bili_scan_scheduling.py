@@ -144,6 +144,9 @@ def test_maybe_prewarm_can_start_thread(bs, monkeypatch):
 # ---------------------------------------------------------------- A3 同步语义
 def test_run_daily_sync_finishes_before_returning(bs, monkeypatch):
     """核心判据：`run_daily_sync()` **返回那一刻**活已干完（不是"起了线程就走"）。"""
+    # 2026-10-31 修：这条原来吃**真实墙钟**。闸要求「15 点后」，于是在上午跑测试必红，
+    # 而代码一行没动 —— 把"时间"变成被测对象的输入，测试才不随日历和钟点变色。
+    _fake_clock(bs, monkeypatch, 20, 0)
     calls = _stub_run_scan(monkeypatch, bs, seconds=0.2)
     t0 = time.time()
     res = bs.run_daily_sync()
@@ -164,6 +167,7 @@ def test_run_daily_sync_no_thread_in_scheduling_path(bs):
 
 def test_run_daily_sync_reports_failure(bs, monkeypatch):
     """`ok=False` 要交出去（sched_job 据此 rc=1 并退避重试），不是吞掉。"""
+    _fake_clock(bs, monkeypatch, 20, 0)   # 同上：不依赖真实钟点
     _stub_run_scan(monkeypatch, bs, ok=False)
     res = bs.run_daily_sync()
     assert res["ok"] is False
@@ -173,6 +177,7 @@ def test_run_daily_sync_reports_failure(bs, monkeypatch):
 # ---------------------------------------------------------------- 闸门共用
 def test_gate_shared_by_both_entries(bs, monkeypatch):
     """`_daily_gate` 是唯一一份判断：两个入口在同样的场景下给出同样的结论。"""
+    _fake_clock(bs, monkeypatch, 20, 0)   # 同上：不依赖真实钟点
     calls = _stub_run_scan(monkeypatch, bs)
     monkeypatch.setattr(bs, "_last_trade_date", lambda: "1999-01-01")
     assert bs._daily_gate() == "not_trading_day"
@@ -195,7 +200,8 @@ def test_gate_pre_close_before_15(bs, monkeypatch):
     real_localtime = time.localtime
     monkeypatch.setattr(bs, "time", types.SimpleNamespace(
         sleep=lambda s: None, time=time.time, strftime=time.strftime,
-        localtime=lambda *a: time.struct_time((2026, 10, 30, 9, 0, 0, 4, 303, 0))))
+        localtime=lambda *a: time.struct_time(
+            (int(TODAY[0:4]), int(TODAY[5:7]), int(TODAY[8:10]), 9, 0, 0, 4, 303, 0))))
     assert bs._daily_gate() == "pre_close"
     monkeypatch.setattr(bs, "time", types.SimpleNamespace(
         sleep=lambda s: None, time=time.time, strftime=time.strftime,
@@ -206,7 +212,11 @@ def test_gate_pre_close_before_15(bs, monkeypatch):
 # ---------------------------------------------------------------- 让路窗口（17:00–19:30）
 def _fake_clock(bs, monkeypatch, hour: int, minute: int):
     """把 `bili_scan.time` 换成「固定在某时某分」的替身（其余方法沿用真 time）。"""
-    st = time.struct_time((2026, 10, 30, hour, minute, 0, 4, 303, 0))
+    _TY, _TM, _TD = (int(x) for x in TODAY.split("-"))
+    # 2026-10-31 修：原写死 (2026,10,30)。`_daily_gate` 拿 `_last_trade_date()`（= TODAY，真今天）
+    # 和伪时钟的 strftime 比，写死之后一过 10-30 就全部落到 not_trading_day ——
+    # 6 个用例集体变红，而代码一行没动。日期必须从 TODAY 推。
+    st = time.struct_time((_TY, _TM, _TD, hour, minute, 0, 4, 303, 0))
     monkeypatch.setattr(bs, "time", types.SimpleNamespace(
         sleep=lambda s: None, time=time.time, strftime=time.strftime,
         localtime=lambda *a: st))

@@ -8,7 +8,8 @@
 
 口径（重要，界面上会一并标注）：
 - 数据源：新浪日线（不复权），本地缓存 kline_cache.json，避免重复请求。
-- 标的池：positions + lhb_stocks 的全部代码去重（默认取前 N 只，可按 --limit 调整）。
+- 标的池：全市场流动性排序（`stock_liquidity` → 本地日线近 60 日均额 → 干净宇宙），
+  默认取前 N 只，可按 --limit 调整。**2026-10-30 D35 起不再用 lhb_stocks 兜底**（见 `universe()`）。
 - 交易假设：单标的、等权、满仓进出、**信号当日收盘判定 → 次日收盘成交**；
   **不计手续费与滑点**。这是"策略相对强弱"的横向比较，不是可实现收益的精确预测。
 - 可成交性：次日若为一字板（开=高=低=收且涨跌幅接近涨跌停），视为买不到 → 撤单跳过本笔；
@@ -1512,8 +1513,14 @@ def universe(limit: int):
       ① stock_liquidity 表（近 60 自然日成交额，若存在）
       ② 本地日线全库算近 60 交易日平均成交额  ← 当前实际主路径
       ③ 干净宇宙全量（all_ashares − ST/无K线）
-      ④ lhb_stocks 龙虎榜历史（仅在①~③全空时兜底，会打印告警）
     返回 (codes, names, boards)；codes 保持流动性降序，剔除 ST 后再截 limit。
+
+    2026-10-30 D35 **删掉了原来的第 ④ 级「lhb_stocks 龙虎榜历史兜底」**：
+    `viewer/avoid.py` 的 4077 交易日 / 37.3 万样本已经证明**「上榜」这个事件本身没有信息量**
+    （近10日上榜 T+5 超额 +0.006%、t=0.07，等于零；有分辨力的是换手率）。拿它凑候选池
+    = 用噪声选股，而且它的覆盖只有历史上过榜的股票（比全市场窄一个数量级），
+    一旦被触发就是"页面正常、结论全错"的静默降级 —— 比空池更危险。
+    现在 ③ 之后若仍为空，**直接返回空池并告警**，由调用方报错，不再用别的东西凑数。
     """
     names = {}
     try:
@@ -1531,12 +1538,17 @@ def universe(limit: int):
         from viewer.universe_filter import get_exclusion_pool, all_ashares
     except Exception:  # noqa: BLE001
         get_exclusion_pool = all_ashares = None
+    # 2026-10-31 整改（测评 P0-B）：原 `except Exception: excluded = set()` 是 fail-open。
+    # 回测里"不剔除 ST"会直接污染收益分布，而且这个污染**无法从结果里看出来**
+    # —— 它表现为"策略更赚钱"，最容易被当成好消息。
     excluded: set = set()
     if get_exclusion_pool is not None:
+        from viewer.universe_filter import get_exclusion_pool_strict, ExclusionPoolUnavailable
         try:
-            excluded, _, _ = get_exclusion_pool()
-        except Exception:  # noqa: BLE001
-            excluded = set()
+            excluded, _, _ = get_exclusion_pool_strict()
+        except ExclusionPoolUnavailable as _e:
+            # 回测可以拒绝跑，但不可以悄悄跑一份"含 ST"的结果。
+            raise SystemExit("[strategy_sim][FATAL] 剔除池不可用，拒绝产出含 ST 的回测：%s" % _e)
 
     def _keep(cands):
         return [c for c in cands if len(c) == 6 and c.isdigit() and c[0] in "036"]
@@ -1576,25 +1588,13 @@ def universe(limit: int):
         except Exception:  # noqa: BLE001
             pass
 
-    # ④ 最后兜底：龙虎榜历史（旧口径，覆盖极窄，仅保证不空池）
+    # ④ 已删除（2026-10-30 D35）：原「lhb_stocks 龙虎榜历史兜底」。
+    #    理由见 docstring：上榜事件本身 t=0.07 无信息量，拿它凑池等于用噪声选股，
+    #    且覆盖远窄于全市场。宁可空池报错，也不做这种静默降级。
     if not codes:
-        try:
-            con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-            try:
-                for (x,) in con.execute(
-                        "SELECT DISTINCT security_code FROM lhb_stocks "
-                        "WHERE security_code IS NOT NULL"):
-                    s = str(x or "").strip()
-                    if len(s) == 6 and s.isdigit() and s[0] in "036":
-                        codes.append(s)
-            finally:
-                con.close()
-            if codes:
-                src = "lhb_fallback"
-                print("[universe] 警告：流动性源全部不可用，退回龙虎榜历史 %d 只"
-                      % len(codes), flush=True)
-        except Exception:  # noqa: BLE001
-            codes = []
+        print("[universe] 错误：①流动性表 ②本地日线 ③干净宇宙 全部取不到候选，"
+              "返回空池（已拒绝用龙虎榜历史凑数，见 D35）", flush=True)
+        return [], names, {}
 
     if excluded:
         codes = [c for c in codes if c not in excluded]

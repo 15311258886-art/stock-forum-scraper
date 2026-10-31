@@ -171,7 +171,11 @@ def main() -> int:
     rows = app.execute("SELECT run_date, pool_n FROM prediction_run "
                        "ORDER BY run_date DESC LIMIT 8").fetchall()
     for d, n in rows:
-        flag = "  ← 疑似锁死" if n and n < 800 else ""
+        # 2026-10-31 整改（测评 P0-D）：这里的 800 原本是拍出来的绝对值，
+        # 而下面那行判定用的是「占可用宇宙 25%」——同一个问题两个口径，
+        # 池子从 5,000 涨到 5,300 之后，800 这条线就既不触发也不说明任何事。
+        # 改成同源：标记条件与判定条件走同一个比例，去掉这个字面量。
+        flag = "  ← 疑似锁死" if n and n < 0.25 * len(usable) else ""
         print("  %s  %5d 只%s" % (d, n or 0, flag))
     # 判定看**最新一条**（修前 594~734 只），不用 max —— 旧数据本就是坏的
     latest = (rows[0][1] or 0) if rows else 0

@@ -225,8 +225,15 @@ def _clean_sectors(v) -> list[str]:
 
 
 def _decision(direction: str, sectors_up, sectors_down,
-              confidence: float, amp: float, amp_read: str) -> str:
-    """由方向 + 受益/受损领域 + 置信度 + 放大系数，生成一句话到两句话的决策导向。"""
+              amp: float, amp_read: str) -> str:
+    """由方向 + 受益/受损领域 + 放大系数，生成一句话到两句话的决策导向。
+
+    2026-10-31（D48）：结论尾部原本还写「确定性 0.75」，但那不是算出来的——
+    它等于传导表里人工写的 base（0.6）+ 0.03×报道条数，是不可复现的伪精度。
+    判断类工具里给出这种百分比，等于鼓励用户拿它去算仓位。故删掉，只留可解释的
+    放大系数（1 +（信源数-1）×0.1 ± 内外同步加成，规则明确）；可信度改由前端
+    按「信源家数」分档呈现，依据可数、可复核。
+    """
     up = _clean_sectors(sectors_up)[:3]
     down = _clean_sectors(sectors_down)[:3]
     if not up and not down:
@@ -234,7 +241,7 @@ def _decision(direction: str, sectors_up, sectors_down,
 
     d = direction or ""
     weakened = ("转弱" in d) or ("净空" in d)
-    tail = f"确定性 {confidence:.2f}，情绪放大 {amp} 倍（{amp_read}）。"
+    tail = f"情绪放大 {amp} 倍（{amp_read}）。"
 
     if ("利空" in d) and ("利多" not in d):
         body = "方向偏空："
@@ -390,7 +397,7 @@ def build_hotspots(db, news_rows: list[dict], topics_cfg: dict | None = None) ->
         # 细分领域 → 代表公司（前端按领域分组展示）+ 一句决策导向
         amp_read = _amp_reading(amp)
         decision = _decision(direction, struct.get("sectors_up"), struct.get("sectors_down"),
-                             conf, amp, amp_read)
+                             amp, amp_read)
 
         hotspots.append({
             "key": key,
