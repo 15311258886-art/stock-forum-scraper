@@ -95,3 +95,45 @@ viewer/*.db.bak-*
 # 运行时状态（PID 文件，每次启动都变）
 *.pid
 viewer/.server.pid
+
+# ── 运行期 K 线缓存（2026-10-31 盘点：viewer/data/ 下 5,661 个 kline_*.json，合计 2.2 GB）──
+# 这些是**可重建**的行情缓存，不是源码。原规则只挡了 `*_cache.json`，
+# 而这类文件名是 `kline_<hash>.json`，一条都没被挡住 —— 一次 `git add -A`
+# 就会把 2.2 GB 塞进版本库，而且它们每天都变（等于每次提交都是全量 diff）。
+viewer/data/kline_*.json
+viewer/data/app.db
+viewer/data/kbase.db
+viewer/data/*.log
+data/app.db
+
+# 根目录临时日志（2026-10-31：回测/端口验证/冒烟一次跑一次，会散落一堆）
+_bt_*.log
+_srv*.log
+_smoke.log
+
+# ── 历史版本快照（2026-10-31 纳入版本管理时盘点）──
+# viewer/static/ 下有 73 个 `app.js.bak-<标签>-<时间戳>` 快照，合计 40 MB。
+# 原规则只挡了 `*.bak` 精确后缀与 `viewer/*.db.bak-*`，带标签的 `*.bak-*` 全部漏网，
+# 一次 `git add -A` 就会把几十份重复的前端快照塞进版本库。改为统一后缀拦截。
+*.bak-*
+*.bak_*
+*.bak.*
+
+# ── 模型权重（二进制，可重新下载，不入库）──
+# 2026-10-31 盘点：viewer/kronos_core/weights/ 约 31 MB（NeoQuasar/Kronos-mini、Kronos-Tokenizer-base）。
+# 代码（kronos.py / module.py）入库，权重走 model_repo.json 描述的外部下载。
+viewer/kronos_core/weights/
+
+# ── 运行时可重建数据（2026-10-31 补充）──
+# viewer/data/ 合计 2.2 GB，其中 kline_*.json 已被上面的规则挡住；
+# 这里再兜底挡住同目录下的中间产物与备份库，避免目录被整体 `git add` 时漏网。
+viewer/data/*.db
+viewer/data/*.db-*
+viewer/data/*.log
+
+# ── 缓存类大文件（2026-10-31 纳入版本管理时盘点）──
+# 原规则 `*_cache.json` 只匹配下划线写法，实际文件名是 `*_kcache.json`（无下划线），
+# 一条都没挡住：data/decline_kcache.json 32 MB、predict_kcache.json 14 MB。
+# 另有 data/*.gz 两个扫描中间包合计 40 MB。均属可重建缓存，不入库。
+*_kcache.json
+data/*.gz
