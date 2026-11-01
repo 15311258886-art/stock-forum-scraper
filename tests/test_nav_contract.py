@@ -238,9 +238,11 @@ OLD_CATS = ("overview", "money", "info", "opinion", "watch", "research", "learn"
 #: 更早一层（2026-09-29 之前）的类名。
 ANCIENT_CATS = ("trade", "extref", "enhance")
 #: 改动前的静态 tab 总数。锚点，用来守"一个不删"。
-EXPECTED_TAB_COUNT = 43
+EXPECTED_TAB_COUNT = 47   # 2026-11-01：43 + 决策台 4 页（desk_hot/dip/mid/long）
 #: 目标分组（顺序即左栏顺序）。
-EXPECT_GROUPS = ["today", "mine", "market", "stock", "strategy", "system"]
+# 2026-11-01 进哥需求：新增「决策台」并置于首位（按持有周期分四道门）。
+# 它排在 today 之前，是因为进哥做判断的第一念是"这次拿几天"，不是"这条信息归哪类"。
+EXPECT_GROUPS = ["desk", "today", "mine", "market", "stock", "strategy", "system"]
 
 _NAV_OBJ_RE = re.compile(r'\{[^{}]*\btab:\s*"([A-Za-z0-9_\-]+)"[^{}]*\}')
 
@@ -303,11 +305,11 @@ def _resolve(cat: str, tab: str, cats: dict, legacy: dict) -> tuple:
     return (cat, tab)
 
 
-def test_groups_are_the_planned_six():
-    """一级分组必须是计划的 6 组且顺序一致（顺序 = 左栏顺序 = 使用频率）。"""
+def test_groups_are_the_planned_seven():
+    """一级分组必须是计划的 7 组且顺序一致（顺序 = 左栏顺序 = 使用频率）。"""
     cats = nav_cats()
     assert list(cats.keys()) == EXPECT_GROUPS, \
-        "一级分组不是预期的 6 组：%s" % list(cats.keys())
+        "一级分组不是预期的 7 组：%s" % list(cats.keys())
     return True
 
 
@@ -349,6 +351,15 @@ def test_each_group_folds_the_tail():
         n_fold = len([i for i in items if i["fold"]])
         if len(items) == 1:
             continue      # 「数据与系统」只有 health 一项，无可折叠
+        if k == "desk":
+            # 2026-11-01 决策台：四道门是四个**平级主通道**（短线热点/短线超跌/中线波段/长期埋伏），
+            # 四个都是入口、没有"正文+附属"之分。折叠其中任何一项，等于把 1/4 的周期藏起来，
+            # 与"进哥要一眼看到四个周期"的用途直接相反。
+            # 注意：这里不是"豁免不检查"，而是把 desk 的形态钉成另一个形状 —— 4 平铺 0 折叠，
+            # 一旦有人往 desk 里塞第 5 项或偷偷加折叠，本条会立刻红。
+            assert n_main == 4 and n_fold == 0, \
+                "desk 组形态变了（平铺 %d / 折叠 %d），请重新确认是否需要折叠" % (n_main, n_fold)
+            continue
         assert 1 <= n_main <= 4, "%s 平铺了 %d 个主项（目标 2~4）" % (k, n_main)
         assert n_fold >= 1, "%s 没有任何折叠项（等于全部平铺，等于没做收敛）" % k
     return True

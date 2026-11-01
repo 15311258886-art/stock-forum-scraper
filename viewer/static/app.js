@@ -10304,6 +10304,23 @@ const COSTB = { data: null, loading: false };
    ⚠️ 顺序有约束：每组**第一项必须是非 fold、非 child 的主项** —— `firstRealTab()` 用它做
    「点左栏大类」的落地点，也是 renderNav 里计数与高亮的基准。 */
 const NAV = [
+  // ⓪ 决策台（2026-11-01 进哥需求）—— 按「这次打算拿多久」分四道门。
+  //
+  // 为什么单开一组，而不是并进现有五组：
+  //   现有五组按**信息类型**切（今天 / 我的 / 市场 / 个股 / 方法），回答的是「这条信息归哪类」；
+  //   进哥做判断时的第一念却是「这次我想拿几天」。两种切法的入口顺序天然不同 ——
+  //   「长期底部埋伏」和「竞价冲浪」在信息类型上隔着两组（一个在我的持仓、一个在今日），
+  //   在持有周期上却是同一条轴的两端。混在信息分类里，他每次都要在两处之间来回跳。
+  //
+  // 本组**不新增任何引擎、不复制任何数据源**：只是把既有面板按持有周期重排，
+  // 并加一层「先给判断、再给名单、底部可跳回原面板」的聚合视图。
+  // 所以 43 个静态入口一个不少、一个不改名（tab 键仍是原面板的键）——
+  // 本组新增的 4 个 tab 是**新的聚合页**，不抢占、不移动任何既有面板。
+  { key: "desk", label: "决策台", icon: "◈", items: [
+    { tab: "desk_hot", label: "短线热点" },
+    { tab: "desk_dip", label: "短线超跌" },
+    { tab: "desk_mid", label: "中线波段" },
+    { tab: "desk_long", label: "长期埋伏" }] },
   // ① 今日交易计划（原「今日总览」）—— 盘中所有决策动作都在这组里闭环。
   { key: "today", label: "今日交易计划", icon: "◎", items: [
     // 今日决策为主项，复盘/看板/汇总/我的提示 挂其右侧（tab 仍平铺，深链接不变）
@@ -14326,6 +14343,13 @@ function selectNav(catKey, tabKey, push) {
     if (DASH.data) renderDashboard();
     else loadDashboard().catch((e) => reportLoadError("今日看板", e));
   }
+  // 决策台（2026-11-01 进哥需求）：四道门，进页即读"今日已落库的结果"。
+  // 不在这里触发任何重算（低位扫描/换手率榜都在对应原面板里由用户点），
+  // 所以这四页是秒开的；数据已在同一次会话里拉过就不再重复请求。
+  if (tab === "desk_hot") loadDesk("hot");
+  if (tab === "desk_dip") loadDesk("dip");
+  if (tab === "desk_mid") loadDesk("mid");
+  if (tab === "desk_long") loadDesk("long");
   // 每日预测（pred-v1.0）：总览第三个 tab，进入时按需（重）渲染
   // 2026-10-15 修 TDZ：initNav 在脚本顶层执行（早于 const PRED 声明行），深链接
   // #overview/prediction 直接落此分支时 `if (PRED.data)` 会抛
@@ -15248,6 +15272,438 @@ window.addEventListener("message", (ev) => {
   const d = ev.data || {};
   if (d.type === "fm-open-stock" && d.symbol) openStock(String(d.symbol));
 });
+
+/* ================= 决策台（2026-11-01 进哥需求）=================
+   进哥留了 13 个面板，说得很清楚：他留这些不是为了"功能多"，是为了回答四个问题 ——
+     ① 这两三天哪个板块热、里面买哪只
+     ② 最近哪只跌狠了、但公司其实还行
+     ③ 哪个能拿两三个月
+     ④ 哪个趴在地板上、等它翻身
+   而现有五组是按「信息类型」切的（今天/我的/市场/个股/方法），这四类问题的最佳面板
+   散在不同组里：长期底部埋伏在我的持仓，竞价冲浪在今日交易计划，中间隔着两组。
+   所以他每问一次，都要在导航里来回跳。
+
+   本组不新增引擎、不复制数据源，只做三件事：
+     ① 按持有周期重排（同一份数据，换一个入口顺序）
+     ② 每页先给判断、再给证据、最后给名单（原来这些面板是"先给你一张表，自己看"）
+     ③ 底部留「看完整面板」跳回原处 —— 既有面板一个不改、一个不删
+
+   ⚠️ 一条硬规矩：判断不许编。
+   所有结论都从接口返回的真实字段拼出来；没数据就写没数据；
+   需要现算的（低位扫描 30~60 秒、换手率榜 5~15 秒）明说"要点按钮"，
+   **绝不在进页面时偷跑扫描** —— 那会让页面从"秒开"变成"转圈一分钟"，
+   而他打开决策台的动机是"快速看一眼"。需要耐心的操作，必须由他点。
+   今天这套系统经常得出"没机会"，那也是结论，照写。 */
+const DESK = {
+  hot: { data: null, loading: false, error: null },
+  dip: { data: null, loading: false, error: null },
+  mid: { data: null, loading: false, error: null },
+  long: { data: null, loading: false, error: null },
+};
+const DESK_META = {
+  hot: { title: "短线热点", span: "1–3 天", cls: "hot",
+         q: "哪个板块热、里面买哪只" },
+  dip: { title: "短线超跌", span: "1–2 周", cls: "dip",
+         q: "哪只跌狠了、但公司其实还行" },
+  mid: { title: "中线波段", span: "2–3 个月", cls: "mid",
+         q: "哪个能拿两三个月" },
+  long: { title: "长期埋伏", span: "6 个月以上", cls: "long",
+          q: "哪个趴在地板上、等它翻身" },
+};
+
+async function loadDesk(ch, force) {
+  const st = DESK[ch];
+  if (!st || st.loading) return;
+  if (st.data && !force) { renderDesk(ch); return; }
+  st.loading = true; st.error = null;
+  renderDesk(ch);
+  try {
+    if (ch === "hot") {
+      // 这两个接口都是"读已落库的今日结果"，毫秒级；today_decision 自带 60s 缓存
+      const [td, pil] = await Promise.all([api("/api/today_decision"), api("/api/pillars")]);
+      st.data = { td, pil };
+    } else if (ch === "dip") {
+      st.data = { pil: await api("/api/pillars") };
+    } else if (ch === "mid") {
+      // 低位突破：后端有缓存就秒回，没缓存会自己起后台扫描并回 computing=true。
+      // 这不是"偷跑"——它是懒加载接口，原面板也是这个行为；只是把"要不要等"变成可见的进度，
+      // 而不是让页面无声地空着。同理见 long 分支。
+      const [pil, lb] = await Promise.all([
+        api("/api/pillars"),
+        api("/api/screener_lowbox?limit=10").catch(() => null),
+      ]);
+      st.data = { pil, lb };
+      if (lb && lb.computing) _deskPoll("mid", 8); else _DESK_POLL.mid = 0;
+    } else {
+      const [br, bt] = await Promise.all([
+        api("/api/lowbox_breakouts?limit=200"),
+        api("/api/screener_bottom?limit=12&min_years=0&state=all&pool=market").catch(() => null),
+      ]);
+      st.data = { br, bt };
+      if (bt && bt.computing) _deskPoll("long", 8); else _DESK_POLL.long = 0;
+    }
+    st.loading = false;
+  } catch (e) {
+    st.loading = false; st.error = apiErrText(e);
+  }
+  renderDesk(ch);
+}
+
+/* 扫描还没算完时的自愈轮询：最多 8 次 × 8 秒（约 64 秒，覆盖后端 30~60 秒的首扫）。
+   用户不用手动点刷新 —— 但也不会无限转：到点就停下，页面照实写"还没算完"。 */
+const _DESK_POLL = { mid: 0, long: 0 };
+function _deskPoll(ch, maxTimes) {
+  if (_DESK_POLL[ch] >= (maxTimes || 8)) return;
+  _DESK_POLL[ch] += 1;
+  setTimeout(() => {
+    if (CURRENT && CURRENT.tab === "desk_" + ch) loadDesk(ch, true);
+  }, 8000);
+}
+function _dkPct(v, d) {
+  if (v == null || !isFinite(v)) return "—";
+  return (v > 0 ? "+" : "") + Number(v).toFixed(d == null ? 2 : d) + "%";
+}
+function _dkNum(v, d) {
+  if (v == null || !isFinite(v)) return "—";
+  return Number(v).toFixed(d == null ? 2 : d);
+}
+/* 后端 reason 里有内部键名（policy_funnel / t1_surf …），对用户没有意义。
+   这里只做"键名 → 中文名"的机械替换，不改写任何判断内容 —— 换成中文后仍是原文。 */
+const _DK_PILLAR_ZH = {
+  policy_funnel: "政策漏斗", t1_surf: "竞价冲浪", dip_revert: "超跌修复",
+  resonance: "共振风控", self_learn: "引擎自加权",
+};
+function _dkZh(s) {
+  return String(s == null ? "" : s).replace(
+    /\b(policy_funnel|t1_surf|dip_revert|resonance|self_learn)\b/g,
+    (m) => _DK_PILLAR_ZH[m] || m);
+}
+function _dkCut(s, n) {
+  s = String(s == null ? "" : s);
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+/* 一句判断里最常出现的一半结构：市场状态 + 广度。集中一处，四道门口径一致。 */
+function _dkMkt(pil) {
+  const ms = (pil || {}).market_state || {};
+  const b = ms.breadth || {};
+  /* 广度是"占比"，不是涨跌幅 —— 不能用 _dkPct（那个会加正负号，写成 "上涨占比 +17.4%" 会读成涨了 17%。 */
+  const pctRaw = (v, d) => (v == null || !isFinite(v)) ? "—" : Number(v).toFixed(d) + "%";
+  return {
+    state: ms.state || "—",
+    upR: b.up_ratio != null ? pctRaw(b.up_ratio * 100, 1) : "—",
+    med: b.median_pct != null ? _dkPct(b.median_pct) : "—",
+    pool: b.pool_n != null ? b.pool_n : null,
+    isFall: ms.state === "普跌",
+  };
+}
+function _dkHero(ch, verdict, chips, asOf) {
+  const m = DESK_META[ch];
+  return `<div class="dk-hero ${m.cls}">
+    <div class="dk-hd">
+      <span class="dk-title">${esc(m.title)}</span>
+      <span class="dk-sub">${esc(m.span)} · ${esc(m.q)}</span>
+      ${asOf ? `<span class="dk-sub" style="margin-left:auto">数据日 ${esc(asOf)}</span>` : ""}
+    </div>
+    <div class="dk-verdict">${verdict}</div>
+    ${chips && chips.length ? `<div class="dk-chips">${chips.map((c) =>
+      `<span class="dk-chip${c.hi ? " hi" : ""}">${c.t}</span>`).join("")}</div>` : ""}
+  </div>`;
+}
+function _dkFoot(links) {
+  return `<div class="dk-foot"><span>看完整面板 →</span>${links.map((l) =>
+    `<a href="#${escAttr(l.cat)}/${escAttr(l.tab)}">${esc(l.label)}</a>`).join("")}</div>`;
+}
+
+function renderDesk(ch) {
+  const host = ensurePanel("desk_" + ch);
+  if (!host) return;
+  const st = DESK[ch];
+  if (st.loading && !st.data) {
+    host.innerHTML = `<div class="dk-empty">正在读取今日结果…</div>`;
+    return;
+  }
+  if (st.error) {
+    host.innerHTML = `<div class="dk-empty">读取失败：${esc(st.error)}
+      <div style="margin-top:10px"><button class="dk-btn" onclick="loadDesk('${escAttr(ch)}',1)">重试</button></div></div>`;
+    return;
+  }
+  if (!st.data) { host.innerHTML = `<div class="dk-empty">尚未加载</div>`; return; }
+  if (ch === "hot") renderDeskHot(host, st.data);
+  else if (ch === "dip") renderDeskDip(host, st.data);
+  else if (ch === "mid") renderDeskMid(host, st.data);
+  else renderDeskLong(host, st.data);
+}
+
+/* ---------- ① 短线热点：今天资金打哪儿、哪几只跟着走 ---------- */
+function renderDeskHot(host, d) {
+  const td = d.td || {}, pil = d.pil || {};
+  const P = pil.pillars || {};
+  const mk = _dkMkt(pil);
+  const dirs = td.directions || [];
+  const ss = td.signal_state || {};
+  const gate = td.evidence_gate || {};
+  const d0 = dirs[0] || null;
+
+  const srcs = [["policy_funnel", "政策漏斗"], ["t1_surf", "竞价冲浪"], ["self_learn", "引擎加权"]];
+  const byCode = new Map();
+  srcs.forEach(([k, label]) => {
+    (((P[k] || {}).items) || []).forEach((it) => {
+      const c = String(it.symbol || it.code || "");
+      if (!c) return;
+      const cur = byCode.get(c) || { code: c, name: it.name || "", score: it.score, from: [], reason: it.reason || "" };
+      cur.from.push(label);
+      if ((it.score || 0) > (cur.score || 0)) { cur.score = it.score; cur.reason = it.reason || cur.reason; }
+      byCode.set(c, cur);
+    });
+  });
+  const rows = [...byCode.values()].sort((a, b) =>
+    (b.from.length - a.from.length) || ((b.score || 0) - (a.score || 0)));
+
+  const multi = rows.filter((r) => r.from.length >= 2).length;
+  /* 2026-11-01 实测发现：后端 directions 里三个板块的 leader_code 全是 000568（泸州老窖）。
+     不知道是"这只票同时属于多个板块"还是"取龙头时没按板块过滤"，本页不下结论 ——
+     但必须标出来：三张卡都写"龙头 泸州老窖 +10.01%"，读的人会以为这是三个独立证据。 */
+  const leaders = dirs.map((x) => String(x.leader_code || "")).filter(Boolean);
+  const leaderDup = leaders.length > 1 && new Set(leaders).size === 1;
+  let v = "";
+  if (d0) {
+    v += `今天资金主攻 <b>${esc(d0.sector || "—")}</b>（净买 ${_dkNum(d0.net_yi, 1)} 亿 · ${esc(d0.stage || "—")}`;
+    v += d0.leader_name ? ` · 龙头 ${esc(d0.leader_name)} ${_dkPct(d0.leader_pct)}` : "";
+    v += `）。`;
+  } else {
+    v += `今天没有识别出资金主攻方向。`;
+  }
+  v += `大盘 <b>${esc(mk.state)}</b>：上涨占比 ${mk.upR}、中位 ${mk.med}。`;
+  v += `候选 <b>${rows.length}</b> 只（政策漏斗 ${(((P.policy_funnel || {}).items) || []).length} · 竞价冲浪 ${(((P.t1_surf || {}).items) || []).length} · 引擎加权 ${(((P.self_learn || {}).items) || []).length} 去重后），`;
+  v += `其中 <b>${multi}</b> 只被两支以上同时提名。`;
+  if (mk.isFall) {
+    v += `<br><span style="color:var(--muted)">普跌闸生效：单支柱票不建议参与（系统既有规则，本页照原样转述，未新增判断）。</span>`;
+  }
+  if (leaderDup) {
+    v += `<br><span style="color:var(--warn)">注意：上面 ${dirs.length} 个板块的"龙头"都是 ${esc(dirs[0].leader_name || leaders[0])} ——
+      可能是这只票同属多个板块，也可能是后端取龙头时没按板块过滤。本页照接口原样显示，没有替你判断哪种。</span>`;
+  }
+
+  const chips = [
+    { t: `可执行 ${ss.executable_count != null ? ss.executable_count : "—"}`, hi: (ss.executable_count || 0) > 0 },
+    { t: `观察 ${ss.watch_count != null ? ss.watch_count : "—"}` },
+    { t: `被证据挡 ${ss.blocked_count != null ? ss.blocked_count : "—"}` },
+  ];
+  if (gate.n_sources != null) chips.push({ t: `证据源 ${gate.n_sources} 个` });
+
+  const dirHtml = dirs.length
+    ? `<div class="dk-dirs">${dirs.map((x) => `<div class="dk-dir">
+        <div class="dk-dir-t">${esc(x.sector || "—")}</div>
+        <div class="dk-dir-m">净买 ${_dkNum(x.net_yi, 1)} 亿 · 上榜 ${x.onlist_n != null ? x.onlist_n : "—"} 只<br>
+        龙头 ${esc(x.leader_name || "—")} ${_dkPct(x.leader_pct)} · ${esc(x.stage || "—")}</div>
+      </div>`).join("")}</div>`
+    : `<div class="dk-empty">今天没有识别出资金主攻方向。</div>`;
+
+  const tbl = rows.length
+    ? `<table class="dk-tbl"><colgroup><col style="width:13%"><col style="width:10%"><col style="width:8%"><col style="width:17%"><col></colgroup><thead><tr>
+        <th>名称</th><th>代码</th><th class="c">得分</th><th>来自</th><th>为什么在名单里</th>
+      </tr></thead><tbody>${rows.map((r) => `<tr>
+        <td class="nm">${esc(r.name || "—")}</td>
+        <td class="c">${esc(r.code)}</td>
+        <td class="c">${_dkNum(r.score, 1)}</td>
+        <td>${r.from.map((f) => `<span class="dk-tag${r.from.length >= 2 ? " hi" : ""}">${esc(f)}</span>`).join("")}</td>
+        <td class="why">${esc(_dkCut(_dkZh(r.reason), 96))}</td>
+      </tr>`).join("")}</tbody></table>`
+    : `<div class="dk-empty">今天短线热点方向没有候选票。</div>`;
+
+  host.innerHTML = _dkHero("hot", v, chips, td.data_date || pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">板块方向<span class="dk-sec-n">${dirs.length} 个 · 资金强度 × 龙头强度 × 共振广度</span></div>${dirHtml}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">候选票<span class="dk-sec-n">${rows.length} 只（去重后，按"被几支同时提名"排序）</span></div>${tbl}</div>`
+    + _dkFoot([
+        { cat: "today", tab: "prediction", label: "每日预测（四支柱全量）" },
+        { cat: "today", tab: "resonance", label: "多源共振" },
+        { cat: "today", tab: "today", label: "今日决策（证据门禁详情）" },
+      ]);
+}
+
+/* ---------- ② 短线超跌：跌狠了但没坏 ---------- */
+function renderDeskDip(host, d) {
+  const pil = d.pil || {};
+  const P = pil.pillars || {};
+  const mk = _dkMkt(pil);
+  const dip = P.dip_revert || {};
+  const rsn = P.resonance || {};
+  const dipItems = dip.items || [];
+  const rsnItems = rsn.items || [];
+  const top = dipItems[0] || null;
+
+  let v = "";
+  if (dipItems.length) {
+    v += `今天 <b>${dipItems.length}</b> 只超跌候选。最典型的是 <b>${esc(top.name || "—")}</b>：${esc(_dkCut(top.reason, 70))}。`;
+  } else {
+    v += `今天没有符合条件的超跌候选 —— 面板这会儿没有票，不是坏了。`;
+  }
+  v += `<br>共振风控另有 <b>${rsnItems.length}</b> 只，但按 ${esc(rsn.title || "共振风控")} 的口径，`;
+  v += `它们都只被单支柱提名、属"补位"而非真共振，只能观察不能当买点。`;
+  if (mk.isFall) {
+    v += `<br><span style="color:var(--muted)">大盘 ${esc(mk.state)}（上涨占比 ${mk.upR}、中位 ${mk.med}）—— 普跌里做超跌，要的是"跌不动"，不是"跌得多"。</span>`;
+  }
+
+  const chips = [
+    { t: `超跌修复 ${dipItems.length} 只`, hi: dipItems.length > 0 },
+    { t: `共振风控 ${rsnItems.length} 只` },
+    { t: `大盘 ${mk.state}` },
+  ];
+  const rowHtml = (items, tag) => items.length
+    ? `<table class="dk-tbl"><colgroup><col style="width:17%"><col style="width:13%"><col style="width:9%"><col></colgroup><thead><tr><th>名称</th><th>代码</th><th class="c">得分</th><th>入选理由</th></tr></thead>
+      <tbody>${items.map((x) => `<tr>
+        <td class="nm">${esc(x.name || "—")}</td>
+        <td class="c">${esc(String(x.symbol || x.code || ""))}</td>
+        <td class="c">${_dkNum(x.score, 1)}</td>
+        <td class="why">${esc(_dkCut(_dkZh(x.reason), 110))}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="dk-empty">${esc(tag)}今天没有票。</div>`;
+
+  host.innerHTML = _dkHero("dip", v, chips, pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">超跌修复<span class="dk-sec-n">${dipItems.length} 只 · 60 日分位 + 回撤 + 是否止跌</span></div>${rowHtml(dipItems, "超跌修复")}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">共振风控<span class="dk-sec-n">${rsnItems.length} 只 · 多支柱共振闸门</span></div>${rowHtml(rsnItems, "共振风控")}</div>`
+    + _dkFoot([
+        { cat: "today", tab: "prediction", label: "每日预测（看四支柱全貌）" },
+        { cat: "stock", tab: "diag", label: "个股诊断（逐只查基本面）" },
+        { cat: "today", tab: "executability", label: "执行可行性" },
+      ]);
+}
+
+/* ---------- ③ 中线波段：等，也是一种动作 ---------- */
+function renderDeskMid(host, d) {
+  const pil = d.pil || {};
+  const mk = _dkMkt(pil);
+  const lb = d.lb || {};
+  const rows = (lb.rows || []).slice(0, 10);
+  const computing = !!lb.computing;
+  const top = rows[0] || null;
+
+  let v = `大盘 <b>${esc(mk.state)}</b>：上涨占比 ${mk.upR}、中位 ${mk.med}。`;
+  if (computing) {
+    v += `低位扫描正在跑（首次 30~60 秒），算完这一页会自己刷新，不用你动手。`;
+  } else if (top) {
+    v += `低位榜单现成 <b>${rows.length}</b> 只，分数最高的是 <b>${esc(top.name)}</b>`
+      + `（${_dkNum(top.score, 1)} 分 · 全历史分位 ${_dkNum(top.pct_all, 1)}% · 箱体 ${_dkNum(top.box_years, 1)} 年）。`;
+    v += `<br>这批票的共性是"趴得够久、但还没抬头" —— 中线要等的是它们自己走出箱体，不是你今天下手。`;
+    if (mk.isFall) {
+      v += `<br><span style="color:var(--muted)">普跌里建中线仓，等于用两三个月的仓位去接当天的刀。</span>`;
+    }
+  } else {
+    v += `低位扫描暂时没有结果。`;
+  }
+
+  const tbl = computing
+    ? `<div class="dk-empty">正在扫描全市场低位箱体（首次 30~60 秒），算完自动出现…</div>`
+    : (rows.length
+      ? `<table class="dk-tbl"><colgroup><col style="width:19%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:11%"><col style="width:13%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th>代码</th><th class="c">得分</th><th class="c">全历史分位</th>`
+        + `<th class="c">箱体年数</th><th class="c">距箱顶</th><th class="c">量比</th></tr></thead>`
+        + `<tbody>${rows.map((x) => `<tr>`
+          + `<td class="nm">${esc(x.name || "—")}</td>`
+          + `<td class="c">${esc(x.code || "")}</td>`
+          + `<td class="c">${_dkNum(x.score, 1)}</td>`
+          + `<td class="c">${_dkNum(x.pct_all, 1)}%</td>`
+          + `<td class="c">${_dkNum(x.box_years, 1)}</td>`
+          + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
+          + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
+          + `</tr>`).join("")}</tbody></table>`
+      : `<div class="dk-empty">低位榜单是空的。</div>`);
+
+  const cards = [
+    { t: "入手概率", d: "全市场换手率形态榜 + 历史入市价的兑现情况。首次计算 5~15 秒。", tab: "mine/rate" },
+    { t: "基金经理策略", d: "27 位经理按投资哲学量化筛选 A 股，点名看研报。", tab: "strategy/fundmasters" },
+    { t: "方法共振", d: "多层筛选漏斗：把多个方法的交集摊在一页。", tab: "strategy/funnel" },
+    { t: "Kronos K线预测", d: "开源基础模型的概率预测，当参照不当结论。", tab: "strategy/kronos" },
+  ];
+  const cardHtml = `<div class="dk-cards">${cards.map((c) => `<a class="dk-card" href="#${escAttr(c.tab)}">`
+    + `<div class="dk-card-t">${esc(c.t)}</div>`
+    + `<div class="dk-card-d">${esc(c.d)}</div></a>`).join("")}</div>`;
+
+  host.innerHTML = _dkHero("mid", v, [
+    { t: computing ? "低位扫描：算着呢" : `低位榜单 ${rows.length} 只` },
+    { t: `大盘 ${mk.state}` },
+    { t: mk.isFall ? "中线：等企稳" : "中线：可看" },
+  ], pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">低位突破<span class="dk-sec-n">`
+      + `全历史分位 + 箱体形态 + 长窗值得率，按综合分排序</span></div>${tbl}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">另外四件<span class="dk-sec-n">点开才算，不点不占你时间</span></div>${cardHtml}</div>`
+    + _dkFoot([
+        { cat: "mine", tab: "lowbox", label: "低位突破（完整版·可改筛选）" },
+        { cat: "today", tab: "harvest", label: "大势研判（局面判定）" },
+        { cat: "strategy", tab: "backtest", label: "信号回测（这套方法到底成不成立）" },
+      ]);
+}
+
+/* ---------- ④ 长期埋伏：多数日子就是"没有动作" ---------- */
+function renderDeskLong(host, d) {
+  const br = d.br || {};
+  const rows = br.rows || [];
+  const bt = d.bt || {};
+  const bRows = (bt.rows || []).slice(0, 12);
+  const bTotal = bt.total != null ? bt.total : null;
+  const bComputing = !!bt.computing;
+  const inBox = rows.filter((x) => (x.state || "in_box") === "in_box").length;
+  const outBox = rows.length - inBox;
+  /* 距箱顶 = (现价 - 箱顶) / 箱顶，负数在箱顶下方。数值越大（越接近 0）越接近突破。 */
+  const near = rows.slice().sort((a, b) => (b.breakout_pct || -999) - (a.breakout_pct || -999)).slice(0, 12);
+
+  let v = `雷达盯的 <b>${rows.length}</b> 只里，今天 <b>${outBox}</b> 只放量突破，${inBox} 只仍在箱体内。`;
+  if (outBox === 0) {
+    v += `<br>长期埋伏绝大多数日子就是"没有动作"—— 这不代表系统没干活，正好相反：`;
+    v += `它今天替你排除了 ${inBox} 只"看着低、但还没起来"的票，省下的是你自己一只只翻的时间。`;
+  } else {
+    v += `<br>有 ${outBox} 只已经走出箱体，下面按"距箱顶"排列，先看最靠前的。`;
+  }
+  if (bTotal != null) {
+    v += `<br>全市场"趴够久"的池子有 <b>${bTotal}</b> 只（按 1/2/3/5/8 年分档、自适应当前平台），`;
+    v += `下面只是其中分数最高的 ${bRows.length} 只。`;
+  }
+
+  const brTbl = rows.length
+    ? `<table class="dk-tbl"><colgroup><col style="width:21%"><col style="width:15%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:11%"><col></colgroup>`
+      + `<thead><tr><th>名称</th><th>代码</th><th class="c">现价</th><th class="c">箱顶</th>`
+      + `<th class="c">距箱顶</th><th class="c">量比</th><th>状态</th></tr></thead><tbody>`
+      + near.map((x) => `<tr>`
+        + `<td class="nm">${esc(x.name || "—")}</td>`
+        + `<td class="c">${esc(x.code || "")}</td>`
+        + `<td class="c">${_dkNum(x.cur)}</td>`
+        + `<td class="c">${_dkNum(x.box_high)}</td>`
+        + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
+        + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
+        + `<td>${(x.state || "in_box") === "in_box" ? `<span class="dk-tag">箱内</span>`
+          : `<span class="dk-tag hi">${esc(x.state)}</span>`}</td>`
+        + `</tr>`).join("") + `</tbody></table>`
+    : `<div class="dk-empty">突破雷达的扫描池是空的 —— 还没有跑过底部扫描。</div>`;
+
+  const btTbl = bComputing
+    ? `<div class="dk-empty">底部平台正在扫描（首次 30~60 秒），算完自动出现…</div>`
+    : (bRows.length
+      ? `<table class="dk-tbl"><colgroup><col style="width:20%"><col style="width:14%"><col style="width:11%"><col style="width:13%"><col style="width:14%"><col style="width:14%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th>代码</th><th class="c">埋伏分</th><th class="c">底部年数</th>`
+        + `<th class="c">箱内位置</th><th class="c">距历史峰值</th></tr></thead><tbody>`
+        + bRows.map((x) => `<tr>`
+          + `<td class="nm">${esc(x.name || "—")}</td>`
+          + `<td class="c">${esc(x.code || "")}</td>`
+          + `<td class="c">${_dkNum(x.score, 1)}</td>`
+          + `<td class="c">${_dkNum(x.years, 1)} 年</td>`
+          + `<td class="c">${_dkPct((x.pos || 0) * 100, 0)}</td>`
+          + `<td class="c">${_dkPct(x.dd)}</td>`
+          + `</tr>`).join("") + `</tbody></table>`
+      : `<div class="dk-empty">底部平台暂时没有结果。</div>`);
+
+  host.innerHTML = _dkHero("long", v, [
+    { t: `雷达池 ${rows.length} 只` },
+    { t: `已突破 ${outBox} 只`, hi: outBox > 0 },
+    { t: bTotal != null ? `底部池 ${bTotal} 只` : "底部池 —" },
+  ], "")
+    + `<div class="dk-sec"><div class="dk-sec-h">距箱顶最近<span class="dk-sec-n">前 12 只 · 距箱顶为负=还在箱里</span></div>${brTbl}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">趴得最久的<span class="dk-sec-n">`
+      + `按埋伏分排序 · 底部年数=在当前平台趴了多久</span></div>${btTbl}</div>`
+    + _dkFoot([
+        { cat: "mine", tab: "lowbox_radar", label: "突破雷达（完整版）" },
+        { cat: "mine", tab: "lowbox_bottom", label: "长期底部埋伏（完整版·可改档位）" },
+        { cat: "mine", tab: "lowbox", label: "低位突破" },
+      ]);
+}
 
 function ensurePanel(tab) {
   let p = $("#p-" + tab);

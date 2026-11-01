@@ -5055,3 +5055,88 @@ span.miss{
 .geo-mini-tip { margin-left: auto; font-size: 11.5px; white-space: nowrap; cursor: pointer;
   color: color-mix(in srgb, var(--accent, #0E7490) 65%, var(--text, #1A1A1A) 35%); }
 .geo-card:not(.geo-mini) .geo-mini-tip { display: none; }
+
+/* ================= 决策台（2026-11-01 进哥需求）=================
+   四道门共用一套骨架：判断条(hero) → 证据区(sec) → 候选表(tbl) → 原面板跳转(foot)。
+   设计约束（照进哥的话"方便我查看"落的）：
+   · 一屏之内必须能回答"今天这个方向有没有机会" —— 所以判断条放在最上面、字号最大；
+   · 判断条左边的色条是四道门唯一的颜色区分，其余全部走现有主题变量，不新增色板
+     （新增一套配色会在四个主题下各错一次，而这个系统有 4 个主题）；
+   · 表格只保留"能帮你判断"的列，不做全字段罗列 —— 要看全的去原面板。 */
+.dk-hero { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 18px; margin-bottom: 16px; border-left: 4px solid var(--accent); }
+.dk-hero.hot  { border-left-color: #c8811a; }
+.dk-hero.dip  { border-left-color: #c0392b; }
+.dk-hero.mid  { border-left-color: #2b6cb0; }
+.dk-hero.long { border-left-color: #3f7d20; }
+.dk-hero.flat { border-left-color: var(--muted); }
+.dk-hd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.dk-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.dk-sub { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dk-verdict { font-size: 14px; line-height: 1.8; color: var(--text); }
+.dk-verdict b { font-weight: 700; }
+.dk-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.dk-chip { font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: var(--tag); color: var(--muted); }
+.dk-chip.hi { background: var(--warn-bg); color: var(--warn); }
+.dk-sec { margin-bottom: 16px; }
+.dk-sec-h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  font-size: 13px; font-weight: 700; color: var(--text); }
+.dk-sec-n { font-size: 12px; font-weight: 400; color: var(--muted); }
+.dk-sec-note { font-size: 12px; font-weight: 400; color: var(--muted); }
+.dk-dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 10px; }
+.dk-dir { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.dk-dir-t { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.dk-dir-m { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.dk-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+.dk-tbl col { min-width: 0; }
+.dk-tbl th { text-align: left; font-weight: 400; color: var(--muted); font-size: 11.5px;
+  padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.dk-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text);
+  vertical-align: top; }
+.dk-tbl tr:last-child td { border-bottom: none; }
+.dk-tbl .c { text-align: right; font-variant-numeric: tabular-nums; }
+.dk-tbl .nm { font-weight: 700; }
+.dk-tbl .why { color: var(--muted); line-height: 1.6; word-break: break-word; overflow-wrap: anywhere; }
+.dk-tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 5px;
+  background: var(--tag); color: var(--muted); margin-right: 4px; }
+.dk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 10px; }
+.dk-card { display: block; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 15px; }
+.dk-card:hover { border-color: var(--accent); }
+.dk-card-t { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.dk-card-d { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.dk-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-top: 14px; border-top: 1px dashed var(--border); font-size: 12px; color: var(--muted); }
+.dk-foot a { font-size: 12.5px; }
+.dk-btn { display: inline-block; padding: 5px 13px; border-radius: 8px; font-size: 12.5px;
+  background: var(--accent); color: #fff; border: none; cursor: pointer; }
+.dk-empty { padding: 18px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* 决策台的长文本兜底（2026-11-01 端到端门禁实测：desk_dip / desk_mid 注入 300 字符无空格
+   ASCII 后整页横向撑到 3237 / 3392px）。table-layout:fixed 只能约束列宽，
+   约束不了"单元格里有一个断不开的超长单字串" —— 必须显式给 overflow-wrap。
+   用 anywhere 而不是 break-word：只在真的断不开时才断，正常中文/英文单词不受影响。 */
+.dk-hero, .dk-sec, .dk-dir, .dk-card { min-width: 0; }
+.dk-verdict, .dk-dir-t, .dk-dir-m, .dk-card-t, .dk-card-d,
+.dk-tbl td, .dk-tbl th, .dk-foot {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.dk-tbl { max-width: 100%; }
+
+/* 决策台长文本的最终兜底（第二版）。
+   第一版只给 .dk-verdict / .dk-tbl td 等显式列出的类加了断行，
+   而端到端门禁的注入方式是「panel 内所有叶子文本节点一次性替换成 300 字符无空格串」——
+   .dk-sec-n / .dk-title / .dk-chip 这些没被列出的照样撑破。
+   所以这里不再逐个列类，直接对整个决策台面板做兜底：
+   min-width:0 让 flex/grid 子项能收缩，overflow-wrap 让断不开的长串也能断。 */
+[id^="p-desk_"] { min-width: 0; }
+[id^="p-desk_"] * { overflow-wrap: anywhere; word-break: break-word; }
+
+/* 2026-11-01 端到端实测的坑，写在这里免得下一个人再踩：
+   .dk-* 里原本给 .nm / .c / .dk-tag / .dk-chip / th 都写了 white-space: nowrap
+   （当时想的是"代码和数字别断行"），但 **nowrap 的优先级高于 overflow-wrap** ——
+   一旦某个格子里出现 300 字符无空格的连续串，这些元素照样把整页撑到 2835px。
+   现在统一去掉 nowrap：正常内容（"东山精密"、"+10.01%"）本来就不会在宽裕的列里换行，
+   去掉只影响"内容确实过长"这一种情况，而那正是我们希望它换行的时候。 */
