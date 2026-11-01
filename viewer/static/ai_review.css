@@ -283,3 +283,109 @@
 .asc-sub { font-size: var(--fs-xs); color: var(--muted); }
 .asc-line { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--sp-2); }
 .asc-dim { opacity: .7; }
+
+/* ============================================================================
+ * AI 荐股板（2026-11-02）
+ *
+ * 布局原则：① 票单是唯一主角，占满宽度，不跟别的卡片挤两栏；
+ * ② 数字列固定宽度 + 右对齐（tabular-nums），扫一眼能纵向比；
+ * ③ 文字列吃剩余空间，且**必须允许断行** —— 上一轮 desk 面板的教训：
+ *    给这些格子写 white-space:nowrap 会让长文本把整页撑到 2800px。
+ * ========================================================================== */
+.air-verdict-sm { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-3); }
+.air-verdict-sm .air-v-text { font-size: var(--fs-lg); margin: 4px 0 8px; }
+
+.air-picks-wrap, .air-track-wrap { overflow-x: auto; }
+
+.air-picks, .air-track, .air-board {
+  width: 100%; border-collapse: collapse; table-layout: fixed;
+  font-size: var(--fs-sm);
+}
+.air-picks th, .air-track th, .air-board th {
+  text-align: left; font-weight: 600; color: var(--muted);
+  font-size: var(--fs-2xs); padding: 6px 8px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.air-picks td, .air-track td, .air-board td {
+  padding: 9px 8px; border-bottom: 1px solid var(--border-dim);
+  vertical-align: top; overflow-wrap: anywhere; word-break: break-word;
+}
+.air-picks tbody tr:hover { background: var(--bg-sub); }
+.air-row-bad { background: color-mix(in srgb, var(--err) 7%, transparent); }
+
+/* 分数列：一根横条 + 数字，75↑ 绿、60↑ 黄、以下灰 */
+.air-td-score { white-space: nowrap; }
+.air-td-score b { font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+.air-scorebar { height: 4px; border-radius: 999px; background: var(--bg-sub); overflow: hidden; margin-bottom: 4px; }
+.air-scorebar i { display: block; height: 100%; border-radius: 999px; background: var(--muted); }
+.air-scorebar.mid i { background: #d97706; }
+.air-scorebar.hi i { background: var(--accent); }
+
+.air-td-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.air-td-date { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); }
+.air-td-name b { font-weight: 600; }
+.air-code { display: block; font-size: var(--fs-2xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+.air-ratio { display: block; font-size: var(--fs-2xs); color: var(--muted); }
+.air-td-hz { white-space: nowrap; color: var(--muted); }
+
+.air-thesis { font-weight: 600; color: var(--ink); line-height: 1.45; }
+.air-whynow { font-size: var(--fs-2xs); color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.air-evi { margin: 5px 0 0; padding-left: 15px; }
+.air-evi li { font-size: var(--fs-2xs); color: var(--muted); line-height: 1.5; }
+.air-inv { font-size: var(--fs-2xs); color: var(--err); margin-top: 4px; }
+.air-badwhy { font-size: var(--fs-2xs); color: var(--err); margin-top: 4px; font-weight: 600; }
+
+.air-trk { font-size: var(--fs-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.air-trk.up, .air-td-num.up, .air-board .up { color: var(--bull); }
+.air-trk.dn, .air-td-num.dn, .air-board .dn { color: var(--bear); }
+.air-trk.na, .air-td-num.na { color: var(--muted); }
+.air-board .flat { color: var(--muted); }
+.air-cell-sub { font-size: var(--fs-2xs); opacity: .85; margin-top: 2px; }
+
+.air-picks-foot {
+  font-size: var(--fs-2xs); color: var(--muted); line-height: 1.6;
+  padding: 8px 2px 2px; overflow-wrap: anywhere;
+}
+
+/* 成绩单大数字 */
+.air-kpis { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.air-kpi {
+  flex: 1 1 130px; min-width: 118px; padding: 10px 12px;
+  background: var(--bg-sub); border-radius: var(--r-sm);
+  border-left: 3px solid var(--border);
+}
+.air-kpi-lab { font-size: var(--fs-2xs); color: var(--muted); }
+.air-kpi-val { font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.air-kpi-val small { font-size: var(--fs-sm); font-weight: 600; margin-left: 1px; }
+.air-kpi-val.up { color: var(--bull); }
+.air-kpi-val.dn { color: var(--bear); }
+.air-kpi-sub { font-size: var(--fs-2xs); color: var(--muted); margin-top: 2px; }
+
+/* 折叠区：把"推理过程"收起来，首屏只留结论 */
+.air-fold { margin: var(--sp-3) 0; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
+.air-fold > summary {
+  cursor: pointer; padding: 10px 14px; font-size: var(--fs-sm); color: var(--muted);
+  list-style: none; user-select: none;
+}
+.air-fold > summary::-webkit-details-marker { display: none; }
+.air-fold > summary::before { content: "▸ "; color: var(--accent); }
+.air-fold[open] > summary::before { content: "▾ "; }
+.air-fold > summary:hover { color: var(--ink); }
+.air-fold-bd { padding: 0 12px 4px; }
+
+/* 日期回看 */
+.air-date {
+  font-size: var(--fs-xs); padding: 3px 8px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--card); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.air-prov.off { cursor: pointer; }   /* 未配 Key 现在是可点的「去填」，不是禁用态 */
+
+@media (max-width: 900px) {
+  .air-picks, .air-track { font-size: var(--fs-xs); }
+  .air-kpi-val { font-size: 20px; }
+}
+
+/* 未到期档位：弱化但不隐藏（留白比空着更能说明"在排队"） */
+.air-kpi-wait { border-left-color: var(--border-dim); opacity: .55; }
+.air-kpi-val.na { font-size: var(--fs-lg); color: var(--muted); }

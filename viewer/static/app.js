@@ -4096,7 +4096,7 @@ function tdRowMetaBadge(kind, x) {
  * 所以本面板把①放在显眼位置（不是塞在角落），这就是「用大脑算」的证据。
  * 数据来自 /api/ai_review（后端 viewer/ai_review.py，每次调用落库可审计）。
  * ============================================================================ */
-const AIR = { data: null, provider: "", polling: null, tries: 0, hist: null, sinceId: 0 };
+const AIR = { data: null, provider: "", polling: null, tries: 0, hist: null, sinceId: 0, date: "" };
 
 function airProviderName(key) {
   const p = (AIR.data && AIR.data.providers || []).find((x) => x.key === key);
@@ -4115,7 +4115,9 @@ function loadAiReview(opts) {
   const o = opts || {};
   const qs = [];
   if (AIR.provider) qs.push("provider=" + encodeURIComponent(AIR.provider));
-  if (o.date) qs.push("date=" + encodeURIComponent(o.date));
+  // 日期回看：o.date 优先（显式传），否则用面板上选中的日子
+  const dt = o.date || AIR.date;
+  if (dt) qs.push("date=" + encodeURIComponent(dt));
   if (o.force) qs.push("force=1");
   // 结果水位线：点「重新分析」后后台要算 10s，这期间如果轮询只看「有没有缓存」，
   // 会立刻拿到上一份旧结果并误判成已完成（真实踩到过：库里还是旧 id，页面显示旧判断）。
@@ -4128,7 +4130,9 @@ function loadAiReview(opts) {
     ? api("/api/ai_review/run?provider=" + encodeURIComponent(AIR.provider || ""),
           { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
     : api(url);
-  return p.then((d) => {
+  // 票单/对账/成绩单与复盘正文并行拉：两者取自不同的表，串行只会白等一轮。
+  // airLoadPicks 内部已 catch，失败不会让整页变成错误态（宁可少一块，不要整页崩）。
+  return Promise.all([p, airLoadPicks()]).then(([d]) => {
     AIR.data = d || {};
     if (d && d.since_id != null) AIR.sinceId = d.since_id || 0;
     if (!AIR.provider && d && d.providers) {
@@ -4201,9 +4205,12 @@ function airProviderBar() {
   const btns = provs.map((p) => {
     const on = p.key === used;
     const dis = !p.ready;
+    // 2026-11-02：未配 Key 的按钮**不再是死按钮**。
+    // 旧版 disabled 到点不动，而整个界面又没有别处能填 Key ——
+    // 混元/通义千问因此永远灰着，看起来像"不支持"，其实是"没入口"。
     return `<button class="air-prov${on ? " on" : ""}${dis ? " off" : ""}"
-      ${dis ? 'disabled title="未配置该模型的 API Key"' : ""}
-      onclick="airSwitch('${escAttr(p.key)}')">${esc(p.label)}${dis ? "（未配 Key）" : ""}</button>`;
+      ${dis ? `onclick="airAskKey('${escAttr(p.key)}')" title="点这里粘贴 Key（存本机加密库，不上传）"` : `onclick="airSwitch('${escAttr(p.key)}')"`}
+      >${esc(p.label)}${dis ? "（未配 Key · 点我填）" : ""}</button>`;
   }).join("");
   return `<span class="air-provbar"><span class="air-provlab">用哪个大脑：</span>${btns}</span>`;
 }
@@ -4225,11 +4232,310 @@ function airRerun(btn) {
 }
 
 /* ============================================================================
- * AI 可信度卡片（2026-10-31）
+ * AI 荐股板（2026-11-02）
  *
- * 为什么单独挂一块、不改下面的 5 个渲染分支：复盘面板的分支很多（计算中/无数据/
- * WorkBuddy 待取/正常/历史），每处都插一次迟早漏。这里用「独立容器 + 每次重绘后
- * 重新插回」的方式，零侵入。
+ * 进哥原话：「我是让你直接给我荐股的……你得给我推荐东西啊，给我讲一堆方向，
+ * 我一个字一个字读去读研报，我用得着找你吗？把结论给我。」
+ *
+ * 所以这一块的设计原则只有三条：
+ *   1. 第一屏就是票，不是判断。分数、买卖价、止损、目标全在表里。
+ *   2. 推完必须认账：上次推的每一只，今天涨没涨、错在哪，逐条摆出来。
+ *   3. 最底下是他要的准确率/收益率/涨跌率，按档位分开，不糊成一个数。
+ *
+ * 数据全部来自 /api/ai_picks（后端 review_score.picks_board / report），
+ * 前端只渲染不算数 —— 页面上的每个百分比都能在库里找到对应行。
+ * ========================================================================== */
+const AIRP = { board: null, score: null, hist: [], loaded: false };
+
+function airScoreCls(v) {
+  const n = Number(v) || 0;
+  if (n >= 75) return "hi";
+  if (n >= 60) return "mid";
+  return "lo";
+}
+
+/* 涨跌：中国习惯 红涨绿跌。全站其它面板同口径，不要在这里反过来。 */
+function airPctCls(v) {
+  if (v == null || isNaN(v)) return "na";
+  return v > 0 ? "up" : (v < 0 ? "dn" : "flat");
+}
+function airPctTxt(v, digits) {
+  if (v == null || isNaN(v)) return "—";
+  const d = digits == null ? 2 : digits;
+  return (v > 0 ? "+" : "") + Number(v).toFixed(d) + "%";
+}
+
+function airLoadPicks() {
+  const qs = [];
+  if (AIR.date) qs.push("date=" + encodeURIComponent(AIR.date));
+  if (AIR.provider) qs.push("provider=" + encodeURIComponent(AIR.provider));
+  return api("/api/ai_picks" + (qs.length ? "?" + qs.join("&") : "")).then((d) => {
+    AIRP.board = (d && d.board) || null;
+    AIRP.score = (d && d.score) || null;
+    AIRP.hist = (d && d.history) || [];
+    AIRP.loaded = true;
+    return d;
+  }).catch(() => { AIRP.loaded = true; return null; });
+}
+
+/* ---- 日期回看：进哥要「筛选日期、追溯时间段，看你这一段的表现」 ---- */
+function airDateBar() {
+  const cur = (AIR.data && AIR.data.review_date) || "";
+  const hist = airList(AIRP.hist);
+  if (!hist.length) return "";
+  const seen = {};
+  const opts = hist.filter((x) => {
+    if (!x.date || seen[x.date]) return false;   // 同一天多份复盘只列一次
+    seen[x.date] = 1;
+    return true;
+  }).slice(0, 40).map((x) =>
+    `<option value="${escAttr(x.date)}"${x.date === cur ? " selected" : ""}>${esc(x.date)}</option>`).join("");
+  return `<select class="air-date" onchange="airPickDate(this.value)" title="回看某个交易日的复盘">${opts}</select>`;
+}
+
+function airPickDate(v) {
+  if (!v || v === ((AIR.data && AIR.data.review_date) || "")) return;
+  AIR.date = v;
+  AIR.sinceId = 0;
+  AIR.data = null;
+  AIRP.board = null;
+  AIRP.score = null;
+  const box = $("#p-ai_review");
+  if (box) box.innerHTML = `<div class="panel-loading">正在读取 ${esc(v)} 的复盘…</div>`;
+  loadAiReview({}).catch((e) => reportLoadError("AI 复盘", e));
+}
+
+/* 票单机检结果：不合格必须在页面上说，不能只写进日志。 */
+function airPicksCheckChip(chk) {
+  if (!chk || !chk.bad) return "";
+  if (chk.clean) {
+    return `<span class="air-chip air-tone-good" title="代码格式 / 分数分解 / 买入价与止损目标关系 / 证据条数，全部通过">票单机检通过</span>`;
+  }
+  if (!chk.bad.length) return "";
+  const t = chk.bad.map((b) => `${b.symbol}：${b.issue}`).join("；");
+  return `<span class="air-chip air-tone-bad" title="${escAttr(t)}">票单 ${chk.bad.length} 条有问题</span>`;
+}
+
+
+function airPicksHtml(b) {
+  const items = airList(b && b.items);
+  const chk = (AIR.data && AIR.data.picks_check) || {};
+  const badMap = {};
+  airList(chk.bad).forEach((x) => { badMap[x.symbol] = x.issue; });
+
+  const head = `
+    <div class="air-card-hd"><b>① 今天买什么</b>
+      <span class="air-card-sub">${items.length ? items.length + " 只 · 按推荐分排序" : "没有票单"}</span>
+      ${chk.bad && chk.bad.length ? `<span class="air-chip air-tone-bad">${chk.bad.length} 条不合格</span>` : ""}
+    </div>`;
+
+  if (!items.length) {
+    return `<div class="air-card air-card-hl">${head}
+      <div class="air-card-bd"><div class="air-empty-inline">
+        这一份没有给出带代码的票单。旧版复盘只讲方向、不给票 —— 从 2026-11-02 起
+        提示词已改成「必须给 6 位代码 + 分数 + 买卖价」，点右上角「重新分析」即可拿到票单。
+      </div></div></div>`;
+  }
+
+    const rows = items.map((x, i) => {
+    const sc = Number(x.score) || 0;
+    const lo = x.entry_low, hi = x.entry_high, st = x.stop, tg = x.target;
+    // 0 / null 一律显示「—」：模型凑数时会写 0，直接印个"0 ~ 0"看着像真的价位。
+    const pr = (v) => (v == null || Number(v) <= 0) ? null : Number(v);
+    const lod = pr(lo), hid = pr(hi), std = pr(st), tgd = pr(tg);
+    const upside = (hid && tgd) ? (tgd / hid - 1) * 100 : null;
+    const downrisk = (lod && std) ? (std / lod - 1) * 100 : null;
+    const ratio = (upside != null && downrisk) ? Math.abs(upside / downrisk) : null;
+    const n1 = x.n1;
+    // tracked=false = 这条没进账本（价位不全/没有代码），不会计入准确率。
+    // 必须显式写「未入账」而不是「待验证」—— 后者会被理解成"过两天就有结果"，
+    // 实际上它永远不会。
+    const track = x.tracked === false
+      ? `<span class="air-trk na" title="这条没进账本，不计入准确率">未入账</span>`
+      : (n1 && n1.ret != null
+        ? `<span class="air-trk ${airPctCls(n1.ret)}" title="推荐日收盘 → 次一交易日收盘">次日 ${airPctTxt(n1.ret)}</span>`
+        : `<span class="air-trk na">待验证</span>`);
+    const bad = badMap[x.symbol] || badMap["#" + (i + 1)];
+    return `<tr class="${bad ? "air-row-bad" : ""}">
+      <td class="air-td-score">
+        <div class="air-scorebar ${airScoreCls(sc)}"><i style="width:${Math.max(3, Math.min(100, sc))}%"></i></div>
+        <b>${sc}</b>
+      </td>
+      <td class="air-td-name">
+        ${x.symbol ? codeLink(x.symbol, { text: x.name || x.symbol }) : `<b>${esc(x.name || "—")}</b>`}
+        ${x.symbol ? `<span class="air-code">${esc(x.symbol)}</span>` : ""}
+      </td>
+      <td>${x.action ? `<span class="air-chip ${/买/.test(x.action) ? "air-tone-good" : "air-tone-mid"}">${esc(x.action)}</span>` : "—"}</td>
+      <td class="air-td-num">${lod != null && hid != null ? esc(String(lod)) + " ~ " + esc(String(hid)) : "—"}</td>
+      <td class="air-td-num dn">${std != null ? esc(String(std)) : "—"}</td>
+      <td class="air-td-num up">${tgd != null ? esc(String(tgd)) : "—"}</td>
+      <td class="air-td-num">${upside != null ? `<span class="up">${airPctTxt(upside, 1)}</span>` : "—"}
+        ${ratio != null ? `<span class="air-ratio">盈亏比 ${ratio.toFixed(1)}</span>` : ""}</td>
+      <td class="air-td-hz">${x.horizon ? esc(String(x.horizon)) + " 日" : "—"}</td>
+      <td class="air-td-why">
+        <div class="air-thesis">${esc(x.thesis || "—")}</div>
+        ${x.why_now ? `<div class="air-whynow">为什么是今天：${esc(x.why_now)}</div>` : ""}
+        ${airList(x.evidence).length ? `<ul class="air-evi">${airList(x.evidence).map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
+        ${x.invalidate ? `<div class="air-inv">认错：${esc(x.invalidate)}</div>` : ""}
+        ${bad ? `<div class="air-badwhy">⚠ ${esc(bad)}</div>` : ""}
+      </td>
+      <td class="air-td-trk">${track}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="air-card air-card-hl">${head}
+    <div class="air-card-bd air-picks-wrap">
+      <table class="air-picks">
+        <colgroup>
+          <col style="width:82px"><col style="width:130px"><col style="width:64px">
+          <col style="width:104px"><col style="width:66px"><col style="width:66px">
+          <col style="width:88px"><col style="width:56px"><col><col style="width:96px">
+        </colgroup>
+        <thead><tr>
+          <th>推荐分</th><th>股票</th><th>动作</th><th>买入区</th><th>止损</th>
+          <th>目标</th><th>空间</th><th>持有</th><th>为什么是它</th><th>实际</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="air-picks-foot">
+        分数 = 「未来 5 个交易日跑赢全市场概率」的估计，由趋势/资金/位置/催化四项各 25 分相加得出。
+        买入区、止损、目标都是可挂单的价，不是参考价。<b>没有代码的推荐一律不算推荐</b>，系统也不会记账。
+      </div>
+    </div></div>`;
+}
+
+/* ---- ② 上次推的现在怎么样（逐票对账） ---- */
+function airTrackHtml(sc) {
+  const recent = airList(sc && sc.recent).filter((x) => x.kind === "pick" || x.kind === "opp" || x.kind === "avoid");
+  const head = `<div class="air-card-hd"><b>② 之前推的，现在怎么样了</b>
+      <span class="air-card-sub">系统按收盘价回填 · 不是模型自评</span></div>`;
+  if (!recent.length) {
+    return `<div class="air-card">${head}<div class="air-card-bd">
+      <div class="air-empty-inline">还没有已到期的推荐可对账。下一份复盘的次日收盘后，这里会自动出现结果。</div>
+    </div></div>`;
+  }
+  const rows = recent.slice(0, 12).map((x) => {
+    const n1 = x.n1_ret, n1h = x.n1_hit;
+    const verdict = n1h == null ? `<span class="air-chip air-chip-dim">未到</span>`
+      : (n1h ? `<span class="air-chip air-tone-good">看对</span>` : `<span class="air-chip air-tone-bad">看错</span>`);
+    return `<tr>
+      <td class="air-td-date">${esc(x.date || "")}</td>
+      <td>${x.symbol ? codeLink(x.symbol, { text: x.name || x.symbol }) : esc(x.name || "—")}</td>
+      <td class="air-td-num">${x.score ? x.score : "—"}</td>
+      <td class="air-td-num ${airPctCls(n1)}">${airPctTxt(n1)}</td>
+      <td class="air-td-num ${airPctCls(x.n1_ex)}">${airPctTxt(x.n1_ex)}</td>
+      <td class="air-td-num ${airPctCls(x.ex5)}">${airPctTxt(x.ex5)}</td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="air-card">${head}
+    <div class="air-card-bd air-track-wrap">
+      <table class="air-track">
+        <colgroup><col style="width:92px"><col><col style="width:66px">
+          <col style="width:88px"><col style="width:88px"><col style="width:88px"><col style="width:66px"></colgroup>
+        <thead><tr><th>推荐日</th><th>股票</th><th>分数</th><th>次日涨跌</th><th>次日超额</th><th>T+5 超额</th><th>判定</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="air-picks-foot">
+        次日 = 推荐日收盘 → 次一交易日收盘（你第二天就能看到对错）。超额 = 减去同日全市场等权涨幅。
+        <b>跑赢大盘但账户是绿的也算「看对」</b>——这两个数必须分开看，所以上涨率单独统计在下面。
+      </div>
+    </div></div>`;
+}
+
+/* ---- ③ 成绩单：准确率 / 收益率 / 涨跌率 ---- */
+function airBoardHtml(sc) {
+  const ov = (sc && sc.overall) || null;
+  const hs = ["n1", "h3", "h5", "h10"];
+  const lab = { n1: "次日", h3: "T+3", h5: "T+5", h10: "T+10" };
+  const head = `<div class="air-card-hd"><b>③ 你的准确率</b>
+      <span class="air-card-sub">${sc && sc.min_sample_ok === false
+        ? `样本 ${sc.n_scored || 0} 条（<30，只是趋势不是结论）` : "系统回填，可逐条核对"}</span></div>`;
+  if (!ov) {
+    return `<div class="air-card">${head}<div class="air-card-bd">
+      <div class="air-empty-inline">还没有可统计的样本。推出第一只票、过了下一个交易日，这里就有数了。</div>
+    </div></div>`;
+  }
+  const bigNums = hs.map((k) => {
+    const h = ov.horizons && ov.horizons[k];
+    // 未到期的档位也占一个位置写「未到」：只画一个卡片会让右侧空一大片，
+    // 更重要的是他会以为"只有次日能算" —— 实际是 T+3/T+5/T+10 在排队。
+    if (!h) {
+      return `<div class="air-kpi air-kpi-wait">
+        <div class="air-kpi-lab">${lab[k]}命中率</div>
+        <div class="air-kpi-val na">未到</div>
+        <div class="air-kpi-sub">还在等收盘价</div>
+      </div>`;
+    }
+    return `<div class="air-kpi">
+      <div class="air-kpi-lab">${lab[k]}命中率</div>
+      <div class="air-kpi-val ${h.hit >= 50 ? "up" : "dn"}">${h.hit.toFixed(0)}<small>%</small></div>
+      <div class="air-kpi-sub">${h.n} 条 · 上涨率 ${h.up.toFixed(0)}%</div>
+    </div>`;
+  }).join("");
+  const retRow = hs.map((k) => {
+    const h = ov.horizons && ov.horizons[k];
+    if (!h) return `<td class="na">—</td>`;
+    return `<td><span class="${airPctCls(h.ret)}">${airPctTxt(h.ret)}</span>
+      <div class="air-cell-sub ${airPctCls(h.ex)}">超额 ${airPctTxt(h.ex)}</div></td>`;
+  }).join("");
+  return `<div class="air-card air-card-hl">${head}
+    <div class="air-card-bd">
+      <div class="air-kpis">${bigNums}</div>
+      <table class="air-board">
+        <colgroup><col style="width:110px"><col><col><col><col></colgroup>
+        <thead><tr><th>看完这段</th>${hs.map((k) => `<th>${lab[k]}</th>`).join("")}</tr></thead>
+        <tbody>
+          <tr><td>平均收益</td>${retRow}</tr>
+        </tbody>
+      </table>
+      <div class="air-picks-foot">
+        命中率 = 看对方向（看多要求超额 &gt; 0）；上涨率 = 绝对收益 &gt; 0 的比例；
+        平均收益 = 绝对涨跌；超额 = 相对全市场等权。
+        ${sc.min_sample_ok === false ? "<b>样本不足 30 条，这些百分比只能当趋势看。</b>" : ""}
+      </div>
+    </div></div>`;
+}
+
+/* ---- 大脑 Key 填写（未配的按钮不再是死按钮） ---- */
+function airAskKey(key) {
+  const p = airList(AIR.data && AIR.data.providers).find((x) => x.key === key) || {};
+  const hint = p.console ? `\n\n申请入口：${p.console}\n（${p.howto || ""}）` : "";
+  const k = window.prompt(`粘贴 ${p.label || key} 的 API Key（只存在本机加密库，不上传）：${hint}`, "");
+  if (!k) return;
+  const box = $("#p-ai_review");
+  if (box) box.innerHTML = `<div class="panel-loading">正在保存并验证 ${esc(p.label || key)} 的 Key…</div>`;
+  api("/api/ai_review/provider_key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider: key, key: k.trim() }),
+  }).then((r) => {
+    if (r && r.ok) {
+      if (r.verified) {
+        AIR.provider = key;
+        AIR.data = null;
+        loadAiReview({ force: true }).catch((e) => reportLoadError("AI 复盘", e));
+        setHint(`${p.label || key} 的 Key 已验证可用，正在用它重新分析`);
+      } else {
+        setHint(`${p.label || key} 的 Key 已保存，但连通性测试未通过：${(r.test && (r.test.err || r.test.note)) || "详见日志"}`);
+        loadAiReview({}).catch(() => {});
+      }
+    } else {
+      setHint(`保存失败：${(r && (r.err || r.error)) || "未知错误"}`);
+      loadAiReview({}).catch(() => {});
+    }
+  }).catch((e) => {
+    setHint("保存 Key 失败：" + apiErrText(e));
+    loadAiReview({}).catch(() => {});
+  });
+}
+
+
+/* ============================================================================
+ * AI 可信度卡片（2026-10-31 建；2026-11-02 起让位给「② 对账 / ③ 准确率」）
+ *
+ * 复盘面板的分支很多（计算中 / 失败 / 首份 / WorkBuddy 待取 / 正常 / 历史），
+ * 每处都插一次迟早漏。这里用「独立容器 + 每次重绘后重新插回」的方式，零侵入。
  *
  * 它要回答的问题是：**这个 AI 说的话，到底准不准？**
  * 数据全部来自系统回填（viewer/review_score.py），不是模型自评 —— 这正是之前缺的。
@@ -4240,27 +4546,18 @@ let AIR_SCORE_BUSY = false;
 
 function buildAiScoreHtml(sc, hy, ev) {
   const p = ['<div class="asc-card">',
-             '<div class="asc-hd">AI 可信度 <span class="asc-hd-sub">系统按收盘价回填，非模型自评</span></div>'];
+             '<div class="asc-hd">假说与实证 <span class="asc-hd-sub">模型提的假设被回测成什么结果 · 哪些流行说法已被本系统数据推翻</span></div>'];
   if (!sc || !sc.ok) {
-    p.push('<div class="asc-note">成绩单暂不可用</div>');
+    p.push('<div class="asc-note">暂不可用</div>');
   } else if (!sc.n_scored) {
-    p.push('<div class="asc-note">还没有到期可回填的判断 —— 复盘后满 5 个交易日出第一批成绩。</div>');
-  } else {
-    if (!sc.min_sample_ok) {
-      p.push('<div class="asc-warn">有效样本 ' + sc.n_scored + ' 条（&lt;30）：命中率只代表趋势，不是结论</div>');
-    }
-    p.push('<div class="asc-grid">');
-    for (const g of (sc.groups || [])) {
-      if (g.kind === "mainline") continue;       // 弱代理，不计入合并
-      const ex = (g.ex5 == null) ? "—" : (g.ex5 > 0 ? "+" : "") + g.ex5.toFixed(2) + "%";
-      const hit = (g.hit5 == null) ? "—" : g.hit5.toFixed(0) + "%";
-      const cls = (g.ex5 == null) ? "" : (g.ex5 > 0 ? "up" : "down");
-      p.push('<div class="asc-item"><span class="asc-lb">' + g.label + '</span>'
-        + '<span class="asc-v ' + cls + '">' + ex + '</span>'
-        + '<span class="asc-sub">T+5 超额 · 命中 ' + hit + ' · n=' + g.n5 + '</span></div>');
-    }
-    p.push('</div>');
+    p.push('<div class="asc-note">还没有到期可回填的判断 —— 复盘后的下一个交易日就会出「次日」成绩。</div>');
+  } else if (!sc.min_sample_ok) {
+    p.push('<div class="asc-warn">有效样本 ' + sc.n_scored + ' 条（&lt;30）：命中率只代表趋势，不是结论</div>');
   }
+  // 分档明细已在上方「③ 你的准确率」里给了完整表格。这里**不重复画**：
+  // 同一个数字在一页出现两遍，迟早有一处口径没跟上 —— 上一版就是
+  // report() 改了结构、这里还读 g.n5，页面上直接显示 n=undefined。
+
   if (hy && hy.ok && hy.counts) {
     const c = hy.counts;
     p.push('<div class="asc-line">假说回测：成立 ' + (c.confirmed || 0)
@@ -4302,7 +4599,12 @@ function paintAiScore() {
   if (!el) {
     el = document.createElement("div");
     el.className = "air-score";
-    box.insertBefore(el, box.firstChild || null);
+    // 2026-11-02：原来 insertBefore(firstChild) 把它钉在面板最顶上 ——
+    // 那时它是「AI 可信度」总卡；现在它只剩假说与实证，属于附录，
+    // 顶在最上面会把「今天买什么」挤到第二屏。改插到页脚之前。
+    const foot = box.querySelector(".air-foot");
+    if (foot) box.insertBefore(el, foot);
+    else box.appendChild(el);
   }
   el.innerHTML = AIR_SCORE;
 }
@@ -4479,16 +4781,24 @@ function renderAiReview() {
     <div class="air-head">
       <div class="air-hd-l"><b class="air-title">AI 复盘</b>
         <span class="air-sub">${esc(d.review_date || "")} · ${esc(airProviderName(d.provider))}</span></div>
-      <div class="air-hd-r">${provBar}<button class="btn sm" onclick="airRerun(this)" title="跳过缓存，重新让模型分析一次（会花 token）">重新分析</button></div>
+      <div class="air-hd-r">${provBar}${airDateBar()}${airPicksCheckChip(d.picks_check)}<button class="btn sm" onclick="airRerun(this)" title="跳过缓存，重新让模型分析一次（会花 token）">重新分析</button></div>
     </div>
     <div class="air-meta">${metaLine}</div>
-    ${readBar}
 
-    <div class="air-verdict">
-      <div class="air-v-tag">核心判断</div>
+    ${airPicksHtml(AIRP.board)}
+    ${airTrackHtml(AIRP.score)}
+    ${airBoardHtml(AIRP.score)}
+
+    <div class="air-verdict air-verdict-sm">
+      <div class="air-v-tag">一句话判断</div>
       <div class="air-v-text">${esc(o.verdict || "—")}</div>
       ${confBar}
     </div>
+
+    <details class="air-fold">
+      <summary>展开看推理过程：市场怎么读 · 主线阶段 · 局内人推演 · 风险 · 持仓 · 与规则引擎的分歧 · 它这次读了多少</summary>
+      <div class="air-fold-bd">
+      ${readBar}
 
     <div class="air-grid2">
       <div class="air-card">
@@ -4532,10 +4842,12 @@ function renderAiReview() {
       <div class="air-card-bd air-diss">${disRows || `<div class="air-empty-inline">这一次模型与规则打分没有分歧</div>`}</div>
     </div>
 
-    <div class="air-card">
-      <div class="air-card-hd"><b>⑧ 上一份判断兑现了没有</b></div>
-      <div class="air-card-bd">${vlHtml}</div>
-    </div>
+      <div class="air-card">
+        <div class="air-card-hd"><b>⑧ 上一份判断兑现了没有</b></div>
+        <div class="air-card-bd">${vlHtml}</div>
+      </div>
+      </div>
+    </details>
 
     <div class="air-foot">
       <span>本页判断由 ${esc(airProviderName(d.provider))} 基于上述数据自动生成，每次调用可审计（模型/耗时/token/喂入字数均落库）。仅供研究参考，不构成投资建议。</span>

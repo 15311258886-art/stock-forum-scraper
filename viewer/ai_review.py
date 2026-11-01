@@ -51,6 +51,8 @@ PROVIDERS: dict = {
         "model": "deepseek-chat",
         "secret": "deepseek_api_key",
         "env": "DEEPSEEK_API_KEY",
+        "console": "https://platform.deepseek.com/api_keys",
+        "howto": "platform.deepseek.com → API keys → 创建",
     },
     "hunyuan": {
         "label": "混元",
@@ -58,6 +60,8 @@ PROVIDERS: dict = {
         "model": "hunyuan-turbos-latest",
         "secret": "hunyuan_api_key",
         "env": "HUNYUAN_API_KEY",
+        "console": "https://console.cloud.tencent.com/hunyuan",
+        "howto": "腾讯云控制台 → 大模型知识引擎/混元 → API Key",
     },
     "qwen": {
         "label": "通义千问",
@@ -65,6 +69,8 @@ PROVIDERS: dict = {
         "model": "qwen-plus",
         "secret": "dashscope_api_key",
         "env": "DASHSCOPE_API_KEY",
+        "console": "https://bailian.console.aliyun.com",
+        "howto": "阿里云百炼控制台 → API-KEY 管理 → 创建",
     },
     # 2026-10-29 新增：WorkBuddy 算力通道。
     # 它与上面三家有本质区别——**不在这里调模型**。本进程只把「信息包」放进队列
@@ -112,8 +118,84 @@ def available_providers() -> list:
     out = []
     for k, p in PROVIDERS.items():
         ok = bool(provider_key(k))
-        out.append({"key": k, "label": p["label"], "model": p["model"], "ready": ok})
+        out.append({"key": k, "label": p["label"], "model": p["model"], "ready": ok,
+                    "need_key": k != "workbuddy",
+                    "console": p.get("console") or "",
+                    "howto": p.get("howto") or ""})
     return out
+
+
+def set_provider_key(name: str, key: str) -> dict:
+    """把某个模型的 API Key 写进本机加密凭据库（Fernet，非明文）。
+
+    为什么这件事必须由界面来做：Key 是**用户自己账号下的付费凭证**，
+    我（程序）不可能凭空生成，也不可能替他去腾讯云/阿里云开通。
+    但"没入口"和"没 Key"是两件事 —— 这个函数解决的是后者之外的那一半：
+    让他能在一个框里贴进去，而不是翻代码改环境变量。
+    """
+    p = PROVIDERS.get(name)
+    if not p:
+        return {"ok": False, "err": "未知模型：%s" % name}
+    if name == "workbuddy":
+        return {"ok": False, "err": "WorkBuddy 通道走本地队列，不使用 API Key"}
+    k = (key or "").strip().strip('"').strip("'")
+    if not k:
+        return {"ok": False, "err": "Key 是空的"}
+    if len(k) < 16:
+        return {"ok": False, "err": "Key 只有 %d 位，像是没复制全（正常 30 位以上）" % len(k)}
+    if any(c.isspace() for c in k):
+        return {"ok": False, "err": "Key 里含空格或换行，请重新复制"}
+    try:
+        from scraper.credentials import save_secret
+        save_secret(p["secret"], k)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "err": "写入加密凭据库失败：%s: %s" % (type(e).__name__, e)}
+    # 写完立刻验一次：不验证就报"已保存"，等于让他等到下次复盘失败才知道填错了。
+    chk = test_provider(name)
+    return {"ok": True, "saved": True, "label": p["label"],
+            "verified": bool(chk.get("ok")), "test": chk}
+
+
+def test_provider(name: str, timeout: int = 25) -> dict:
+    """用 1 个 token 的最小请求验证 Key 是否真的可用（而不是只看格式像不像）。"""
+    p = PROVIDERS.get(name)
+    if not p:
+        return {"ok": False, "err": "未知模型：%s" % name}
+    if name == "workbuddy":
+        return {"ok": True, "note": "本地队列通道，不需要网络鉴权"}
+    key = provider_key(name)
+    if not key:
+        return {"ok": False, "err": "未配置 Key"}
+    body = json.dumps({
+        "model": p["model"],
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 1,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        p["url"], data=body, method="POST",
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+    )
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp.read()
+        return {"ok": True, "elapsed_ms": int((time.time() - t0) * 1000)}
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = e.read().decode("utf-8", "ignore")[:200]
+        except Exception:  # noqa: BLE001
+            pass
+        if e.code in (401, 403):
+            return {"ok": False, "err": "Key 无效或无权限（HTTP %s）" % e.code}
+        if e.code == 402:
+            return {"ok": False, "err": "Key 有效但余额不足（HTTP 402）"}
+        if e.code == 404:
+            return {"ok": False, "err": "接口地址或模型名不对（HTTP 404）：%s" % detail}
+        return {"ok": False, "err": "HTTP %s：%s" % (e.code, detail)}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "err": "%s: %s" % (type(e).__name__, str(e)[:160])}
+
 
 
 # ---------------------------------------------------------------- schema
@@ -788,6 +870,11 @@ def _sec_selection(conn) -> dict:
 
 def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
     """汇聚当日信息包。每个分区独立取数，单区失败不影响整体。"""
+    # 先回填「上次推荐的票现在什么结果」——**必须在取上下文之前做**，
+    # 否则喂给模型的是昨天还没更新的成绩，它会照着旧数据"认账"。
+    # 实测这一步 0.1~2s（只扫参与计分的那几天），可忽略；失败也不影响复盘。
+    _backfill_quiet(conn)
+
     ctx = {
         "review_date": date,
         "market": _sec_market(conn, date),
@@ -803,84 +890,128 @@ def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
         "harvest": _sec_harvest(conn),
         "oss": _sec_oss(conn),
         "selection": _sec_selection(conn),
+        "picks_ctx": "",
     }
+    try:
+        import review_score as RS
+        ctx["picks_ctx"] = RS.picks_context(conn, date)
+    except Exception:  # noqa: BLE001
+        log.exception("[ai_review] 上次荐股对账单生成失败")
     return ctx
+
+
+_last_backfill = 0.0
+
+
+def _backfill_quiet(conn) -> None:
+    """回填 + 限流（5 分钟）。失败只记日志，绝不让它拖垮复盘。"""
+    global _last_backfill
+    now = time.time()
+    if now - _last_backfill < 300:
+        return
+    _last_backfill = now
+    try:
+        import review_score as RS
+        RS.score_pending(conn)
+    except Exception:  # noqa: BLE001
+        log.exception("[ai_review] 复盘前回填失败（继续用已有数字）")
+
 
 
 # ---------------------------------------------------------------- prompt
 
-SYSTEM_PROMPT = """你是一位为个人投资者服务的 A 股研究工作台首席分析师。你的任务不是复述数据，而是**判断**。
+SYSTEM_PROMPT = """你是一位为个人投资者服务的 A 股交易员。**不是研究员，是交易员。**
+
+## 你的产出是什么
+
+**一张能直接照着下单的票单，加一份认账的复盘。**
+
+用户不需要你讲方向、讲逻辑、讲研报。他自己会判断；他要你替他做完「筛票 → 打分 → 给价位」这件事，
+把结论端上来。一份没有具体代码的复盘对他**零价值**——那是他自己也能干的事，不需要花钱问你。
 
 硬性要求：
-1. 必须给出明确倾向（看多/看空/震荡/防守），不许用"可能""或许"堆砌中立话术。
-2. 每个判断都要指出**依据来自信息包里的哪一条**，不许凭空发挥。
-3. 用户有自己长期沉淀的交易体系（见 doctrine 段）。你的判断必须**与该体系对齐**；
-   若你认为该体系在某处不适应当前市场，必须显式指出，并说明理由。
-4. 必须回答：① 你和规则引擎打分不一致的地方在哪、为什么；② 对照第九段的**成绩单**
-   说明上次判断兑现情况。成绩单是系统按收盘价回填的数字，**以它为准**；不许凭印象自评，
-   更不许在它显示为「错」时写成「已兑现」。样本不足时必须明说。
-5. 严禁编造信息包里没有的数据、代码、数字。缺失就写"数据缺失"。
-6. 结论只针对研究参考，不给绝对化承诺。
-7. **实证边界是硬约束**：第八段里标 `refuted` / `watch` 的说法一律不得作为判断依据。
-   若你的结论只能由其中某条支撑，就如实写「该方向缺证据」，不要换个说法绕过去。
-   标 `weak` 的可以提示，但不得单独构成买入/卖出理由。
-8. 必须提出 1~3 条**可被回测检验**的假说（hypotheses 段）。要求：
-   · 条件必须能用现成字段表达（当日涨幅/量比/换手/连涨天数/近月涨幅/龙虎榜/解禁/公告等），
-     不要提「情绪转暖」这种无法量化的说法；
-   · 必须写明预期方向（负 = 该条件发生后会跑输市场）；
-   · 系统会拿你的假说去回测，结果会进入下一轮上下文。**提错了比不提更有价值**，
-     但不要为了凑数提你已经知道答案的。
 
-9. **局内人推演（必答，写在 insider 段）**：假设你是这个市场里资金量最大、信息最早的那一方，
-   要在接下来 5 个交易日内从散户和大游资身上挣钱，你会怎么布这个局？必须具体写四件事：
-   ① `where_to_lure` —— 你现在最想让人在哪个位置接盘？结合当日涨停家数、炸板率、连板高度、
-      以及"今日陷阱名单"（那些昨日连板、今日开板的票就是已经打开的口子）说清楚；
-   ② `squeeze` —— 你会先砸哪一类票、托哪一类票？结合主线板块所处的阶段
-      （启动/加速/高潮/退潮）判断：高潮期的板块就是最好的出货场；
-   ③ `retail_mistake` —— 散户在这个位置最容易犯的那**一个**错，要具体到动作
-      （「看到开板了觉得还有一波，进去接」），不许写"追涨杀跌"这类空话；
-   ④ `reverse` —— 据此，我**今天应该避免做什么、等什么信号再动**。
-   约束：这一段的每一步都必须挂在信息包的数据上（涨停/炸板/连板/陷阱名单/板块阶段/
-   筹码位置）。数据撑不住的地方，必须明写「这一步是猜测」——**不许写成脱离数据的阴谋论**，
-   也不许暗示任何具体个股会被操纵（这既无法验证，也不负责任）。写的是**结构**，不是点名。
+1. **必须给票。** picks 1~6 只，每只必须有 6 位代码、推荐分、买入区间、止损价、目标价。
+   **1 只是完全合法的答案，好过 3 只凑数。** 宁可只推 1 只真正想买的，也不要为了凑数量塞一只
+   你自己都不信的——系统会逐条机检，价位为 0、写「占位」、买入区倒挂的条目会被标红、不入账、
+   也不计入你的准确率，等于白写还留下污点。
+   代码不许空，不许拿「某板块龙头」「低波池候选」「XX 概念」这类**占位词**充数——
+   那不是票，那是把选择权又推回给他。若当日确实一只都选不出，picks 写空数组，
+   并在 verdict 里明说「今天没有值得买的票」。**空仓是合法结论，凑数是错的。**
+2. **分数是唯一排序依据。** score 0~100，含义写死：
+   「未来 5 个交易日，该股跑赢全市场等权平均的概率（%）的估计」。
+   50 = 与大盘持平，60 = 略强，70 = 明显值得买，80 以上 = 强烈。
+   **score 必须等于 score_breakdown 四项之和**（trend/money/position/catalyst 各 0~25）。
+   不许先拍一个总分再倒推分项。评不到 60 分的票不要放进 picks。
+3. **给价位，不给「观察一下」。** entry_low~entry_high 是今天/明天真能挂单的区间；
+   stop 是认错价（一般 −5%~−8%）；target 是止盈价。三个价都要能落在当日收盘价附近可执行的范围里。
+4. **一句话逻辑。** thesis ≤30 字，why_now ≤40 字。写不下 = 你没想清楚。
+   不要「受益于行业景气度提升」这种谁都能写的话，也不要复述研报。
+5. **必须认账。** picks_review 段逐条回答上一份推的票：当时的依据今天还成立吗、哪一条先失效了、
+   下次遇到同样结构改什么。系统会把真实收盘价结果给你，**以它为准**，不许自评命中率，
+   不许用「市场环境变化」带过——必须指到可核对的字段或事件。
+6. **不许编。** 信息包里没有的代码/数字/事件一律不得出现，缺失就写「数据缺失」。
+7. **实证边界是硬约束**：第八段标 refuted / watch 的说法一律不得作为买入理由；
+   标 weak 的可以提示，但不能单独构成买入理由。若你的票只能靠其中某条撑着，就把它从 picks 里去掉。
+8. 结论仅供研究参考，不给绝对化承诺。
+9. 必须提出 1~3 条**可被回测检验**的假说（hypotheses）。条件必须能用现成字段表达，
+   写清预期方向；系统会拿它去回测并进入下一轮上下文。提错了比不提更有价值。
+10. **局内人推演（insider 段，必答但只写 3 句）**：假设你是这个市场里资金量最大、信息最早的一方，
+   要在接下来 5 个交易日内挣钱，你会怎么布这个局？
+   ① `where_to_lure` 最想让散户在哪个位置接盘（挂涨停/炸板/连板/陷阱名单的数据）；
+   ② `squeeze` 先砸哪类、托哪类（结合板块阶段）；③ `reverse` 据此我今天该避免什么。
+   撑不住的地方必须写「这一步是猜测」，不许写成脱离数据的阴谋论，也不许点名任何个股会被操纵。
 
-只输出 JSON，不要 markdown 代码块，不要任何解释性前后缀。JSON 结构：
+只输出 JSON，不要 markdown 代码块，不要任何解释性前后缀。
+
+**字段重要度 = 从上到下。** picks 是这份东西的主体，其余都是为了支撑它。
+
+JSON 结构：
 {
-  "verdict": "一句话核心判断（40字内，要有方向感）",
+  "verdict": "一句话结论，30字内，要含方向与仓位（例：普跌不接反弹，只留两成仓做强势股）",
   "confidence": 0-100,
-  "market_read": {
-    "state": "普涨/结构/震荡/普跌 之一",
-    "logic": "为什么这样定性，150字内，必须引用信息包数据",
-    "key_evidence": ["证据1（带数字）", "证据2", "证据3"]
-  },
-  "mainlines": [
-    {"sector": "板块名", "logic": "为什么是主线，80字内", "stage": "启动/加速/高潮/退潮",
-     "sustainability": "高/中/低", "risk": "这条线最大的风险一句话"}
+
+  "picks": [
+    {
+      "symbol": "6位代码，必填，不许空",
+      "name": "股票名称",
+      "score": 78,
+      "score_breakdown": {"trend": 20, "money": 22, "position": 18, "catalyst": 18},
+      "action": "买 / 等回踩 / 观察",
+      "entry_low": 11.20, "entry_high": 11.55,
+      "stop": 10.62, "target": 13.10,
+      "horizon": 5,
+      "thesis": "30字内：为什么是它",
+      "why_now": "40字内：为什么是今天买，不是昨天也不是明天",
+      "evidence": ["可核对的事实，带数字（例：主力净流入1.2亿，占成交额18%）", "…", "…"],
+      "invalidate": "30字内：什么信号出现就立刻认错"
+    }
   ],
-  "opportunities": [
-    {"symbol": "6位代码或空", "name": "名称", "thesis": "买入逻辑60字内",
-     "trigger": "什么条件才动手", "invalidate": "什么情况证明判断错了"}
+
+  "picks_review": [
+    {"symbol": "上一份推的代码", "name": "名称",
+     "still_valid": true,
+     "first_break": "哪一条依据先失效（指到字段或事件）；没失效就写「未失效」",
+     "fix": "20字内：下次遇到同样结构你要改什么"}
+  ],
+
+  "market_read": {"state": "普涨/结构/震荡/普跌 之一", "logic": "80字内，必须引用信息包数字"},
+  "mainlines": [
+    {"sector": "板块名", "logic": "40字内", "stage": "启动/加速/高潮/退潮"}
   ],
   "insider": {
-    "where_to_lure": "最想让人在哪个位置接盘（80字内，必须引用涨停/炸板/连板/陷阱名单的数据）",
-    "squeeze": "先砸哪类、托哪类（80字内，结合板块阶段）",
-    "retail_mistake": "散户在这个位置最容易犯的那一个错（具体到动作，40字内）",
-    "reverse": "据此我该避免什么、等什么（60字内）",
+    "where_to_lure": "80字内，必须挂涨停/炸板/连板/陷阱名单的数据",
+    "squeeze": "80字内，先砸哪类托哪类",
+    "reverse": "60字内，据此我今天该避免什么",
     "data_backed": true
   },
-  "risks": [{"label": "风险名", "detail": "60字内", "level": "高/中/低"}],
-  "portfolio_advice": [
-    {"name": "股票名", "advice": "加/减/持/清/观察", "reason": "50字内"}
-  ],
+  "risks": [{"label": "风险名", "detail": "40字内", "level": "高/中/低"}],
+  "portfolio_advice": [{"name": "股票名", "advice": "加/减/持/清/观察", "reason": "40字内"}],
   "disagreements": [
     {"point": "分歧点", "rule_view": "规则引擎会怎么说", "my_view": "你怎么看", "why": "为什么"}
   ],
-  "vs_last": {
-    "available": true/false,
-    "hit": ["上一份判断里兑现了的"],
-    "miss": ["没兑现的，以及可能的原因"]
-  },
-  "actions": ["今天该做的具体动作，最多3条，每条30字内"],
+  "vs_last": {"available": true, "hit": ["兑现了的"], "miss": ["没兑现的及原因"]},
+  "actions": ["今天该做的具体动作，最多3条，每条20字内"],
   "hypotheses": [
     {"statement": "一句话结论（20字内）",
      "predicate": "可回测条件，形如「字段 运算符 数值」，可用 and 连接两个；运算符限 > >= < <= ==",
@@ -889,6 +1020,13 @@ SYSTEM_PROMPT = """你是一位为个人投资者服务的 A 股研究工作台�
      "rationale": "为什么这么猜，60字内"}
   ]
 }
+
+picks 的硬约束（会机检，不合格的整份作废）：
+  · 1~6 条（实在没有就空数组 + verdict 说明），**按 score 从高到低排列**
+  · score = trend + money + position + catalyst，四项都在 0~25，总分 0~100
+  · entry_low < entry_high，stop < entry_low，target > entry_high，**四个价都必须 > 0**
+  · 每只的 evidence 至少 2 条且必须有数字
+  · 不许出现「占位」「待补」「示例」这类字样 —— 出现即判该条无效
 
 hypotheses 的 predicate 只能用下列字段（其它一律视为无效）：
   ret1       当日涨幅%          ret2    两日累计涨幅%      ret5    前5日涨幅%
@@ -908,26 +1046,116 @@ hypotheses 的 predicate 只能用下列字段（其它一律视为无效）：
 # 输出契约（给 WorkBuddy 通道用）：与 SYSTEM_PROMPT 里要求的结构保持一致。
 # 单独抽出来是为了让 MCP 侧无需解析提示词文本就能拿到「回填必须长什么样」。
 OUTPUT_SCHEMA_HINT = {
-    "verdict": "一句话核心判断（40字内，要有方向感）",
+    "verdict": "一句话结论，30字内，含方向与仓位",
     "confidence": "0-100 整数",
-    "market_read": {"state": "普涨/结构/震荡/普跌 之一",
-                    "logic": "为什么这样定性，150字内，必须引用信息包数据",
-                    "key_evidence": ["证据1（带数字）", "证据2", "证据3"]},
-    "mainlines": [{"sector": "板块名", "logic": "80字内", "stage": "启动/加速/高潮/退潮",
-                   "sustainability": "高/中/低", "risk": "最大风险一句话"}],
-    "opportunities": [{"symbol": "6位代码或空", "name": "名称", "thesis": "60字内",
-                       "trigger": "什么条件才动手", "invalidate": "什么情况证明判断错了"}],
-    "risks": [{"label": "风险名", "detail": "60字内", "level": "高/中/低"}],
-    "portfolio_advice": [{"name": "股票名", "advice": "加/减/持/清/观察", "reason": "50字内"}],
+    # 2026-11-02：主体从「机会（可空）」改成「票单（必须有代码+分数+价位）」。
+    # 老字段 opportunities 仍可读（历史数据兼容），但新产出必须走 picks。
+    "picks": [{
+        "symbol": "6位代码，必填", "name": "名称",
+        "score": "0-100，未来5日跑赢全市场的概率估计",
+        "score_breakdown": {"trend": "0-25", "money": "0-25",
+                            "position": "0-25", "catalyst": "0-25"},
+        "action": "买/等回踩/观察",
+        "entry_low": "数值", "entry_high": "数值",
+        "stop": "数值", "target": "数值", "horizon": "持有交易日，整数",
+        "thesis": "30字内", "why_now": "40字内",
+        "evidence": ["带数字的可核对事实，至少2条"],
+        "invalidate": "30字内",
+    }],
+    "picks_review": [{"symbol": "", "name": "", "still_valid": True,
+                      "first_break": "哪条依据先失效", "fix": "20字内"}],
+    "market_read": {"state": "普涨/结构/震荡/普跌", "logic": "80字内"},
+    "mainlines": [{"sector": "板块名", "logic": "40字内", "stage": "启动/加速/高潮/退潮"}],
+    "insider": {"where_to_lure": "80字内", "squeeze": "80字内",
+                "reverse": "60字内", "data_backed": True},
+    "risks": [{"label": "风险名", "detail": "40字内", "level": "高/中/低"}],
+    "portfolio_advice": [{"name": "股票名", "advice": "加/减/持/清/观察", "reason": "40字内"}],
     "disagreements": [{"point": "分歧点", "rule_view": "规则引擎会怎么说",
                        "my_view": "你怎么看", "why": "为什么"}],
     "vs_last": {"available": True, "hit": ["兑现了的"], "miss": ["没兑现的及原因"]},
-    "actions": ["今天该做的具体动作，最多3条，每条30字内"],
-    # 2026-10-31 新增：可回测假说。由 viewer/hypo.py 解析 predicate 并回测，
-    # 结果写入 ai_hypothesis，下一轮复盘时作为证据再喂回来 —— 这是"判断→检验→修正"的闭环。
+    "actions": ["最多3条，每条20字内"],
     "hypotheses": [{"statement": "20字内", "predicate": "字段 运算符 数值",
                     "horizon": 5, "expect": "negative/positive", "rationale": "60字内"}],
 }
+
+
+def validate_picks(out: dict) -> dict:
+    """机检 picks 是否可执行。**不通过不算失败，但页面必须显示出来。**
+
+    为什么要在代码里查而不是只在提示词里写：
+    提示词是"请求"，不是"约束"。模型有相当概率返回 score=85 但 breakdown 加起来 62，
+    或者 stop 高于 entry_low（止损设在买入价上方 = 一买就触发）。
+    这些错在文字里看不出来，落到实盘就是钱。所以逐条查，把问题摆到页面上。
+
+    返回 {"ok": n, "bad": [{"symbol","issue"}], "clean": bool}
+    """
+    issues: list = []
+    picks = out.get("picks") if isinstance(out, dict) else None
+    if not isinstance(picks, list):
+        return {"ok": 0, "bad": [{"symbol": "-", "issue": "没有 picks 段"}], "clean": False}
+    good = 0
+    for i, p in enumerate(picks, 1):
+        if not isinstance(p, dict):
+            issues.append({"symbol": "#%d" % i, "issue": "不是对象"})
+            continue
+        sym = str(p.get("symbol") or "").strip()
+        tag = sym or "#%d" % i
+        bad = []
+        if not _re_sym.match(sym):
+            bad.append("代码不是 6 位数字（%r）" % sym)
+        try:
+            sc = int(round(float(p.get("score"))))
+        except Exception:  # noqa: BLE001
+            sc = -1
+        if not (0 <= sc <= 100):
+            bad.append("推荐分缺失或越界")
+        bd = p.get("score_breakdown") or {}
+        if isinstance(bd, dict) and bd:
+            try:
+                tot = sum(float(bd.get(k) or 0) for k in ("trend", "money", "position", "catalyst"))
+                if abs(tot - sc) > 1.5:
+                    bad.append("四项分解合计 %.0f ≠ 总分 %d" % (tot, sc))
+            except Exception:  # noqa: BLE001
+                bad.append("score_breakdown 不是数字")
+        else:
+            bad.append("没有 score_breakdown，分数无法追溯")
+        def _n(k):
+            try:
+                v = p.get(k)
+                return float(v) if v not in (None, "") else None
+            except Exception:  # noqa: BLE001
+                return None
+        lo, hi, st, tg = _n("entry_low"), _n("entry_high"), _n("stop"), _n("target")
+        if None in (lo, hi, st, tg):
+            bad.append("买入区间/止损/目标缺项")
+        elif min(lo, hi, st, tg) <= 0:
+            # 实测（2026-11-02 首跑）：模型为了凑够「3 只」写了一只
+            # entry/stop/target 全 0、thesis 写「占位」的票。这种条目一旦入账，
+            # 就会以"永不触发的无效推荐"混进准确率分母 —— 必须在入口拦掉。
+            bad.append("价位为 0 或负数（占位条目）")
+        else:
+            if not (lo < hi):
+                bad.append("买入区间倒挂（low ≥ high）")
+            if not (st < lo):
+                bad.append("止损价不在买入区间下方")
+            if not (tg > hi):
+                bad.append("目标价不在买入区间上方")
+        ev = p.get("evidence")
+        if not isinstance(ev, list) or len([x for x in ev if str(x).strip()]) < 2:
+            bad.append("证据少于 2 条")
+        _txt = " ".join(str(p.get(k) or "") for k in ("thesis", "why_now", "invalidate"))
+        _txt += " " + " ".join(str(x) for x in (ev if isinstance(ev, list) else []))
+        if re.search(r"占位|待补|示例|TODO|待填", _txt, re.I):
+            bad.append("含「占位/待补」这类未完成字样")
+        if bad:
+            issues.append({"symbol": tag, "issue": "；".join(bad)})
+        else:
+            good += 1
+    return {"ok": good, "bad": issues, "clean": not issues and good > 0}
+
+
+_re_sym = re.compile(r"^\d{6}$")
+
 
 
 def _render_user(ctx: dict) -> str:
@@ -1070,6 +1298,12 @@ def _render_user(ctx: dict) -> str:
         L.append(last["scoreboard"])
         L.append("↑ 以上是系统按收盘价回填的真实结果。vs_last 段必须以它为准；"
                  "不许写「已兑现」而成绩单显示为错，也不许在样本不足时声称自己准确。")
+    # 逐票对账单（2026-11-02）：上面是"汇总成绩"，这里把上次每一只票摊开。
+    # 目的不是羞辱它，是让 picks_review 有具体对象可归因 —— 没有这一段的模型
+    # 只能写"上次判断基本兑现"这种自我评价，写了等于没写。
+    if ctx.get("picks_ctx"):
+        L.append("")
+        L.append(ctx["picks_ctx"])
 
     h = ctx.get("data_health") or []
     if h:
@@ -1286,6 +1520,9 @@ def digest_of(row) -> dict:
         },
         "err": d.get("err"),
         "data": out,
+        # 每次读都现算（纯字符串运算，代价可忽略）：票单是否可执行，
+        # 必须在页面上看得见，而不是埋在日志里等出了事再回查。
+        "picks_check": validate_picks(out),
     }
 
 

@@ -4758,6 +4758,57 @@ def api_evidence() -> dict:
         return {"ok": False, "reason": "evidence 不可用：%s" % str(e)[:160]}
 
 
+def api_ai_provider_key(provider: str, key: str) -> dict:
+    """给 AI 复盘面板的任一大脑填 Key（2026-11-02）。
+
+    此前只有 `/api/settings/deepseek_key` 一个入口，硬编码 deepseek ——
+    于是混元、通义千问虽然 provider 早就写好了，界面上却**根本没有地方填 Key**，
+    按钮永远是灰的「（未配 Key）」。那不是"没配"，是"配不了"。
+    """
+    try:
+        import ai_review as AIR
+        return AIR.set_provider_key(provider, key)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "err": "保存失败：%s: %s" % (type(e).__name__, str(e)[:160])}
+
+
+def api_ai_provider_test(provider: str) -> dict:
+    """只测连通性，不写任何东西 —— 排查"Key 明明填了为什么还失败"时用。"""
+    try:
+        import ai_review as AIR
+        return AIR.test_provider(provider)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "err": "%s: %s" % (type(e).__name__, str(e)[:160])}
+
+
+def api_ai_picks(date: str = "", provider: str = "") -> dict:
+    """AI 荐股板（2026-11-02）：某一份复盘的票单 + 它现在的实际表现 + 累计成绩。
+
+    三个部分一次给全，前端不用拼三个接口：
+      · board   —— 这一次推了哪几只，各自的分数/价位/逻辑，以及次日与 T+N 的真实涨跌
+      · score   —— 累计成绩单（命中率/上涨率/平均收益/超额，分档）
+      · history —— 有复盘记录的日期列表（给日期选择器用）
+    """
+    out: dict = {"ok": True}
+    try:
+        import review_score as RS
+        RS.score_pending(DB.conn)          # 先回填，保证页面看到的是最新事实
+        out["board"] = RS.picks_board(DB.conn, date, provider)
+        out["score"] = RS.report(DB.conn)
+    except Exception as e:  # noqa: BLE001
+        out["ok"] = False
+        out["reason"] = "%s: %s" % (type(e).__name__, str(e)[:160])
+    try:
+        rows = DB.conn.execute(
+            "SELECT review_date, provider, COUNT(*) FROM ai_review "
+            "WHERE status='ok' GROUP BY review_date, provider "
+            "ORDER BY review_date DESC, provider LIMIT 60").fetchall()
+        out["history"] = [{"date": r[0], "provider": r[1], "n": r[2]} for r in rows]
+    except Exception:  # noqa: BLE001
+        out["history"] = []
+    return out
+
+
 def api_review_score() -> dict:
     """AI 复盘成绩单（2026-10-31）：**由系统按收盘价回填，不是模型自评**。
 
@@ -14202,6 +14253,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json(api_evidence())
         if route == "/api/review_score":
             return self._send_json(api_review_score())
+        # 2026-11-02：AI 荐股板（票单 + 逐票对账 + 累计成绩），AI 复盘页首屏用它
+        if route == "/api/ai_picks":
+            q = urllib.parse.parse_qs(parsed.query)
+            return self._send_json(api_ai_picks(
+                date=self._str_arg(q, "date", "", maxlen=10),
+                provider=self._str_arg(q, "provider", "", maxlen=16)))
         if route == "/api/hypothesis":
             q = urllib.parse.parse_qs(parsed.query)
             return self._send_json(api_hypothesis(
@@ -14303,6 +14360,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"ok": False, "error": "key 为空"}, code=400)
             se.set_deepseek_key(key)
             return self._send_json({"ok": True})
+        # 2026-11-02：通用大脑 Key（deepseek / hunyuan / qwen），写完立刻测连通性
+        if route == "/api/ai_review/provider_key":
+            prov = (payload.get("provider") or "").strip()
+            key = (payload.get("key") or "").strip()
+            if not prov:
+                return self._send_json({"ok": False, "err": "缺少 provider"}, code=400)
+            return self._send_json(api_ai_provider_key(prov, key))
+        if route == "/api/ai_review/provider_test":
+            prov = (payload.get("provider") or "").strip()
+            return self._send_json(api_ai_provider_test(prov))
         # 2026-10-29 进哥需求：强制重算 AI 复盘（走 POST，因为会写库 + 花 token）
         if route == "/api/ai_review/run":
             q = urllib.parse.parse_qs(parsed.query)

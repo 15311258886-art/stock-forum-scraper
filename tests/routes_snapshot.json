@@ -1,7 +1,10 @@
 [
+ "/api/ai_picks",
  "/api/ai_review",
  "/api/ai_review/detail",
  "/api/ai_review/history",
+ "/api/ai_review/provider_key",
+ "/api/ai_review/provider_test",
  "/api/ai_review/run",
  "/api/auction",
  "/api/auction/",
