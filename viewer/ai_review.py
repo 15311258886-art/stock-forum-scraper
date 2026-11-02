@@ -60,8 +60,11 @@ PROVIDERS: dict = {
         "model": "hunyuan-turbos-latest",
         "secret": "hunyuan_api_key",
         "env": "HUNYUAN_API_KEY",
-        "console": "https://console.cloud.tencent.com/hunyuan",
-        "howto": "腾讯云控制台 → 大模型知识引擎/混元 → API Key",
+        # 2026-11-02：原来给的是控制台首页，进去还要自己找菜单。
+        # 改为直落「混元 → API Key 管理」，登录后就是「新建 API Key」按钮。
+        "console": "https://console.cloud.tencent.com/hunyuan/api-key",
+        "howto": "腾讯云控制台 → 混元大模型 → API Key 管理 → 新建 API Key"
+                 "（需实名认证；Key 形如 sk-…，创建后只显示一次，先复制再关弹窗）",
     },
     "qwen": {
         "label": "通义千问",
@@ -69,8 +72,10 @@ PROVIDERS: dict = {
         "model": "qwen-plus",
         "secret": "dashscope_api_key",
         "env": "DASHSCOPE_API_KEY",
-        "console": "https://bailian.console.aliyun.com",
-        "howto": "阿里云百炼控制台 → API-KEY 管理 → 创建",
+        # 同理：直落百炼的 API-KEY 管理页（带 apiKey=1 会自动展开该 tab）。
+        "console": "https://bailian.console.aliyun.com/?apiKey=1#/api-key",
+        "howto": "阿里云百炼 → API-KEY 管理 → 创建 API Key"
+                 "（归属业务空间选「默认业务空间」，权限选「全部」；sk- 开头，只显示一次）",
     },
     # 2026-10-29 新增：WorkBuddy 算力通道。
     # 它与上面三家有本质区别——**不在这里调模型**。本进程只把「信息包」放进队列

@@ -568,12 +568,30 @@ class Database:
                 c.execute(f"ALTER TABLE {_t} ADD COLUMN disclose_at TEXT DEFAULT ''")
                 c.commit()
             # 存量空值回填（幂等：只补 disclose_at 为空的行，且源字段非空）
-            c.execute(
-                f"UPDATE {_t} SET disclose_at = {_src} || ' 15:00:00' "
-                f"WHERE (disclose_at IS NULL OR disclose_at = '') "
-                f"AND {_src} IS NOT NULL AND {_src} <> ''"
-            )
-            c.commit()
+            #
+            # 2026-11-02（服务被后台任务拖下线）：这段回填**不许让启动失败**。
+            # 它是可延后的幂等补丁，而日更指标任务（indicators_daily，实测约 50 分钟）
+            # 全程持写锁；启动走到这里必然先等 busy_timeout(15s) 再抛
+            # `database is locked` → Database() 构造失败 → 后端起不来 →
+            # 守护每 30s 重试同样撞锁。结果：一个后台批任务把整个面板打挂半小时以上，
+            # 且页面上只显示"加载失败"，看不出真因。
+            # 改为：拿不到锁就记一条 warning 跳过，下次启动/空闲时自然补上（UPDATE 本身幂等）。
+            try:
+                c.execute(
+                    f"UPDATE {_t} SET disclose_at = {_src} || ' 15:00:00' "
+                    f"WHERE (disclose_at IS NULL OR disclose_at = '') "
+                    f"AND {_src} IS NOT NULL AND {_src} <> ''"
+                )
+                c.commit()
+            except sqlite3.OperationalError as _e:
+                try:
+                    c.rollback()
+                except Exception:  # noqa: BLE001
+                    pass
+                import logging as _lg
+                _lg.getLogger(__name__).warning(
+                    "[db] %s.disclose_at 回填跳过（%s）：有长写任务占库，下次启动再补", _t, _e
+                )
 
     # ---------------- 实盘选手（含渠道标注） ----------------
     def save_player(self, site, name, channel="A", rank_position=None,
