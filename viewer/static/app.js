@@ -1007,6 +1007,7 @@ function dragonDecorate(root) {
   const els = box.querySelectorAll(SEL);
   for (const el of els) {
     if (el.getAttribute("data-dg") === "1") continue;
+    if (el.getAttribute("data-dg-off") === "1") { el.setAttribute("data-dg", "1"); continue; }
     el.setAttribute("data-dg", "1");
     const code = el.getAttribute("data-wt-open") || el.getAttribute("data-code-open")
       || el.getAttribute("data-feat-open") || el.getAttribute("data-sym") || "";
@@ -1091,6 +1092,10 @@ function avoidDecorate(root) {
   const els = box.querySelectorAll(SEL);
   for (const el of els) {
     if (el.getAttribute("data-av") === "1") continue;
+    /* data-dg-off 由 codeLink(opt.noMedal) 打上：同一行里名称+代码指向同一只票时，
+       只在名称上挂"龙头/避雷"标记。两个都挂 → 代码列被徽章挤宽、行高变得不齐，
+       而且同一件事在一行里说两遍（2026-11-02 决策台实测）。 */
+    if (el.getAttribute("data-dg-off") === "1") { el.setAttribute("data-av", "1"); continue; }
     el.setAttribute("data-av", "1");
     const code = el.getAttribute("data-wt-open") || el.getAttribute("data-code-open")
       || el.getAttribute("data-feat-open") || el.getAttribute("data-sym") || "";
@@ -1126,7 +1131,9 @@ function codeLink(code, opt) {
   const c = String(code == null ? "" : code).trim();
   const txt = opt.text == null ? c : String(opt.text);
   if (!/^\d{6}$/.test(c)) return esc(txt || "—");
-  return `<button type="button" class="${escAttr(opt.cls || "wt-sym")}" data-code-open="${escAttr(c)}" `
+  /* opt.noMedal：同一只票在一行里出现两次（名称 + 代码）时，只在名称上挂龙头徽章。
+     否则一行两个"金牌"，代码列被挤到换行，行高也跟着乱 —— 2026-11-02 决策台实测。 */
+  return `<button type="button" class="${escAttr(opt.cls || "wt-sym")}" data-code-open="${escAttr(c)}"${opt.noMedal ? ' data-dg-off="1"' : ""} `
        + `title="点开「${escAttr(txt || c)}」的个股结果（重要信息 · 换手 · 持股结构 · K线 · 持仓选手），自动加载，不用再点任何按钮">${esc(txt)}</button>`;
   // 龙头徽章由 dragonDecorate() 统一装饰（见下方 MutationObserver），此处不拼字符串，
   // 否则与全局装饰重复挂两枚。
@@ -3698,7 +3705,7 @@ function renderLhb() {
     ${seatHtml}
     <div class="detail-sub" style="margin-top:18px">游资席位榜 —— 以「营业部为轴」滚动近 ${wd} 个交易日（${winTxt}），按净买额排序；
       D1/D3 胜率＝该席位窗口内买入个股在榜后的实际上涨占比</div>
-    <table><thead><tr><th>#</th><th>营业部 / 机构专用席位</th><th class="num">上榜次数</th><th class="num">涉及股数</th>
+    <table><thead><tr><th class="num">#</th><th>营业部 / 机构专用席位</th><th class="num">上榜次数</th><th class="num">涉及股数</th>
       <th class="num">净买额</th><th class="num">D1胜率</th><th class="num">D3胜率</th><th class="num">D3均涨</th></tr></thead>
       <tbody>${deptRows || "<tr><td colspan=8 class='empty'>无（请先抓取 lhb_depts）</td></tr>"}</tbody></table>
     ${deptDetail}
@@ -15694,6 +15701,44 @@ function _dkCut(s, n) {
   s = String(s == null ? "" : s);
   return s.length > n ? s.slice(0, n) + "…" : s;
 }
+/* 个股链接（2026-11-02 进哥：点了名称/代码看不到个股信息）。
+   复用全站既有的 codeLink()（data-code-open + 捕获阶段委托），不另造入口 ——
+   它已经处理了"只有 6 位沪深北代码才可点"这条硬规则，还会自动挂龙头徽章。
+   拿不到合法代码时返回纯文本：宁可不可点，也不做"点了必然失败的抽屉"。 */
+function _dkLink(code, text, noMedal) {
+  const c = String(code == null ? "" : code).trim();
+  const t = String(text == null ? "" : text) || "—";
+  if (!/^\d{6}$/.test(c)) return esc(t);
+  return codeLink(c, { cls: "dk-lnk", text: t, noMedal: !!noMedal });
+}
+/* 得分：数字 + 分档着色。
+   起初做过「数字+下方细条」，实测 14 行都接近满格、条长几乎一样，读起来像给每行
+   加了下划线 —— 它没带来新信息，反而吃掉了行高。现在只留数字：
+   ≥85 强（红字+淡红胶囊底）· 75~85 中（橙字）· <75 弱（灰字）。
+   分数本身逐行可读，颜色只负责"先看哪几行"。 */
+function _dkScore(v) {
+  const n = Number(v);
+  if (v == null || v === "" || !isFinite(n)) return `<span class="dk-sc na">—</span>`;
+  const s = Math.max(0, Math.min(100, n));
+  const cls = s >= 85 ? "hi" : s >= 75 ? "mid" : "low";
+  return `<span class="dk-sc ${cls}"><b>${s.toFixed(1)}</b></span>`;
+}
+/* 来源标签按支柱分色：一眼看出"是不是两支以上同时提名"（共振才是强信号）。
+   颜色在 CSS 里用 color-mix 与主题文字色混合，深色主题下自动变亮。 */
+const _DK_SRC_CLS = { "政策漏斗": "p0", "竞价冲浪": "p1", "引擎加权": "p2" };
+function _dkTags(from, multi) {
+  return (from || []).map((f) =>
+    `<span class="dk-tag ${_DK_SRC_CLS[f] || "p3"}${multi ? " both" : ""}">${esc(f)}</span>`).join("");
+}
+/* 板块阶段：启动/加速=还能追 · 高潮=最容易接盘 · 退潮=别碰。
+   只用文字色区分（红/橙/绿），不加底色 —— 阶段是判断的一部分，不该长得像按钮。 */
+function _dkStageCls(s) {
+  const t = String(s == null ? "" : s);
+  if (/启动|加速|发酵/.test(t)) return "st-up";
+  if (/高潮|分歧|一致/.test(t)) return "st-hot";
+  if (/退潮|回落|衰退/.test(t)) return "st-down";
+  return "";
+}
 /* 一句判断里最常出现的一半结构：市场状态 + 广度。集中一处，四道门口径一致。 */
 function _dkMkt(pil) {
   const ms = (pil || {}).market_state || {};
@@ -15803,24 +15848,37 @@ function renderDeskHot(host, d) {
   ];
   if (gate.n_sources != null) chips.push({ t: `证据源 ${gate.n_sources} 个` });
 
+  /* 板块方向：给每张卡一根强度条（相对最强的那一个），比三个同样的灰卡片更容易比大小。
+     龙头做成可点链接 —— 后端 directions 里带了 leader_code，点了直接看这只票。 */
+  const maxNet = Math.max(...dirs.map((x) => Number(x.net_yi) || 0), 0.01);
   const dirHtml = dirs.length
-    ? `<div class="dk-dirs">${dirs.map((x) => `<div class="dk-dir">
-        <div class="dk-dir-t">${esc(x.sector || "—")}</div>
-        <div class="dk-dir-m">净买 ${_dkNum(x.net_yi, 1)} 亿 · 上榜 ${x.onlist_n != null ? x.onlist_n : "—"} 只<br>
-        龙头 ${esc(x.leader_name || "—")} ${_dkPct(x.leader_pct)} · ${esc(x.stage || "—")}</div>
-      </div>`).join("")}</div>`
+    ? `<div class="dk-dirs">${dirs.map((x, i) => {
+        const net = Number(x.net_yi) || 0;
+        const w = Math.max(6, Math.min(100, (net / maxNet) * 100));
+        return `<div class="dk-dir">
+        <div class="dk-dir-hd"><span class="dk-dir-rank">${i + 1}</span>
+          <span class="dk-dir-t">${esc(x.sector || "—")}</span>
+          <span class="dk-stage ${_dkStageCls(x.stage)}">${esc(x.stage || "—")}</span></div>
+        <div class="dk-dir-m"><span class="dk-dir-k">净买</span><b class="dk-dir-v">${_dkNum(x.net_yi, 1)} 亿</b>
+          <span class="dk-dir-k">上榜</span><b class="dk-dir-v">${x.onlist_n != null ? x.onlist_n : "—"} 只</b></div>
+        <div class="dk-dir-bar"><i style="width:${w.toFixed(1)}%"></i></div>
+        <div class="dk-dir-m dk-dir-lead">龙头 ${_dkLink(x.leader_code, x.leader_name, 1)}
+          <span class="${Number(x.leader_pct) >= 0 ? "dk-up" : "dk-dn"}">${_dkPct(x.leader_pct)}</span></div>
+      </div>`;
+      }).join("")}</div>`
     : `<div class="dk-empty">今天没有识别出资金主攻方向。</div>`;
 
   const tbl = rows.length
-    ? `<table class="dk-tbl"><colgroup><col style="width:13%"><col style="width:10%"><col style="width:8%"><col style="width:17%"><col></colgroup><thead><tr>
-        <th>名称</th><th>代码</th><th class="c">得分</th><th>来自</th><th>为什么在名单里</th>
-      </tr></thead><tbody>${rows.map((r) => `<tr>
-        <td class="nm">${esc(r.name || "—")}</td>
-        <td class="c">${esc(r.code)}</td>
-        <td class="c">${_dkNum(r.score, 1)}</td>
-        <td>${r.from.map((f) => `<span class="dk-tag${r.from.length >= 2 ? " hi" : ""}">${esc(f)}</span>`).join("")}</td>
-        <td class="why">${esc(_dkCut(_dkZh(r.reason), 96))}</td>
-      </tr>`).join("")}</tbody></table>`
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup>
+        <col style="width:13%"><col style="width:9%"><col style="width:8%"><col style="width:15%"><col></colgroup>
+        <thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th>来自</th><th>为什么在名单里</th>
+      </tr></thead><tbody>${rows.map((r) => `<tr class="${r.from.length >= 2 ? "multi" : ""}">
+        <td class="nm">${_dkLink(r.code, r.name)}</td>
+        <td class="cd">${_dkLink(r.code, r.code, 1)}</td>
+        <td class="c">${_dkScore(r.score)}</td>
+        <td class="src">${_dkTags(r.from, r.from.length >= 2)}</td>
+        <td class="why" title="${escAttr(_dkZh(r.reason))}">${esc(_dkCut(_dkZh(r.reason), 120))}</td>
+      </tr>`).join("")}</tbody></table></div>`
     : `<div class="dk-empty">今天短线热点方向没有候选票。</div>`;
 
   host.innerHTML = _dkHero("hot", v, chips, td.data_date || pil.run_date)
@@ -15862,12 +15920,13 @@ function renderDeskDip(host, d) {
     { t: `大盘 ${mk.state}` },
   ];
   const rowHtml = (items, tag) => items.length
-    ? `<table class="dk-tbl"><colgroup><col style="width:17%"><col style="width:13%"><col style="width:9%"><col></colgroup><thead><tr><th>名称</th><th>代码</th><th class="c">得分</th><th>入选理由</th></tr></thead>
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:18%"><col style="width:10%"><col style="width:10%"><col></colgroup>
+      <thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th>入选理由</th></tr></thead>
       <tbody>${items.map((x) => `<tr>
-        <td class="nm">${esc(x.name || "—")}</td>
-        <td class="c">${esc(String(x.symbol || x.code || ""))}</td>
-        <td class="c">${_dkNum(x.score, 1)}</td>
-        <td class="why">${esc(_dkCut(_dkZh(x.reason), 110))}</td></tr>`).join("")}</tbody></table>`
+        <td class="nm">${_dkLink(x.symbol || x.code, x.name)}</td>
+        <td class="cd">${_dkLink(x.symbol || x.code, String(x.symbol || x.code || ""), 1)}</td>
+        <td class="c">${_dkScore(x.score)}</td>
+        <td class="why" title="${escAttr(_dkZh(x.reason))}">${esc(_dkCut(_dkZh(x.reason), 110))}</td></tr>`).join("")}</tbody></table></div>`
     : `<div class="dk-empty">${esc(tag)}今天没有票。</div>`;
 
   host.innerHTML = _dkHero("dip", v, chips, pil.run_date)
@@ -15906,18 +15965,18 @@ function renderDeskMid(host, d) {
   const tbl = computing
     ? `<div class="dk-empty">正在扫描全市场低位箱体（首次 30~60 秒），算完自动出现…</div>`
     : (rows.length
-      ? `<table class="dk-tbl"><colgroup><col style="width:19%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:11%"><col style="width:13%"><col></colgroup>`
-        + `<thead><tr><th>名称</th><th>代码</th><th class="c">得分</th><th class="c">全历史分位</th>`
+      ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:15%"><col style="width:10%"><col style="width:9%"><col style="width:15%"><col style="width:11%"><col style="width:13%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th class="c">全历史分位</th>`
         + `<th class="c">箱体年数</th><th class="c">距箱顶</th><th class="c">量比</th></tr></thead>`
         + `<tbody>${rows.map((x) => `<tr>`
-          + `<td class="nm">${esc(x.name || "—")}</td>`
-          + `<td class="c">${esc(x.code || "")}</td>`
-          + `<td class="c">${_dkNum(x.score, 1)}</td>`
+          + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
+          + `<td class="c">${_dkScore(x.score)}</td>`
           + `<td class="c">${_dkNum(x.pct_all, 1)}%</td>`
           + `<td class="c">${_dkNum(x.box_years, 1)}</td>`
           + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
           + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
-          + `</tr>`).join("")}</tbody></table>`
+          + `</tr>`).join("")}</tbody></table></div>`
       : `<div class="dk-empty">低位榜单是空的。</div>`);
 
   const cards = [
@@ -15971,35 +16030,35 @@ function renderDeskLong(host, d) {
   }
 
   const brTbl = rows.length
-    ? `<table class="dk-tbl"><colgroup><col style="width:21%"><col style="width:15%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:11%"><col></colgroup>`
-      + `<thead><tr><th>名称</th><th>代码</th><th class="c">现价</th><th class="c">箱顶</th>`
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:14%"><col style="width:10%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:13%"><col></colgroup>`
+      + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">现价</th><th class="c">箱顶</th>`
       + `<th class="c">距箱顶</th><th class="c">量比</th><th>状态</th></tr></thead><tbody>`
       + near.map((x) => `<tr>`
-        + `<td class="nm">${esc(x.name || "—")}</td>`
-        + `<td class="c">${esc(x.code || "")}</td>`
+        + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+        + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
         + `<td class="c">${_dkNum(x.cur)}</td>`
         + `<td class="c">${_dkNum(x.box_high)}</td>`
         + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
         + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
-        + `<td>${(x.state || "in_box") === "in_box" ? `<span class="dk-tag">箱内</span>`
-          : `<span class="dk-tag hi">${esc(x.state)}</span>`}</td>`
-        + `</tr>`).join("") + `</tbody></table>`
+        + `<td>${(x.state || "in_box") === "in_box" ? `<span class="dk-tag p3">箱内</span>`
+          : `<span class="dk-tag p1">${esc(x.state)}</span>`}</td>`
+        + `</tr>`).join("") + `</tbody></table></div>`
     : `<div class="dk-empty">突破雷达的扫描池是空的 —— 还没有跑过底部扫描。</div>`;
 
   const btTbl = bComputing
     ? `<div class="dk-empty">底部平台正在扫描（首次 30~60 秒），算完自动出现…</div>`
     : (bRows.length
-      ? `<table class="dk-tbl"><colgroup><col style="width:20%"><col style="width:14%"><col style="width:11%"><col style="width:13%"><col style="width:14%"><col style="width:14%"><col></colgroup>`
-        + `<thead><tr><th>名称</th><th>代码</th><th class="c">埋伏分</th><th class="c">底部年数</th>`
+      ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:14%"><col style="width:10%"><col style="width:13%"><col style="width:14%"><col style="width:16%"><col style="width:16%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">埋伏分</th><th class="c">底部年数</th>`
         + `<th class="c">箱内位置</th><th class="c">距历史峰值</th></tr></thead><tbody>`
         + bRows.map((x) => `<tr>`
-          + `<td class="nm">${esc(x.name || "—")}</td>`
-          + `<td class="c">${esc(x.code || "")}</td>`
-          + `<td class="c">${_dkNum(x.score, 1)}</td>`
+          + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
+          + `<td class="c">${_dkScore(x.score)}</td>`
           + `<td class="c">${_dkNum(x.years, 1)} 年</td>`
           + `<td class="c">${_dkPct((x.pos || 0) * 100, 0)}</td>`
           + `<td class="c">${_dkPct(x.dd)}</td>`
-          + `</tr>`).join("") + `</tbody></table>`
+          + `</tr>`).join("") + `</tbody></table></div>`
       : `<div class="dk-empty">底部平台暂时没有结果。</div>`);
 
   host.innerHTML = _dkHero("long", v, [

@@ -12,6 +12,8 @@
 """
 from __future__ import annotations
 
+import datetime
+import datetime
 import io
 import os
 import sys
@@ -22,6 +24,28 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
+
+
+def _ago(**kw):
+    """相对"现在"的时间串。
+
+    这类用例判的是「距离现在多久没更新」，写死日期会让结果随运行时段漂移：
+    实测把最鲜源固定成 09:05，上午 10 点跑是绿的，中午 12:17 跑就变成 3.2h > 阈值，
+    被当成"整条管道停摆"，于是"某个源坏了要单独点名"这条断言就假红了。
+    """
+    return (datetime.datetime.now() - datetime.timedelta(**kw)).strftime("%Y-%m-%d %H:%M:%S")
+
+
+
+def _ago(**kw):
+    """相对"现在"的时间串。
+
+    这类用例判的是「距离现在多久没更新」，写死日期会让结果随运行时段漂移：
+    实测把最鲜源固定成 09:05，上午 10 点跑是绿的，中午 12:17 跑就变成 3.2h > 阈值，
+    被当成"整条管道停摆"，于是"某个源坏了要单独点名"这条断言就假红了。
+    """
+    return (datetime.datetime.now() - datetime.timedelta(**kw)).strftime("%Y-%m-%d %H:%M:%S")
+
 
 from viewer import check_fetcher_health as F  # noqa: E402
 
@@ -156,9 +180,9 @@ def test_no_stale_alert_when_scheduler_has_no_sources(monkeypatch, tmp_path):
     monkeypatch.setattr(F, "ALERT_LOG", str(tmp_path / "a.log"))
     monkeypatch.setattr(F, "STATE_F", str(tmp_path / "s.json"))
     _stub_api(monkeypatch, sched_sources=[], rf_sources=[
-        {"source_key": "value_basics", "last_ok_at": "2026-10-31 22:23:00",
+        {"source_key": "value_basics", "last_ok_at": _ago(hours=10),
          "status": "ok", "error": ""},
-        {"source_key": "taoguba", "last_ok_at": "2026-10-28 09:00:00",
+        {"source_key": "taoguba", "last_ok_at": _ago(days=3),
          "status": "error", "error": "需要登录"},
     ])
     monkeypatch.setattr(F, "get_trades_stats", lambda: None)
@@ -173,9 +197,9 @@ def test_all_stale_suppresses_single_source_error(monkeypatch, tmp_path):
     monkeypatch.setattr(F, "ALERT_LOG", str(tmp_path / "a.log"))
     monkeypatch.setattr(F, "STATE_F", str(tmp_path / "s.json"))
     _stub_api(monkeypatch, sched_sources=[{"source_key": "x"}], rf_sources=[
-        {"source_key": "value_basics", "last_ok_at": "2026-10-31 22:23:00",
+        {"source_key": "value_basics", "last_ok_at": _ago(hours=10),
          "status": "ok", "error": ""},
-        {"source_key": "taoguba", "last_ok_at": "2026-10-28 09:00:00",
+        {"source_key": "taoguba", "last_ok_at": _ago(days=3),
          "status": "error", "error": "需要登录"},
     ])
     monkeypatch.setattr(F, "get_trades_stats", lambda: None)
@@ -191,9 +215,9 @@ def test_partial_failure_alone_does_report_named_source(monkeypatch, tmp_path):
     monkeypatch.setattr(F, "ALERT_LOG", str(tmp_path / "a.log"))
     monkeypatch.setattr(F, "STATE_F", str(tmp_path / "s.json"))
     _stub_api(monkeypatch, sched_sources=[{"source_key": "x"}], rf_sources=[
-        {"source_key": "value_basics", "last_ok_at": "2026-11-02 09:05:00",
+        {"source_key": "value_basics", "last_ok_at": _ago(minutes=15),
          "status": "ok", "error": ""},
-        {"source_key": "taoguba", "last_ok_at": "2026-10-28 09:00:00",
+        {"source_key": "taoguba", "last_ok_at": _ago(days=3),
          "status": "error", "error": "需要登录"},
     ])
     monkeypatch.setattr(F, "get_trades_stats", lambda: None)

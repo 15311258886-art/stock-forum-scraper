@@ -5140,3 +5140,133 @@ span.miss{
    一旦某个格子里出现 300 字符无空格的连续串，这些元素照样把整页撑到 2835px。
    现在统一去掉 nowrap：正常内容（"东山精密"、"+10.01%"）本来就不会在宽裕的列里换行，
    去掉只影响"内容确实过长"这一种情况，而那正是我们希望它换行的时候。 */
+
+/* ============================================================================
+ * 决策台表格与配色返工（2026-11-02 进哥三条反馈）
+ * ----------------------------------------------------------------------------
+ * ① 「名称/代码/得分/来自 没对齐」—— 根因不是列宽，是**表头与单元格对齐方式不一致**：
+ *    `<th>代码</th>` 走 .dk-tbl th 的 text-align:left，而同列的 `<td class="c">` 走
+ *    .dk-tbl .c 的 text-align:right（后者特异性更高）。实测同一列 131.5px 宽，
+ *    表头文字贴左、代码贴右，内容边缘差 123px —— 看起来就是"表格散了"。
+ *    修法：代码是**标识符不是数值**，列与表头统一左对齐（.cd）；只有真正的数值列用 .c，
+ *    且表头也带 .c，保证同列同侧。四个决策台页面（热点/超跌/中线/长期）全套用。
+ *
+ * ② 「色彩单一」—— 不是要更多颜色，是要**每一处颜色都带信息**：
+ *    得分分档、来源支柱分色、板块阶段、强度条。颜色全部走主题变量 + color-mix，
+ *    四个主题（card-warm / dark-dashboard / light-tech / minimal-report）各自正确，
+ *    不新增一套硬编码色板。
+ *
+ * ③ 「点名称/代码看不到个股信息」—— 见 app.js 的 _dkLink()：只有合法 6 位代码才做成
+ *    链接，点了走既有的 openStock() 抽屉（K线/换手率/持股结构/持仓都在）。
+ * ========================================================================== */
+
+/* ---- 表格容器：外框 + 圆角，让"这张表"和"下面那段文字"分开 ---- */
+.dk-tblcard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel);
+}
+.dk-tblcard .dk-tbl { border-radius: 10px; }
+
+/* ---- 对齐：代码列左对齐（表头与内容同侧），数值列才右对齐 ---- */
+.dk-tbl .cd {
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .4px;
+  color: var(--muted);
+}
+/* 单元格垂直居中：右侧"为什么"常是 2~4 行，名称/代码贴着格子顶端会显得整行散开 */
+.dk-tbl td { vertical-align: middle; }
+
+/* ---- 行层次：斑马纹 + 悬停 + 多支柱共振标记 ----
+   共振（≥2 支同时提名）是这张表里唯一"值得优先看"的信号，用左侧竖条标出来。
+   竖条走 inset box-shadow，不占列宽，也不会把表格撑宽。 */
+.dk-tbl tbody tr:nth-child(even) { background: color-mix(in srgb, var(--text) 2.2%, transparent); }
+.dk-tbl tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.dk-tbl tbody tr.multi { background: color-mix(in srgb, var(--bull) 4%, transparent); }
+.dk-tbl tbody tr.multi:hover { background: color-mix(in srgb, var(--bull) 9%, transparent); }
+.dk-tbl tbody tr.multi > td:first-child { box-shadow: inset 3px 0 0 var(--bull); }
+
+/* ---- 个股链接：名称与代码都可点，点开=个股详情抽屉 ----
+   走的是全站统一的 codeLink()（button.wt-sym + data-code-open），所以这里只做
+   「让按钮长得像表格里的字」：wt-sym 默认是 accent 青色加粗，直接放在 tk 表里
+   会让整张表变成一片蓝 —— 名称继承单元格样式，代码用弱色，hover 才变 accent。
+   默认不加下划线（14 行全下划线会糊成一片），但代码列常驻一条极浅虚线下边，
+   暗示"这里能点"，不靠用户猜。 */
+.dk-tbl .dk-lnk { color: inherit; font-weight: inherit; letter-spacing: normal;
+  border-bottom: 1px dashed transparent; transition: color .12s, border-color .12s; }
+.dk-tbl .dk-lnk:hover { color: var(--accent); text-decoration: none; border-bottom-color: var(--accent); }
+.dk-tbl td.cd .dk-lnk { color: var(--muted); font-weight: 400; letter-spacing: .4px;
+  border-bottom-color: color-mix(in srgb, var(--muted) 35%, transparent); }
+.dk-tbl td.cd .dk-lnk:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ---- 得分：三档配色 ----
+   ≥85 强（红字 + 淡红胶囊底，一眼先看到）· 75~85 中（橙字）· <75 弱（灰字）。
+   曾经做过"数字 + 下方细条"，但 14 行的条几乎一样长，读起来像给每行加了下划线 ——
+   没带来新信息还占行高，已去掉。 */
+.dk-sc { display: inline-block; }
+.dk-sc b { font-size: 13px; font-weight: 700; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.dk-sc.hi { color: var(--bull); }
+.dk-sc.hi b { font-weight: 800; }
+.dk-sc.mid { color: var(--warn, #d97706); }
+.dk-sc.low { color: var(--muted); }
+.dk-sc.na { color: var(--muted); font-size: 12px; }
+
+/* ---- 来源标签按支柱分色：政策=蓝 · 竞价=橙 · 引擎=紫 ----
+   文字色与 --text 混合，深色主题下自动提亮，不需要为每套主题各写一遍。
+   多支柱（both）加描边 + 加粗，和单支柱区别开。 */
+.dk-tag.p0 { --dk-p: #2f6fb3; }
+.dk-tag.p1 { --dk-p: #b8791f; }
+.dk-tag.p2 { --dk-p: #6b52b8; }
+.dk-tag.p3 { --dk-p: var(--muted); }
+.dk-tag.p0, .dk-tag.p1, .dk-tag.p2, .dk-tag.p3 {
+  background: color-mix(in srgb, var(--dk-p) 13%, var(--panel));
+  color: color-mix(in srgb, var(--dk-p) 62%, var(--text));
+}
+.dk-tag.both {
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dk-p) 45%, transparent);
+}
+
+/* ---- 板块阶段：启动/加速=可追 · 高潮=最容易接盘 · 退潮=别碰 ---- */
+.dk-dir-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.dk-dir-hd .dk-dir-t { margin: 0; }
+.dk-dir-rank { flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel)); color: var(--accent); }
+.dk-stage { margin-left: auto; flex: 0 0 auto; font-size: 11px; padding: 1px 8px;
+  border-radius: 999px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); }
+.dk-stage.st-up { background: color-mix(in srgb, var(--bull) 12%, transparent); color: var(--bull); font-weight: 600; }
+.dk-stage.st-hot { background: color-mix(in srgb, var(--warn, #d97706) 15%, transparent); color: var(--warn, #d97706); font-weight: 600; }
+.dk-stage.st-down { background: color-mix(in srgb, var(--bear) 12%, transparent); color: var(--bear); }
+
+/* 板块卡：净买强弱用一根条表示（相对最强的那一个），比三个同样的灰卡好比较 */
+.dk-dir-m { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.dk-dir-k { font-size: 11.5px; color: var(--muted); }
+.dk-dir-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.dk-dir-bar { height: 4px; border-radius: 999px; margin: 7px 0 8px; overflow: hidden;
+  background: color-mix(in srgb, var(--text) 8%, transparent); }
+.dk-dir-bar i { display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--bull) 45%, transparent), var(--bull)); }
+.dk-dir-lead { margin-top: 2px; }
+.dk-dir:first-child { border-color: color-mix(in srgb, var(--bull) 28%, var(--border)); }
+
+/* 涨跌色（A 股：红涨绿跌）。dk 面板里不复用 .up/.dn，避免和别处同名类互相污染 */
+.dk-up { color: var(--bull); font-variant-numeric: tabular-nums; }
+.dk-dn { color: var(--bear); font-variant-numeric: tabular-nums; }
+
+/* 决策台的四道门各带一点自己的色（2026-11-02）：
+   判断条只有左侧 4px 色条太弱，四个页面看上去仍是同一张白纸。这里在判断条背景上
+   加一层同色系的极淡渐变（4%→0），既保留"这四页是一套东西"的统一感，
+   又能一眼分辨当前在哪个时间维度。用 color-mix 与 --panel 混合，深色主题自动跟随。 */
+.dk-hero.hot  { background: linear-gradient(100deg, color-mix(in srgb, #c8811a 7%, var(--panel)) 0%, var(--panel) 42%); }
+.dk-hero.dip  { background: linear-gradient(100deg, color-mix(in srgb, #c0392b 6%, var(--panel)) 0%, var(--panel) 42%); }
+.dk-hero.mid  { background: linear-gradient(100deg, color-mix(in srgb, #2b6cb0 6%, var(--panel)) 0%, var(--panel) 42%); }
+.dk-hero.long { background: linear-gradient(100deg, color-mix(in srgb, #3f7d20 6%, var(--panel)) 0%, var(--panel) 42%); }
+.dk-hero.flat { background: linear-gradient(100deg, color-mix(in srgb, var(--muted) 6%, var(--panel)) 0%, var(--panel) 42%); }
+
+/* 可执行 > 0 是"今天真有能动手的"，用涨色；其余保持中性灰，不抢判断条 */
+.dk-chip.hi { background: color-mix(in srgb, var(--bull) 14%, transparent); color: var(--bull); font-weight: 600; }
