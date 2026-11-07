@@ -63,21 +63,81 @@ def _http_json(url: str, timeout: int = 20) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def _board_list() -> dict:
-    """返回 {东财板块名: 板块代码}（概念+行业合并）。"""
-    out = {}
-    for fs in ("m:90+t:2", "m:90+t:1"):   # 概念 / 行业
-        url = ("https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=2000&po=1"
-               "&np=1&fltt=2&invt=2&fs=" + fs + "&fields=f12,f13,f14")
-        try:
-            data = _http_json(url).get("data") or {}
-        except Exception as e:  # noqa: BLE001
-            print(f"  [warn] 板块列表拉取失败({fs}): {e}")
+def _diff_rows(data) -> list[tuple[str, str]]:
+    """把东财 clist 的 `diff` 拆成 [(code, name), ...]，两种形态都吃。
+
+    ★ 2026-11-06 审计 P1-01（plate_members 连续失败 14 次，健康接口一直 degraded）：
+      东财的 `diff` 有时是数组 `[["000001", 0, "平安银行"], ...]`，
+      有时是对象 `{"0": {"f12": "000001", "f14": "平安银行"}, ...}`。
+      旧代码只按数组写：`for row in data.get("diff") or []` + `row[0]`。
+      一旦返回对象，`for row in dict` 迭代的是**键名**（"0"、"1"…），
+      于是 `row[0]` 取到字符串的第一个字符 "0"，再当字典下标用 → `KeyError: 0`。
+      这就是那条错误的全部来源。两种形态都解析，且对缺失字段 fail-soft（跳过，不整批炸）。
+    """
+    raw = data.get("diff") if isinstance(data, dict) else data
+    if isinstance(raw, dict):
+        raw = list(raw.values())
+    if not isinstance(raw, (list, tuple)):
+        return []
+    out: list[tuple[str, str]] = []
+    for row in raw:
+        if isinstance(row, dict):
+            code, name = row.get("f12"), row.get("f14")
+        elif isinstance(row, (list, tuple)):
+            code = row[0] if len(row) > 0 else None
+            name = row[2] if len(row) > 2 else None
+        else:
             continue
-        for row in data.get("diff") or []:
-            code, name = row[0], row[2]
-            if name:
-                out[name] = code
+        if code:
+            out.append((str(code), str(name or "")))
+    return out
+
+
+def _raw_count(data) -> int:
+    """这一页实际给了多少条（分页终止判据用**原始条数**，不用解析后条数）。"""
+    raw = data.get("diff") if isinstance(data, dict) else data
+    if isinstance(raw, dict):
+        return len(raw)
+    if isinstance(raw, (list, tuple)):
+        return len(raw)
+    return 0
+
+
+def _board_list() -> dict:
+    """返回 {东财板块名: 板块代码}。
+
+    ★ 2026-11-06 实测发现（审计报告未覆盖）：
+      东财 `clist` 接口**单页硬上限 100 条**，`pz` 传 2000 也只回 100。
+      原实现只请求第 1 页，而 `m:90+t:2` 的 total 是 496 ——
+      也就是说**板块列表从一开始就只拿到了 1/5**（实测 131 个里有 100 个来自行业、
+      31 个来自地域，概念板块一个都没有）。这才是"芯片"这类热门板块解析不到的真正原因：
+      不是匹配算法不行，是那份名单里压根没有它。
+      修 KeyError 只让程序不崩，补分页才让数据变全。
+    """
+    out: dict[str, str] = {}
+    for fs in ("m:90+t:2", "m:90+t:1", "m:90+t:3"):   # 行业 / 地域 / 概念
+        pn = 1
+        while pn <= 12:                                # 12 × 100 足够覆盖（实测最大 total 531）
+            url = ("https://push2.eastmoney.com/api/qt/clist/get?pn=%d&pz=100&po=1"
+                   "&np=1&fltt=2&invt=2&fs=%s&fields=f12,f13,f14" % (pn, fs))
+            try:
+                data = _http_json(url).get("data") or {}
+            except Exception as e:  # noqa: BLE001
+                print(f"  [warn] 板块列表拉取失败({fs} pn={pn}): {e}")
+                break
+            rows = _diff_rows(data)
+            for code, name in rows:
+                # setdefault：行业名优先于概念名（先拉 t:2）。两者同名时，
+                # 用行业码取成分股更稳 —— 概念板块的成分股口径经常被调整。
+                if name and code:
+                    out.setdefault(name, code)
+            total = int(data.get("total") or 0)
+            if _raw_count(data) < 100:
+                break
+            if total and pn * 100 >= total:
+                break
+            pn += 1
+            time.sleep(0.15)
     return out
 
 
@@ -95,25 +155,33 @@ def resolve_board(keyword: str, boards: dict):
 
 
 def fetch_members(board_code: str) -> list:
-    """分页拉取某东财板块全部成分股，返回 [(code, name), ...]。"""
+    """分页拉取某东财板块全部成分股，返回 [(code, name), ...]。
+
+    ★ 2026-11-06 实测发现（审计报告未覆盖）：原来的 `pz=10000` 是个**假分页**。
+      接口单页硬上限 100，`len(diff) < pz` 第一次就成立（100 < 10000），
+      于是循环立刻退出 —— 每个板块最多只拿 100 只成分股。
+      修法是把 pz 设成接口真实上限 100，并用 `total`/原始条数判断是否还有下一页。
+      这不是"少一点数据"：一个 400 只成分股的板块只入库 100 只，
+      后面所有"板块内个股"的分析都会静默地只看到四分之一，而且不报错。
+    """
     out = []
     pn = 1
-    pz = 10000
-    while True:
+    pz = 100          # 接口硬上限；传更大也只会返回 100
+    while pn <= 40:   # 40 × 100 = 4000，足够任何板块
         fs = "b:" + board_code
         url = ("https://push2.eastmoney.com/api/qt/clist/get?pn=%d&pz=%d&po=1"
                "&np=1&fltt=2&invt=2&fs=%s&fields=f12,f13,f14" % (pn, pz, fs))
         data = _http_json(url).get("data") or {}
-        diff = data.get("diff") or []
-        for row in diff:
-            code, name = row[0], row[2]
+        rows = _diff_rows(data)
+        for code, name in rows:
             if code:
                 out.append((str(code).zfill(6), name))
-        if len(diff) < pz:
+        total = int(data.get("total") or 0)
+        if _raw_count(data) < pz:
+            break
+        if total and pn * pz >= total:
             break
         pn += 1
-        if pn > 20:   # 安全阀
-            break
         time.sleep(0.2)
     # 去重（同 code 可能跨页重复）
     seen = {}

@@ -146,6 +146,41 @@ def _kline_daily():
         sys.argv = _argv
 
 
+def _fast_daily():
+    """快速日更：一次请求拿全市场当日一根 → 写前复权/后复权两库 → 接指标层（2026-11-03 D72）。
+
+    为什么要有它：`kline_daily`（3362.8s）+ `kbase_daily`（1886.8s）合计 87 分钟，
+    两个都是**逐只调新浪**（5550 次请求，且新浪限流敏感、workers 只能开 2）。
+    本任务用通达信官网盘后包一个 zip 覆盖全市场当日一根，实测 13 秒写完两个库。
+
+    ★ 它**不替代** `kline_daily` / `kbase_daily`，只是排在它们前面先把当日推进去：
+      · 两个老任务的实现、默认路径、判据一行都没改；
+      · 盘后包没发布时（当天收盘后不是马上有包，实测 20261103 当天 404）
+        fast_grab 自己降级成腾讯快照并写 app.db，不会抛错，本任务照样走完；
+      · 先跑本任务，老任务随后跑时看到的「末根已是最新交易日」会自动大量跳过，
+        等于把 87 分钟摊薄成 13 秒 + 少量补差。
+
+    为什么还要接 `indicators_daily`：它读的正是 data/kline_daily.db 的当日收盘，
+    库没推进它就是空转。放同一个任务里串起来，保证「K 线推进了但因子没跟上」不会发生。
+    `indicators_daily` 的增量/全量语义由 viewer/indicators.run(mode="daily") 自己决定，
+    这里只是按原样调它，不传任何新参数。
+    """
+    import fast_grab
+    r = fast_grab.run(write=True)
+    if isinstance(r, dict) and r.get("ok") is False:
+        # 抓取本身判失败就不再往下算指标：拿旧 K 线算出来的指标会被当成今天的结果。
+        return r
+    try:
+        import viewer.indicators as ind
+        ir = ind.run(mode="daily")
+    except Exception as e:  # noqa: BLE001 —— 指标层失败不该让「K 线已推进」这个事实报废
+        # 故意不让它把整轮判死：K 线已经写进去了，那才是主产物；
+        # 指标层失败要留痕（ok=False + 原因），交给父进程退避重试。
+        return {"ok": False, "fast_grab": r,
+                "error": "indicators_daily 失败：%s: %s" % (type(e).__name__, str(e)[:160])}
+    return {"ok": True, "fast_grab": r, "indicators": ir}
+
+
 def _kbase_daily():
     """回测/四支柱的 K 线底座（viewer/kbase.db）增量补齐（2026-10-29 新增调度）。
 
@@ -442,6 +477,13 @@ def _variant_payload():
                 p = _srv.api_screener_lowbox(**params)
             elif route == "/api/screener_turnover_top":
                 p = _srv.api_screener_turnover_top(**params)
+            elif route == "/api/universe_box":
+                # 2026-11-02 D65：中线全市场箱体波谷。实测 7~8 秒，参数只有 limit/min_dwell。
+                p = _srv.api_universe_box(**params)
+            elif route == "/api/toolbox/funnel":
+                # 2026-11-03 工具包级联漏斗：参数是 steps(JSON 字符串) + limit。
+                # 最重的一级（箱体谷底）全市场 7.6 秒，所以整条链一起离进程算。
+                p = _srv.api_toolbox_funnel(**params)
             else:
                 print("[variant] 未知路由 %r，丢弃请求单" % route)
                 os.remove(rq)
@@ -516,7 +558,55 @@ def _board_flow_range_daily():
     return board_flow_range.run_daily_sync(_con().conn)
 
 
+def _factor_discover():
+    """因子来源发现（2026-11-03 三期）：GitHub 扫可疑仓库 → 入待办清单。
+
+    ★ 这个任务**不产出因子**，只产出"值得看的仓库"。把仓库代码自动编译成因子是不可靠的
+    （各仓库复权/口径不同，编出来的 IC 假得像真的），所以"发现"自动、"编译"必须有人。
+    自节流 7 天：调用方是每日任务，每天扫 GitHub 既浪费配额又没意义。
+
+    离进程跑的理由和 oss_daily 一样：拿的是独立的 Database() 连接，不占服务端 GIL。
+    """
+    from viewer.db import Database
+    import viewer.factor_import as FI
+    db = Database()
+    try:
+        r = FI.discover(db.conn, days=30, per_query=6)
+    finally:
+        try:
+            db.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    # 跳过（未到 7 天）不算失败；真扫失败才是失败
+    if r.get("skipped"):
+        return {"ok": True, "skipped": True, "note": r.get("note")}
+    return {"ok": bool(r.get("ok")), "found": r.get("found"), "fresh": r.get("fresh"),
+            "verdict": r.get("verdict"), "note": r.get("note")}
+
+
+def _weibo_heat():
+    """金十微博个股人气指数 日更（2026-11-07）。
+
+    接 `fetch_weibo_heat.run_daily_sync`：打金十 `/weibo/list` 端点 → 名称反查 code
+    → 落 `weibo_heat` 表，自带「当日 done」闸门，每天最多落一次。
+    返回体带 `ok`：ok=False → main() 判 rc=1 → 父进程退避重试。
+    """
+    from viewer.db import Database
+    import fetch_weibo_heat as F
+    db = Database()
+    try:
+        return F.run_daily_sync(db.conn)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"{type(e).__name__}: {e}"[:300]}
+    finally:
+        try:
+            db.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
 JOBS = {
+    "weibo_heat": _weibo_heat,         # 2026-11-07：金十微博个股人气指数日更（注意力/热度信号）
     "quant": _quant_cache,             # 2026-10-29：量化面板全市场因子计算（离进程 + 落盘，供 /api/quant 读缓存）
     "etf_payload": _etf_cache,         # 2026-10-29：ETF 面板（左栏复用 quant 因子引擎，实测 >60s，必须离进程）
     "kronos_payload": _kronos_cache,   # 2026-10-29：Kronos 预测（实测现算 18s 且占 GIL）
@@ -533,6 +623,7 @@ JOBS = {
     "kline_prewarm": _kline_prewarm,
     "a_shares_snapshot": _a_shares_snapshot,   # 2026-10-26：全A报价+估值+宇宙日更
     "kline_daily": _kline_daily,               # 2026-10-26：K线增量日更
+    "fast_daily": _fast_daily,                 # 2026-11-03 D72：盘后包一次拿全市场 → 两库 + 指标层
     "kbase_daily": _kbase_daily,               # 2026-10-29：回测K线底座 kbase.db 增量日更
     "douyin_corpus": _douyin_corpus,           # 2026-10-26：抖音舆情日更
     "build_exclusion": _build_exclusion,        # 2026-10-26：剔除池/干净宇宙日更
@@ -548,6 +639,7 @@ JOBS = {
     "harvest_daily": _harvest_daily,           # 2026-10-31：收割视角（局面+陷阱名单，依赖 kline_daily）
     "oss_daily": _oss_daily,                   # 2026-10-30：开源情报（GitHub 规则重测，只抽规则不抄代码）
     "selection_daily": _selection_daily,       # 2026-10-30：选股方向（低波池日更 + 证据月度回测）
+    "factor_discover": _factor_discover,       # 2026-11-03 三期：因子来源发现（自节流 7 天，只发现不编译）
 }
 
 

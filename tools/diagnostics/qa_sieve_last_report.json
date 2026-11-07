@@ -1,0 +1,407 @@
+{
+  "t": {
+    "firstPaintMs": 1389,
+    "boxClick": {
+      "ms": 265,
+      "nums": [
+        "5,264",
+        "699",
+        "699"
+      ],
+      "labels": [
+        "干净宇宙",
+        "箱体谷底",
+        "出池 699 只"
+      ],
+      "drops": [
+        "−4,565"
+      ],
+      "text": "5,264干净宇宙›×699箱体谷底−4,565›699出池 699 只"
+    },
+    "cardOnState": {
+      "cls": "tbx-card on",
+      "num": "已在筛道 699",
+      "foot": "已在筛道 · 点一下撤掉"
+    },
+    "gateClick": {
+      "ms": 231,
+      "nums": [
+        "5,264",
+        "699",
+        "679",
+        "679"
+      ],
+      "labels": [
+        "干净宇宙",
+        "箱体谷底",
+        "准入闸门",
+        "出池 679 只"
+      ],
+      "drops": [
+        "−4,565",
+        "−20"
+      ],
+      "text": "5,264干净宇宙›×699箱体谷底−4,565›×679准入闸门−20›679出池 679 只"
+    },
+    "table": {
+      "head": "最终 679 只",
+      "sub": "数据日 2026-11-04 · 共淘汰 4,585 只（下表列前 200 只）",
+      "rowCount": 200,
+      "cols": 6,
+      "thText": [
+        "名称",
+        "代码",
+        "得分来自「箱体谷底」",
+        "1",
+        "2",
+        "通过 / 淘汰原因"
+      ],
+      "toggleText": "显示被淘汰的 4,585 只（看它们死在第几级、为什么死）",
+      "hasToggle": true,
+      "firstRow": [
+        "赛托生物",
+        "300583",
+        "86.0",
+        "✓",
+        "✓",
+        "箱体 3.0 年 · 位置 2% · 驻留 100% · 最长连续 250 日 · 触及 13 次"
+      ],
+      "dots": 400,
+      "okDots": 400,
+      "noDots": 0
+    },
+    "tableDropped": {
+      "rowCount": 400,
+      "deadRows": 200,
+      "levels": [
+        "?"
+      ],
+      "okDots": 401,
+      "noDots": 399,
+      "sample": [
+        "✕",
+        "✕",
+        "第 1 级淘汰：形态未过一级门槛（数据不足 / 日均成交额过低 / 不在 750 日低位 / 箱体不规整）"
+      ],
+      "checked": true
+    },
+    "cut": {
+      "ms": 175,
+      "before": 4,
+      "after": 3,
+      "nums": [
+        "5,264",
+        "699",
+        "699"
+      ],
+      "text": "5,264干净宇宙›×699箱体谷底−4,565›699出池 699 只",
+      "pool": "699",
+      "chain": [
+        "box_bottom"
+      ]
+    },
+    "cardToggleOff": {
+      "ms": 216,
+      "lane": "还没筛 —— 下面任点一张卡就开始了",
+      "pool": "5,264",
+      "chainLen": 0
+    },
+    "suggestEmpty": {
+      "tag": "空筛道",
+      "ok": true,
+      "suggest": 699,
+      "manual": 699,
+      "name": "箱体谷底",
+      "key": "box_bottom",
+      "ms": 206
+    },
+    "suggestOneStage": {
+      "tag": "一级（699）",
+      "ok": true,
+      "suggest": 104,
+      "manual": 104,
+      "name": "双底（W）",
+      "key": "tv_wbottom",
+      "ms": 189
+    },
+    "retired": {
+      "count": 2,
+      "info": [
+        {
+          "key": "funnel_plate",
+          "name": "方法共振（板块版）",
+          "opac": "0.72",
+          "borderStyle": "dashed",
+          "badge": "已淘汰",
+          "foot": "已淘汰 · 点开看为什么",
+          "num": "已淘汰"
+        },
+        {
+          "key": "fm_fund_signal",
+          "name": "基金经理策略信号",
+          "opac": "0.72",
+          "borderStyle": "dashed",
+          "badge": "已淘汰",
+          "foot": "已淘汰 · 点开看为什么",
+          "num": "已淘汰"
+        }
+      ],
+      "chainBefore": 0,
+      "chainAfter": 0,
+      "drawerOpen": true,
+      "deadBoxText": "已淘汰2026-11-03维度不匹配：它是**板块**排序，喂给它的是板块代码不是个股代码，没法参与个股级联。板块级结论仍然有效（留在「方法共振」原面板），只是不能当工具包里的齿。要变成工具，得先补「板块→成分股」的展开层。",
+      "drawerTitle": "方法共振（板块版）"
+    },
+    "escClose1": true,
+    "drawer": {
+      "open": true,
+      "maskOpen": true,
+      "chainUnchanged": true,
+      "rows": [
+        "适用板块",
+        "为什么收它",
+        "作用",
+        "实测表现",
+        "短板",
+        "最近一次运行"
+      ],
+      "meta": "收录 2026-11-03 · 来源 本项目自带",
+      "params": [
+        "谷底驻留下限",
+        "箱体位置上限",
+        "箱体最短年限"
+      ],
+      "hasReasonInput": true,
+      "closeBtn": true
+    },
+    "paramChange": {
+      "drawerStillOpen": true,
+      "reasonValue": "QA 轮询保护测试：这行字不能被冲掉",
+      "focused": "tbxReason",
+      "override": {
+        "min_dwell": 0.3
+      },
+      "pending": false,
+      "laneText": "还没筛 —— 下面任点一张卡就开始了"
+    },
+    "maskClose": false,
+    "sizes": {
+      "dotI": "14x14",
+      "laneX": null,
+      "card": "154x105",
+      "numWrappedCards": [
+        "准入闸门",
+        "箱体谷底",
+        "避雷 C 档",
+        "质量龙头",
+        "机构新进建仓"
+      ],
+      "docW": 1600,
+      "winW": 1600
+    },
+    "paramStage": {
+      "ms": 201,
+      "nums": [
+        "5,264",
+        "615",
+        "615"
+      ],
+      "labels": [
+        "干净宇宙",
+        "箱体谷底",
+        "出池 615 只"
+      ],
+      "drops": [
+        "−4,649"
+      ],
+      "text": "5,264干净宇宙›×615箱体谷底−4,649›615出池 615 只"
+    },
+    "contrastLight": {
+      "theme": "static/themes/light-tech.css",
+      "pageBg": "rgb(250, 247, 240)",
+      "cardOn": {
+        "bg": "color(srgb 0.869333 0.90698 0.896)",
+        "fg": "rgb(26, 26, 26)",
+        "ratio": 13.83,
+        "size": "13px"
+      },
+      "cardOnNum": {
+        "bg": "color(srgb 0.869333 0.90698 0.896)",
+        "fg": "rgb(14, 116, 144)",
+        "ratio": 4.26,
+        "size": "13px"
+      },
+      "cardOnFoot": {
+        "bg": "color(srgb 0.869333 0.90698 0.896)",
+        "fg": "rgb(107, 114, 128)",
+        "ratio": 3.84,
+        "size": "10px"
+      },
+      "cardNormal": {
+        "bg": "rgb(250, 247, 240)",
+        "fg": "rgb(26, 26, 26)",
+        "ratio": 16.27,
+        "size": "13px"
+      },
+      "laneNum": {
+        "bg": "color(srgb 0.887843 0.917255 0.903529)",
+        "fg": "rgb(26, 26, 26)",
+        "ratio": 14.21,
+        "size": "20px"
+      },
+      "laneLabel": {
+        "bg": "color(srgb 0.887843 0.917255 0.903529)",
+        "fg": "rgb(107, 114, 128)",
+        "ratio": 3.95,
+        "size": "10px"
+      },
+      "cardDead": {
+        "bg": "rgb(250, 247, 240)",
+        "fg": "rgb(26, 26, 26)",
+        "ratio": 16.27,
+        "size": "13px"
+      }
+    },
+    "contrastDark": {
+      "theme": "static/themes/dark-dashboard.css",
+      "pageBg": "rgb(22, 24, 29)",
+      "cardOn": {
+        "bg": "color(srgb 0.17851 0.102118 0.113255)",
+        "fg": "rgb(255, 255, 255)",
+        "ratio": 16.41,
+        "size": "13px"
+      },
+      "cardOnNum": {
+        "bg": "color(srgb 0.17851 0.102118 0.113255)",
+        "fg": "rgb(218, 41, 28)",
+        "ratio": 3.37,
+        "size": "13px"
+      },
+      "cardOnFoot": {
+        "bg": "color(srgb 0.17851 0.102118 0.113255)",
+        "fg": "rgb(166, 171, 181)",
+        "ratio": 7.12,
+        "size": "10px"
+      },
+      "cardNormal": {
+        "bg": "rgb(22, 24, 29)",
+        "fg": "rgb(255, 255, 255)",
+        "ratio": 17.76,
+        "size": "13px"
+      },
+      "laneNum": {
+        "bg": "color(srgb 0.163137 0.100784 0.113333)",
+        "fg": "rgb(255, 255, 255)",
+        "ratio": 16.67,
+        "size": "20px"
+      },
+      "laneLabel": {
+        "bg": "color(srgb 0.163137 0.100784 0.113333)",
+        "fg": "rgb(166, 171, 181)",
+        "ratio": 7.24,
+        "size": "10px"
+      },
+      "cardDead": {
+        "bg": "rgb(22, 24, 29)",
+        "fg": "rgb(255, 255, 255)",
+        "ratio": 17.76,
+        "size": "13px"
+      }
+    }
+  },
+  "checks": [
+    {
+      "id": 1,
+      "ok": true,
+      "detail": "首屏 1389ms，卡 22 张，待算卡 0 张"
+    },
+    {
+      "id": 2,
+      "ok": true,
+      "detail": "点击后 265ms 出数；筛道 5,264干净宇宙›×699箱体谷底−4,565›699出池 699 只"
+    },
+    {
+      "id": 3,
+      "ok": true,
+      "detail": "点击后 231ms 出数（阈值 500ms）；筛道 5,264干净宇宙›×699箱体谷底−4,565›×679准入闸门−20›679出池 679 只"
+    },
+    {
+      "id": 9,
+      "ok": true,
+      "detail": "[\"✕\",\"✕\",\"第 1 级淘汰：形态未过一级门槛（数据不足 / 日均成交额过低 / 不在 750 日低位 / 箱体不规整）\"]"
+    },
+    {
+      "id": 4,
+      "ok": true,
+      "detail": "{\"ms\":175,\"before\":4,\"after\":3,\"nums\":[\"5,264\",\"699\",\"699\"],\"text\":\"5,264干净宇宙›×699箱体谷底−4,565›699出池 699 只\",\"pool\":\"699\",\"chain\":[\"box_bottom\"]}"
+    },
+    {
+      "id": 5,
+      "ok": true,
+      "detail": "{\"ms\":216,\"lane\":\"还没筛 —— 下面任点一张卡就开始了\",\"pool\":\"5,264\",\"chainLen\":0}"
+    },
+    {
+      "id": 6,
+      "ok": true,
+      "detail": "{\"empty\":{\"tag\":\"空筛道\",\"ok\":true,\"suggest\":699,\"manual\":699,\"name\":\"箱体谷底\",\"key\":\"box_bottom\",\"ms\":206},\"one\":{\"tag\":\"一级（699）\",\"ok\":true,\"suggest\":104,\"manual\":104,\"name\":\"双底（W）\",\"key\":\"tv_wbottom\",\"ms\":189}}"
+    },
+    {
+      "id": 7,
+      "ok": true,
+      "detail": "{\"count\":2,\"info\":[{\"key\":\"funnel_plate\",\"name\":\"方法共振（板块版）\",\"opac\":\"0.72\",\"borderStyle\":\"dashed\",\"badge\":\"已淘汰\",\"foot\":\"已淘汰 · 点开看为什么\",\"num\":\"已淘汰\"},{\"key\":\"fm_fund_signal\",\"name\":\"基金经理策略信号\",\"opac\":\"0.72\",\"borderStyle\":\"dashed\",\"badge\":\"已淘汰\",\"foot\":\"已淘汰 · 点开看为什么\",\"num\":\"已淘汰\"}],\"chainBefore\":0,\"chainAfter\":0,\"drawerOpen\":true,\"deadBoxText\":\"已淘汰2026-11-03维度不匹配：它是**板块**排序，喂给它的是板块代码不是个股代码，没法参与个股级联。板块级结论仍然有效（留在「方法共振」原面板），只是不能当工具包里的齿。要变成工具，得先补「板块→成分股」的展开层。\",\"drawerTitle\":\"方法共振（板块版）\"}"
+    },
+    {
+      "id": 7.5,
+      "ok": true,
+      "detail": "{\"rows\":[\"适用板块\",\"为什么收它\",\"作用\",\"实测表现\",\"短板\",\"最近一次运行\"],\"params\":[\"谷底驻留下限\",\"箱体位置上限\",\"箱体最短年限\"],\"meta\":\"收录 2026-11-03 · 来源 本项目自带\"}"
+    },
+    {
+      "id": 8.1,
+      "ok": true,
+      "detail": "{\"drawerStillOpen\":true,\"reasonValue\":\"QA 轮询保护测试：这行字不能被冲掉\",\"focused\":\"tbxReason\",\"override\":{\"min_dwell\":0.3},\"pending\":false,\"laneText\":\"还没筛 —— 下面任点一张卡就开始了\"}"
+    },
+    {
+      "id": "8-mask",
+      "ok": false,
+      "detail": "点遮罩后抽屉已关闭=false（规格 §2.6 要求点遮罩能关）"
+    },
+    {
+      "id": 8,
+      "ok": true,
+      "detail": "新参数一关 201ms，结果 [\"5,264\",\"615\",\"615\"] 文案：5,264干净宇宙›×615箱体谷底−4,649›615出池 615 只"
+    }
+  ],
+  "errors": {
+    "pageErrors": [],
+    "consoleErrors": [
+      "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element."
+    ]
+  },
+  "notes": [],
+  "firstScreen": {
+    "title": "工具箱 · 筛台",
+    "pool": "5,264",
+    "laneText": "还没筛 —— 下面任点一张卡就开始了",
+    "wallN": "可用 20 个 · 已淘汰 2 个（照样摆着，写明了原因）",
+    "cards": 22,
+    "pendingCards": 0,
+    "deadCards": [
+      "方法共振（板块版）",
+      "基金经理策略信号"
+    ],
+    "laneCount": 0,
+    "warmText": "预热 20/20 个工具",
+    "suggested": {
+      "name": "箱体谷底",
+      "text": "5,264 → 699（砍掉 86.7%）"
+    },
+    "resText": "还没筛，没有名单。"
+  },
+  "netStackCount": 15,
+  "netStackBad": [],
+  "final": {
+    "pool": "699",
+    "lane": "5,264干净宇宙›×699箱体谷底−4,565›699出池 699 只",
+    "theme": "static/themes/dark-dashboard.css"
+  }
+}

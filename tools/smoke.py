@@ -11,6 +11,7 @@
 # 用法：python tools/smoke.py
 #   exit 0 = 全部通过；exit 1 = 存在失败项（可用于 CI / 提交前门禁）
 import os
+import re
 import sys
 import glob
 import json
@@ -161,6 +162,55 @@ for ext in ("*.py", "*.md"):
             if kw in txt:
                 hits.append((rel, kw))
 check("红线零命中(业务代码)", len(hits) == 0, "" if not hits else "命中=%s" % hits[:5])
+
+# ---- 7. 调度注册一致性（JOBS 写了却跑不到 = 静默死任务） ----
+# 2026-11-05 自审新增。本文件开头就把「JOBS 字典漏注册（函数写了跑不到）」列为要挡的
+# 低级错误，但**从来没有对应的检查** —— 于是它真的发生了：
+#   · `plate_members`（ARCHITECTURE §五 明确要跑，填官方板块成员）
+#   · `signal_backtest`（ARCHITECTURE §六 明确"已补注册"）
+#   两个都只登在 `tools/sched_job.py::JOBS` 里，而 `viewer/server.py::_sched_tasks()`
+#   压根没列它们 → 子进程永远等不到调用方，`job_runs` 里零记录，也没人发现。
+#
+# 根因是**双注册表**：JOBS 说"这个任务有实现"，_sched_tasks 说"它什么时候跑"。
+# 两处必须同时登记，而文档口径一直写的是"JOBS 是唯一注册表"—— 文档与实现不符。
+# 这条检查把两处拉齐：JOBS 里每个键都必须在 _sched_tasks() 出现过，
+# 唯一豁免是被 `viewer/config.DISABLED_SCHED` 显式停用（停用是一份有理由的清单）。
+print("\n[7] 调度注册一致性（JOBS ↔ server._sched_tasks）")
+_sj = os.path.join(ROOT, "tools", "sched_job.py")
+_sv = os.path.join(ROOT, "viewer", "server.py")
+jobs_keys, task_keys = set(), set()
+try:
+    _txt = open(_sj, encoding="utf-8", errors="ignore").read()
+    _i = _txt.find("JOBS = {")
+    _j = _txt.find("\n}", _i)
+    jobs_keys = set(re.findall(r'^\s{4}"([a-z0-9_]+)"\s*:', _txt[_i:_j], re.M))
+except Exception as _e:  # noqa: BLE001
+    check("能读出 JOBS 注册表", False, str(_e))
+try:
+    _txt2 = open(_sv, encoding="utf-8", errors="ignore").read()
+    # 三种登记写法都算「有入口」，缺一不可：
+    #   ① `_sched_tasks()` 的 `("名字", 可调用)` 行；② `_daily_job("名字", (H, M))` 的日更；
+    #   ③ 任何位置的 `_spawn_offproc("名字")`（含在别的 _maybe 函数里间接派发的）。
+    _k = _txt2.find("def _sched_tasks()")
+    _m = _txt2.find("\ndef ", _k + 10)
+    task_keys = set(re.findall(r'\(\s*"([a-z0-9_]+)"\s*,', _txt2[_k:_m]))
+    task_keys |= set(re.findall(r'_daily_job\(\s*"([a-z0-9_]+)"', _txt2))
+    task_keys |= set(re.findall(r'_spawn_offproc\(\s*"([a-z0-9_]+)"', _txt2))
+    # ④ 重量级面板：`_HEAVY_CACHE` 的 `"job": "名字"`（由 _heavy_daily_refresh 按 TTL 派发）
+    task_keys |= set(re.findall(r'"job"\s*:\s*"([a-z0-9_]+)"', _txt2))
+except Exception as _e:  # noqa: BLE001
+    check("能读出 server._sched_tasks", False, str(_e))
+check("JOBS 注册表非空", len(jobs_keys) >= 25, "=%d 个任务" % len(jobs_keys))
+check("_sched_tasks 清单非空", len(task_keys) >= 25, "=%d 个任务" % len(task_keys))
+_off = set(getattr(cfg, "DISABLED_SCHED", frozenset()))
+_manual = set(getattr(cfg, "MANUAL_ONLY_SCHED", frozenset()))
+_orphan = sorted(jobs_keys - task_keys - _off - _manual)
+check("JOBS 里每个任务都有调度入口（或已显式声明停用/仅手动）", len(_orphan) == 0,
+      "写了但永远跑不到=%s（DISABLED_SCHED=%s MANUAL_ONLY_SCHED=%s）"
+      % (_orphan, sorted(_off), sorted(_manual)))
+# 反向检查：清单里登记的豁免名必须在 JOBS 里真实存在，防止"清单腐烂"
+_stale = sorted((_off | _manual) - jobs_keys)
+check("停用/手动清单里的名字都真实存在于 JOBS", len(_stale) == 0, "幽灵条目=%s" % _stale)
 
 # ---- 汇总 ----
 print("\n" + "=" * 60)
