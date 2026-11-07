@@ -146,6 +146,34 @@ def signal_weight(name: str):
 #   面板改为显示"停更于 2026-10-20"，从本清单删掉名字即恢复调度。
 DISABLED_SCHED = frozenset({"douyin_corpus"})
 
+# **故意**不进每日调度的任务（2026-11-05 自审新增）。
+#
+# 为什么需要一份显式清单：`tools/sched_job.py::JOBS` 只说"这个任务有实现"，
+# `viewer/server.py::_sched_tasks()` 才说"它什么时候跑"。两处都登记才算接入主线。
+# 但确实存在「有实现、按设计就不该每天跑」的任务 —— 例如季度重算的全量回测。
+# 如果不给这份清单，`tools/smoke.py` 的调度一致性检查只能二选一：
+#   要么把它当缺陷误报，要么整条检查关掉 —— 后者正是「断言空转」的老毛病。
+#
+# 加进本清单 = 明确声明「人工/lowfreq 触发」。**不是**"暂时不想管"的垃圾桶：
+# 加之前必须能回答"它由谁、按什么节奏触发"。
+MANUAL_ONLY_SCHED = frozenset({
+    # 全量信号 alpha 回测：读 stock_indicators_daily 约 135 万行，单轮 ~30min。
+    # 设计口径是「季度重算」，由人按 `python tools/sched_job.py signal_backtest` 触发，
+    # 结论落 signal_backtest 表 → 人工复核后回写 CFG.SIGNAL_WEIGHTS。
+    # 依据：tools/sched_job.py::_signal_backtest 的 docstring 明写"不进每日自动调度"。
+    # 2026-11-05 自审事实：`job_runs` 里 signal_backtest **零记录** —— 也就是说
+    # 所谓"季度重算"从未发生，SIGNAL_WEIGHTS 自 2026-10-27 建成起一直没重算过。
+    # 这条留在本清单是**如实标注现状**，不是认可它；补跑计划见 DECISIONS.md。
+    "signal_backtest",
+    # 因子来源发现（2026-11-03 三期）：GitHub 扫仓库 → 入待办清单，**不产出因子**。
+    # 依据：tools/sched_job.py::_factor_discover 的 docstring 明写
+    #   「调用方是每日任务，每天扫 GitHub 既浪费配额又没意义」「自节流 7 天」。
+    # 即设计意图是「低频/手动触发」，由人按 `python tools/sched_job.py factor_discover` 触发，
+    # 内部 7 天节流决定真正扫描；它不是数据生产链（不写行情/因子层），属探索工具。
+    # 2026-11-07 补登记：消除 smoke 第7节「写了却跑不到」的误报，同时如实标注为手动。
+    "factor_discover",
+})
+
 # 雪球人轴抓取（xueqiu_person.py / xueqiu_cube_*.py|.cjs）：2026-10-30 停止使用。
 #   它从未进过自动调度（一直是手动跑的辅助脚本），所以停用 = 在入口拦一道，
 #   防止以后误跑把「大V操作」这类已被证伪的信号重新灌回系统。
