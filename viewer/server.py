@@ -126,7 +126,6 @@ try:
 except Exception:  # noqa: BLE001
     cu = None
 
-
 def _setup_logging() -> None:
     """建议10 / P3 日志治理：server 独立启动（不经 desktop_app）也要有 UTF-8 落盘。
 
@@ -155,7 +154,6 @@ def _setup_logging() -> None:
             root.setLevel(logging.INFO)
     except Exception as e:  # noqa: BLE001 —— 日志挂了不能拖垮启动
         print(f"[server] 日志初始化失败（不影响启动）：{e}", file=sys.stderr)
-
 
 _setup_logging()
 
@@ -228,7 +226,6 @@ DB = Database()
 INGEST = Ingestor(DB)
 PORT = int(os.environ.get("VIEWER_PORT", "8765"))
 
-
 # ── 2026-11-01 P2「首屏 JS 传输量 < 300KB」：静态文本资源 gzip ─────────────────────
 # 为什么用 gzip 而不是代码分割：验收量的是**网络字节数**，不是源码字节数。
 #   `app.js` 是 1.21MB 单文件，文本压缩率约 4.5x → 约 270KB，加压缩即达标；
@@ -260,7 +257,6 @@ _GZIP_CACHE: dict = {}          # (abs_path, mtime_ns, size) -> gzip bytes（插
 _GZIP_CACHE_BYTES = 0
 _GZIP_CACHE_LOCK = threading.Lock()
 
-
 def _media_type(ctype: str) -> str:
     """`application/javascript; charset=utf-8` → `application/javascript`。
 
@@ -272,7 +268,6 @@ def _media_type(ctype: str) -> str:
     """
     return (ctype or "").split(";", 1)[0].strip().lower()
 
-
 def _is_compressible(ctype: str, data: bytes) -> bool:
     """这个响应值不值得**尝试** gzip（压完更大时由 `_gzip_cached` 再否决一次）。"""
     if len(data) <= _GZIP_MIN_BYTES:
@@ -281,7 +276,6 @@ def _is_compressible(ctype: str, data: bytes) -> bool:
     if not (media.startswith("text/") or media in _COMPRESSIBLE_TYPES):
         return False
     return not any(data.startswith(m) for m in _BINARY_MAGIC)
-
 
 def _gzip_cached(real: Path, data: bytes, st=None):
     """gzip 压缩并缓存；同一 `(路径, mtime_ns, size)` 只压一次。
@@ -316,14 +310,12 @@ def _gzip_cached(real: Path, data: bytes, st=None):
                 _GZIP_CACHE_BYTES -= len(evicted)
         return _GZIP_CACHE.get(key, packed)
 
-
 def _gzip_cache_clear() -> None:
     """清空压缩缓存（测试用；生产不需要，失效靠 mtime）。"""
     global _GZIP_CACHE_BYTES
     with _GZIP_CACHE_LOCK:
         _GZIP_CACHE.clear()
         _GZIP_CACHE_BYTES = 0
-
 
 # ── 2026-11-01 P2：ETag + 304 —— 让「重复访问」不再重下正文 ─────────────────────
 # **`no-cache` ≠ 必须重传正文。** 这两件事被混在一起，是"代码天天改"的场景下最容易
@@ -334,7 +326,6 @@ def _gzip_cache_clear() -> None:
 # 不能让浏览器用旧版），但**每次 F5 都重下 402KB** 完全没必要 —— 加上 ETag 之后，
 # 浏览器带 `If-None-Match` 来问，服务端比对一致就回 `304`（零正文）。
 _ETAG_GZIP_SUFFIX = "-gz"
-
 
 def _make_etag(st, gzip_variant: bool) -> str:
     """由 `(mtime_ns, size)` 现算 ETag —— **每次请求现算，不用启动时快照**。
@@ -352,7 +343,6 @@ def _make_etag(st, gzip_variant: bool) -> str:
     """
     tag = "%x-%x" % (int(getattr(st, "st_mtime_ns", 0)), int(getattr(st, "st_size", 0)))
     return '"%s%s"' % (tag, _ETAG_GZIP_SUFFIX if gzip_variant else "")
-
 
 def _etag_matches(if_none_match: str, etag: str) -> bool:
     """`If-None-Match` 比对：支持 `*`、逗号多值、`W/` 弱前缀。
@@ -374,8 +364,6 @@ def _etag_matches(if_none_match: str, etag: str) -> bool:
             return True
     return False
 
-
-
 def _parse_dt_loose(s: str):
     """宽松解析时间串（支持 秒/分/日 三种精度），失败返回 None。"""
     s = (s or "").strip()
@@ -388,7 +376,6 @@ def _parse_dt_loose(s: str):
             continue
     return None
 
-
 def _hold_days(since: str, end: str | None = None) -> int | None:
     """持仓起始日 → 结束日（缺省今日）的天数；用于标注「已持有 N 天」。"""
     d0 = _parse_dt_loose(since)
@@ -398,7 +385,6 @@ def _hold_days(since: str, end: str | None = None) -> int | None:
     if not d1:
         d1 = datetime.now()
     return max((d1 - d0).days, 0)
-
 
 def _truthy(v) -> bool:
     """宽松判定「二次确认」字段是否为真值。
@@ -415,14 +401,11 @@ def _truthy(v) -> bool:
         return v.strip().lower() in ("1", "true", "yes", "y", "on")
     return False
 
-
 # 破坏性接口未获确认时的统一 409 载荷（P0-2）
 _DESTRUCTIVE_HINT = "该操作会清空全部业务数据（含海外新闻、热点、持仓、帖子），需要二次确认"
 
-
 def _destructive_payload() -> dict:
     return {"error": "destructive_operation", "hint": _DESTRUCTIVE_HINT, "require_confirm": True}
-
 
 def _backup_failed_payload(detail: str = "") -> dict:
     """前置快照失败时的统一错误载荷（P0-2 第 4 点，2026-09-22）。
@@ -437,7 +420,6 @@ def _backup_failed_payload(detail: str = "") -> dict:
         p["detail"] = detail[:200]
     return p
 
-
 def _named(symbol: str, fallback: str = "") -> dict:
     """把代码翻译成「简称 / 公司全称 / 板块」。库内已有名称优先，其次走解析器。"""
     info = get_resolver(db=DB).resolve(symbol, allow_online=False)
@@ -451,14 +433,12 @@ def _named(symbol: str, fallback: str = "") -> dict:
         "name_missing": not bool(name),
     }
 
-
 def _sites() -> list[str]:
     try:
         d = load_config()
         return list(d.get("sites", {}).keys())
     except Exception:
         return ["taoguba"]
-
 
 def _ingest_item_count(res) -> int:
     """汇总 Ingestor.ingest 的 stats 里的「本次处理条目数」。
@@ -471,7 +451,6 @@ def _ingest_item_count(res) -> int:
         return 0
     return sum(v for k, v in res.items()
                if k != "site" and isinstance(v, int) and not isinstance(v, bool))
-
 
 # ---------------- 刷新状态（Request G：最后更新列 / 实时刷新记录） ----------------
 # 数据来源中文显示名（「最后更新」列的 tooltip 与刷新状态标识用）。
@@ -490,7 +469,6 @@ REFRESH_INTERVAL_SECONDS = int(os.environ.get("VIEWER_REFRESH_INTERVAL", "300"))
 REFRESH_STALE_SECONDS = int(os.environ.get("VIEWER_STALE_SECONDS",
                                            str(REFRESH_INTERVAL_SECONDS * 2)))
 
-
 def _kb_sources() -> list[dict]:
     """已启用的知识库来源配置（config/kb_sources.yaml）。配置缺失/损坏时退回空表。"""
     try:
@@ -499,10 +477,8 @@ def _kb_sources() -> list[dict]:
         logging.exception("读取 kb_sources.yaml 失败")
         return []
 
-
 def _kb_keys() -> list[str]:
     return [(c.get("doc_key") or "kb") for c in _kb_sources()]
-
 
 def _retired_feeds() -> list:
     """已退役 / 已冻结的数据源清单（2026-10-30）。
@@ -545,7 +521,6 @@ def _retired_feeds() -> list:
                     "why": "「跟人操作」经同日配对检验后不显著",
                     "affects": "无自动面板（一直是手动辅助脚本）"})
     return out
-
 
 def api_refresh_status() -> dict:
     """刷新状态汇总（Request G）。
@@ -595,7 +570,6 @@ def api_refresh_status() -> dict:
         "retired_feeds": _retired_feeds(),
     }
 
-
 def api_market_freshness() -> dict:
     """行情新鲜度：现抓基准标的（上证指数 sh000001）的**实时行情时间戳**，供顶栏如实显示。
 
@@ -638,14 +612,12 @@ def api_market_freshness() -> dict:
                    "quote_time": qt, "lag_seconds": lag, "ok": True})
     return {"market": market}
 
-
 # ---------------- 学习知识库（「跟我学习 → 中短线炒股」） ----------------
 KB_DEFAULT_KEY = "zdx_stock"
 # 知识库刷新周期：上游每天导出一次，故默认 24 小时；超时阈值取 2 倍（48 小时）。
 # 与行情数据（5 分钟）分开计时——学习内容本来就不该按分钟判新鲜度。
 KB_INTERVAL_SECONDS = int(os.environ.get("VIEWER_KB_INTERVAL", str(24 * 3600)))
 KB_STALE_SECONDS = int(os.environ.get("VIEWER_KB_STALE", str(48 * 3600)))
-
 
 def api_kb_list() -> dict:
     """知识库索引：已吸取的文档 + 配置里声明但尚未吸取的来源，一并列出。
@@ -694,7 +666,6 @@ def api_kb_list() -> dict:
     return {"docs": rows, "default_key": KB_DEFAULT_KEY,
             "interval_seconds": KB_INTERVAL_SECONDS,
             "stale_seconds": KB_STALE_SECONDS}
-
 
 def api_kb_doc(doc_key: str | None = None, light: bool = False) -> dict:
     """取一份知识库文档（**扁平结构**，前端不必在嵌套 JSON 里找键）。
@@ -758,7 +729,6 @@ def api_kb_doc(doc_key: str | None = None, light: bool = False) -> dict:
             out.setdefault(_k, _v)
     return out
 
-
 def kb_reload(doc_key: str | None = None, force: bool = False) -> dict:
     """重新吸取知识库（幂等）。
 
@@ -794,7 +764,6 @@ def kb_reload(doc_key: str | None = None, force: bool = False) -> dict:
             results.append({"doc_key": key, "status": "error", "error": err})
     return {"results": results, "summary": api_kb_list()}
 
-
 # ---------------- API 实现 ----------------
 def _site_login_meta(site_key: str) -> dict:
     """从站点配置取登录相关的展示信息（登录网址 / 中文名 / 是否需要登录）。
@@ -818,7 +787,6 @@ def _site_login_meta(site_key: str) -> dict:
         url = "https://www.tgb.cn"
     return {"display_name": display, "login_url": url, "requires_login": requires}
 
-
 def _jl(v, dflt=None):
     """安全解析 JSON 字符串字段（落库时为 TEXT）。"""
     fallback = dflt if dflt is not None else []
@@ -829,43 +797,7 @@ def _jl(v, dflt=None):
     except Exception:  # noqa: BLE001
         return fallback
 
-
 _api_ver_cache = {"mtime": -1.0, "version": None}
-
-
-def api_version() -> dict:
-    """前端版本号（唯一真源 = index.html 的 <meta name="app-version" content="...">）。
-
-    2026-10-02 加：王总反馈「集合竞价功能做了但桌面窗口里看不到」。根因是**已在运行的页面不会重新加载自己**——
-    页面里的 JS 只定时拉 /api/dashboard 刷数据，不会重新拉 index.html / app.js，所以昨晚开的窗口
-    永远跑着昨晚那版代码，接口把新数据给过去它也渲染不出来。
-    对策：前端每 60s 比一次版本，不一致就在顶部弹提示条让用户点一下刷新（比让他猜「要按 F5」可靠）。
-    """
-    # P3-19：index.html 的 app-version 用 st_mtime 缓存，避免 60s 轮询每次 read_text+regex。
-    # 文件变动（F5 部署新前端）后 mtime 变化才重新解析。
-    try:
-        p = STATIC_DIR / "index.html"
-        mt = p.stat().st_mtime
-        if _api_ver_cache["mtime"] != mt:
-            html = p.read_text(encoding="utf-8")
-            m = re.search(r'<meta\s+name=["\']app-version["\']\s+content=["\']([^"\']+)["\']\s*/?>', html)
-            _api_ver_cache["mtime"] = mt
-            _api_ver_cache["version"] = m.group(1) if m else None
-    except (OSError, UnicodeDecodeError):
-        pass
-    # 2026-10-05（优化报告 建议1）：带上服务进程 pid。桌面端起新实例前可以用它
-    # 判断「是不是撞上已经在跑的那一台」，避免再开一个窗口出来（1 server + N desktop）。
-    return {"version": _api_ver_cache["version"], "served_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "pid": os.getpid(),
-            # 2026-10-16：进程启动时定格的代码指纹 + 启动时刻。供 desktop_app 判断
-            # 「8765 上跑的是不是当前磁盘上的代码」——是旧代码就必须接管重启，
-            # 否则新加的路由在这个进程里根本不存在（表现为 404，界面看着还是新版）。
-            "build_id": _BUILD_ID,
-            "started_at": _STARTED_AT,
-            # 2026-10-15：当前正在跑的调度任务名。用于现场诊断"整站被冻住"——
-            # 若某个纯 Python 任务长时间占住 GIL，这个字段会一直停在该任务名上。
-            "sched_task": globals().get("_SCHED_CURRENT", "-")}
-
 
 # ── 2026-10-14 性能修复：重接口结果内存缓存 ──
 # watch_list / dashboard 这类要重算十几秒的接口，结果缓存 300s，命中即返回 <1s；
@@ -874,18 +806,15 @@ def api_version() -> dict:
 _api_cache: dict = {}
 _api_cache_lock = threading.Lock()
 
-
 def _api_cache_get(key: str):
     e = _api_cache.get(key)
     if e and (time.time() - e[0]) < e[2]:
         return e[1]
     return None
 
-
 def _api_cache_put(key: str, val, ttl: int = 300):
     with _api_cache_lock:
         _api_cache[key] = (time.time(), val, ttl)
-
 
 def _api_cache_invalidate(prefix: str = None):
     with _api_cache_lock:
@@ -920,14 +849,12 @@ def _api_cache_invalidate(prefix: str = None):
 _API_SWR_INFLIGHT: dict = {}
 _API_SWR_LOCK = threading.Lock()
 
-
 def _api_cache_get_any(key: str):
     """返回 (value, age_seconds)；无缓存返回 (None, None)。不做过期判断。"""
     e = _api_cache.get(key)
     if not e:
         return None, None
     return e[1], (time.time() - e[0])
-
 
 def _swr_refresh(key: str, fn) -> bool:
     """后台重算一次（同 key 防重入）。立即返回，不阻塞请求线程。"""
@@ -951,7 +878,6 @@ def _swr_refresh(key: str, fn) -> bool:
     threading.Thread(target=_run, name="swr-" + key, daemon=True).start()
     return True
 
-
 # 快照落盘：进程重启后内存缓存必空，若不留盘上快照，每次重开页面都要再吃一次 32s 冷算。
 # 2026-10-30：泛化成按 name 取文件（viewer/logs/<name>_snapshot.json）。
 #   原因（主理人指出，比我另拼一条 _wh 路径靠谱得多）：dashboard 这套「过期回旧值 + 后台重算 +
@@ -961,12 +887,10 @@ def _swr_refresh(key: str, fn) -> bool:
 _SNAP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
 _DASH_SNAP_PATH = os.path.join(_SNAP_DIR, "dashboard_snapshot.json")   # 兼容保留：等价 _snap_path("dashboard")
 
-
 def _snap_path(name: str) -> str:
     """快照文件路径：viewer/logs/<name>_snapshot.json（name 中的分隔符不做转义，只接受内部常量）。"""
     key = str(name or "").strip() or "misc"
     return os.path.join(_SNAP_DIR, "%s_snapshot.json" % key)
-
 
 def _snap_save(name: str, out: dict) -> None:
     """把某接口的最终结果落盘（tmp + os.replace 原子替换）。失败静默：快照只是兜底，绝不影响响应。"""
@@ -984,7 +908,6 @@ def _snap_save(name: str, out: dict) -> None:
     except Exception:  # noqa: BLE001
         logging.getLogger(__name__).debug("%s 快照落盘失败", name, exc_info=True)
 
-
 def _snap_load(name: str):
     """读回 (data, age_seconds)；没有/损坏返回 (None, None)。"""
     try:
@@ -997,16 +920,13 @@ def _snap_load(name: str):
     except Exception:  # noqa: BLE001
         return None, None
 
-
 def _dashboard_snapshot_save(out: dict) -> None:
     """兼容旧名（2026-10-30 泛化后保留）：等价 _snap_save("dashboard", out)，行为不变。"""
     _snap_save("dashboard", out)
 
-
 def _dashboard_snapshot_load():
     """兼容旧名：等价 _snap_load("dashboard")，仍读 viewer/logs/dashboard_snapshot.json。"""
     return _snap_load("dashboard")
-
 
 # ── 2026-10-30「盘后复盘优先」：把 dashboard 那套 SWR 抽成通用骨架，给三个冷态几十秒的接口复用 ──
 # 现场实测（主理人已完成，勿重测）：/api/today_decision 冷 52~57s / 热 16.8s；
@@ -1015,7 +935,6 @@ def _dashboard_snapshot_load():
 # 为什么不写第二条路（_wh 落盘快照）：dashboard 这套 2026-10-25 起已在线上跑，
 # 「过期回旧值 + 后台单飞重算 + 重启读盘」三段都验证过，复用它比新拼一条路径风险低。
 _API_SWR_TTL_DEFAULT = 1800
-
 
 def _swr_serve(key: str, compute, ttl: int = _API_SWR_TTL_DEFAULT, force: bool = False):
     """通用 SWR 骨架（口径与 api_dashboard 2026-10-25 的实现逐条一致）。
@@ -1049,7 +968,6 @@ def _swr_serve(key: str, compute, ttl: int = _API_SWR_TTL_DEFAULT, force: bool =
         _api_cache_put(key, out, ttl)
         _snap_save(key, out)
     return out
-
 
 def api_dashboard(force=False) -> dict:
     """今日看板：一屏给出「今天什么值得看」——主线研判（方向/龙头/梯队/分支） → 共识 → 数据新鲜度。
@@ -1273,7 +1191,6 @@ def api_dashboard(force=False) -> dict:
             _cost, ", ".join("%s %.2fs" % (t, s) for t, s in _marks))
     return out
 
-
 # ---------------------------------------------------------------- 今日决策（2026-10-12 体验审计 P0-A）
 # 报告《查看器体验审计与改造方案》的第 0 步：把「今日看板」里已有的**一句话结论**写法推广成
 # 全站首页 —— 一屏只答四件事：① 今天该盯哪个方向 ② 哪些票能上车（机会）
@@ -1296,13 +1213,11 @@ _AI_REVIEW_LOCK = threading.Lock()
 _AI_REVIEW_RUNNING: dict = {}      # provider -> 启动时间戳
 _AI_REVIEW_TTL = 4 * 3600          # 同一天同模型 4 小时内不重复烧钱（要新的就传 force=1）
 
-
 def _ai_review_mod():
     """延迟 import：模块本身只依赖标准库，但放函数内可让启动路径再省一点。"""
     from viewer import ai_review as _m
 
     return _m
-
 
 def _ai_review_maxid(conn) -> int:
     try:
@@ -1310,7 +1225,6 @@ def _ai_review_maxid(conn) -> int:
         return int(r[0] or 0) if r else 0
     except Exception:  # noqa: BLE001
         return 0
-
 
 def api_ai_review(date: str = "", provider: str = "", force: int = 0,
                   since_id: int = 0) -> dict:
@@ -1439,11 +1353,9 @@ def api_ai_review(date: str = "", provider: str = "", force: int = 0,
             "since_id": cur_max, "providers": provs, "review_date": date,
             "note": "已在后台用 %s 分析，约 10~60 秒后自动出结果" % provider}
 
-
 def api_ai_review_run(provider: str = "", date: str = "", since_id: int = 0) -> dict:
     """强制重算（POST）。与 GET 的区别仅在于跳过 TTL 缓存。"""
     return api_ai_review(date=date, provider=provider, force=1, since_id=since_id)
-
 
 def api_ai_review_history(limit: int = 30) -> dict:
     """历史复盘列表 —— 让「每天一份、可以回看、能对比兑现没有」成立。"""
@@ -1454,7 +1366,6 @@ def api_ai_review_history(limit: int = 30) -> dict:
         return {"ok": True, "items": rows, "providers": AR.available_providers()}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, str(e)[:150]), "items": []}
-
 
 def api_ai_review_detail(review_id: int = 0) -> dict:
     """单份复盘详情 + 它当时喂进去的信息包（审计：用户有权知道 AI 读了什么）。"""
@@ -1473,7 +1384,6 @@ def api_ai_review_detail(review_id: int = 0) -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, str(e)[:150])}
 
-
 def api_today_decision(force: bool = False) -> dict:
     """今日决策首页（体验审计 P0-A）：一屏四卡（方向/机会/风险/我的票）+ 一句话结论。
 
@@ -1485,7 +1395,6 @@ def api_today_decision(force: bool = False) -> dict:
     """
     return _td_ensure_gate_fields(
         _swr_serve("today_decision", _today_decision_compute, ttl=1800, force=force))
-
 
 def _td_ensure_gate_fields(d: dict) -> dict:
     """给旧快照补齐证据门禁字段（2026-11-01 P0-2）。
@@ -1531,8 +1440,6 @@ def _td_ensure_gate_fields(d: dict) -> dict:
         }
     return out
 
-
-
 #: 四支柱 pillar 键 → 证据门禁 source_key。
 #: 只映射**登记过**的四支柱；quant_self / self_learn 这类别的 pillar 故意不在表里 ——
 #: 它们会落到 "pillar_xxx" 这种未登记来源，被门禁判 watch 并在界面上写「未纳入证据账本」。
@@ -1545,14 +1452,12 @@ _PILLAR_SRC = {
     "resonance": "pillar_resonance",
 }
 
-
 def _pillar_source_key(pillar) -> str:
     """四支柱入选票 → 证据门禁的来源键。未登记的 pillar 退回 `pillar_<key>`（会被判 watch）。"""
     k = str(pillar or "").strip()
     if k in _PILLAR_SRC:
         return _PILLAR_SRC[k]
     return "pillar_%s" % (k or "unknown")
-
 
 def _today_decision_compute() -> dict:
     """真正的重算体（原 api_today_decision 的全部逻辑，一个字没动）。"""
@@ -1977,7 +1882,6 @@ def _today_decision_compute() -> dict:
                     "信息面（info_brief）给消息 Top。以上均为方向参考，非买卖建议。")
     return out
 
-
 # ---------------------------------------------------------------- 决策化改造 P0-D/E/F：三个「结论页」
 # 报告《查看器体验审计与改造方案》要求给三个大类各置顶一个汇总结论，替掉
 # 「6~9 个名单并列、得自己交叉比对」的现状。三者都**只读本地库、复用既有口径**：
@@ -2009,7 +1913,6 @@ def _mainline_map() -> tuple:
         logging.getLogger(__name__).warning("_mainline_map 失败: %s", e)
         return None, {}
 
-
 def _split_sectors(v) -> list:
     """政策/国际/海外的「影响板块」字段可能是 JSON 数组字符串，也可能逗号/顿号分隔。"""
     if not v:
@@ -2025,7 +1928,6 @@ def _split_sectors(v) -> list:
         except Exception:  # noqa: BLE001
             pass
     return [x.strip() for x in re.split(r"[,，、;；|]", s) if x.strip()]
-
 
 def api_info_brief(hours: int = 48) -> dict:
     """「消息与外围」顶部汇总结论（P0-D）：9 个子项 → 一屏「今日消息面 Top5 · 影响板块」。
@@ -2207,7 +2109,6 @@ def api_info_brief(hours: int = 48) -> dict:
                     "影响板块取自各源自带的 sectors 字段，未做二次推断。仅供方向参考，非投资建议。")
     return out
 
-
 def api_smart_money(min_holders: int = 2, days: int = 5,
                      max_age_days: int | None = None) -> dict:
     """「别人怎么做」置顶「聪明钱共识榜」（P0-E）：6 个名单 → 合成 1 条结论。
@@ -2292,7 +2193,6 @@ def api_smart_money(min_holders: int = 2, days: int = 5,
                     "方向归属取今日主线（数据日 %s）。它回答的是「别人在买什么」，不是买入建议。"
                     % (days, min_holders, mdate or "—"))
     return out
-
 
 def api_watch_brief() -> dict:
     """「我的票」置顶「今日提示」（P0-F）：关注池今天有没有事，而不是再给一堆工具。
@@ -2401,13 +2301,11 @@ def api_watch_brief() -> dict:
                     "主线归属取 sector_chain 今日数据日 %s。提醒是提示，不是买卖建议。" % (mdate or "—"))
     return out
 
-
 # ---------------------------------------------------------------- 分支透视
 # 看板横条上「人工智能 18」这种，本质只是一个数字，点开什么都没有 —— 用户要的是
 # 「都有谁 / 谁在买 / 大概会怎么走」。下面这个接口把分支展开成能直接判断的三块。
 _CHAIN_Q: dict = {"mtime": None, "data": {}}
 _SECTOR_REV: dict = {"mtime": None, "rev": {}}
-
 
 def _chain_quotes() -> dict:
     """主线研判的行情快照（sector_chain_cache.json：code -> {name,price,pct,...}）。
@@ -2426,7 +2324,6 @@ def _chain_quotes() -> dict:
         except Exception:  # noqa: BLE001 —— 缓存坏了就退回旧内容，不阻断弹层
             pass
     return _CHAIN_Q["data"] or {}
-
 
 def _sector_reverse() -> dict:
     """sector_map_cache.json 反转：概念板块名 -> [股票代码]。
@@ -2452,11 +2349,9 @@ def _sector_reverse() -> dict:
         _SECTOR_REV["mtime"] = mt
     return _SECTOR_REV["rev"] or {}
 
-
 # 分支透视的实时行情兜底缓存（120s TTL）：全市场概念成员大多不在 sector_chain_cache
 # 快照里（快照只覆盖主线成分 ~336 只），首次弹层拉一次批量行情，之后 2 分钟内秒开。
 _BRANCH_LIVE: dict = {"t": 0.0, "data": {}}
-
 
 def _branch_live_quotes(codes: list) -> dict:
     """成员股行情兜底：东财 ulist 批量（复用 _watch_prices，含腾讯逐只兜底）。
@@ -2492,7 +2387,6 @@ def _branch_live_quotes(codes: list) -> dict:
         else:
             _BRANCH_LIVE["data"][c] = {}   # 空标记：TTL 内不重试
     return out
-
 
 def api_branch_detail(sector: str, branch: str, date: str | None = None) -> dict:
     """分支透视：把看板上的分支数字展开成「都有谁 / 谁在买谁在说 / 大致判断」。
@@ -2732,25 +2626,6 @@ def api_branch_detail(sector: str, branch: str, date: str | None = None) -> dict
             "buyers": buyers, "advocates": advocates, "judge": judge,
             "note": "仅为方向参考，非买卖建议。"}
 
-
-def api_summary() -> dict:
-    counts = DB.counts()
-    login = DB.get_login_status()
-    # 给每条登录态补充「登录网址 + 中文名 + 是否需要登录」，使前端能渲染可点击的登录入口。
-    login = [
-        {**row, **_site_login_meta(row.get("site") or "")}
-        for row in login
-    ]
-    last = DB.get_meta("last_ingest", "尚未抓取")
-    return {"counts": counts, "login_status": login, "last_ingest": last,
-            # 「知识获取 → 抓取与登录记录」用：最近一次抓取动作的执行时刻
-            "last_fetch_at": DB.get_meta("last_fetch_at", ""),
-            "sites": _sites(),
-            # 2026-10-05（报告 P2 / 建议4）：把「选手榜 / 持仓采集」的配置可用性显性化。
-            # 这两项从来没配全过，界面上却是完整面板 —— 得让用户看见它是半启用状态。
-            "player_cfg": _player_cfg()}
-
-
 def _player_cfg() -> dict:
     """选手榜 / 持仓采集的配置体检结果（供前端打「该源未配置，仅行为反推」角标）。
 
@@ -2782,7 +2657,6 @@ def _player_cfg() -> dict:
         logging.exception("读取 player 配置体检失败")
     return out
 
-
 def api_raw_pages(limit: int = 60) -> dict:
     """原始存档（知识获取 → 原始存档）：抓取回来的原始页面清单。
 
@@ -2801,7 +2675,6 @@ def api_raw_pages(limit: int = 60) -> dict:
         "SELECT site, COUNT(*) AS n FROM raw_pages GROUP BY site ORDER BY n DESC")}
     return {"total": total, "shown": len(rows), "by_site": by_site,
             "pages": [dict(r) for r in rows]}
-
 
 def api_stocks() -> list[dict]:
     # sources：该股讨论帖来自哪些来源站点（Request G：「最后更新」列/角标据此判定时效）
@@ -2856,7 +2729,6 @@ def api_stocks() -> list[dict]:
         it["posture_posts"] = s.get("posts") or 0
     return out
 
-
 def _player_index() -> dict:
     """name -> {tier, platform}，供各列表统一标注「来源渠道」。"""
     idx: dict[str, dict] = {}
@@ -2868,7 +2740,6 @@ def _player_index() -> dict:
             "platform": r["platform"] or r["site"],
         }
     return idx
-
 
 def api_operating() -> list[dict]:
     # 2026-09-24：多返回 post_url 和 post_id，前端据此识别 demo（demo_data 写入的 post_url 全是 example.local
@@ -2888,7 +2759,6 @@ def api_operating() -> list[dict]:
         out.append(d)
     return out
 
-
 # 相关人物评分字段（来自 viewer/person_score.py 建的 person_scores 表）。
 # 2026-09-25 增量：王总反馈「角色」列零信息量、「最后更新」对人物无意义，真正要看的是
 # **历史战绩 + 打分排序**。故 api_persons 在保持老字段（name/mention_count/role/sites/tier/platform）
@@ -2904,7 +2774,6 @@ _PERSON_SCORE_COLUMNS = [
     "evidence_level", "score_detail_json", "public_record_json",
 ]
 
-
 def _load_json_or_none(raw):
     """把库里存 JSON 字符串的字段解析成对象；空/坏数据一律返回 None（前端按空处理）。"""
     if not raw:
@@ -2913,7 +2782,6 @@ def _load_json_or_none(raw):
         return json.loads(raw)
     except Exception:  # noqa: BLE001
         return None
-
 
 def _person_site_map() -> dict[str, list[str]]:
     """一次聚合出「每个作者的发帖站点」——原来每人一条 DISTINCT 查询（170 人 = 170 次，典型 N+1）。"""
@@ -2928,7 +2796,6 @@ def _person_site_map() -> dict[str, list[str]]:
     for r in rows:
         out.setdefault(r["name"], []).append(r["site"])
     return out
-
 
 def api_persons(limit: int = 0, offset: int = 0) -> list[dict]:
     """选手榜：返回 list（不传 limit 时与从前完全一致，前端零改）。
@@ -2977,7 +2844,6 @@ def api_persons(limit: int = 0, offset: int = 0) -> list[dict]:
         out.append(item)
     return out
 
-
 # ============================================================ 策略实验室（T03）
 # 2026-09-26 新增 /api/strategies：策略目录（strategy_data.STRATEGIES，唯一真源）
 # LEFT JOIN 窗口指标（strategy_sim_window，唯一真源），组装设计文档 §2 决策 6 的 JSON。
@@ -2995,7 +2861,6 @@ _STRATEGY_WINDOWS = [
 _STRATEGY_SWITCH_SCHOOL = "组合/仓位/择时"
 _STRATEGY_SWITCH_FAMILIES = {"vol_filter", "vol_regime"}
 
-
 def _strategy_switch_kind(family, school) -> str | None:
     """择时/仓位切换类的细分标签；非该类返回 None。"""
     if family in ("market_timing", "breadth", "regime"):
@@ -3008,7 +2873,6 @@ def _strategy_switch_kind(family, school) -> str | None:
         return "组合/仓位/择时"
     return None
 
-
 def _strategy_status_note(st: dict) -> str:
     """不可回测 / 口径受限的中文原因（界面直接展示，不使用任何数字）。"""
     if st.get("scope_limited"):
@@ -3018,7 +2882,6 @@ def _strategy_status_note(st: dict) -> str:
         return f"缺少{needs}，本次不可回测"
     return "缺少回测所需数据，本次不可回测"
 
-
 def _strategy_row_get(row, key, default=None):
     """安全读取 sqlite Row 的列：列不存在（旧库未 ALTER）时返回默认值，不抛 KeyError。"""
     try:
@@ -3027,14 +2890,12 @@ def _strategy_row_get(row, key, default=None):
         keys = []
     return row[key] if key in keys else default
 
-
 def _strategy_win_rate(row):
     """0 笔了结交易时胜率是「未定义」→ 返回 None（而非 0，避免被误读成"胜率 0%"）。"""
     trades = _strategy_row_get(row, "trades")
     if not trades:
         return None
     return _strategy_row_get(row, "win_rate")
-
 
 def _strategy_window_obj(row) -> dict | None:
     """把一行 strategy_sim_window 组装为中栏 mid 对象；row 为 None → None（无数据）。"""
@@ -3075,7 +2936,6 @@ def _strategy_window_obj(row) -> dict | None:
         "worst": _load_json_or_none(row["worst_json"]),
     }
 
-
 def _strategy_side_window_obj(row, name: str) -> dict | None:
     """把一行组装为右栏双窗口（h1/y1）精简对象；row 为 None → None。"""
     if row is None:
@@ -3101,7 +2961,6 @@ def _strategy_side_window_obj(row, name: str) -> dict | None:
         "sample_note": row["sample_note"],
     }
 
-
 def _fund_strat_brief(strat, key: str) -> dict:
     """策略目录真源里的简要信息（找不到也返回 key，供前端显示未知项）。"""
     if strat is None:
@@ -3116,7 +2975,6 @@ def _fund_strat_brief(strat, key: str) -> dict:
         "source": strat.get("source"),
         "found": True,
     }
-
 
 def api_fund_strategies(key: str | None) -> dict:
     """GET /api/fund_strategies?key=XXX —— 某策略对应的公募基金/ETF 关联（净口径）。
@@ -3211,7 +3069,6 @@ def api_fund_strategies(key: str | None) -> dict:
         "fund_count": len(funds),
         "n_strategies_total": total_strategies,
     }
-
 
 def api_strategies() -> dict:
     """GET /api/strategies —— 策略实验室一次全量数据（设计文档 §2 决策 6）。"""
@@ -3340,110 +3197,9 @@ def api_strategies() -> dict:
         "strategies": strategies,
     }
 
-
-def api_public_records() -> list[dict]:
-    """公开年赛战绩榜（外部参照）。
-
-    背景：用户要看的核心是「谁用多少钱做到了多少钱」。这是本库里**唯一**带真实收益的
-    公开战绩（淘股吧官方年赛 / 淘实盘榜单），但它与 persons 表**零交集**（竞赛账号 vs 本库
-    抓取的新浪/东财用户），所以单独成榜、不参与本库人物评分排名。
-
-    口径：
-    - 每个昵称取**代表条**，规则（2026-09-26 QA 复核后修正）：
-      ① **优先取「可核验」的那一期**（source_kind='article' 且有 source_url）；
-      ② 在同类里取 as_of_date 最新的一期；同日期并列取收益更高者（保证幂等）。
-      修正原因：原来纯按日期取最新，导致榜首 ra1en 展示 09-24 的 1177.26（搜索快照、无链接、
-      不可核验），却把他有原文可核验的 09-21 = 941.47 藏起来——方向反了。用户明确要求
-      「能查到的标注来源」，故宁可展示可核验的较早值。该人**完全没有任何带链接的记录**时，
-      才退回到快照里的最新一期。
-    - 「截至日期」列显示该代表条真实的 as_of_date，让口径透明（不让人误以为是今天的数据）。
-    - 按 total_return 降序（无收益的排最后）。
-    - has_link：只有「有稳定原文链接且来源不是搜索引擎快照」时才为 True，前端据此决定是否渲染外链。
-      绝不造一个假链接——用户明确要求「能查到的标注来源，查不到就留空」。
-
-    健壮性：public_records 表不存在时返回空数组（优雅降级，不 500）。
-    """
-    try:
-        rows = DB.conn.execute(
-            "SELECT nickname, platform, group_name, total_return, as_of_date, source_url, source_kind "
-            "FROM public_records"
-        ).fetchall()
-    except Exception:  # noqa: BLE001 —— 表不存在时降级为空榜
-        return []
-    best: dict[str, tuple] = {}
-    for r in rows:
-        d = dict(r)
-        nick = d.get("nickname")
-        if not nick:
-            continue
-        # 可核验 = 有原文链接且非搜索快照
-        verifiable = 1 if (d.get("source_url") and d.get("source_kind") == "article") else 0
-        # 排序键：(可核验优先, as_of 越新越好, 收益越高越好)；三者全是可比较的确定值 → 幂等
-        ret = d.get("total_return") if d.get("total_return") is not None else -1e18
-        key = (verifiable, d.get("as_of_date") or "", ret)
-        prev = best.get(nick)
-        if prev is None or key > prev[0]:
-            best[nick] = (key, d)
-    out = [v[1] for v in best.values()]
-    out.sort(key=lambda x: (x.get("total_return") is None, -(x.get("total_return") or 0)))
-    for d in out:
-        d["has_link"] = bool(d.get("source_url")) and (d.get("source_kind") != "search_snapshot")
-    return out
-
-
-def api_sentiment() -> dict:
-    dist = {"看多": 0, "看空": 0, "中性": 0}
-    for r in DB.conn.execute("SELECT sentiment, COUNT(*) n FROM posts GROUP BY sentiment").fetchall():
-        dist[r["sentiment"]] = r["n"]
-    # 情绪地图：按股票聚合多空（同时统计提及总数，便于判断"多0 空0"是中性还是无数据）
-    by_stock = {}
-    for r in DB.conn.execute(
-        """SELECT sm.symbol, sm.symbol_name, p.sentiment
-           FROM stock_mentions sm JOIN posts p ON p.id = sm.post_id_ref"""
-    ).fetchall():
-        s = r["symbol"]
-        d = by_stock.setdefault(s, {"bull": 0, "bear": 0, "neu": 0, "total": 0,
-                                    "name": r["symbol_name"] or ""})
-        d["total"] += 1
-        if r["sentiment"] == "看多":
-            d["bull"] += 1
-        elif r["sentiment"] == "看空":
-            d["bear"] += 1
-        else:
-            d["neu"] += 1
-    map_list = []
-    for s, v in by_stock.items():
-        n = _named(s, v["name"])
-        map_list.append({
-            "symbol": s,
-            "name": n["name"],
-            "company": n["company"],
-            "market": n["market"],
-            "name_missing": n["name_missing"],
-            "bull": v["bull"], "bear": v["bear"], "neutral": v["neu"], "mentions": v["total"],
-        })
-    map_list.sort(key=lambda x: (x["bull"] + x["bear"], x["mentions"]), reverse=True)
-    named = sum(1 for x in map_list if not x["name_missing"])
-    return {
-        "distribution": dist,
-        "map": map_list[:30],
-        # 名称解析覆盖率：界面据此提示"是否有代码未识别"
-        "name_covered": named,
-        "name_total": len(map_list),
-        "legend": {
-            "code": "6 位数字为股票代码（中国内地交易所，沪市 60/68 开头，深市 00/30 开头，北交所 43/83/87 开头）",
-            "name": "卡片标题为该股票的股票简称，副标题为公司全称",
-            "bull": "「多 N」= 该股被 N 条看多情绪的帖子提及",
-            "bear": "「空 N」= 该股被 N 条看空情绪的帖子提及",
-            "neutral": "「中性 N」= 情绪词库未判出明确多空的提及条数",
-        },
-    }
-
-
 def api_topics() -> list[dict]:
     rows = DB.conn.execute("SELECT topic, weight FROM topics ORDER BY weight DESC LIMIT 30").fetchall()
     return [{"topic": r["topic"], "weight": r["weight"]} for r in rows]
-
 
 def api_hotspots() -> dict:
     """国内·近期热点：热词 → 板块影响 分层卡片（事实层 + 投研判断层）。
@@ -3453,11 +3209,9 @@ def api_hotspots() -> dict:
     """
     return build_hotspots(DB)
 
-
 # ---------------- 海外舆情（模块一 / 模块二） ----------------
 # 「近期新闻」的区域配额口径：先给每个区域保底条数，某区不足时余量让给其他区。
 NEWS_REGION_ORDER = ("US", "HK", "GLOBAL")
-
 
 def _overseas_recent_news(total: int = 40, per_region: int = 12) -> list[dict]:
     """近期新闻：按区域配额取样，避免单一区域（US 新闻量最大）垄断全部名额。
@@ -3497,7 +3251,6 @@ def _overseas_recent_news(total: int = 40, per_region: int = 12) -> list[dict]:
         out.extend(dict(x) for x in rows)
     return out[:total]
 
-
 def _overseas_cfg() -> dict:
     """读取 config/overseas_sources.yaml 的「国外视角优先」配置（区域权重 + 主题）。"""
     try:
@@ -3506,7 +3259,6 @@ def _overseas_cfg() -> dict:
     except Exception:
         return {"region_weights": {"US": 1.0, "HK": 0.85, "GLOBAL": 0.8, "CN": 0.45},
                 "topics": {}}
-
 
 def api_global_market() -> dict:
     """全球大盘 / 海外市场（「消息与外围」）：美股指数 + 美股行业板块 + 主要经济体 +
@@ -3524,7 +3276,6 @@ def api_global_market() -> dict:
         logging.getLogger(__name__).warning("global_market 接口失败: %s", e)
         return {"ok": False, "error": str(e)[:160], "indices": [], "sectors": [],
                 "themes": [], "cross_asset": [], "countries": [], "hk": [], "summary": {}}
-
 
 def api_overseas_sentiment() -> dict:
     """海外舆情监控（模块一）：整体情绪、按区域分布、按日×区域情绪序列（趋势）、
@@ -3566,7 +3317,6 @@ def api_overseas_sentiment() -> dict:
         "insight": _overseas_insight(),
     }
 
-
 # ---------- 海外热点：标题中文化 + 驱动源清洗（展示层） ----------
 # 背景（2026-09-26 用户反馈"卡片全是英文，看不懂"）：
 #   非「topic:: 聚合」类的热点，早期因 lexicon.TRANSMISSION_TABLE 未配中文事件名，
@@ -3578,7 +3328,6 @@ def api_overseas_sentiment() -> dict:
 #     ③ 英文原文另存 title_en，前端悬停可核对。
 _HAN_RE = re.compile(r"[\u4e00-\u9fff]")
 
-
 def _event_title_zh() -> dict:
     """读取 lexicon 的中文事件名表；取不到则降级为空表（仍有中文主题兜底）。"""
     try:
@@ -3587,9 +3336,7 @@ def _event_title_zh() -> dict:
     except Exception:  # noqa: BLE001
         return {}
 
-
 _EVENT_TITLE_ZH = _event_title_zh()
-
 
 def _zh_hotspot_title(key, title, topic) -> tuple:
     """返回 (中文标题, 英文原文)。标题本身已是中文时，原文为空串。"""
@@ -3598,7 +3345,6 @@ def _zh_hotspot_title(key, title, topic) -> tuple:
         return t, ""
     zh = _EVENT_TITLE_ZH.get(str(key or "")) or ("%s · 国外驱动热点" % (topic or "海外"))
     return zh, t
-
 
 def api_overseas_hotspots() -> list[dict]:
     """近期热点（模块二）：由国外新闻驱动，自动汇总的事件 + 提升性影响分析（传导路径 + 放大/衰减）。"""
@@ -3629,7 +3375,6 @@ def api_overseas_hotspots() -> list[dict]:
         out.append(d)
     return out
 
-
 # ================= 国际局势（geo）：全球事件驱动 A 股影响研判 =================
 def api_geo_events(category: str | None = None, days: int = 14, panel: str | None = None,
                    news_days: int = 10, news_limit: int = 40) -> dict:
@@ -3656,7 +3401,6 @@ def api_geo_events(category: str | None = None, days: int = 14, panel: str | Non
         },
     }
 
-
 def api_geo_refresh() -> dict:
     """一键刷新：幂等重导 seed_events.json（按 eid upsert）+ 重建国际新闻流视图。
 
@@ -3674,7 +3418,6 @@ def api_geo_refresh() -> dict:
         "note": "已幂等重导 seed_events.json；新闻流为重读 overseas_news。如需新增国际研判事件，"
                 "请更新 geo/seed_events.json 后再次点此刷新（联网调研为离线步骤）。",
     }
-
 
 def api_freshness() -> dict:
     """P0-3（2026-10-15）：统一「数据保鲜状态」接口。
@@ -3752,12 +3495,9 @@ def api_freshness() -> dict:
         v["stale"] = bool(v.get("days_ago") is not None and v["days_ago"] > 3)
     return {"domains": domains, "generated_at": now.strftime("%Y-%m-%d %H:%M:%S")}
 
-
 _EXTREF_WEEK = ("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
-
 _COLLECT_RUNNING = threading.Semaphore(1)
-
 
 # ================= 自选 / 关注池 + 到价提醒（2026-09-27 新增，隔离模块 watchlib） =================
 # 设计纪律（与 extref 同）：独立三张表 watch_groups / watch_items / watch_alerts，
@@ -3773,7 +3513,6 @@ def _sina_symbol(code: str) -> str:
     if c[:1] == "4" or c[:2] in ("83", "87", "92"):
         return "bj" + c
     return "sz" + c
-
 
 def _sina_batch_quotes(codes: list, deadline: float = 0.0,
                        timeout: int = 5, retries: int = 0) -> dict:
@@ -3820,7 +3559,6 @@ def _sina_batch_quotes(codes: list, deadline: float = 0.0,
             out[code] = {"name": f[0], "price": price, "pct": pct}
     return out
 
-
 def _has_price(q) -> bool:
     """取价结果是否含**有效**价：缺失 / 0 / 负价一律视为「没取到」。
 
@@ -3831,7 +3569,6 @@ def _has_price(q) -> bool:
         return float((q or {}).get("price") or 0) > 0
     except (TypeError, ValueError):
         return False
-
 
 def _em_ulist_prices(secids: list, timeout: int = 3) -> dict:
     """东财 push2 ulist 批量快照 → {裸代码: {"price","pct","name"}}（停牌 price=None）。"""
@@ -3853,7 +3590,6 @@ def _em_ulist_prices(secids: list, timeout: int = 3) -> dict:
             _pct = _num(r.get("f3"))
         out[code] = {"price": _px, "pct": _pct, "name": r.get("f14") or ""}
     return out
-
 
 def _tencent_batch_prices(norm: list, timeout: int = 3) -> dict:
     """腾讯**单请求**批量快照 → {裸代码: {"price","pct","name"}}。
@@ -3898,7 +3634,6 @@ def _tencent_batch_prices(norm: list, timeout: int = 3) -> dict:
             out[code] = {"price": price, "pct": _num(g("pct")), "name": nm}
     return out
 
-
 def _watch_prices(codes: list, budget: float = 9.0) -> dict:
     """批量取最新价：新浪 / 腾讯 / 东财 **三源并发**，谁先回用谁（2026-10-09 改造）。
 
@@ -3939,7 +3674,6 @@ def _watch_prices(codes: list, budget: float = 9.0) -> dict:
         lambda: _tencent_batch_prices(norm, timeout=3),
     ]
     return emapi.race_merge(calls, _merge, _complete, timeout=race_budget)
-
 
 def api_watch_list(force=False) -> dict:
     """自选池全量：分组 + 标的（附最新价 / 涨跌 / 关注天数 / 距目标价 / 加入至今涨幅）+ 未读数。
@@ -4032,7 +3766,6 @@ def api_watch_list(force=False) -> dict:
     _api_cache_put("watch_list", result, 300)
     return result
 
-
 def api_watch_item_add(payload: dict) -> dict:
     """加入自选池。名称 / 加入价缺失时用一次轻量取价补全（不阻断，失败留空）。"""
     sym = watchlib._norm_symbol(payload.get("symbol"))
@@ -4063,7 +3796,6 @@ def api_watch_item_add(payload: dict) -> dict:
             watchlib.check_alerts(DB.conn, prices)     # 加入即刻判一次
     return res
 
-
 def api_watch_item_update(payload: dict) -> dict:
     iid = payload.get("id")
     if not iid:
@@ -4082,7 +3814,6 @@ def api_watch_item_update(payload: dict) -> dict:
                 return gres
         return res
 
-
 def api_watch_item_reorder(payload: dict) -> dict:
     """组内排序：{group_id, ids:[...]} → 按给定顺序重写该组 sort_order（10,20,30…）。"""
     gid = payload.get("group_id")
@@ -4092,7 +3823,6 @@ def api_watch_item_reorder(payload: dict) -> dict:
     with _WRITE_LOCK:
         watchlib.ensure_schema(DB.conn)
         return watchlib.reorder_in_group(DB.conn, int(gid), ids)
-
 
 def api_watch_item_group_remove(payload: dict) -> dict:
     """移出单个分组：{id, group_id} → 标的仍在池中（其他组保留；无剩余组回退默认组）。"""
@@ -4104,7 +3834,6 @@ def api_watch_item_group_remove(payload: dict) -> dict:
         watchlib.ensure_schema(DB.conn)
         return watchlib.remove_from_group(DB.conn, int(iid), int(gid))
 
-
 def api_watch_item_remove(payload: dict) -> dict:
     iid = payload.get("id")
     if not iid:
@@ -4113,13 +3842,11 @@ def api_watch_item_remove(payload: dict) -> dict:
         watchlib.ensure_schema(DB.conn)
         return watchlib.remove_item(DB.conn, int(iid))
 
-
 def api_watch_group_add(payload: dict) -> dict:
     with _WRITE_LOCK:
         watchlib.ensure_schema(DB.conn)
         return watchlib.add_group(DB.conn, payload.get("name") or "",
                                   kind=payload.get("kind") or "mix", color=payload.get("color") or "")
-
 
 def api_watch_group_rename(payload: dict) -> dict:
     gid = payload.get("id")
@@ -4128,7 +3855,6 @@ def api_watch_group_rename(payload: dict) -> dict:
     with _WRITE_LOCK:
         watchlib.ensure_schema(DB.conn)
         return watchlib.rename_group(DB.conn, int(gid), payload.get("name") or "")
-
 
 def api_watch_group_remove(payload: dict) -> dict:
     gid = payload.get("id")
@@ -4140,7 +3866,6 @@ def api_watch_group_remove(payload: dict) -> dict:
         return watchlib.remove_group(DB.conn, int(gid),
                                      reassign_to=(int(rt) if str(rt).lstrip("-").isdigit() else None))
 
-
 def api_watch_group_reorder(payload: dict) -> dict:
     """分组排序（2026-10-14 进哥：分组管理弹窗 ↑/↓ 调序）。ids = 完整分组 id 列表（新顺序）。"""
     ids = payload.get("ids")
@@ -4149,7 +3874,6 @@ def api_watch_group_reorder(payload: dict) -> dict:
     with _WRITE_LOCK:
         watchlib.ensure_schema(DB.conn)
         return watchlib.reorder_groups(DB.conn, ids)
-
 
 def api_watch_check() -> dict:
     """到价检测：取最新价 → 命中规则则生成未读告警（同标的同方向同目标价不重复）。"""
@@ -4167,7 +3891,6 @@ def api_watch_check() -> dict:
         res["unread"] = watchlib.count_unread(DB.conn)
     res["ok"] = True
     return res
-
 
 def _refresh_watch_list_cache_after_check() -> None:
     """`/api/watch_check` 跑完后，把 watch_list 缓存条目里「被它改过的那几列」同步刷新。
@@ -4217,7 +3940,6 @@ def _refresh_watch_list_cache_after_check() -> None:
     except Exception:  # noqa: BLE001 —— 补丁失败绝不影响检测结果本身
         logging.getLogger(__name__).debug("watch_check 后刷新 watch_list 缓存失败", exc_info=True)
 
-
 # ==================== 豆包整理的抖音博主语料（2026-10-20 进哥需求） ====================
 # 数据源：荐股追踪查看台（博主数据查看台）豆包日更产出的两个**新域** JSON，
 # 由 tools/import_douyin_corpus.py 幂等灌进 douyin_corpus_*（零 JOIN 既有业务表）。
@@ -4233,7 +3955,6 @@ def _refresh_watch_list_cache_after_check() -> None:
 _DOUYIN_LABEL = {"sentiment": "豆包舆情", "tech": "豆包技术方法"}
 _DOUYIN_BRIEF_LEN = 180
 
-
 def _douyin_ready() -> bool:
     """表是否已由 loader 建好。未建时不抛错，让面板显示可执行的提示。"""
     try:
@@ -4241,7 +3962,6 @@ def _douyin_ready() -> bool:
         return True
     except Exception:  # noqa: BLE001 —— OperationalError: no such table
         return False
-
 
 def _douyin_meta(domain: str) -> dict:
     try:
@@ -4251,7 +3971,6 @@ def _douyin_meta(domain: str) -> dict:
         return dict(r) if r else {}
     except Exception:  # noqa: BLE001
         return {}
-
 
 def api_douyin_facets(domain: str = "tech") -> dict:
     """某个域的面板头部数据：数据截至 / 规模 / 博主目录 / 分类分布 / 日期跨度。
@@ -4330,13 +4049,11 @@ def api_douyin_facets(domain: str = "tech") -> dict:
     out["n_blogger"] = len([b for b in bloggers if b["n"] > 0])
     return out
 
-
 _DOUYIN_SORTS = {
     "date": "(publish_date IS NULL), publish_date DESC, video_id DESC",
     "old": "(publish_date IS NULL), publish_date ASC, video_id ASC",
     "author": "author ASC, (publish_date IS NULL), publish_date DESC",
 }
-
 
 def api_douyin_list(domain: str = "tech", q: str | None = None, blogger: str | None = None,
                     category: str | None = None, topic: str | None = None,
@@ -4406,7 +4123,6 @@ def api_douyin_list(domain: str = "tech", q: str | None = None, blogger: str | N
                 "has_more": off + len(items) < total})
     return out
 
-
 def api_douyin_detail(video_id: str) -> dict:
     """单条视频完整摘要（列表只给 brief，点开才取全文）。"""
     out = {"ok": False, "video_id": video_id, "row": None, "note": ""}
@@ -4428,7 +4144,6 @@ def api_douyin_detail(video_id: str) -> dict:
     out["label"] = _DOUYIN_LABEL.get(r["domain"], r["domain"])
     return out
 
-
 def api_douyin_overview() -> dict:
     """两域概览（供前端首屏/面板头部一次拿全，避免两次请求）。"""
     out = {"ok": _douyin_ready(), "domains": {}}
@@ -4443,7 +4158,6 @@ def api_douyin_overview() -> dict:
     if not out["ok"]:
         out["note"] = "抖音语料表尚未建立：请先执行 python tools/import_douyin_corpus.py"
     return out
-
 
 import json  # noqa: F401
 # ==================== 豆包语料 · 整合层（2026-10-20 进哥：分域整合、产出高维价值） ====================
@@ -4470,7 +4184,6 @@ _STANCE_DESC = {
     "板块机会": "指向具体板块/主线/题材的方向性观点",
 }
 
-
 def api_douyin_topics() -> dict:
     """技术域 → 9 条学习方法论轨道聚合（视频数/代表博主/样例）。"""
     out = {"ok": _douyin_ready(), "tracks": []}
@@ -4495,7 +4208,6 @@ def api_douyin_topics() -> dict:
     out["tracks"] = tracks
     return out
 
-
 def api_douyin_stances() -> dict:
     """情绪域 → 5 类观点类型聚合（数/样例）。"""
     out = {"ok": _douyin_ready(), "stances": []}
@@ -4513,7 +4225,6 @@ def api_douyin_stances() -> dict:
     out["stances"] = [{"stance": st, "desc": _STANCE_DESC.get(st, ""), "n": d["n"], "samples": d["items"]}
                       for st, d in sorted(agg.items(), key=lambda x: -x[1]["n"])]
     return out
-
 
 def api_douyin_bloggers() -> dict:
     """博主分域画像：技术派 / 观点派两套群像，各含 tags + 主题(观点)分布。"""
@@ -4537,9 +4248,7 @@ def api_douyin_bloggers() -> dict:
         out[key] = sorted(bloggers.values(), key=lambda x: -x["n_video"])
     return out
 
-
 _plate_concl_cache = {}
-
 
 def api_douyin_plate(plate: str = "") -> dict:
     """板块 → 个股结论（2026-10-25 重构：进哥要「结论」不要「罗列」）。
@@ -4726,9 +4435,7 @@ def api_douyin_plate(plate: str = "") -> dict:
     _plate_concl_cache[plate] = (now, dict(out))
     return out
 
-
 _resonance_cache = {"ts": 0.0, "payload": None}
-
 
 def _resonance_dir_global(code, card, sig):
     """单票共振方向（全局，不依赖板块）：合成卡档位 + 六源信号。
@@ -4751,26 +4458,6 @@ def _resonance_dir_global(code, card, sig):
     if net == 0 and not t and not s: return "未覆盖"
     return "中性"
 
-
-def api_evidence() -> dict:
-    """实证账本（2026-10-31）：系统「凭什么这么说」的唯一清单。
-
-    每条形如：规则 / 样本量 / 覆盖交易日 / T+H 超额 / t 值 / 状态（active·weak·refuted·watch）
-    / 可复现脚本。另附「已证伪禁区」——那些反直觉但实测相反的常识。
-
-    **同一份数据同时喂三个地方**：本接口（界面依据）、ai_review 的上下文（模型边界）、
-    avoid 的权重来源。这正是之前缺的那一环 —— 结论散在代码注释里，模型读不到，
-    于是它会一本正经地引用我们早已推翻的说法。
-    """
-    try:
-        import evidence as EV
-        d = EV.summary()
-        d["ok"] = True
-        return d
-    except Exception as e:  # noqa: BLE001
-        return {"ok": False, "reason": "evidence 不可用：%s" % str(e)[:160]}
-
-
 def api_ai_provider_key(provider: str, key: str) -> dict:
     """给 AI 复盘面板的任一大脑填 Key（2026-11-02）。
 
@@ -4784,7 +4471,6 @@ def api_ai_provider_key(provider: str, key: str) -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "err": "保存失败：%s: %s" % (type(e).__name__, str(e)[:160])}
 
-
 def api_ai_provider_test(provider: str) -> dict:
     """只测连通性，不写任何东西 —— 排查"Key 明明填了为什么还失败"时用。"""
     try:
@@ -4792,7 +4478,6 @@ def api_ai_provider_test(provider: str) -> dict:
         return AIR.test_provider(provider)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "err": "%s: %s" % (type(e).__name__, str(e)[:160])}
-
 
 def api_ai_picks(date: str = "", provider: str = "") -> dict:
     """AI 荐股板（2026-11-02）：某一份复盘的票单 + 它现在的实际表现 + 累计成绩。
@@ -4821,7 +4506,6 @@ def api_ai_picks(date: str = "", provider: str = "") -> dict:
         out["history"] = []
     return out
 
-
 def api_review_score() -> dict:
     """AI 复盘成绩单（2026-10-31）：**由系统按收盘价回填，不是模型自评**。
 
@@ -4840,7 +4524,6 @@ def api_review_score() -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "reason": str(e)[:160]}
 
-
 def api_hypothesis(limit: int = 30) -> dict:
     """假说回测记录（2026-10-31）：模型提的假设 + 系统给出的检验结论。
 
@@ -4855,7 +4538,6 @@ def api_hypothesis(limit: int = 30) -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "reason": str(e)[:160]}
 
-
 def api_harvest() -> dict:
     """收割视角（2026-10-31）：局面状态 + 今日陷阱名单 + 实测证据。
 
@@ -4869,7 +4551,6 @@ def api_harvest() -> dict:
         logging.exception("api_harvest 失败")
         return {"ok": False, "error": "局面数据不可用"}
 
-
 def api_oss() -> dict:
     """开源情报（2026-10-30）：GitHub 上的量化规则在本系统数据上重测的结果。
 
@@ -4882,7 +4563,6 @@ def api_oss() -> dict:
         logging.exception("api_oss 失败")
         return {"ok": False, "available": False, "error": "开源情报数据不可用"}
 
-
 def api_selection() -> dict:
     """选股方向（2026-10-30）：短线形态证伪 + 低波池。
 
@@ -4893,7 +4573,6 @@ def api_selection() -> dict:
     except Exception:  # noqa: BLE001
         logging.exception("api_selection 失败")
         return {"ok": False, "available": False, "error": "选股方向数据不可用"}
-
 
 def api_avoid_flags(codes: str = "", limit: int = 100) -> dict:
     """避坑标记接口（2026-10-30，替代已下线的「博主反向警示」）。
@@ -4923,7 +4602,6 @@ def api_avoid_flags(codes: str = "", limit: int = 100) -> dict:
     items = sorted(d["items"].items(), key=lambda kv: -kv[1]["score"])[:max(1, min(limit, 500))]
     return {**d, "items": dict(items), "shown": len(items)}
 
-
 def api_lift_flags(codes: str = "", limit: int = 100) -> dict:
     """限售解禁风险接口（2026-10-30，进哥需求）。
 
@@ -4952,7 +4630,6 @@ def api_lift_flags(codes: str = "", limit: int = 100) -> dict:
                    key=lambda kv: (ordv.get(kv[1]["level"], 3), kv[1]["td"]))
     items = items[:max(1, min(limit, 500))]
     return {**d, "items": dict(items), "shown": len(items)}
-
 
 def api_funnel_score(plate, mode="sentiment"):
     """方法共振漏斗：给定板块+模式，产出候选池 + 每只票的四方法归一化方向。
@@ -5132,7 +4809,6 @@ def api_funnel_score(plate, mode="sentiment"):
     out["n"] = len(res)
     return out
 
-
 def api_douyin_resonance(limit: int = 40) -> dict:
     """豆包语料 x 主力合成层 共振引擎（打通孤岛的化学反应）。
 
@@ -5235,7 +4911,6 @@ def api_douyin_resonance(limit: int = 40) -> dict:
     _resonance_cache = {"ts": now, "payload": payload}
     return payload
 
-
 def api_bili_pile(cat: str | None = None, blogger: str | None = None,
                   limit: int = 2000) -> dict:
     """B站视频分堆列表（technical/value/sentiment/weekly）。
@@ -5265,7 +4940,6 @@ def api_bili_pile(cat: str | None = None, blogger: str | None = None,
     out["rows"] = [dict(r) for r in rows]
     return out
 
-
 def api_bili_methods(cat: str = "technical,value") -> dict:
     """B站「技术·价值教学」方法卡片聚合（2026-10-11 王总需求）。
 
@@ -5273,7 +4947,6 @@ def api_bili_methods(cat: str = "technical,value") -> dict:
     （strategy_sim_window·mid 近两年胜率/收益/评级）。映射不到规则的诚实标未回测。
     """
     return bili_methods.methods_payload(DB.conn, cat=cat)
-
 
 def api_bili_scan(force: bool = False) -> dict:
     """一键筛股（2026-10-11 王总需求）：当前全市场哪些股票正走在知识库战法的买点上。
@@ -5284,13 +4957,11 @@ def api_bili_scan(force: bool = False) -> dict:
     """
     return bili_scan.scan_payload(DB.conn, force=bool(force))
 
-
 def api_watch_alerts(limit: int = 200, only_unread: bool = False) -> dict:
     with _WRITE_LOCK:
         watchlib.ensure_schema(DB.conn)
         return {"ok": True, "alerts": watchlib.list_alerts(DB.conn, limit=limit, only_unread=only_unread),
                 "unread": watchlib.count_unread(DB.conn)}
-
 
 def api_watch_alert_read(payload: dict) -> dict:
     with _WRITE_LOCK:
@@ -5301,7 +4972,6 @@ def api_watch_alert_read(payload: dict) -> dict:
         if not aid:
             return {"ok": False, "error": "缺少 id"}
         return watchlib.mark_alert(DB.conn, int(aid), bool(payload.get("read", True)))
-
 
 # ================= 增强功能② 资金流向 =================
 def api_moneyflow_stock(symbol: str) -> dict:
@@ -5321,7 +4991,6 @@ def api_moneyflow_board(pz: int = 30, force: bool = False) -> dict:
     """同上：force=True 跳过 moneyflow.board_rank 的失败负缓存。"""
     return moneyflow.board_rank(pz=pz, force=force)
 
-
 # ================= 增强功能② 板块资金流（多源 / 采样累积 / 分时曲线）============
 # 2026-09-28 王总反馈「接口异常：未取到板块资金流排行（东财接口不可达）」。
 # 原实现唯一依赖东财 push2，本机会被其风控掐连接；改为：
@@ -5332,18 +5001,15 @@ def api_board_flow_snapshot(kind: str = "industry", pz: int = 60, force: int = 0
     kind = kind if kind in board_flow.KINDS else board_flow.DEFAULT_KIND
     return board_flow.snapshot(kind=kind, pz=pz, force=bool(force))
 
-
 def api_board_flow_intraday(kind: str = "industry", top: int = 12, force: int = 0) -> dict:
     """板块资金流分时曲线（东财实时 / 采样累积 / 库内快照 三级兜底）。"""
     board_flow.ensure_schema(DB.conn)
     kind = kind if kind in board_flow.KINDS else board_flow.DEFAULT_KIND
     return board_flow.intraday(kind=kind, top=top, force=bool(force), conn=DB.conn)
 
-
 # ---------------------------------------------------------------- 板块资金流：日期区间
 _FLOW_RANGE_CACHE: dict = {}
 _FLOW_RANGE_TTL = 60          # 秒；区间聚合要读库 + 可能后台补抓，60s 足够挡住反复刷新
-
 
 def _flow_range_cached(key: str, data: dict) -> dict:
     now = time.time()
@@ -5352,7 +5018,6 @@ def _flow_range_cached(key: str, data: dict) -> dict:
         return hit[1]
     _FLOW_RANGE_CACHE[key] = (now, data)
     return data
-
 
 def api_board_flow_range(start: str = "", end: str = "", kind: str = "industry",
                          top: int = 16, force: int = 0) -> dict:
@@ -5373,7 +5038,6 @@ def api_board_flow_range(start: str = "", end: str = "", kind: str = "industry",
         logging.getLogger(__name__).exception("板块资金流区间聚合异常")
         return {"ok": False, "error": "区间聚合失败：%s" % exc, "series": [], "pool": []}
 
-
 def api_board_flow_dates(kind: str = "industry") -> dict:
     """区间日期框的可选范围（交易日历 ∪ 库内已有日线日期）。"""
     try:
@@ -5383,7 +5047,6 @@ def api_board_flow_dates(kind: str = "industry") -> dict:
         # 2026-10-31 修复：同 api_board_flow_range，`logger` 未定义 → 改模块内既有写法。
         logging.getLogger(__name__).exception("板块资金流日期清单异常")
         return {"ok": False, "error": str(exc), "days": []}
-
 
 def api_board_flow_status() -> dict:
     """板块资金流自检：两源连通性 + 采样存量 + 当前曲线来源。"""
@@ -5396,11 +5059,9 @@ def _prediction_today_compute() -> dict:
     predictor.ensure_tables(DB.conn)
     return predictor.today_payload(DB.conn)
 
-
 def _prediction_scores_compute() -> dict:
     predictor.ensure_tables(DB.conn)
     return predictor.scores_payload(DB.conn)
-
 
 def api_prediction_today(force: bool = False) -> dict:
     """今日推荐载荷：核心/观察池 + 命中信号 + 理由 + 复盘结果 + 权重调整痕迹。
@@ -5410,7 +5071,6 @@ def api_prediction_today(force: bool = False) -> dict:
     """
     return _swr_serve("prediction_today", _prediction_today_compute, ttl=1800, force=force)
 
-
 def api_prediction_scores(force: bool = False) -> dict:
     """策略记分板：六路信号 + 九流派 + 逐策略的实盘命中率（T+1/T+3/T+5）。
 
@@ -5419,18 +5079,15 @@ def api_prediction_scores(force: bool = False) -> dict:
     """
     return _swr_serve("prediction_scores", _prediction_scores_compute, ttl=7200, force=force)
 
-
 def api_prediction_track() -> dict:
     """复盘轨迹：逐日命中率与累计表现（自我成长的证据链）。"""
     predictor.ensure_tables(DB.conn)
     return predictor.track_payload(DB.conn)
 
-
 def api_growth_adjust_log() -> dict:
     """成长面板：权重演化时序 + 最近调整（纯读 predictor_adjust_log + predictor_score，幂等不写库）。"""
     predictor.ensure_tables(DB.conn)
     return predictor.growth_adjust_log_payload(DB.conn)
-
 
 def api_prediction_status() -> dict:
     """预测引擎状态：是否在跑 / 当前阶段 / 上次错误 / 最近一次调度结果 / 缺日补跑进度。"""
@@ -5439,19 +5096,16 @@ def api_prediction_status() -> dict:
     st["catchup"] = predictor._catchup_status()
     return {"ok": True, **st}
 
-
 def api_prediction_dates() -> dict:
     """可选预测日清单（最早=首份预测日）+ 每日三窗口摘要，供前端日期选择器。"""
     predictor.ensure_tables(DB.conn)
     return predictor.dates_payload(DB.conn)
-
 
 def api_prediction_history(date: str = "", range_days: int = 0, window: int = 5) -> dict:
     """按日期回看 / 按区间汇总：含研判、六路信号、逐日曲线、复盘命中。"""
     predictor.ensure_tables(DB.conn)
     return predictor.history_payload(DB.conn, run_date=(date or None),
                                      range_days=int(range_days or 0), window=int(window or 5))
-
 
 def api_prediction_run(force: int = 1) -> dict:
     """异步触发「复盘 + 生成」：立即返回，前端轮询 /api/prediction/status 看进度。"""
@@ -5476,7 +5130,6 @@ def api_prediction_run(force: int = 1) -> dict:
 
     threading.Thread(target=_bg, name="predictor-run", daemon=True).start()
     return {"ok": True, "started": True}
-
 
 def api_prediction_catchup() -> dict:
     """缺日补跑（异步）：几天没打开应用后，把漏掉的交易日逐日补齐。
@@ -5507,12 +5160,10 @@ def api_prediction_catchup() -> dict:
     threading.Thread(target=_bg, name="predictor-catchup", daemon=True).start()
     return {"ok": True, "started": True}
 
-
 # ================= 增强功能② 智能选股 =================
 def api_screener(screen: str = "value", limit: int = 40, params: dict = None) -> dict:
     """智能选股：screen=逗号分隔指标 key，params={key:阈值}（前端可调阈值）。"""
     return screener.run(screen=screen, limit=limit, params=params)
-
 
 # ===== 智能选股扩展：板块分类 + 连续阴跌（2026-09-30，王总需求）=====
 
@@ -5520,17 +5171,14 @@ def api_screener_boards(kind: str = "industry", pz: int = 90) -> dict:
     """板块清单（新浪主源/东财兜底），供「板块分类」入口。"""
     return board_flow.board_list(kind=kind, pz=pz)
 
-
 def api_screener_board_members(code: str = "") -> dict:
     """板块成分股 + 综合分排序（市值50%+成交额30%+换手率20%，知名度口径）。"""
     # 板块代码形如 new_ljhy（含下划线），只放行字母/数字/下划线——别把下划线剥掉
     code = "".join(ch for ch in str(code or "") if ch.isalnum() or ch == "_")[:24]
     return board_flow.members_rich(code)
 
-
 _DECLINE_POOL_TTL = 600
 _decline_pool_cache = {"at": 0.0, "pool": None}
-
 
 def _decline_pool() -> dict:
     """阴跌扫描池（活跃股票池，10 分钟缓存）：
@@ -5576,12 +5224,10 @@ def _decline_pool() -> dict:
     _decline_pool_cache["pool"] = pool
     return pool
 
-
 def _is_sh_sz_a(code: str) -> bool:
     """沪深 A 股前缀过滤（60/68/00/30），北交所与 B 股不进阴跌扫描池。"""
     c = str(code or "")
     return len(c) == 6 and c.isdigit() and c[:2] in ("60", "68", "00", "30")
-
 
 def api_screener_decline(days: int = 30, down: int = 25, limit: int = 80,
                          sort: str = "down", force: int = 0) -> dict:
@@ -5600,22 +5246,18 @@ def api_screener_decline(days: int = 30, down: int = 25, limit: int = 80,
     _DECLINE_CACHE[key] = (now, res)
     return res
 
-
 def api_stock_turnover(symbol: str, days: int = 30) -> dict:
     """GET /api/stock_turnover?symbol=XXXXXX —— 单票换手率实战评分（个股详情抽屉，2026-09-30）。"""
     return screener.turnover_single(symbol, days=days)
-
 
 def api_stock_f10(symbol: str) -> dict:
     """GET /api/stock_f10?symbol=XXXXXX —— 个股 F10：公司简介 + 持股结构（机构/散户）+ 股东户数（2026-09-30 晚）。"""
     return screener.stock_f10(symbol)
 
-
 def api_screener_turnover_top(days: int = 30, limit: int = 30) -> dict:
     """GET /api/screener_turnover_top —— 全市场换手率实战 Top N（按入手值得率降序，
     2026-09-30 王总需求：阴跌板块一键筛大盘前30）。"""
     return screener.turnover_top(days=days, limit=limit)
-
 
 # ================= 板块二 · 长期低位震荡选股（2026-10-13 进哥需求）=================
 #   方法论：达瓦斯箱体(本土化: 突破前埋伏) + 邱国鹭「便宜的好公司」+ 林奇 PEG + A股中特估/国家队底仓。
@@ -5684,11 +5326,9 @@ def _lowbox_metrics(klines: list, box_window: int, low_pct: float) -> dict:
             "last_vol": round(last_vol, 0) if last_vol else None,
             "vol_ratio": vol_ratio, "breakout_pct": breakout_pct}
 
-
 _STATE_KEYWORDS = ["汇金", "证金", "国新", "社保", "养老", "中央", "国资", "央企", "国企",
                    "人保", "人寿", "平安", "泰康", "太保", "新华", "保险", "基金", "证投",
                    "香港中央结算", "北向", "QFII"]
-
 
 def _state_backing_tag(holders: list) -> str:
     """从十大流通股东名单里打「国资系/机构」标记。命中即返回最高类别标签，同类不叠加。
@@ -5716,7 +5356,6 @@ def _state_backing_tag(holders: list) -> str:
             return c
     return ""
 
-
 # ---------- 板块二·增强期数据源（2026-10-13 进哥：一次性做全，不再分期） ----------
 # 财务主要指标  RPT_F10_FINANCE_MAINFINADATA（ROEJQ 加权ROE / ZCFZL 资产负债率 / 扣非 / 毛利率）
 # 公司概况      RPT_F10_BASIC_ORGINFO（ACTUAL_HOLDER=实际控制人 → 国资实控打标）
@@ -5729,7 +5368,6 @@ _LOWBOX_SCAN_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 _LOWBOX_BREAK_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "data", "lowbox_breakout_log.json")
 _LOWBOX_LOCK = threading.Lock()
-
 
 def _lowbox_cache_get(key: str, ttl_days: int):
     try:
@@ -5744,7 +5382,6 @@ def _lowbox_cache_get(key: str, ttl_days: int):
         return ent["data"]
     except Exception:  # noqa: BLE001
         return None
-
 
 def _lowbox_cache_put(key: str, data) -> None:
     try:
@@ -5761,7 +5398,6 @@ def _lowbox_cache_put(key: str, data) -> None:
             os.replace(tmp, _LOWBOX_CACHE)
     except Exception:  # noqa: BLE001
         pass
-
 
 def _lowbox_cache_put_many(items: dict) -> None:
     """批量写入 lowbox 缓存，避免预取后逐只反复读写同一个 JSON 文件。"""
@@ -5784,7 +5420,6 @@ def _lowbox_cache_put_many(items: dict) -> None:
     except Exception:  # noqa: BLE001
         logging.warning("lowbox 批量缓存写入失败，后续退回逐只取数", exc_info=True)
 
-
 def _secucode(code: str) -> str:
     """600519 → 600519.SH / 000001 → 000001.SZ / 83xxxx·43xxxx·87xxxx·92xxxx → BJ。"""
     c = re.sub(r"\D", "", str(code or ""))
@@ -5795,7 +5430,6 @@ def _secucode(code: str) -> str:
     if c.startswith(("6", "5", "9")):
         return c + ".SH"
     return c + ".SZ"
-
 
 def _fund_metrics(code: str):
     """最新一期财务主要指标：ROE(加权)/扣非ROE/资产负债率/毛利率/营收·归母·扣非同比。TTL 7 天。"""
@@ -5819,7 +5453,6 @@ def _fund_metrics(code: str):
     _lowbox_cache_put("fund|" + str(code), data)
     return data
 
-
 def _org_profile(code: str):
     """公司概况：实际控制人(ACTUAL_HOLDER)/行业/上市日期。实控人极少变，TTL 30 天。"""
     hit = _lowbox_cache_get("org|" + str(code), 30)
@@ -5837,7 +5470,6 @@ def _org_profile(code: str):
             "list_date": str(x.get("LISTING_DATE") or "")[:10]}
     _lowbox_cache_put("org|" + str(code), data)
     return data
-
 
 def _dividend_ttm(code: str):
     """近 365 天「实施分配」的税前每股派息合计（元/股，10派X 折算 /10）。TTL 7 天。"""
@@ -5871,7 +5503,6 @@ def _dividend_ttm(code: str):
     data = {"ttm_div": round(total, 4), "last_ex": last_ex}
     _lowbox_cache_put("div|" + str(code), data)
     return data
-
 
 def _lowbox_prefetch_external(codes: list) -> dict:
     """按 50 只一批预取 lowbox 的公司概况、最新财务和近一年分红。
@@ -5985,10 +5616,8 @@ def _lowbox_prefetch_external(codes: list) -> dict:
                  stats["fetched"], stats["fallback"])
     return stats
 
-
 _HOLDER_STATE_KW = ("国资委", "国资", "国有", "人民政府", "财政部", "汇金",
                     "证金", "国新", "央企", "国企", "中央企业")
-
 
 def _actual_holder_tag(holder_text: str) -> str:
     """实控人含国资关键词 → 「国资实控」（v0.2 国资系口径：实控人国家队/央国企都算）。"""
@@ -5996,7 +5625,6 @@ def _actual_holder_tag(holder_text: str) -> str:
     if not t:
         return ""
     return "国资实控" if any(k in t for k in _HOLDER_STATE_KW) else ""
-
 
 def _valuation_cached(code: str):
     """估值五因子评分（valuation.score），日级缓存。"""
@@ -6011,7 +5639,6 @@ def _valuation_cached(code: str):
         return None
     _lowbox_cache_put("val|" + str(code), v)
     return v
-
 
 def _worth_from_klines(code: str, klines: list, days: int):
     """用全历史日K 直接跑换手率五维评分机（绕开 screener 139 根日K缓存上限）。"""
@@ -6042,7 +5669,6 @@ def _worth_from_klines(code: str, klines: list, days: int):
     except Exception:  # noqa: BLE001
         return None
 
-
 def _long_worth(code: str, klines: list):
     """长窗值得率：250/500/750 三档、30:40:30 加权（缺档按可用档权重归一）。"""
     specs = [(250, 0.3), (500, 0.4), (750, 0.3)]
@@ -6056,7 +5682,6 @@ def _long_worth(code: str, klines: list):
     tw = sum(w for _s, w, _d in got)
     total = sum(s * w for s, w, _d in got) / tw
     return round(total, 1), {("w%d" % d): s for s, _w, d in got}
-
 
 def _fund_score(fund, val):
     """基本面分(0~100)：估值五因子 50% + ROE 30% + 负债率 20%（缺项权重归一，不编造）。"""
@@ -6074,10 +5699,8 @@ def _fund_score(fund, val):
     tw = sum(w for _s, w in comps)
     return round(sum(s * w for s, w in comps) / tw, 1)
 
-
 _QUALITY_MODES = {"loose": {"pe": 40.0, "roe": 6.0, "dr": 65.0},
                   "strict": {"pe": 25.0, "roe": 10.0, "dr": 50.0}}
-
 
 def _quality_pass(fund, val, mode: str):
     """基本面硬过滤（v0.2 宽/严档）。数据缺失不误杀，返回 (是否通过, 命中项说明)。"""
@@ -6099,9 +5722,7 @@ def _quality_pass(fund, val, mode: str):
         bad.append("负债%.0f%%" % dr)
     return (not bad), ("、".join(bad))
 
-
 _STATE_SCORE = {"国家队": 100, "央国企": 85, "险资": 70, "基金/机构": 50, "北向": 40}
-
 
 def _lowbox_state_score(tag: str, holder_tag: str):
     s = _STATE_SCORE.get(tag or "", 0)
@@ -6109,14 +5730,12 @@ def _lowbox_state_score(tag: str, holder_tag: str):
         s = max(s, 90)
     return s
 
-
 def _lowbox_scan_cache_load() -> dict:
     try:
         with open(_LOWBOX_SCAN_CACHE, encoding="utf-8") as fh:
             return json.load(fh)
     except Exception:  # noqa: BLE001
         return {}
-
 
 def _lowbox_scan_cache_save(rows: list) -> None:
     try:
@@ -6128,7 +5747,6 @@ def _lowbox_scan_cache_save(rows: list) -> None:
         os.replace(tmp, _LOWBOX_SCAN_CACHE)
     except Exception:  # noqa: BLE001
         pass
-
 
 def _lowbox_bo_state(cur, box_high, vol_ratio):
     """突破初判：breakout=放量突破 / stand_top=站上箱顶量不足 / near=临近(±3%) / in_box。"""
@@ -6144,7 +5762,6 @@ def _lowbox_bo_state(cur, box_high, vol_ratio):
         return "in_box"
     except Exception:  # noqa: BLE001
         return ""
-
 
 def _lowbox_watch_push(code: str, name: str, rule: str, ref_price, price) -> bool:
     """突破/回踩事件 → 关注池未读提醒（watch_alerts）。
@@ -6193,7 +5810,6 @@ def _lowbox_watch_push(code: str, name: str, rule: str, ref_price, price) -> boo
         logging.warning("lowbox 突破提醒入池失败 %s" % code, exc_info=True)
         return False
 
-
 def _lowbox_break_log_load() -> list:
     try:
         with open(_LOWBOX_BREAK_LOG, encoding="utf-8") as fh:
@@ -6201,7 +5817,6 @@ def _lowbox_break_log_load() -> list:
         return dd.get("events") if isinstance(dd, dict) else []
     except Exception:  # noqa: BLE001
         return []
-
 
 def _lowbox_break_log_append(ev: dict) -> None:
     try:
@@ -6221,7 +5836,6 @@ def _lowbox_break_log_append(ev: dict) -> None:
             os.replace(tmp, _LOWBOX_BREAK_LOG)
     except Exception:  # noqa: BLE001
         pass
-
 
 def api_lowbox_breakouts() -> dict:
     """GET /api/lowbox_breakouts —— 突破雷达：复评最近一次「长期低位」扫描池的突破状态。
@@ -6313,7 +5927,6 @@ def api_lowbox_breakouts() -> dict:
                             1 if x["state"] in ("stand_top", "near") else 2, -(x.get("cur") or 0)))
     return {"ok": True, "ts": now.strftime("%Y-%m-%d %H:%M:%S"), "rows": out,
             "events": log[-30:], "pushed_n": pushed}
-
 
 def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
                         low_pct: float = 30.0, quality: str = "off",
@@ -6552,7 +6165,6 @@ def api_screener_lowbox(codes: str = "", limit: int = 30, box_window: int = 750,
                                "+国资系加分0~15；质量档=%s；PE/ROE/负债率/股息率/实控人已接入"
                                % (w_shape, w_fund, w_worth, quality or "不限")}}
 
-
 # ================= 板块三 · 长期底部埋伏（2026-10-21 进哥需求）=================
 #   与「长期低位震荡」(api_screener_lowbox) 的分工，别混：
 #     lowbox —— 近 N 日箱体 + 全历史分位，股票池 = 关注池 ∪ 板块一Top30（至多 80 只），看的是「一年上下」；
@@ -6568,7 +6180,6 @@ _BOTTOM_KDB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
                            "data", "kline_daily.db")
 _BOTTOM_CACHE_TTL_H = 12
 _BOTTOM_TIERS = (1, 2, 3, 5, 8)
-
 
 def _bottom_names() -> dict:
     """代码 → 名称。优先 market_pool_cache.json（一次读出最快），回退 DB.stock_names。"""
@@ -6590,7 +6201,6 @@ def _bottom_names() -> dict:
         record_source_error("stock_names", e)
     return out
 
-
 def _bottom_cache_load(allow_stale: bool = False):
     """读扫描缓存。allow_stale=True 时忽略 12h TTL（用于先给旧数据、后台再刷）。"""
     try:
@@ -6608,7 +6218,6 @@ def _bottom_cache_load(allow_stale: bool = False):
     except Exception:  # noqa: BLE001
         return None
 
-
 def _bottom_cache_save(rows: list, scanned: int, elapsed: float) -> None:
     try:
         os.makedirs(os.path.dirname(_BOTTOM_CACHE), exist_ok=True)
@@ -6620,7 +6229,6 @@ def _bottom_cache_save(rows: list, scanned: int, elapsed: float) -> None:
         os.replace(tmp, _BOTTOM_CACHE)
     except Exception:  # noqa: BLE001
         logging.warning("bottom 扫描缓存写入失败", exc_info=True)
-
 
 def _bottom_scan_rows() -> dict:
     """全市场扫一遍：逐只读本地前复权日K → bottom.platform_metrics → 按埋伏分降序。
@@ -6692,10 +6300,8 @@ def _bottom_scan_rows() -> dict:
     logging.info("bottom scan: codes=%d hit=%d fail=%d %ss", len(codes), len(rows), fail, el)
     return {"rows": rows, "scanned": len(codes), "fail": fail, "elapsed": el}
 
-
 _BOTTOM_SCAN_ST = {"running": False, "started_at": 0.0, "done_at": 0.0, "err": None, "hits": 0}
 _BOTTOM_SCAN_LOCK = threading.Lock()
-
 
 def _bottom_scan_async(force: bool = False) -> dict:
     """后台起一个扫描线程（同一时刻只允许一个），返回当前状态。
@@ -6724,30 +6330,6 @@ def _bottom_scan_async(force: bool = False) -> dict:
 
     threading.Thread(target=_run, name="bottom-scan", daemon=True).start()
     return dict(_BOTTOM_SCAN_ST)
-
-
-def api_dragon_map() -> dict:
-    """GET /api/dragon_map —— 全市场龙头分级的轻量映射 {code: 3金/2银/1铜} + meta。
-
-    为什么只给 tier 不给明细：全市场 5500+ 只，明细带上六项原值有 1MB+；
-    徽章只需要 tier，明细点开单只再取（见 api_dragon_one）。
-    """
-    if dragon_mod is None:
-        return {"ok": False, "reason": "龙头分级模块未加载", "m": {}, "meta": {}}
-    try:
-        if dragon_mod.age_hours() > 24:
-            dragon_mod.build_async()      # 过期先给旧数据，后台重建（不阻塞前端）
-    except Exception:  # noqa: BLE001
-        logging.warning("[dragon] 过期重建触发失败", exc_info=True)
-    return dragon_mod.map_payload()
-
-
-def api_dragon_one(code: str) -> dict:
-    """GET /api/dragon?code=600519 —— 单只龙头明细（行业第几/共几家/六项分项排名）。"""
-    if dragon_mod is None:
-        return {"ok": False, "reason": "龙头分级模块未加载"}
-    return dragon_mod.one(code)
-
 
 def api_screener_bottom(min_years: float = 0, state: str = "all", pool: str = "market",
                         codes: str = "", limit: int = 100, refresh: int = 0,
@@ -6880,7 +6462,6 @@ def api_screener_bottom(min_years: float = 0, state: str = "all", pool: str = "m
                        "note": "自适应底部平台：压缩比≤0.85 + 近一年止跌 + 箱内位置≤0.75；"
                                "埋伏分=时长32%%+低位22%%+回撤18%%+横盘18%%+启动10%%"}}
 
-
 # ================= 入手概率 · 归档 / 时间轴（2026-10-05 王总需求）=================
 def api_rate_snapshot(days: int = 30, limit: int = 30, rows: list = None,
                       src: str = "auto", trade_date: str = "") -> dict:
@@ -6900,16 +6481,11 @@ def api_rate_snapshot(days: int = 30, limit: int = 30, rows: list = None,
     return {"ok": True, "snapshot": screener.snapshot_top(rows, src=src,
                                                           trade_date=trade_date or "")}
 
-
 def api_rate_timeline(days_window: int = 10, per_day: int = 5) -> dict:
     """GET /api/rate/timeline —— 时间轴：各归档日的 T+1/3/5/10 收盘价与入市价比值。"""
     return screener.rate_timeline(days_window=days_window, per_day=per_day)
 
-
 # ================= 增强功能③ 估值 / 诊股评分 =================
-def api_valuation(symbol: str) -> dict:
-    return valuation.score(symbol)
-
 
 # ================= 个股诊断（2026-09-29，合并「个股资金流 + 估值诊股」）=================
 # 一次请求聚合：行情+财务+分红+公司概况（复用 api_quote，自带 60s/30min/6h 缓存）
@@ -6925,7 +6501,6 @@ _DIAG_CACHE: dict[str, tuple[float, dict]] = {}
 _DIAG_TTL = 60            # 聚合结果 60s（与 api_quote 行情缓存对齐）
 _BOARD_CACHE: dict[tuple[str, str], tuple[float, dict]] = {}
 _BOARD_TTL = 120         # 板块详情聚合 120s（成分股/资金/估值变化慢，重复查看瞬时）
-
 
 def _sina_stock_moneyflow(code: str, market: str) -> dict | None:
     """新浪个股资金流（东财 push2 被限流时的兜底源，2026-09-29 实测稳定）。
@@ -6966,7 +6541,6 @@ def _sina_stock_moneyflow(code: str, market: str) -> dict | None:
                    for r in rows],
     }
 
-
 def _stock_moneyflow_fetch(symbol: str, force: bool = False) -> dict:
     """个股资金流上游抓取（不含磁盘缓存层）：东财主源 → 新浪兜底。"""
     r = moneyflow.stock(symbol, force=force)
@@ -6988,7 +6562,6 @@ def _stock_moneyflow_fetch(symbol: str, force: bool = False) -> dict:
         return s
     return r
 
-
 def _stock_moneyflow_any(symbol: str, force: bool = False) -> dict:
     """个股资金流：东财主源（moneyflow.stock，带明细四档）→ 失败切新浪兜底（三档省略）。
     两路都失败时返回东财的失败原因（描述更完整）。
@@ -7005,7 +6578,6 @@ def _stock_moneyflow_any(symbol: str, force: bool = False) -> dict:
                                     label="moneyflow"))
     return _stock_moneyflow_fetch(symbol, force=force)
 
-
 def _announcements_cached(symbol: str, num: int = 8) -> dict:
     """最近公告（newsfeed.stock 复用 emapi.announcement），加进程缓存：
     正面 30min / 失败负缓存 2min —— 公告以天为单位，且避免限流时反复挂超时。"""
@@ -7018,7 +6590,6 @@ def _announcements_cached(symbol: str, num: int = 8) -> dict:
     r = newsfeed.stock(code, num=num)
     _ANN_CACHE[code] = (time.time(), r)
     return r
-
 
 def _expert_verdict(fin: dict, val: dict, mf: dict, dv: dict | None) -> dict:
     """专家综合分析（本地规则引擎，零 LLM 依赖）：五因子加权 0–100 → 操作倾向 + 短/中/长期观点。
@@ -7151,7 +6722,6 @@ def _expert_verdict(fin: dict, val: dict, mf: dict, dv: dict | None) -> dict:
             "disclaimer": "规则引擎基于公开数据的量化打分，非券商研报、不构成投资建议；"
                           "短/中/长期观点为规则推断，非预测承诺。"}
 
-
 # ================= 增强功能③ 板块详情页（A1：2026-09-29 王总要求补下钻层级）============
 def api_board(code: str, kind: str = "industry", name: str = "", force: int = 0) -> dict:
     """板块详情页聚合：成分股全列表 + 板块行情/资金 + 板块内个股资金对比 + 板块内龙虎榜 + 估值分位。
@@ -7266,7 +6836,6 @@ def api_board(code: str, kind: str = "industry", name: str = "", force: int = 0)
     _BOARD_CACHE[ck] = (time.time(), payload)
     return payload
 
-
 def api_diag(symbol: str, force: bool = False) -> dict:
     """个股诊断聚合接口：一次返回行情/财务/分红/概况/估值评分/资金流/公告/专家分析。"""
     key = (symbol or "").strip()
@@ -7317,7 +6886,6 @@ def api_diag(symbol: str, force: bool = False) -> dict:
     _DIAG_CACHE[key] = (time.time(), payload)
     return payload
 
-
 # ================= 增强功能③ 研报 / 机构评级 =================
 def api_research_reports(pz: int = 30, page: int = 1) -> dict:
     return research.report_list(pz=pz, page=page)
@@ -7330,7 +6898,6 @@ def api_research_rating(symbol: str) -> dict:
 _RI_LOCK = threading.Lock()
 _RI_STATE = {"data": None, "running": False, "started": False}
 
-
 def _ri_warm(days: int = 60):
     try:
         d = research_insight.build(days=days)
@@ -7340,7 +6907,6 @@ def _ri_warm(days: int = 60):
         pass
     finally:
         _RI_STATE["running"] = False
-
 
 def api_research_insight(days: int = 60, force: bool = 0) -> dict:
     with _RI_LOCK:
@@ -7355,7 +6921,6 @@ def api_research_insight(days: int = 60, force: bool = 0) -> dict:
         d = dict(_RI_STATE["data"])
     d["cached"] = not force
     return d
-
 
 def api_research_insight_rebuild(days: int = 60) -> dict:
     research_insight.insight(days=days, force=True)   # 同步重算并落缓存
@@ -7378,12 +6943,10 @@ def api_multiquote_lookup(symbol: str) -> dict:
 # 分类规则本体在 viewer/newsclass.py（唯一真源：后端调 classify、前端读 news_rules.js），
 # 原本地副本已删除 —— 改前此处与 app.js 的 newsClassify 是两份独立词表。
 
-
 # 2026-10-01 口径自查：新闻/公告分类规则已收编到 viewer/newsclass.py（前后端唯一真源），
 # 本地不再保留副本（改前 app.js 与这里各有一份独立词表，同一标题会分叉）。
 _ANN_TITLE_RULES = newsclass.ANN_TITLE_RULES
 _ann_classify = newsclass.classify
-
 
 def _stock_news_verdict(symbol: str, rows: list[dict]) -> dict:
     """公告流 → 研判：立场 + 指向依据（公告分类聚合 + 财务指向，机器初判口径）。"""
@@ -7439,7 +7002,6 @@ def _stock_news_verdict(symbol: str, rows: list[dict]) -> dict:
     return {"stance": stance, "reasons": reasons, "name": "",
             "coverage": f"公告 {n_rows} 条（财务指向暂缺，行情源未命中）"}
 
-
 def _news_stock_fetch(symbol: str, num: int = 30) -> dict:
     """个股快讯上游抓取 + 本地研判（不含磁盘缓存层）。"""
     d = newsfeed.stock(symbol, num=num)
@@ -7449,7 +7011,6 @@ def _news_stock_fetch(symbol: str, num: int = 30) -> dict:
         except Exception as e:  # noqa: BLE001
             d["verdict"] = {"stance": "暂缺", "reasons": [], "name": "", "coverage": f"研判生成失败：{e}"}
     return d
-
 
 def api_news_stock(symbol: str, num: int = 30) -> dict:
     """个股快讯：东财公告/快讯（newsfeed.stock）+ 本地情绪研判。
@@ -7468,7 +7029,6 @@ def api_news_stock(symbol: str, num: int = 30) -> dict:
 def api_news_market(num: int = 30) -> dict:
     return newsfeed.market(num=num)
 
-
 # ================= 主动盯盘 / 个股预判（2026-10-01，watchdesk）=================
 # 定位：旧个股快讯是「用户输代码 → 现抓现算」的被动模式；这里改成系统自己扫盯盘池
 # （博主重仓池 + 自选），扫完直接给结论：风险主导 / 机会窗口 / 多空交织 / 信息真空
@@ -7478,7 +7038,6 @@ _DESK_MIN_GAP = 900                 # 交易时段内最少 15 分钟扫一轮�
 _DESK_LOCK = threading.Lock()
 _DESK_RUNNING = {"on": False}
 
-
 def _meta_put(key: str, value, *, _log: bool = True) -> None:
     """统一的 meta 写入封装（P2-01）：单条失败只记日志、绝不拖垮调用方。"""
     try:
@@ -7487,7 +7046,6 @@ def _meta_put(key: str, value, *, _log: bool = True) -> None:
         if _log:
             logging.exception("meta 写入失败 key=%s", key)
 
-
 def _desk_state() -> dict:
     try:
         s = json.loads(DB.get_meta(_DESK_STATE_KEY, "{}") or "{}")
@@ -7495,12 +7053,10 @@ def _desk_state() -> dict:
         s = {}
     return s if isinstance(s, dict) else {}
 
-
 def _desk_state_update(**kw) -> None:
     cur = _desk_state()
     cur.update(kw)
     _meta_put(_DESK_STATE_KEY, json.dumps(cur, ensure_ascii=False))
-
 
 def _desk_stale_seconds() -> float:
     """当前盯盘距上次扫描的秒数（没扫过返回 0，解析不了也返回 0 —— 交由调用方按自身语义兜底）。"""
@@ -7512,7 +7068,6 @@ def _desk_stale_seconds() -> float:
     except Exception:  # noqa: BLE001
         return 0.0
 
-
 def _desk_next_at(last: str | None) -> str | None:
     if not last:
         return None
@@ -7521,7 +7076,6 @@ def _desk_next_at(last: str | None) -> str | None:
         return (dt + timedelta(seconds=_DESK_MIN_GAP)).strftime("%Y-%m-%d %H:%M:%S")
     except Exception:  # noqa: BLE001
         return None
-
 
 def _desk_run_bg() -> None:
     """后台跑一轮盯盘扫描（实测 ~35s：203 只 × 0.15s）。带锁防重入，异常不外抛。"""
@@ -7540,7 +7094,6 @@ def _desk_run_bg() -> None:
     finally:
         _DESK_RUNNING["on"] = False
 
-
 def _watchdesk_maybe_run() -> None:
     """调度入口：距上次扫描满 15 分钟且不在扫描中就起一轮后台扫描；失败不影响调度循环。"""
     try:
@@ -7558,7 +7111,6 @@ def _watchdesk_maybe_run() -> None:
     except Exception:  # noqa: BLE001
         pass
 
-
 # 2026-10-05（报告 P2 / 建议6）盯盘心跳与自愈：
 # 实测发现 meta.watchdesk_state 长期停在运行中（running=true），但 last_scan_at 停在 4 天前——
 # 线程早死了，状态没人改。这里给一个统一的判活口径：距上次扫描超过 STALE 秒即判定为「假活」，
@@ -7566,7 +7118,6 @@ def _watchdesk_maybe_run() -> None:
 _WATCHDOG_STALE_SECONDS = 1800          # 30 分钟没扫过 = 线程已死
 _WATCHDOG_HEAL_LOCK = threading.Lock()
 _WATCHDOG_LAST_HEAL = {"at": 0.0}
-
 
 def _watchdesk_heartbeat() -> None:
     """每轮调度调一次：查盯盘是否「假活」，是则置 running=false + 自动补扫。"""
@@ -7599,7 +7150,6 @@ def _watchdesk_heartbeat() -> None:
     except Exception:  # noqa: BLE001 —— 心跳本身绝不能拖垮调度
         logging.exception("盯盘心跳检查异常（已忽略）")
 
-
 def api_watchdesk() -> dict:
     """盯盘总览。首屏尚未跑过扫描（state 空）时，用结论表里最后一次重算时间兜底，
     否则面板头会显示「上次扫描 —」，看起来像没干活；池子大小也直接取实际行数。"""
@@ -7630,17 +7180,14 @@ def api_watchdesk() -> dict:
         })
     return d
 
-
 def api_watchdesk_detail(code: str) -> dict:
     return watchdesk.detail(DB.conn, code, window=watchdesk._WINDOW_DAYS)
-
 
 def api_watchdesk_scan() -> dict:
     """前端「立即扫描」：不到冷却时间也放行（手动优先），后台线程跑，立刻返回。"""
     _desk_state_update(last_scan_at="")       # 清掉冷却起点，让本轮立刻触发
     threading.Thread(target=_desk_run_bg, name="watchdesk-scan-now", daemon=True).start()
     return {"ok": True, "accepted": True}
-
 
 # ================= 政策风向（国家级政策desk，2026-09-30 替代旧「全市场快讯」）=================
 def _safe_policy_refresh() -> None:
@@ -7655,7 +7202,6 @@ def _safe_policy_refresh() -> None:
     except Exception:  # noqa: BLE001
         pass
 
-
 def api_policy_desk(num: int = 80) -> dict:
     # 非阻塞：HTTP 线程只做库读，外部抓取（gov.cn + 中央级快讯筛选 + 板块代表股）甩给后台线程，
     # 首屏不再卡在冷抓取上；若库内尚无数据，payload 返回 warming=True，前端 3s 后补取。
@@ -7665,7 +7211,6 @@ def api_policy_desk(num: int = 80) -> dict:
     except Exception:  # noqa: BLE001
         pass
     return policydesk.payload(DB.conn, num=num)
-
 
 def _overseas_insight() -> dict:
     """海外舆情 → 决策报告：把已入库的「主题 / 热度 / 映射国内板块 / 驱动热点」
@@ -7792,7 +7337,6 @@ def _overseas_insight() -> dict:
         },
     }
 
-
 def api_overseas_sources() -> dict:
     """数据源接入状态（界面如实展示「已接入 / 待激活」）与权重配置。"""
     rows = [dict(r) for r in DB.conn.execute(
@@ -7801,7 +7345,6 @@ def api_overseas_sources() -> dict:
     return {"sources": rows, "region_weights": cfg.get("region_weights") or {},
             "topics": list((cfg.get("topics") or {}).keys())}
 
-
 def api_overseas_collect(live: bool = True, reset: bool = True) -> dict:
     """显式刷新海外舆情（可联网 live=True，或仅用结构化示例 live=False）。"""
     try:
@@ -7809,7 +7352,6 @@ def api_overseas_collect(live: bool = True, reset: bool = True) -> dict:
         return collect(db=DB, include_seed=True, reset=reset, live=live)
     except Exception as e:  # noqa: BLE001
         return {"error": str(e)[:200]}
-
 
 def api_players(top_only: bool = False, channel: str | None = None,
                 tier: str | None = None, visible_only: bool = False) -> list[dict]:
@@ -7896,13 +7438,11 @@ def api_players(top_only: bool = False, channel: str | None = None,
         p["holdings"] = items
     return players
 
-
 def _lhb_recent_dates(anchor: str, days: int = 5, table: str = "lhb_depts") -> list[str]:
     """取截至 anchor（含）的最近 days 个有数据的交易日，用于滚动窗口聚合。"""
     return [r[0] for r in DB.conn.execute(
         f"SELECT DISTINCT trade_date FROM {table} WHERE trade_date <= ? "
         "ORDER BY trade_date DESC LIMIT ?", (anchor, days)).fetchall()]
-
 
 def _lhb_depts_top(anchor: str, days: int = 5, limit: int = 20) -> list[dict]:
     """游资席位榜：以**营业部为轴**的滚动战绩（上榜次数/涉及股数/买卖净额/榜后胜率）。
@@ -7967,7 +7507,6 @@ def _lhb_depts_top(anchor: str, days: int = 5, limit: int = 20) -> list[dict]:
     out.sort(key=lambda x: -(x["net"] or 0))
     return out[:limit]
 
-
 def _lhb_inst_top(anchor: str, days: int = 5, limit: int = 20) -> list[dict]:
     """机构席位榜：滚动窗口内机构净买最多的个股（含量化口径的买/卖次数与占成交比）。"""
     ds = _lhb_recent_dates(anchor, days, "lhb_inst")
@@ -8010,7 +7549,6 @@ def _lhb_inst_top(anchor: str, days: int = 5, limit: int = 20) -> list[dict]:
         })
     out.sort(key=lambda x: -(x["net"] or 0))
     return out[:limit]
-
 
 def api_lhb(date: str | None = None, window_days: int = 5) -> dict:
     """游资龙虎榜（4 维度）。
@@ -8055,7 +7593,6 @@ def api_lhb(date: str | None = None, window_days: int = 5) -> dict:
             "window_dates": _lhb_recent_dates(d, window_days, "lhb_depts"),
             "inst_buy_net": (inst["buy_net"] if inst else None) or 0,
             "inst_sell_net": (inst["sell_net"] if inst else None) or 0}
-
 
 def api_lhb_sectors(date: str | None = None) -> dict:
     """龙虎榜「板块动向」——资金在哪些板块出现多点共振，及其扩散验证。
@@ -8103,7 +7640,6 @@ def api_lhb_sectors(date: str | None = None) -> dict:
     out["outlook"] = _sector_outlook(d)
     return out
 
-
 # ---------------------------------------------------------------- 方向研判报告
 # 「板块动向」那张表只回答「资金扫了哪些方向」。用户要的是**分开写**的三段判断：
 #   ① why   为什么涨 —— 资金结构成因（净买/上榜数 + 资金形态 + 买方席位结构 + 龙头）
@@ -8119,12 +7655,10 @@ _OUTLOOK_STYLE_KW = (
     "券商重仓", "B股", "上证50", "沪深300", "中证500", "茅指数", "宁组合",
 )
 
-
 def _outlook_is_style(name: str) -> bool:
     """统计/风格/指数口径的「伪板块」不该进接力方向；地域板块与题材概念要保留。"""
     n = name or ""
     return any(k in n for k in _OUTLOOK_STYLE_KW)
-
 
 def _outlook_form(reasons) -> str:
     """把交易所披露的上榜原因归并成资金形态；一只票只归一类，按风险优先级取。
@@ -8144,7 +7678,6 @@ def _outlook_form(reasons) -> str:
     if "振幅" in s:
         return "巨幅震荡"
     return "其他"
-
 
 def _sector_outlook(date: str | None = None) -> dict:
     """把「板块动向」当日数据升级成一段可分节阅读的方向研判（对应用户「分开写」的要求）。
@@ -8342,7 +7875,6 @@ def _sector_outlook(date: str | None = None) -> dict:
         ],
     }
 
-
 def _is_person(name: str) -> bool:
     """判断股东名是否像自然人（排除公司/基金/账户/计划等机构性名称）。"""
     n = (name or "").strip()
@@ -8354,7 +7886,6 @@ def _is_person(name: str) -> bool:
         if kw in n:
             return False
     return True
-
 
 def api_niusan(min_hold: int = 2, scope: str = "free") -> dict:
     """牛散追踪 + 股东协同（对标「看究竟·股东协同」/ Dataroma 共识持仓）。
@@ -8467,7 +7998,6 @@ def api_niusan(min_hold: int = 2, scope: str = "free") -> dict:
                   "仅作方向参考，不构成交易信号。"),
     }
 
-
 def api_star_moves(limit: int = 80, periods: int = 4, scope: str = "free") -> dict:
     """牛散动向：按报告期列出「star 级牛散」的持仓变动（新进 / 增持 / 减持 / 退出）。
 
@@ -8549,14 +8079,12 @@ def api_star_moves(limit: int = 80, periods: int = 4, scope: str = "free") -> di
         "basis": "仅含跨 ≥2 家上市公司的自然人股东（已隔离实控人 / 家族同持）",
     }
 
-
 def api_positions() -> list[dict]:
     rows = DB.conn.execute(
         "SELECT site, player, channel, symbol, symbol_name, ratio, action, post_url "
         "FROM positions WHERE symbol IS NOT NULL ORDER BY symbol, player"
     ).fetchall()
     return [dict(r) for r in rows]
-
 
 def api_consensus(min_holders: int = 2, symbol: str | None = None,
                   only_qualified: bool = False,
@@ -8581,7 +8109,6 @@ def api_consensus(min_holders: int = 2, symbol: str | None = None,
     if symbol:
         out = [x for x in out if x["symbol"] == symbol]
     return out
-
 
 def api_cohold_recent(days: int = 5, min_holders: int = 2,
                       anchor: str | None = None, only_qualified: bool = False) -> dict:
@@ -8609,7 +8136,6 @@ def api_cohold_recent(days: int = 5, min_holders: int = 2,
             for p in x.get("players") or []:
                 p["symbol_name"] = n["name"] or x["symbol_name"] or ""
     return d
-
 
 def api_stock(symbol: str) -> dict:
     """单只股票明细：讨论帖 + 各选手持仓（含买入时间/买入价/当前股价/权限）+ 相关实盘交易。
@@ -8689,7 +8215,6 @@ def api_stock(symbol: str) -> dict:
             "positions": positions, "holders": len(holders), "mention_count": len(mentions),
             "trade_count": len(trades), "position_count": len(positions)}
 
-
 # ---------------------------------------------------------------------------
 # 单只股票行情（K 线）代理：2026-09-25 王总需求
 #   点任意一只推荐的股票 → 看它当前状态 / 历史走势 / K 线图。
@@ -8703,7 +8228,6 @@ _KLINE_CACHE: dict[tuple, tuple[float, dict]] = {}
 # 连续阴跌扫描的内存缓存（2026-09…… 2026-10-05 建议8：大接口降负载，同参数 1 小时内复用）
 _DECLINE_CACHE: dict[tuple, tuple[float, dict]] = {}
 _DECLINE_TTL = 3600
-
 
 # ---------------------------------------------------------------------------
 # K 线成交量单位归一（2026-10-31 测评 P0：K 线「599.27 万手」实为「599.27 万股」）
@@ -8725,7 +8249,6 @@ _ANCHOR_TTL = 600.0          # 正证据缓存 10 分钟
 _ANCHOR_TTL_MISS = 60.0      # 负证据（取不到）只缓存 1 分钟，网络恢复后能尽快补上
 _AUTO_ANCHOR = object()      # 哨兵：让 _normalize_kline_volume 自己去取锚点
 
-
 def _anchor_from_snapshot(code: str, date: str) -> float | None:
     """本地全市场快照里该股该日的真实成交量（股）。离线可读，且自身可自证单位。
 
@@ -8741,7 +8264,6 @@ def _anchor_from_snapshot(code: str, date: str) -> float | None:
     if not row:
         return None
     return UNITS.volume_to_shares(row["volume"], row["amount"], row["close"])
-
 
 def _anchor_from_sina_hq(symbol: str, date: str) -> float | None:
     """新浪实时 hq 里该股该日的真实成交量（股）。
@@ -8763,7 +8285,6 @@ def _anchor_from_sina_hq(symbol: str, date: str) -> float | None:
         return None
     return UNITS.volume_to_shares(f[8], f[9], f[3])
 
-
 def _volume_anchor_shares(symbol: str, date: str) -> float | None:
     """某交易日的真实成交量（股）锚点：本地快照优先（离线可用）→ 新浪实时。"""
     if not symbol or not date:
@@ -8783,7 +8304,6 @@ def _volume_anchor_shares(symbol: str, date: str) -> float | None:
     _ANCHOR_CACHE[key] = (now, val)
     return val
 
-
 def _series_unit(symbol: str, rows: list, amount_is_real: bool) -> tuple[str | None, str]:
     """判一条（同粒度的）K 线序列的量单位 → (unit, 证据来源)。"""
     if not rows:
@@ -8797,7 +8317,6 @@ def _series_unit(symbol: str, rows: list, amount_is_real: bool) -> tuple[str | N
     if u:
         return u, "spot_anchor"
     return None, "none"
-
 
 def _apply_volume_unit(rows: list, unit: str | None, source: str) -> None:
     """就地把序列的量归一到「股」并逐根标注单位；判不出则置空 + 标 None。
@@ -8819,7 +8338,6 @@ def _apply_volume_unit(rows: list, unit: str | None, source: str) -> None:
             r["volume"] = UNITS.kline_volume_to_shares(r.get("volume_native"), unit)
             r["volume_unit"] = "share"
 
-
 def _normalize_daily_volume(symbol: str, rows: list, amount_is_real: bool) -> None:
     """日线粒度上先归一，**再**聚合周/月。
 
@@ -8827,7 +8345,6 @@ def _normalize_daily_volume(symbol: str, rows: list, amount_is_real: bool) -> No
     对不上，必然判不出（或判错）。新浪/本地库都是从日线聚合出来的，所以在这里归一。
     """
     _apply_volume_unit(rows, *_series_unit(symbol, rows, amount_is_real))
-
 
 def _sync_kline_current(payload: dict) -> None:
     """把 current（= 最新一根的快照）的量与单位对齐到已归一的 rows，并给出派生字段。
@@ -8850,7 +8367,6 @@ def _sync_kline_current(payload: dict) -> None:
     else:
         cur["volume_shares"] = None
         cur["volume_hand"] = None
-
 
 def _normalize_kline_volume(payload: dict, anchor=_AUTO_ANCHOR) -> dict:
     """K 线出口统一归一：volume → 股，并在 payload 与每根行上**显式声明单位**。
@@ -8894,7 +8410,6 @@ def _normalize_kline_volume(payload: dict, anchor=_AUTO_ANCHOR) -> dict:
     payload["volume_unit_unknown"] = unit is None
     _sync_kline_current(payload)
     return payload
-
 
 def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
     klt = {"day": "101", "week": "102", "month": "103"}.get(period, "101")
@@ -8960,7 +8475,6 @@ def _eastmoney_kline(symbol: str, period: str, timeout: int = 5) -> dict | None:
         },
     })
 
-
 def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: int = 2,
                           full_history: bool = False):
     """腾讯 K 线 → 与 _eastmoney_kline 同构的 payload（东财 push2his 不可用时兜底）。
@@ -8989,7 +8503,6 @@ def _tencent_kline_result(symbol: str, period: str, timeout: int = 12, retries: 
                     "high": last["high"], "low": last["low"], "prev_close": prev,
                     "volume": last["volume"], "amount": last["amount"], "date": last["date"]},
     })
-
 
 def _slice_kline(payload: dict, limit: int, offset: int) -> dict:
     """K 线降采样（2026-10-05 建议8）：一次 NET  thousands 根全历史没必要整包推给前端。
@@ -9029,7 +8542,6 @@ def _slice_kline(payload: dict, limit: int, offset: int) -> dict:
         out["last_date"] = ""
     return out
 
-
 def _kline_upstream(symbol: str, period: str) -> dict | None:
     """K 线上游抓取（东财→新浪→腾讯），返回**未切片**的原始 payload。
 
@@ -9054,12 +8566,10 @@ def _kline_upstream(symbol: str, period: str) -> dict | None:
         payload["full_history"] = True
     return payload
 
-
 # 2026-10-28（进哥）：联网三源全挂（本机安全软件掐连接 / 出口 IP 被风控）时，
 # 回退到本地全市场日 K 库 data/kline_daily.db（5555 只 · 全历史 · 每日构建）。
 # 这样 K 线图在本机断网/被拦时仍可读——只是数据截至库内最新日，非实时。
 _KLINE_DB_PATH = os.path.join(ROOT, "data", "kline_daily.db")
-
 
 def _kline_from_local_db(symbol: str, period: str = "day") -> dict | None:
     """本地日 K 库兜底：返回与 _eastmoney_kline 同构 payload（full_history=True）。
@@ -9126,7 +8636,6 @@ def _kline_from_local_db(symbol: str, period: str = "day") -> dict | None:
         },
     })
 
-
 def _aggregate_daily_to_period(bars: list, period: str) -> list:
     """日 K 聚合为周/月 K。week=按 ISO 周分组（周一~周日），month=按自然月分组。"""
     from datetime import datetime
@@ -9158,7 +8667,6 @@ def _aggregate_daily_to_period(bars: list, period: str) -> list:
     if cur is not None:
         groups.append(cur)
     return groups
-
 
 def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 0) -> dict:
     """单只股票 K 线：东财（前复权·全历史）→ 新浪（不复权·全历史）→ 腾讯（前复权·兜底）。
@@ -9229,7 +8737,6 @@ def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 
     _KLINE_CACHE[key] = (now, payload)
     return _slice_kline(payload, limit, offset)
 
-
 # ---------------------------------------------------------------------------
 # 个股「重要信息」快照：2026-09-25 王总需求
 #   点开一只股票 → 除 K 线外，还要直接看到：实时行情 / 估值(PE·PB·市值) / 财务(ROE·毛利率·营收·净利)。
@@ -9257,7 +8764,6 @@ _F10_COLS = ("SECUCODE,SECURITY_CODE,SECURITY_NAME_ABBR,REPORT_DATE,REPORT_DATE_
              "PARENTNETPROFIT,PARENTNETPROFITTZ,KCFJCXSYJLR,ROEJQ,ROEKCJQ,"
              "XSMLL,XSJLL,ZZCJLL,MGJYXJJE,MGWFPLR,ZCFZL")
 
-
 def _num(v):
     """东财常用占位符（'-'、'--'、''）统一折算为 None，避免前端拿到脏值。"""
     if v is None or isinstance(v, bool):
@@ -9272,12 +8778,10 @@ def _num(v):
     except ValueError:
         return None
 
-
 def _num2(v):
     """两位小数格式化（用于「万股」等展示，缺值返回 —）。"""
     n = _num(v)
     return "—" if n is None else f"{n:.2f}"
-
 
 def _em_secid(symbol: str) -> tuple[str, str, str]:
     """代码 → (market, code, secid)。market: 1=沪市，0=深市/北交所。"""
@@ -9290,7 +8794,6 @@ def _em_secid(symbol: str) -> tuple[str, str, str]:
     else:
         market = "1" if code[:1] == "6" else "0"
     return market, code, f"{market}.{code}"
-
 
 _REQ_DEADLINE = threading.local()  # P2-09：请求级处理时限（monotonic 秒），do_GET/do_POST 写入
 
@@ -9309,12 +8812,10 @@ _REQ_RO_CONN = threading.local()
 _LAST_REQ_TS = 0.0          # 最近一次用户请求的 monotonic 时刻；0 = 启动后尚无请求
 _USER_BUSY_SECS = 45.0      # 用户静默多少秒后，才允许跑进程内重活
 
-
 def _user_busy(secs: float | None = None) -> bool:
     """最近 secs 秒内是否有用户请求（True=正忙，重活应让路）。"""
     s = _USER_BUSY_SECS if secs is None else secs
     return _LAST_REQ_TS > 0 and (time.monotonic() - _LAST_REQ_TS) < s
-
 
 def _wait_user_idle(quiet: float = 8.0, max_wait: float = 180.0) -> bool:
     """阻塞等待「用户安静 quiet 秒」，最多等 max_wait 秒；等到返回 True。
@@ -9329,7 +8830,6 @@ def _wait_user_idle(quiet: float = 8.0, max_wait: float = 180.0) -> bool:
             return False
         time.sleep(2.0)
     return True
-
 
 def _idle_gate(fn, name: str = ""):
     """把「进程内 CPU 重活」包成「用户忙碌就跳过」的调度项（2026-10-29）。
@@ -9347,7 +8847,6 @@ def _idle_gate(fn, name: str = ""):
         return None
     return _wrapped
 
-
 # P2-24：GET 路由副作用分类。
 #   write     —— 处理器内部会回写 DB（建表/生成/存档/回填），必须走可写连接；
 #   read_only —— 纯 SELECT（或等价只读），可走 get_conn(read_only=True)。
@@ -9361,7 +8860,6 @@ _GET_WRITE_ROUTES = (
     "/api/auction/backfill",      # 回填写库
 )
 
-
 def _is_write_get_route(route: str) -> bool:
     """判断 GET 路由是否带写副作用（见 _GET_WRITE_ROUTES）。"""
     for w in _GET_WRITE_ROUTES:
@@ -9371,7 +8869,6 @@ def _is_write_get_route(route: str) -> bool:
         elif route == w:
             return True
     return False
-
 
 def _ro_conn() -> "sqlite3.Connection":
     """P2-24：返回当前 GET 请求的只读连接（read_only 路由），否则回退全局可写连接。
@@ -9388,7 +8885,6 @@ def _ro_conn() -> "sqlite3.Connection":
         _REQ_RO_CONN.value = conn
         return conn
     return DB.conn
-
 
 def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
               encoding: str = "utf-8-sig", deadline=None):
@@ -9426,7 +8922,6 @@ def _get_text(url: str, referer: str, timeout: int = 12, retries: int = 2,
     logging.debug("取数失败 %s（%s）", url[:110], last_err)
     return None
 
-
 def _em_get_json(url: str, referer: str, timeout: int = 12, retries: int = 2):
     if cu is not None:
         # 全局令牌桶：约束对东财的调用频率（~4 次/秒），避免单只股票首开瞬间打爆触发限流；
@@ -9457,7 +8952,6 @@ def _em_get_json(url: str, referer: str, timeout: int = 12, retries: int = 2):
     except Exception:  # noqa: BLE001
         return None
 
-
 def _em_quote_raw(secid: str, timeout: int = 5, retries: int = 0):
     """东财 push2 快照。超时/重试刻意收紧：实测该主机常直接掐连接，
     快速失败后交给腾讯兜底（0.2s 级）比在这里反复重试更快。
@@ -9469,7 +8963,6 @@ def _em_quote_raw(secid: str, timeout: int = 5, retries: int = 0):
            f"?secid={secid}&fields={_QUOTE_FIELDS}&ut={_EM_UT}&invt=2&fltt=2")
     j = _em_get_json(url, "https://quote.eastmoney.com/", timeout=timeout, retries=retries)
     return (j or {}).get("data") or None
-
 
 def _em_finance(code: str, market: str):
     """F10 主财务指标（最近一个报告期）。字段名自解释，避免依赖 f 编号语义。
@@ -9497,7 +8990,6 @@ def _em_finance(code: str, market: str):
     _FIN_CACHE[code] = (time.time(), res)
     return res
 
-
 # 2026-09-26 新增：公司概况（主营业务 / 公司简介 / 行业 / 经营范围）
 #   王总要求：每只股票点开后的「重要信息」板块里，要能直接看懂「这家公司是干什么的」。
 #   数据源：东财 F10 公司概况 RPT_F10_BASIC_ORGINFO —— 单次请求即含全部所需字段
@@ -9518,12 +9010,10 @@ _DIV_CACHE: dict[str, tuple[float, object]] = {}
 _DIV_TTL = 6 * 3600       # 分红正面缓存 6 小时（年度口径）
 _DIV_NEG_TTL = 120        # 失败负缓存 2 分钟
 
-
 def _f10_text(v) -> str:
     """F10 长文本归一：去 NBSP/全角空格/换行，压成单段（东财原文常带前导空格与硬换行）。"""
     s = str(v or "").replace("\u3000", " ").replace("\xa0", " ")
     return re.sub(r"\s+", " ", s).strip()
-
 
 def _em_org_info(code: str, market: str) -> dict | None:
     """东财 F10 公司概况 → 归一化 dict（取不到返回 None）。"""
@@ -9561,7 +9051,6 @@ def _em_org_info(code: str, market: str) -> dict | None:
         "source": "eastmoney_f10",
     }
 
-
 def _org_info(code: str, market: str, force: bool = False) -> dict | None:
     """公司概况取数：进程缓存(24h) → 本地库 stock_org → 联网抓（成功即落库）。
     联网失败时回退已有缓存/库值 —— 避免「点一下刷新反而没数据」。"""
@@ -9586,7 +9075,6 @@ def _org_info(code: str, market: str, force: bool = False) -> dict | None:
         _ORG_CACHE[code] = (time.time(), cached)
     return cached
 
-
 # 2026-09-25 新增：分红送配 → 股息率（王总价值标准之一：股息率 > 3%）
 #   口径已实测确认：RPT_SHAREBONUS_DET.PRETAX_BONUS_RMB = **每 10 股税前派息(元)**。
 #   验证：600519 近 12 个月(按除权日) 280.2423 + 239.57 = 519.8123 元/10股
@@ -9594,7 +9082,6 @@ def _org_info(code: str, market: str, force: bool = False) -> dict | None:
 _DIV_COLS = ("SECUCODE,SECURITY_CODE,SECURITY_NAME_ABBR,REPORT_DATE,EX_DIVIDEND_DATE,"
              "PLAN_NOTICE_DATE,PRETAX_BONUS_RMB,BONUS_IT_RATIO,IT_RATIO,DIVIDENT_RATIO,"
              "ASSIGN_PROGRESS,IMPL_PLAN_PROFILE")
-
 
 def _dividend_with_yield(code: str, market: str, price) -> dict | None:
     """分红带缓存包装：正面 6h / 失败负缓存 2min（东财限流时点开抽屉不再反复挂超时）。"""
@@ -9604,7 +9091,6 @@ def _dividend_with_yield(code: str, market: str, price) -> dict | None:
     r = _dividend_fetch(code, market, price)
     _DIV_CACHE[code] = (time.time(), r)
     return r
-
 
 def _dividend_fetch(code: str, market: str, price) -> dict | None:
     """股息率：**最近一个已实施「年度分红」的完整会计年度**的每股分红合计 / 最新价。
@@ -9664,7 +9150,6 @@ def _dividend_fetch(code: str, market: str, price) -> dict | None:
         "note": f"{y} 会计年度已实施分红合计 ÷ 最新价，税前",
     }
 
-
 # --- 备用 K 线源：新浪（可一次返回「全历史」，支撑拖到上市首日）
 #     用途：东财 push2his 实测会直接掐连接（RemoteDisconnected），此时腾讯兜底只给 120 根，
 #           「拖到上市首日」就做不到。新浪一次可取数千根，实测 600519 = 6012 根
@@ -9674,7 +9159,6 @@ def _dividend_fetch(code: str, market: str, price) -> dict | None:
 _SINA_KLINE_URL = ("https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/"
                    "CN_MarketData.getKLineData?symbol={sym}&scale=240&ma=no&datalen={n}")
 _SINA_MAX = 12000
-
 
 def _sina_kline_rows(symbol: str, period: str, timeout: int = 15, retries: int = 2):
     """新浪日线 → 与东财同构的行。新浪无周/月线接口，故周/月由日线本地聚合。
@@ -9718,7 +9202,6 @@ def _sina_kline_rows(symbol: str, period: str, timeout: int = 15, retries: int =
         r["pct"] = round((r["close"] - base) / base * 100, 2) if base else 0.0
     return rows
 
-
 def _agg_kline(rows: list[dict], period: str) -> list[dict]:
     """日线 → 周线/月线（本地聚合：开=首、高=max、低=min、收=末、量=sum）。"""
     if period == "day" or not rows:
@@ -9759,7 +9242,6 @@ def _agg_kline(rows: list[dict], period: str) -> list[dict]:
         out.append(agg)
     return out
 
-
 def _sina_kline_result(symbol: str, period: str, timeout: int = 15, retries: int = 2):
     """新浪 → 与 _eastmoney_kline 同构的 payload。"""
     rows = _sina_kline_rows(symbol, period, timeout=timeout, retries=retries)
@@ -9780,7 +9262,6 @@ def _sina_kline_result(symbol: str, period: str, timeout: int = 15, retries: int
                     "volume": last["volume"], "amount": last["amount"], "date": last["date"]},
     })
 
-
 # --- 备用行情源：腾讯（公开、稳定）
 #     用途：东财 push2 / push2his 被限流或直接掐连接（实测 RemoteDisconnected）时自动兜底。
 #     字段位置已用 600519 与东财真值逐项交叉校验（价/昨收/开/高/低/涨跌/PE三口径/PB/市值/换手/振幅/量比 全一致）。
@@ -9792,7 +9273,6 @@ _TX_FIELD = {
     "pe_dyn": 52, "pe_static": 53,
 }
 
-
 def _tx_prefix(code: str, market: str) -> str:
     if market == "1":
         return "sh"
@@ -9800,20 +9280,17 @@ def _tx_prefix(code: str, market: str) -> str:
         return "bj"
     return "sz"
 
-
 def _fmt_time_em(ts) -> str:
     try:
         return time.strftime("%Y-%m-%d %H:%M", time.localtime(float(ts)))
     except Exception:  # noqa: BLE001
         return ""
 
-
 def _fmt_time_tx(s: str) -> str:
     s = (s or "").strip()
     if len(s) >= 12 and s.isdigit():
         return f"{s[0:4]}-{s[4:6]}-{s[6:8]} {s[8:10]}:{s[10:12]}"
     return s
-
 
 # ---------------------------------------------------------------------------
 # 2026-10-09 新增：行情新鲜度（顶栏「数据时间」真正该看的东西）。
@@ -9826,7 +9303,6 @@ def _fmt_time_tx(s: str) -> str:
 _MARKET_BENCHMARK = "sh000001"          # 上证指数（永不停牌，最合适的基准）
 _MARKET_FRESH_CACHE: dict = {"ts": 0.0, "data": None}
 _MARKET_FRESH_TTL = 2.0                  # 行情原子缓存仅 2s（几乎等同现抓）；lag 每次现算
-
 
 def _bench_tencent(sym: str = _MARKET_BENCHMARK):
     """腾讯快照的 (name, 行情时间, 价) —— parts[30]=yyyymmddHHMMSS。"""
@@ -9844,7 +9320,6 @@ def _bench_tencent(sym: str = _MARKET_BENCHMARK):
     return {"src": "tencent", "name": parts[1] or "", "quote_time": qt,
             "price": _num(parts[3])}
 
-
 def _bench_sina(sym: str = _MARKET_BENCHMARK):
     """新浪快照的 (name, 行情时间, 价) —— 指数格式 f[30]=日期, f[31]=时间。"""
     txt = _get_text(f"https://hq.sinajs.cn/list={sym}", "https://finance.sina.com.cn/",
@@ -9861,7 +9336,6 @@ def _bench_sina(sym: str = _MARKET_BENCHMARK):
     return {"src": "sina", "name": f[0] or "", "quote_time": f"{d} {tm}",
             "price": _num(f[3])}
 
-
 def _bench_em(secid: str = "1.000001"):
     """东财 push2 快照的 (name, 行情时间, 价) —— f86=行情时间戳(秒)。"""
     q = _em_quote_raw(secid, timeout=3, retries=0)
@@ -9874,7 +9348,6 @@ def _bench_em(secid: str = "1.000001"):
         return None
     return {"src": "eastmoney", "name": q.get("f58") or "", "quote_time": qt,
             "price": _num(q.get("f43"))}
-
 
 def _is_trading_now() -> bool:
     """当前是否处于 A 股连续竞价时段（且今天是交易日）。休市/节假日返回 False。"""
@@ -9889,7 +9362,6 @@ def _is_trading_now() -> bool:
         return auction.is_trading_day() is not False
     except Exception:  # noqa: BLE001 —— 日历不可用时按工作日+时段判断
         return True
-
 
 def _declare_quote_volume_unit(quote: dict) -> dict:
     """给行情快照的成交量**显式声明单位**，并派生出「股 / 手」两个口径（2026-10-31）。
@@ -9917,7 +9389,6 @@ def _declare_quote_volume_unit(quote: dict) -> dict:
         quote["volume_shares"] = None
         quote["volume_hand"] = None
     return quote
-
 
 def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
     """腾讯快照 → 归一化 {name, quote, valuation}（无 ROE 等财务项，财务仍取东财 F10）。
@@ -9958,7 +9429,6 @@ def _tencent_quote(code: str, market: str, timeout: int = 10, retries: int = 2):
             "bps": None,
         },
     }
-
 
 def _tencent_kline(code: str, market: str, period: str, timeout: int = 12, retries: int = 2,
                    full_history: bool = False):
@@ -10020,7 +9490,6 @@ def _tencent_kline(code: str, market: str, period: str, timeout: int = 12, retri
         r["pct"] = round((r["close"] - base) / base * 100, 2) if base else 0.0
     return rows or None
 
-
 def _em_quote_norm(q) -> tuple[dict, dict]:
     """东财 push2 原始字段 → 归一化 (quote, valuation)。"""
     quote = _declare_quote_volume_unit({
@@ -10042,7 +9511,6 @@ def _em_quote_norm(q) -> tuple[dict, dict]:
         "bps": _num(q.get("f92")),
     }
     return quote, valuation
-
 
 def _holders_payload(code: str) -> dict | None:
     """股东透视（本地库，法定披露口径）：
@@ -10099,7 +9567,6 @@ def _holders_payload(code: str) -> dict | None:
         "num_trend": nums,
         "note": "法定披露口径（季报/年报），非实时持仓",
     }
-
 
 def _quote_upstream(key: str, force: bool = False) -> dict:
     """个股「重要信息」上游抓取 + 组装：行情(东财push2/腾讯兜底) + 财务(F10) + 分红 + 概况 + 股东。
@@ -10184,7 +9651,6 @@ def _quote_upstream(key: str, force: bool = False) -> dict:
         "holders": _holders_payload(code),
     }
 
-
 def api_quote(symbol: str, force: bool = False) -> dict:
     """单只股票「重要信息」：行情 + 估值 + 财务（含报告期）。默认 60s 内存缓存(L1) + 5min 磁盘缓存(L2)。
     行情/估值：东财 push2，失败自动兜底腾讯行情；财务：东财 F10 具名字段。
@@ -10211,7 +9677,6 @@ def api_quote(symbol: str, force: bool = False) -> dict:
     _QUOTE_CACHE[key] = (time.time(), payload)
     return payload
 
-
 def api_sync_names(symbols: list[str] | None = None, online: bool = True, force: bool = False) -> dict:
     """补全股票名称：离线表优先，缺失的联网（东方财富）查询后落库缓存，并回填历史记录。
     force=True 时对已识别的代码也重新联网核对（用于股票更名等场景）。"""
@@ -10220,7 +9685,6 @@ def api_sync_names(symbols: list[str] | None = None, online: bool = True, force:
         get_resolver(db=DB).backfill_missing(codes, online=online)
     return {"requested": res["requested"], "resolved": res["resolved"], "persisted": res["persisted"],
             "items": res["items"]}
-
 
 def api_person(name: str) -> dict:
     """按姓名/昵称聚合该用户的信息（不加载任何原始页面 HTML，轻量快速）。"""
@@ -10302,7 +9766,6 @@ def api_person(name: str) -> dict:
         "position_count": len(positions),
     }
 
-
 def api_player(name: str) -> dict:
     """实盘选手详情（富化）：渠道/名次/评分 + 持仓完整明细（买入时间/买入价/当前股价/权限）
     + 全部交易 + 近5日操作记录 + 受限项汇总。详情页核心接口，轻量（不含原始页面 HTML）。"""
@@ -10312,7 +9775,6 @@ def api_player(name: str) -> dict:
     if detail is None:
         return {"error": "player not found"}
     return detail
-
 
 def api_detail(kind: str, _id: int, full: bool = False) -> dict:
     if kind == "post":
@@ -10339,7 +9801,6 @@ def api_detail(kind: str, _id: int, full: bool = False) -> dict:
     else:
         return {"error": "unknown kind"}
     return dict(row) if row else {"error": "not found"}
-
 
 # ---------------- 统计明细列表（让每个统计数字可点、可见其构成） ----------------
 # 设计要点（2026-09-23，回应「统计只是数字罗列、没有实际价值」）：
@@ -10545,7 +10006,6 @@ _DETAIL_SPECS: dict[str, dict] = {
     },
 }
 
-
 def api_detail_list(kind: str, limit: int = 500, offset: int = 0) -> dict:
     """返回某个统计项对应的明细记录（供统计卡片点击查看）。
 
@@ -10567,11 +10027,9 @@ def api_detail_list(kind: str, limit: int = 500, offset: int = 0) -> dict:
         "rows": [dict(r) for r in rows],
     }
 
-
 # ---------------- HTTP 处理 ----------------
 class _BadRequest(Exception):
     """GET 参数非法（如 ?limit=abc）。由 do_GET 统一转成 400 + JSON。"""
-
 
 # 回环来源白名单：只认可本机地址，绝不放任何跨站来源
 _LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
@@ -10590,7 +10048,6 @@ if not _LOCAL_TOKEN:
                 _LOCAL_TOKEN = _tf.read().strip()
     except OSError:
         pass
-
 
 def _json_safe(o):
     """递归把 NaN / +-Infinity 换成 None，保证产物是合法 JSON。
@@ -10622,13 +10079,11 @@ def _json_safe(o):
         return [_json_safe(v) for v in o]
     return o  # 其余（datetime/Decimal/bytes 等）交给 json.dumps 的 default=str
 
-
 # 2026-10-25（进哥反馈「加载失败就没下文了」）：加最小可用的访问耗时日志。
 # 之前接口慢到什么程度、慢在哪个路由，日志里一条都没有，只能看着前端 15s 超时猜。
 # 口径：>=3000ms 一律 WARNING 落盘（就是「用户会感到卡」的阈值）；
 # 设环境变量 VIEWER_ACCESS_LOG=1 可打印全部请求。
 _SLOW_MS = float(os.environ.get("VIEWER_SLOW_MS", "3000"))
-
 
 def _log_access(method: str, path: str, t0: float) -> None:
     try:
@@ -10640,7 +10095,6 @@ def _log_access(method: str, path: str, t0: float) -> None:
             logging.info("%s %s %.0f ms", method, p, cost)
     except Exception:  # noqa: BLE001 —— 日志绝不能影响业务
         pass
-
 
 def _host_ok(host_header: str) -> bool:
     """Host 头必须是回环地址（防 DNS rebinding：外部域名解析到 127.0.0.1 时浏览器会带上外部 Host）。"""
@@ -10655,7 +10109,6 @@ def _host_ok(host_header: str) -> bool:
     host = h.rsplit(":", 1)[0] if ":" in h else h
     return host in _LOOPBACK_HOSTS
 
-
 def _origin_ok(origin: str) -> bool:
     """Origin 必须是回环来源（http(s)://127.0.0.1[:port] / localhost[:port]）。"""
     o = (origin or "").strip()
@@ -10667,7 +10120,6 @@ def _origin_ok(origin: str) -> bool:
         return False
     return u.scheme in ("http", "https") and (u.hostname or "").lower() in _LOOPBACK_HOSTS
 
-
 def _parse_cookie(header: str) -> dict:
     """解析 Cookie 头为 {name: value}（P1-45：不再用子串匹配）。"""
     out = {}
@@ -10678,7 +10130,6 @@ def _parse_cookie(header: str) -> dict:
             out[k.strip()] = v.strip()
     return out
 
-
 def _token_ok(handler) -> bool:
     """P1-45：用 hmac.compare_digest 恒定时间比较 local_token Cookie，避免子串绕过。"
     未设 token（_LOCAL_TOKEN 为空）时一律放行，向后兼容。"""
@@ -10686,7 +10137,6 @@ def _token_ok(handler) -> bool:
         return True
     ck = _parse_cookie(handler.headers.get("Cookie") or "")
     return hmac.compare_digest(ck.get("local_token", ""), _LOCAL_TOKEN)
-
 
 # ---------------- 后台自动抓取调度器（白天交易时段定时刷新） ----------------
 # 王总需求：白天 9:00-16:00（工作日）每 10-20 分钟自动 fetch taoguba + eastmoney 并入库真实数据。
@@ -10730,11 +10180,9 @@ def _sched_sources() -> list:
     out = [x for x in v if x]
     return out
 
-
 # 短路日志的限速器：源为空时每 10s 唤醒一次，不该每轮都打一行（实测曾刷出 2,439 行）。
 _SCHED_SKIP_LOG_TS = 0.0
 _SCHED_SKIP_LOG_GAP = 600
-
 
 def _sched_default_state() -> dict:
     """无状态时的缺省值 —— 一律取「关」。
@@ -10746,7 +10194,6 @@ def _sched_default_state() -> dict:
     return {"enabled": False, "last_run_at": None,
             "run_count": 0, "errors_today": 0, "errors_date": "",
             "state_known": True}
-
 
 def _sched_load_state() -> dict:
     try:
@@ -10768,13 +10215,11 @@ def _sched_load_state() -> dict:
         return st
     return _sched_default_state()
 
-
 def _sched_save_state(state: dict) -> None:
     try:
         DB.set_meta(_SCHEDULER_STATE_KEY, json.dumps(state, ensure_ascii=False))
     except Exception:  # noqa: BLE001
         logging.exception("持久化 scheduler_state 失败")
-
 
 def _sched_in_window(now: datetime) -> bool:
     """工作日（周一~周五）且处于 9:00-16:00。节假日暂未纳入，按工作日处理。"""
@@ -10782,7 +10227,6 @@ def _sched_in_window(now: datetime) -> bool:
         return False
     m = now.hour * 60 + now.minute
     return _SCHED_START_MIN <= m < _SCHED_END_MIN
-
 
 def _sched_next_window(now: datetime) -> datetime:
     """下一个交易窗口起点（今天 9:00 若未过，否则下一个工作日的 9:00）。"""
@@ -10792,7 +10236,6 @@ def _sched_next_window(now: datetime) -> datetime:
     while cand.weekday() >= 5:       # 跳过周末
         cand = cand + timedelta(days=1)
     return cand
-
 
 def _sched_run_once(state: dict) -> None:
     """执行一次自动抓取（两个来源）。用 INGEST_LOCK 与手动 /api/fetch 互斥。"""
@@ -10847,7 +10290,6 @@ def _sched_run_once(state: dict) -> None:
     finally:
         INGEST_LOCK.release()
 
-
 def _sched_record_all(errors: int, total_sources: int, total_items: int = 0) -> None:
     """整轮抓取收尾时把「__all__」这一行也更新掉（报告 建议3 / P1）。
 
@@ -10866,7 +10308,6 @@ def _sched_record_all(errors: int, total_sources: int, total_items: int = 0) -> 
                      total_sources - errors, total_sources, total_items)
     except Exception:  # noqa: BLE001 —— 状态回写失败不能连累调度本身
         logging.exception("回写 __all__ 刷新状态失败")
-
 
 def _sched_maybe_run() -> None:
     # 2026-10-31 整改（测评 P0-1）：守卫提前到最前，先于读库、先于抢锁。
@@ -10891,13 +10332,11 @@ def _sched_maybe_run() -> None:
         return                        # 防抖：距上次不足 10 分钟
     _sched_run_once(state)
 
-
 # ---------------------------------------------------------------------------
 # 全市场日K缓存预热（2026-10-06 提速）：每个交易日 15:35 后后台全量抓日K落盘，
 # 让用户当晚及次日开盘前点开「全市场榜 / 阴跌扫描」直接读盘秒出。
 # 复用 screener._load_bars_map 全量逻辑（非增量拼接，避免前复权在除权日重算历史导致价格错位）。
 _KLINE_PREWARM_KEY = "kline_prewarm_state"
-
 
 def _kline_prewarm_maybe() -> None:
     """交易日 15:35 后触发一次全市场日K预热；用 last_prewarm_date 防重复；后台线程执行。"""
@@ -10930,7 +10369,6 @@ def _kline_prewarm_maybe() -> None:
         logging.info("kline prewarm scheduled for %s", today)
     except Exception:  # noqa: BLE001
         logging.exception("kline prewarm 调度异常（已忽略）")
-
 
 # ============ 2026-10-15 全站回测评测修复（性能）：读接口短期 TTL 缓存 ============
 # 背景：若干重计算读接口每次请求都全量重算，实测 /api/screener_lowbox 53s、/api/smart_money 17s、
@@ -11012,13 +10450,11 @@ _TTL_ROUTES: dict = {
     # 「手动刷新」的语义打架（两层缓存各自过期、用户按了刷新却仍看到旧值）。
 }
 
-
 # 2026-10-30 修订记录：本节原先还定义过 `_SNAPSHOT_FIRST_ROUTES` / `_snapshot_fresh_enough`
 # 与 _do_GET 里的「落盘快照优先」分支（走 _wh.get_snapshot）。按主理人要求已**回退干净**：
 # 三个慢接口改用函数内部的 _swr_serve（复用 dashboard 2026-10-25 线上已验证的机制），
 # 不再在 handler 层叠一条读盘分支 —— 两条路径并存会出现「谁先命中」的不确定行为。
 # 若日后要恢复 handler 级兜底，请先确认 _swr_serve 已不再负责同一路由。
-
 
 _SWR_INFLIGHT: dict = {}
 _SWR_LOCK = threading.Lock()
@@ -11038,7 +10474,6 @@ _BOOT_WARM_PATHS = [
     "/api/board_flow_intraday",
     "/api/multiquote_preset",
 ]
-
 
 def _swr_refresh_async(path_qs: str) -> bool:
     """SWR（stale-while-revalidate）：缓存过期时**先把旧值给用户**，后台再算一次。
@@ -11079,7 +10514,6 @@ def _swr_refresh_async(path_qs: str) -> bool:
         return False
     return True
 
-
 def _kline_prewarm_run() -> None:
     """后台真正抓全市场日K并落盘 decline_kcache.json。"""
     try:
@@ -11095,7 +10529,6 @@ def _kline_prewarm_run() -> None:
                      meta.get("n_fetched", 0), meta.get("n_fail", 0), int(dt))
     except Exception:  # noqa: BLE001
         logging.exception("kline prewarm 执行异常")
-
 
 def _write_retry(fn, *a, tries: int = 3, delay: float = 0.6, **kw):
     """执行「写库」动作；遇到 SQLite 锁冲突短退避重试。
@@ -11117,7 +10550,6 @@ def _write_retry(fn, *a, tries: int = 3, delay: float = 0.6, **kw):
             time.sleep(delay * (i + 1))
     if last is not None:
         raise last
-
 
 def _ext_refresh_maybe() -> None:
     """P0-3（2026-10-15）：把 geo / extref / public_records 纳入内部调度器**每日离线重导**。
@@ -11155,7 +10587,6 @@ def _ext_refresh_maybe() -> None:
     except Exception:
         pass
 
-
 def _overseas_autorefresh_maybe() -> None:
     """海外舆情安全自动刷新（2026-10-20）：24h 冷却；联网通才更新，不通保留旧数据。
 
@@ -11191,7 +10622,6 @@ def _overseas_autorefresh_maybe() -> None:
     except Exception:
         pass
 
-
 def _rotate_backups(keep: int = 7) -> None:
     """P1-4 / P3-1（2026-10-15）：备份轮转——viewer/backups 快照与 viewer/app.db.bak-* 各保留最新 keep 份。"""
     import glob as _glob
@@ -11216,7 +10646,6 @@ def _rotate_backups(keep: int = 7) -> None:
                     os.remove(fp + ext)
         except OSError:
             pass
-
 
 def _db_housekeep_maybe() -> None:
     """P1-4（2026-10-15）：DB 容量治理 + 备份轮转。
@@ -11264,7 +10693,6 @@ def _db_housekeep_maybe() -> None:
         DB.set_meta("db_housekeep_last", now.strftime("%Y-%m-%d %H:%M:%S"))
     except Exception:
         pass
-
 
 # ── 调度任务计时（2026-10-15）─────────────────────────────────────────────
 # 背景：进哥反馈"点个股弹出来特别慢"。实测发现真凶不是个股接口，而是
@@ -11398,7 +10826,6 @@ _JOB_TIMEOUT = {
 }
 _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 
-
 # ── 2026-10-29：日更任务的统一入口（替换 8 个同构的 _xxx_maybe）───────────────
 # 原实现（8 处复制粘贴）有两个真实缺陷，都在事故日志里有痕迹：
 #   ① 「先 DB.set_meta(当日标记) 再 _spawn_offproc」——一旦 spawn 被拒（并发闸/上一轮未完成）
@@ -11412,7 +10839,6 @@ _DEFAULT_JOB_TIMEOUT = 3600    # 未登记任务默认 60 分钟
 _META_CACHE: dict = {}     # key -> (monotonic_ts, value)
 _META_CACHE_TTL = 10.0
 
-
 def _meta_get_cached(key: str):
     """读 meta，带 10 秒进程内缓存；DB 被判锁时静默返回 None（不刷日志、不阻塞下一 tick）。"""
     now = time.monotonic()
@@ -11425,7 +10851,6 @@ def _meta_get_cached(key: str):
         v = None
     _META_CACHE[key] = (now, v)
     return v
-
 
 def _daily_job(job: str, start_after_hm: tuple[int, int]) -> None:
     """日更任务统一调度：交易日 + 到点 + 今天没做过 → 交给子进程。
@@ -11469,7 +10894,6 @@ def _daily_job(job: str, start_after_hm: tuple[int, int]) -> None:
         logging.info("%s 已交给子进程（%s）", job, day)
     # spawn 失败（并发闸挡住 / 上一轮还在跑 / 退避中）→ 什么都不写，下轮自然重试
 
-
 def _subproc_env() -> dict:
     """子进程环境：强制 UTF-8 输出。
 
@@ -11485,7 +10909,6 @@ def _subproc_env() -> dict:
     env["PYTHONUTF8"] = "1"
     env.setdefault("PYTHONUNBUFFERED", "1")
     return env
-
 
 def _job_settle(job: str, proc, via: str = "tick") -> bool:
     """对**已退出**的子进程做一次性收尾；返回 True 表示「坑位已归还，可以继续启动流程」。
@@ -11557,7 +10980,6 @@ def _job_settle(job: str, proc, via: str = "tick") -> bool:
             pass
     return True
 
-
 def _enforce_job_timeout(job: str, proc) -> None:
     """超时熔断：先 terminate（体面退出），下轮若仍活着再 kill。
 
@@ -11594,7 +11016,6 @@ def _enforce_job_timeout(job: str, proc) -> None:
     # 只在这一步记一次退避：旧实现在每 tick 的再入分支里都记一次，把窗口无限后推。
     BRAKE_backoff_fail(job, "timeout")
 
-
 def _job_supervisor(job: str, proc, pid: int | None) -> None:
     """子进程守护线程（daemon）：等它退出 → 立刻原子收尾；存活期间给租约发心跳。
 
@@ -11623,7 +11044,6 @@ def _job_supervisor(job: str, proc, pid: int | None) -> None:
         logging.exception("[sched] %s 的收尾守护线程异常（租约可能泄漏，"
                           "下一个调度 tick 的 _reap_finished_jobs 会兜底）", job)
 
-
 def _reap_finished_jobs() -> int:
     """调度 tick 入口：扫一遍**全部**在跑作业，把已退出的就地收尾。返回收尾条数。
 
@@ -11648,7 +11068,6 @@ def _reap_finished_jobs() -> int:
         except Exception:  # noqa: BLE001 —— 单个 job 收尾异常不能连累其它 job
             logging.exception("[sched] 回收子进程 %s 失败（已忽略，下轮再试）", job)
     return settled
-
 
 def _spawn_offproc(job: str, logname: str | None = None) -> bool:
     """把某个重活交给子进程执行；同一任务同一时刻只允许一个子进程在跑。
@@ -11770,7 +11189,6 @@ def _spawn_offproc(job: str, logname: str | None = None) -> bool:
         logging.exception("[sched] 子进程 %s 启动失败（本轮跳过，下轮重试）", job)
         return False
 
-
 # ── 2026-10-29：重算面板统一「落盘缓存 + 子进程 + 请求只读」（A→B→C 的 C 路）──────────
 # 实测证据：/api/quant 现算全市场因子 >150s、/api/etf 复用同一引擎 >60s，且都是纯 Python
 # 占 GIL → 把整站一起冻住（refresh_status 从 0.47s 拖到 4.9s，回测 70s 超时）。
@@ -11795,7 +11213,6 @@ _HEAVY_SPAWN_LOCK = threading.Lock()
 _HEAVY_LAST_SPAWN: dict = {}
 _HEAVY_SPAWN_GAP = 600      # 同一面板 600s 内最多起一个子进程（并发/轮询不放大成 CPU 风暴）
 
-
 def _heavy_spawn_once(route: str) -> bool:
     """在锁内做「距上次触发 >=600s 才起一个子进程」，杜绝多个重算并发齐发。"""
     spec = _HEAVY_CACHE.get(route)
@@ -11811,7 +11228,6 @@ def _heavy_spawn_once(route: str) -> bool:
     except Exception:  # noqa: BLE001
         logging.exception("%s 子进程触发失败（忽略，稍后请求会再试）", spec["job"])
         return False
-
 
 def _quant_select_cached(top_n: int) -> dict:
     """`/api/quant/select` 读 `/api/quant` 落盘缓存里的 "select" 字段（2026-10-30 D32）。
@@ -11850,7 +11266,6 @@ def _quant_select_cached(top_n: int) -> dict:
             "（缓存只含前 %d 只，多要需调大 TOP_N_SELECT 后重跑日更任务）" % len(items)
     return out
 
-
 def _heavy_cached_payload(route: str) -> dict:
     """重算面板读落盘缓存（SWR）：有缓存立即回；超期顺手后台刷新；没有则回 computing 并后台算。
 
@@ -11884,7 +11299,6 @@ def _heavy_cached_payload(route: str) -> dict:
         logging.exception("%s 缓存路径异常", route)
         return {"ok": False, "error": str(e)[:200]}
 
-
 # ── 2026-10-29：带参数的重量级面板 —— 按「参数签名」落盘 + 子进程算 ─────────────────
 # 实测证据：/api/screener_lowbox 即使网络缓存全热仍要 **33 秒**；/api/screener_turnover_top
 # 在服务进程里也要 **14 秒**（独立跑只要 2.6 秒，说明是进程内环境更慢）。两者都是纯 Python
@@ -11908,12 +11322,10 @@ _VARIANT_SPAWN_LOCK = threading.Lock()
 _VARIANT_LAST_SPAWN: dict = {}
 _VARIANT_SPAWN_GAP = 20      # 同一参数签名 20s 内只触发一次（进程不叠由 _spawn_offproc 兜底）
 
-
 def _variant_sig(route: str, params: dict) -> str:
     import hashlib
     s = route + "|" + json.dumps(params, sort_keys=True, ensure_ascii=False)
     return hashlib.md5(s.encode("utf-8")).hexdigest()[:12]
-
 
 def _variant_spawn(route: str, params: dict, sig: str) -> None:
     """把这一组参数的计算交给子进程：先落请求单，再起 sched_job.py variant_payload。"""
@@ -11933,7 +11345,6 @@ def _variant_spawn(route: str, params: dict, sig: str) -> None:
         _spawn_offproc("variant_payload")
     except Exception:  # noqa: BLE001
         logging.exception("%s 子进程触发失败（忽略，稍后请求会再试）", route)
-
 
 def _variant_cached(route: str, params: dict) -> dict:
     """重量级参数面板：只读该参数签名对应的落盘结果；没有就回 computing 并让子进程算。"""
@@ -11960,7 +11371,6 @@ def _variant_cached(route: str, params: dict) -> dict:
         logging.exception("%s 缓存路径异常", route)
         return {"ok": False, "error": str(e)[:200], "rows": []}
 
-
 # ------------------------------------------------ 全市场日度报价+估值+宇宙快照（2026-10-26）
 # 进哥原话：「每日任务光弄 K 线，今天的价格、PE/量额/市值、舆论这些基本数据都没抓」。
 # 这里在交易日 15:30 后抓全 A 今日价/PE/PB/市值，落 stock_daily_snapshot + 刷新宇宙 + 导出 CSV。
@@ -11969,13 +11379,11 @@ def _a_shares_snapshot_maybe() -> None:
     """全A今日价/PE/PB/市值/量额快照（交易日 15:30 后，每日一次）。"""
     _daily_job("a_shares_snapshot", (15, 30))
 
-
 # ------------------------------------------------ K 线增量日更（2026-10-26）
 # 把 build_kline_db 增量接进每日调度，让全市场 5550 只日 K 每天收盘后自动补一根。
 def _kline_daily_maybe() -> None:
     """全市场日K增量补齐（交易日 15:30 后，每日一次）。"""
     _daily_job("kline_daily", (15, 30))
-
 
 def _kbase_daily_maybe() -> None:
     """回测 / 四支柱的 K 线底座（`viewer/kbase.db`）每日增量补齐。
@@ -11990,18 +11398,15 @@ def _kbase_daily_maybe() -> None:
     """
     _daily_job("kbase_daily", (17, 20))
 
-
 # ------------------------------------------------ 抖音舆情日度刷新（2026-10-26）
 # 补进每日调度，闭合「舆论」缺口（bili 已有 bili_scan，抖音此前未入调度）。
 def _douyin_corpus_maybe() -> None:
     """抖音舆情语料日更（交易日 9:30 后，每日一次）。"""
     _daily_job("douyin_corpus", (9, 30))
 
-
 def _build_exclusion_maybe() -> None:
     """剔除池 / 干净宇宙（每日 20:00 后，每日一次）。"""
     _daily_job("build_exclusion", (20, 0))
-
 
 # ------------------------------------------------ 技术指标/因子层日更（2026-10-26，P1）
 # 在交易日 15:30 后（K线增量之后）重算全市场因子的「最新一日」快照 + 买卖信号。
@@ -12010,12 +11415,10 @@ def _indicators_daily_maybe() -> None:
     """全市场技术指标/因子层日更（交易日 15:30 后，每日一次；实测单轮约 50 分钟）。"""
     _daily_job("indicators_daily", (15, 30))
 
-
 def _universe_scan_maybe() -> None:
     """全宇宙多因子扫描（2026-10-26 P2）：依赖 indicators_daily 产出的 stock_indicators，
     对干净宇宙全部标的打分。与 indicators_daily 同窗（15:30 后）触发，顺序在其后。"""
     _daily_job("universe_scan", (15, 30))
-
 
 def _regime_daily_maybe() -> None:
     """市场状态日更（2026-10-29）：算等权市场的 20 日强弱，落 market_regime。
@@ -12026,7 +11429,6 @@ def _regime_daily_maybe() -> None:
     """
     _daily_job("regime_daily", (15, 30))
 
-
 def _harvest_daily_maybe() -> None:
     """收割视角日更（2026-10-31）：局面状态 + 今日陷阱名单。
 
@@ -12035,7 +11437,6 @@ def _harvest_daily_maybe() -> None:
     全在时效（开板当天收盘才知道，隔天就没意义）。
     """
     _daily_job("harvest_daily", (15, 40))
-
 
 def _oss_daily_maybe() -> None:
     """开源情报日更（2026-10-30）：扫描候选仓库 + 复核过期规则 + 长样本交叉验证。
@@ -12048,7 +11449,6 @@ def _oss_daily_maybe() -> None:
     """
     _daily_job("oss_daily", (16, 0))
 
-
 def _selection_daily_maybe() -> None:
     """选股方向日更（2026-10-30）：低波池 7s；证据回测仅在超过 30 天未测时跑 143s。
 
@@ -12056,7 +11456,6 @@ def _selection_daily_maybe() -> None:
     K 线没补完就会把昨天的形态标成今天。
     """
     _daily_job("selection_daily", (16, 20))
-
 
 def _lift_daily_maybe() -> None:
     """限售解禁事件日更（2026-10-30）。排在 06:10 —— 解禁日提示要在开盘前就位。
@@ -12067,7 +11466,6 @@ def _lift_daily_maybe() -> None:
     """
     _daily_job("lift_daily", (6, 10))
 
-
 def _ann_daily_maybe() -> None:
     """全市场公告日更（2026-10-30）。排在 06:20 —— 比 lift_daily(06:10) 后一点，
     避开两个 HTTP 任务同时抢出口；且都要在开盘前就位，当天 avoid/研判就能用上新公告。
@@ -12077,7 +11475,6 @@ def _ann_daily_maybe() -> None:
     """
     _daily_job("ann_daily", (6, 20))
 
-
 def _review_score_daily_maybe() -> None:
     """复盘回填 + 假说回测（2026-10-31）。排在 18:00 —— 收盘后，当日行情已入库。
 
@@ -12086,7 +11483,6 @@ def _review_score_daily_maybe() -> None:
     结果在**下一轮复盘**时喂回模型 —— 这是本系统里唯一会"越用越准"的环节。
     """
     _daily_job("review_score_daily", (18, 0))
-
 
 def _board_flow_range_daily_maybe() -> None:
     """板块资金流日线（`board_flow_daily`）日更（2026-10-30 新增）。排在 18:30。
@@ -12105,14 +11501,11 @@ def _board_flow_range_daily_maybe() -> None:
     """
     _daily_job("board_flow_range_daily", (18, 30))
 
-
-
 def _strategy_templates_maybe() -> None:
     """现成策略模板（2026-10-26 P5）：依赖 indicators_daily 的 stock_indicators
     与 universe_scan 的 stock_universe_scan，对干净宇宙跑现成选股模板。
     与 universe_scan 同窗（15:30 后）触发，顺序在其后。"""
     _daily_job("strategy_templates", (15, 30))
-
 
 def _variant_drain_maybe() -> None:
     """把「还有没算完的参数化重量级面板」兜底跑掉（2026-10-29）。
@@ -12132,7 +11525,6 @@ def _variant_drain_maybe() -> None:
             _spawn_offproc("variant_payload")
     except Exception:  # noqa: BLE001
         logging.exception("variant_drain 失败（忽略，下一轮再试）")
-
 
 def _heavy_daily_refresh_maybe() -> None:
     """重算面板「自有存储」的日更：落盘结果超过 20 小时就交给子进程重算。
@@ -12164,7 +11556,6 @@ def _heavy_daily_refresh_maybe() -> None:
                          job, age / 3600.0)
     except Exception:  # noqa: BLE001
         logging.exception("重算面板日更检查失败（已忽略，下轮重试）")
-
 
 def _sched_tasks() -> list:
     """本轮调度任务清单：(名字, 无参可调用)。
@@ -12257,7 +11648,6 @@ def _sched_tasks() -> list:
         tasks = [t for t in tasks if t[0] not in _off]
     return tasks
 
-
 def _monday_refresh_maybe() -> None:
     """周一 16:30 后全量刷一次基本面 —— 每周只此一次。
 
@@ -12286,10 +11676,8 @@ def _monday_refresh_maybe() -> None:
     except Exception:  # noqa: BLE001
         logging.exception("周度基本面全量刷新失败（已忽略，下周一再试）")
 
-
 _SCHED_BUSY_STREAK = 0      # 连续「因用户活跃而整轮让路」的轮数（仅用于日志节奏，不再用于强制爆破）
 _SCHED_RR = 0               # 用户忙碌时的任务轮转指针（2026-10-30）：每轮只放行一个任务，依次轮流
-
 
 def _scheduler_loop() -> None:
     global _SCHED_CURRENT, _SCHED_BUSY_STREAK, _SCHED_RR
@@ -12375,12 +11763,10 @@ def _scheduler_loop() -> None:
         except Exception:  # noqa: BLE001 —— 任何异常都不能让后台线程崩
             logging.exception("调度线程异常（已忽略，继续运行）")
 
-
 def _sched_ensure_logging() -> None:
     """模块导入阶段 logging 可能尚未 basicConfig；确保 INFO 可见（含 'scheduler started'）。"""
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
-
 
 def _cleanup_orphan_jobs() -> None:
     """启动时清理上一代遗留的调度子进程（孤儿）。
@@ -12426,7 +11812,6 @@ def _cleanup_orphan_jobs() -> None:
     except Exception:  # noqa: BLE001
         pass
 
-
 def _start_scheduler() -> None:
     """模块加载阶段启动调度线程（daemon），带重入保护。"""
     global _SCHEDULER_STARTED
@@ -12449,7 +11834,6 @@ def _start_scheduler() -> None:
         threading.Thread(target=_hotspots_prewarm, name="hotspots-prewarm", daemon=True).start()
     except Exception:  # noqa: BLE001
         logging.exception("hotspots 预热线程启动失败（已忽略）")
-
 
 def _hotspots_prewarm() -> None:
     """延迟预热 /api/hotspots 并写入 TTL 缓存（见 _TTL_ROUTES）。
@@ -12488,7 +11872,6 @@ def _hotspots_prewarm_impl() -> None:
     except Exception:  # noqa: BLE001
         logging.exception("hotspots prewarm 失败（已忽略，用户访问时仍会按需计算）")
 
-
 _SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 2026-10-31 修复（隔离能力落地面）：库路径统一走 VIEWER_DB 覆写，与 viewer/db.py 的
@@ -12496,7 +11879,6 @@ _SELF_DIR = os.path.dirname(os.path.abspath(__file__))
 #   `_SELF_DIR/app.db`，绕开了隔离能力 —— 即使设了 VIEWER_DB 把主库连接重定向到影子库，
 #   这几个接口仍然读写**生产库**，隔离演练时会留下去不掉的真数据。
 _APP_DB = os.environ.get("VIEWER_DB") or os.path.join(_SELF_DIR, "app.db")
-
 
 def api_params() -> dict:
     """/api/params —— 参数注册表自述 + 执行可行性假设清单。
@@ -12520,7 +11902,6 @@ def api_params() -> dict:
     except Exception:  # noqa: BLE001
         out["volume_units"] = {"error": "unavailable"}
     return out
-
 
 def api_executability(codes, aum, n_hold, hold_days, fee_bp) -> dict:
     """/api/executability?codes=...&aum=...&n=...&days=...&fee=...
@@ -12555,7 +11936,6 @@ def api_executability(codes, aum, n_hold, hold_days, fee_bp) -> dict:
     return EXECUTABILITY.evaluate(cl, aum=aum, n_hold=n_hold,
                                   hold_days=(hs[0] if hs else hold_days),
                                   fee_bp=fee_bp, names=names)
-
 
 def _brake_leases_view() -> dict:
     """/api/health 的 `leases` 段：谁占着闸、占多久、心跳还新鲜吗、谁被挡住了。
@@ -12695,7 +12075,6 @@ def _brake_leases_view() -> dict:
         },
     }
 
-
 def api_health() -> dict:
     """/api/health —— 任务运行记录 + 数据新鲜度（决策⑤）。
 
@@ -12725,7 +12104,6 @@ def api_health() -> dict:
                          "items": [], "recent_refusals": [], "domains_now": []}
     return out
 
-
 def api_cost_basis() -> dict:
     """/api/cost_basis —— 成本口径表（决策①）。
 
@@ -12740,7 +12118,6 @@ def api_cost_basis() -> dict:
     except Exception as e:  # noqa: BLE001
         logging.exception("api_cost_basis 失败")
         return {"ok": False, "error": str(e)}
-
 
 def api_cost_calib() -> dict:
     """/api/cost_calib —— 成本档位标定状态（决策⑤）。
@@ -12761,7 +12138,6 @@ def api_cost_calib() -> dict:
         logging.exception("api_cost_calib 失败")
         return {"ok": False, "error": str(e)}
 
-
 def api_shadow_weights(days: int = 20) -> dict:
     """/api/shadow_weights —— 影子权重 vs 生产权重（决策②）。
 
@@ -12777,7 +12153,6 @@ def api_shadow_weights(days: int = 20) -> dict:
     except Exception as e:  # noqa: BLE001
         logging.exception("api_shadow_weights 失败")
         return {"ok": False, "error": str(e)[:200]}
-
 
 def api_scheduler_status() -> dict:
     """/api/scheduler/status 返回：{enabled, last_run_at, next_run_at, run_count, errors_today}。"""
@@ -12817,7 +12192,6 @@ def api_scheduler_status() -> dict:
                          ("sources_empty" if not srcs else "disabled"))),
     }
 
-
 # ── 2026-10-30「盘后复盘优先」：两个预热入口（启动后 / 收盘定稿后）──────────────────
 # 背景（实测，勿再重测）：/api/today_decision 冷态 52~57s、/api/prediction/today 冷态 120s、
 # /api/prediction/scores 冷态 32s，且都不落磁盘 → 进程一重启就归零，用户第一次点开必等。
@@ -12835,7 +12209,6 @@ _RHYTHM_BOOT_WARM_DELAY = 20         # 启动后等 20s：让首屏那批请求�
 _RHYTHM_CLOSE_WARM_AT = (15, 20)     # 收盘定稿补算的时刻（15:05 数据定稿后再等 15 分钟，避开尾盘抓取）
 _RHYTHM_CLOSE_WARM_LOCK = threading.Lock()
 _RHYTHM_CLOSE_WARM_RUNNING = {"on": False}
-
 
 def _rhythm_warm_fire(reason: str, routes=None) -> None:
     """串行把指定路由各请求一次，把结果算好并写进内存缓存 + 落盘快照。
@@ -12858,7 +12231,6 @@ def _rhythm_warm_fire(reason: str, routes=None) -> None:
             logging.info("[rhythm-%s] 预热 %s 跳过（不影响功能，首次访问会现算）", reason, _p)
         time.sleep(1.0)
 
-
 def _rhythm_boot_warm() -> None:
     """启动预热：服务启动 20s 后、且用户空闲时，把三个慢接口算好放进内存缓存。
 
@@ -12876,7 +12248,6 @@ def _rhythm_boot_warm() -> None:
         _rhythm_warm_fire("boot")
     except Exception:  # noqa: BLE001
         logging.info("[rhythm-boot] 预热线程异常（已忽略，不影响服务）")
-
 
 def _rhythm_close_warm_maybe() -> None:
     """收盘定稿后补算一次（调度任务，2026-10-30 新增）。
@@ -12928,7 +12299,6 @@ def _rhythm_close_warm_maybe() -> None:
         logging.info("[rhythm-close] %s 收盘定稿补算已启动（后台串行请求 3 个慢接口）", day)
     except Exception:  # noqa: BLE001 —— 调度任务绝不能把调度线程带崩
         logging.exception("[rhythm-close] 调度异常（已忽略）")
-
 
 def boot() -> None:
     """启动期副作用收口（P0-05）。
@@ -13076,7 +12446,6 @@ def boot() -> None:
         threading.Thread(target=_rhythm_boot_warm, name="rhythm-warm", daemon=True).start()
     except Exception:  # noqa: BLE001
         logging.exception("rhythm 预热线程启动失败（已忽略）")
-
 
 class Handler(BaseHTTPRequestHandler):
     # 2026-09-22 修复 P3-1：BaseHTTPRequestHandler 默认会把
@@ -13448,7 +12817,6 @@ class Handler(BaseHTTPRequestHandler):
         # ── 2026-10-22 配置读取端点（设置面板读写）──
         return RouteDispatch.route_get(self, parsed)
 
-
     # P1-39：重写入（含分钟级同步抓取 / 子进程拉起）不进 _WRITE_LOCK，避免加自选/改设置/归档
     # 被长抓取阻塞排队。其互斥已由 INGEST_LOCK + busy_timeout 保证；其余写请求仍串行化。
     HEAVY_POSTS = ("/api/fetch", "/api/login_check", "/api/login/open", "/api/edge/restart")
@@ -13511,10 +12879,8 @@ class Handler(BaseHTTPRequestHandler):
         # ── 2026-10-22 收口端点（C 前端已接调用 + 优雅降级）──
         return RouteDispatch.route_post(self, parsed, payload)
 
-
     def log_message(self, *args):
         pass
-
 
 def api_universe_scan(tier=None, limit=200):
     """P2：全宇宙多因子扫描结果（按排名降序）。tier=A/B/C/D 可筛选，limit 控制返回条数。"""
@@ -13541,7 +12907,6 @@ def api_universe_scan(tier=None, limit=200):
     except Exception as e:  # noqa: BLE001
         out["ok"] = False; out["error"] = str(e)
     return out
-
 
 def api_strategy_templates(template=None, limit=200):
     """P5：现成策略模板选股结果。template 可指定单个模板（否则返回全部模板的最新命中），
@@ -13575,7 +12940,6 @@ def api_strategy_templates(template=None, limit=200):
         out["ok"] = False; out["error"] = str(e)
     return out
 
-
 def api_signal_evidence(fwd: int = 5) -> dict:
     """信号战绩（2026-10-29）：大样本回测 + 全市场基线，给前端"贴标签"用。
 
@@ -13592,7 +12956,6 @@ def api_signal_evidence(fwd: int = 5) -> dict:
         logging.exception("api_signal_evidence 失败")
         return {"ok": False, "err": "证据层不可用", "signals": [], "baseline": {}}
 
-
 def _lhbw_num(x):
     """转 float；None/NaN/Inf/非数字 → None（落 JSON 前不留 NaN）。"""
     if x is None:
@@ -13603,7 +12966,6 @@ def _lhbw_num(x):
         return None
     return None if v != v or v in (float("inf"), float("-inf")) else v
 
-
 def _lhbw_row_dict(cols, vals) -> dict:
     """把 `(cols, vals)` 拼成 dict。
 
@@ -13611,7 +12973,6 @@ def _lhbw_row_dict(cols, vals) -> dict:
     改它的 row_factory 会让别的模块拿到 Row 而不是 tuple（隐蔽的破坏）。
     """
     return dict(zip(cols, vals))
-
 
 def _lhbw_pct(prior: list, cur) -> float | None:
     """当日值在过去 `prior` 个样本中的分位（0~100），**窗口不含当日**。
@@ -13627,12 +12988,10 @@ def _lhbw_pct(prior: list, cur) -> float | None:
         return None
     return round(100.0 * sum(1 for x in h if x < cur) / len(h), 1)
 
-
 # `lhb_weather` 的口径常量在这里取一次（与生产计算共用同一份，避免抄成两套数字）。
 #   放在模块级懒加载：server.py 启动时不额外 import pandas；首次请求填一次后常驻。
 _LHBW_CONSTS = (250, 60, 250)      # (HIST, MIN_HIST, MIN_SAMPLE_FOR_STATE)，下方 _lhbw_init 覆盖
 _LHBW_INITED = False
-
 
 def _lhbw_init() -> None:
     """从 `viewer.lhb_weather` 读口径常量（唯一真源），并补上表名。"""
@@ -13642,7 +13001,6 @@ def _lhbw_init() -> None:
     from viewer import lhb_weather as LW
     _LHBW_CONSTS = (int(LW.HIST), int(LW.MIN_HIST), int(LW.MIN_SAMPLE_FOR_STATE))
     _LHBW_INITED = True
-
 
 def api_lhb_weather(days: int = 120) -> dict:
     """龙虎榜资金风向（2026-10-30 D35 阶段二）：**只读 `lhb_weather_daily`，绝不现算**。
@@ -13843,7 +13201,6 @@ def api_lhb_weather(days: int = 120) -> dict:
         return {"ok": False, "days": days, "series": [], "dims": [],
                 "error": "资金风向读取失败：%s" % str(e)[:160]}
 
-
 def api_plate_heat(rebuild: bool = False) -> dict:
     """板块热度榜（2026-10-29 进哥拍板：荐股一律降级为热度）。
 
@@ -13864,7 +13221,6 @@ def api_plate_heat(rebuild: bool = False) -> dict:
     return {"ok": False, "retired": True,
             "note": "板块热度已下线：论坛源 2026-10-30 停抓、豆包语料停在 2026-10-11，无可用输入。",
             "rows": []}
-
 
 def api_signal_regime(fwd: int = 10) -> dict:
     """分市况的信号表现（2026-10-29）。
@@ -13929,7 +13285,6 @@ def api_signal_regime(fwd: int = 10) -> dict:
         logging.exception("api_signal_regime 失败")
         return {"ok": False, "err": "分市况数据不可用", "signals": [], "baseline": {}}
 
-
 def api_signal_combo(fwd=None, limit=60):
     """/api/signal/combo —— 信号两两交集（决策③）。
 
@@ -13989,7 +13344,6 @@ def api_signal_combo(fwd=None, limit=60):
         logging.exception("api_signal_combo 失败")
         return {"ok": False, "error": str(e)}
     return out
-
 
 def api_signal_backtest(limit=200):
     """P4：信号 alpha 回测实证结果（17 信号 × 3 前向窗口 = 51 行）。
@@ -14072,7 +13426,6 @@ def api_signal_backtest(limit=200):
         out["ok"] = False; out["error"] = str(e)
     return out
 
-
 def api_indicators_signals(direction="buy", limit=60):
     """P1：因子买卖信号候选（最新一日）。dir=buy/sell，按 score 降序。"""
     import json as _json
@@ -14095,7 +13448,6 @@ def api_indicators_signals(direction="buy", limit=60):
         out["ok"] = False; out["error"] = str(e)
     return out
 
-
 def api_indicators(code=None):
     """P1：单只票最新因子快照。"""
     if not code:
@@ -14107,7 +13459,6 @@ def api_indicators(code=None):
     cols = [d[0] for d in DB.conn.execute(
         "PRAGMA table_info(stock_indicators)").fetchall()]
     return {"ok": True, "indicators": dict(zip(cols, row))}
-
 
 class _SingleInstanceHTTPServer(ThreadingHTTPServer):
     """禁止「同一端口被两个实例同时绑上」。
@@ -14163,13 +13514,11 @@ class _SingleInstanceHTTPServer(ThreadingHTTPServer):
         finally:
             self.shutdown_request(request)
 
-
 def _port_listening(port: int) -> bool:
     """端口上是否**真的有服务在监听**（用于区分「被别人占用」与「处于 TIME_WAIT」）。"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.6)
         return s.connect_ex(("127.0.0.1", port)) == 0
-
 
 def create_server(host: str = "127.0.0.1", port: int | None = None) -> _SingleInstanceHTTPServer:
     """**同步**创建并绑定端口，返回已就绪的 server 实例；绑定失败抛 OSError。
@@ -14200,7 +13549,6 @@ def create_server(host: str = "127.0.0.1", port: int | None = None) -> _SingleIn
     assert last is not None
     raise last
 
-
 def report_bind_failure(port: int, err: Exception) -> int:
     """统一打印「启动失败」中文提示（区分占用 / TIME_WAIT），返回退出码 1。
 
@@ -14218,9 +13566,7 @@ def report_bind_failure(port: int, err: Exception) -> int:
     print(f"[查看器] 系统错误：{err}")
     return 1
 
-
 _SERVER_PID_FILE = os.path.join(ROOT, "viewer", ".server.pid")
-
 
 def _setup_logging() -> None:
     """日志统一落盘 viewer/logs/server-YYYYMMDD.log（UTF-8，按日滚动 5MB×5 份）。
@@ -14261,7 +13607,6 @@ def _setup_logging() -> None:
     except Exception as e:  # noqa: BLE001
         print(f"[查看器] 日志初始化失败（不影响服务）：{e}", file=sys.stderr)
 
-
 # ══════════════════════════════════════════════════════════════════════════
 # 2026-10-16 代码指纹 + 旧后端接管
 #   治「改了代码、双击图标重启，实际仍跑旧代码」：desktop_app 原来只要端口有人听就
@@ -14275,7 +13620,6 @@ _BUILD_ID = _buildid.of_disk(ROOT)      # 本进程启动时刻的代码指纹�
 _STARTED_AT = time.strftime("%Y-%m-%d %H:%M:%S")
 _TAKEOVER_LOG = os.path.join(str(ROOT), "viewer", ".restart.log")
 
-
 def _probe_running_server(port: int, timeout: float = 2.0) -> dict:
     """探测 port 上是否已有查看器后端在跑；返回其 /api/version 字典，失败返回 {}。
 
@@ -14288,7 +13632,6 @@ def _probe_running_server(port: int, timeout: float = 2.0) -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:  # noqa: BLE001 —— 探测失败一律当「不可识别的后端」
         return {}
-
 
 def _pid_image_name(pid) -> str:
     """取 PID 的可执行文件名（仅 Windows 有意义）；失败返回空串。
@@ -14313,7 +13656,6 @@ def _pid_image_name(pid) -> str:
     except Exception:  # noqa: BLE001
         pass
     return ""
-
 
 def _terminate_pid(pid, wait_port=None, timeout: float = 8.0) -> bool:
     """终止指定 PID；wait_port 非空时再等端口释放。返回是否达成。"""
@@ -14350,7 +13692,6 @@ def _terminate_pid(pid, wait_port=None, timeout: float = 8.0) -> bool:
             return True
         time.sleep(0.2)
     return not _port_in_use(wait_port)
-
 
 def _takeover_stale_server() -> bool:
     """端口被占用时：若占用者是「跑着旧代码的自家后端」，终止它并让位，返回 True。
@@ -14395,13 +13736,11 @@ def _takeover_stale_server() -> bool:
         logging.warning("[查看器] 终止旧后端（pid=%s）失败或端口未释放，本次退出。", pid)
     return ok
 
-
 def _port_in_use(port: int) -> bool:
     """本机 127.0.0.1:port 是否已有进程在监听（只读探测，无副作用）。"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
         return s.connect_ex(("127.0.0.1", port)) == 0
-
 
 def _acquire_server_instance() -> bool:
     """单实例守护：防止**同一端口**上出现两个查看器（体检报告 P0 双进程）。
@@ -14428,13 +13767,11 @@ def _acquire_server_instance() -> bool:
         pass  # 锁文件写不了也不阻断启动
     return True
 
-
 def _write_news_rules() -> None:
     """把 viewer/newsclass.py 的规则表重写出 static/news_rules.js（启动一次）。"""
     here = os.path.dirname(os.path.abspath(__file__))
     out = os.path.join(here, "static", "news_rules.js")
     newsclass.write_js(out)
-
 
 def _check_remote_backup_dir() -> tuple:
     """D1 异地双副本（2026-10-13）启动校验：异地备份目录是否可写。
@@ -14471,16 +13808,13 @@ def _check_remote_backup_dir() -> tuple:
     except Exception:  # noqa: BLE001
         return False, d
 
-
 # ════════════════════════════════════════════════════════════════════════════
 # 2026-10-22 收口端点实现（供 _do_GET / _do_POST 调用；C 前端已接调用 + 优雅降级）
 # ════════════════════════════════════════════════════════════════════════════
 import shutil as _shutil
 
-
 def _cfg_key(key: str) -> str:
     return "cfg:" + (key or "")
-
 
 def api_config_get(key: str) -> dict:
     """GET /api/config/get：读一项用户配置。先查用户覆盖（meta），回退 AppConfig 默认。"""
@@ -14495,7 +13829,6 @@ def api_config_get(key: str) -> dict:
         return {"ok": True, "key": key, "value": raw, "default": default}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)[:200]}
-
 
 def api_config_set(key: str, value) -> dict:
     """POST /api/config/set：持久化一项用户配置到 meta（并同步 user_config.json）。"""
@@ -14518,7 +13851,6 @@ def api_config_set(key: str, value) -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)[:200]}
 
-
 def api_open_dir(dirname: str | None = None) -> dict:
     """POST /api/open_dir：打开日志/备份目录（P3-17）。"""
     target = ROOT / "viewer" / "logs"
@@ -14536,7 +13868,6 @@ def api_open_dir(dirname: str | None = None) -> dict:
         return {"ok": True, "dir": str(target)}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)[:200]}
-
 
 def api_backup() -> dict:
     """POST /api/backup：把当前 app.db（含 -wal/-shm）快照到 backups/。"""
@@ -14563,7 +13894,6 @@ def api_backup() -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)[:200]}
 
-
 def api_backup_restore(path: str | None = None) -> dict:
     """POST /api/backup/restore：从备份恢复 app.db（恢复前先自动备份当前）。"""
     if not path:
@@ -14583,7 +13913,6 @@ def api_backup_restore(path: str | None = None) -> dict:
         return {"ok": True, "restored_from": str(p), "pre_restore_backup": snap.get("path")}
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": str(e)[:200]}
-
 
 def api_lhb_backfill(payload: dict | None = None) -> dict:
     """POST /api/lhb/backfill：后台回填龙虎榜 3 年历史（需联网；端点+任务骨架）。
@@ -14663,6 +13992,15 @@ def main():
     except KeyboardInterrupt:
         srv.shutdown()
 
+
+# ── 2026-11-07 拆分：以下 api_* 已迁至 viewer/handlers/，re-export 保持命名空间兼容 ──
+from viewer.handlers.version import (api_version)  # 2026-11-07 拆分 re-export
+from viewer.handlers.summary import (api_summary)  # 2026-11-07 拆分 re-export
+from viewer.handlers.valuation import (api_valuation)  # 2026-11-07 拆分 re-export
+from viewer.handlers.dragon import (api_dragon_map, api_dragon_one)  # 2026-11-07 拆分 re-export
+from viewer.handlers.evidence import (api_evidence)  # 2026-11-07 拆分 re-export
+from viewer.handlers.sentiment import (api_sentiment)  # 2026-11-07 拆分 re-export
+from viewer.handlers.public import (api_public_records)  # 2026-11-07 拆分 re-export
 
 if __name__ == "__main__":
     main()
