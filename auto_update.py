@@ -3,11 +3,13 @@
 
 做八件事：
   1) 跑全站回填（复用 run_backfill_local.py：eastmoney/sina/ths/taoguba/xueqiu + 选手池重建）
-  2) 跑龙虎榜抓取（lhb_fetch.py，东财免鉴权接口；2026-09-25 重建并纳入）
+  2) 跑龙虎榜链路（lhb_fetch + lhb_sector_link + sector_chain，**收口到单一事实源
+     lhb_daily.run_once**，与服务器内嵌调度 sched_job._lhb_daily 同一套脚本/上游；
+     若 lhb_daily 今天已成功刷新则跳过，避免同源每日两遍）
   3) 跑权威股东抓取（holders_fetch.py，东财 F10 十大流通股东 + 户数）
   4) 对股东数据重打性质标签（holders_tag.py，隔离实控人/家族，保留真牛散）
-  5) 跑板块扩散分析（lhb_sector_link.py，龙虎榜→题材板块→T+1/T+3 验证）
-  6) 跑主线研判链（sector_chain.py，方向→龙头→梯队→分支；2026-10-09 纳入，
+  5) 板块扩散分析（lhb_sector_link，已并入第 2 步的龙虎榜链路）
+  6) 主线研判链（sector_chain，已并入第 2 步的龙虎榜链路；2026-10-09 纳入，
      此前漏在编排之外，导致 sector_chain 表只能在服务内手动跑）
   7) 对 app.db 做 WAL checkpoint(TRUNCATE)，避免 app.db-wal 无限膨胀
   8) 把本次结果写成 auto_update_status.json（供巡检/汇报读取），并追加一行到 auto_update.log
@@ -106,19 +108,48 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         run["error"] = f"{type(e).__name__}: {e}"[:300]
 
-    # ---- 龙虎榜（独立链路，2026-09-25 重建并纳入本编排）----
-    # 原 lhb_fetch.py 丢失导致龙虎榜长期停更；现每次随全量更新一并抓取（幂等）。
+    # ---- 龙虎榜链路（收口到单一事实源 lhb_daily.run_once）----
+    # 原实现在此 inline 调 lhb_fetch + lhb_sector_link + sector_chain 三个子进程，
+    # 与服务器内嵌调度 sched_job._lhb_daily → lhb_daily.run_once 抓的是同一套上游、
+    # 同一组脚本（幂等）——两套管代码维护同源，且每日两遍。
+    # 现统一委托 lhb_daily.run_once（单一事实源），并按其 last_date 闸门：
+    # 若服务器调度今天已成功跑过则跳过（避免同源每日两遍）；读不到状态则 fail-open 照跑。
     lhb = {"returncode": None, "tail": ""}
+    sector = {"returncode": None, "tail": ""}
+    chain = {"returncode": None, "tail": ""}
+    _lsc = {"lhb": lhb, "sector": sector, "chain": chain}
     try:
-        r2 = subprocess.run(
-            [PY, os.path.join(BASE, "lhb_fetch.py"), "--days", "6"],
-            cwd=BASE, capture_output=True, text=True,
-            encoding="utf-8", errors="ignore", timeout=900,
+        import lhb_daily as _ld
 
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        lhb["returncode"] = r2.returncode
-        lhb["tail"] = "\n".join((r2.stdout or "").splitlines()[-8:])
+        _today = datetime.now().strftime("%Y-%m-%d")
+        _already = None
+        try:
+            _c = sqlite3.connect(f"file:{DB}?mode=ro", uri=True, timeout=20)
+            _row = _c.execute(
+                "SELECT value FROM meta WHERE key='lhb_daily_state'").fetchone()
+            _c.close()
+            if _row:
+                _st = json.loads(_row[0])
+                _already = _st.get("last_date")
+        except Exception:  # noqa: BLE001
+            _already = None  # 读不到状态 → fail-open：照常抓取，不跳过
+
+        if _already == _today:
+            # 服务器内嵌调度今天已成功刷新龙虎榜链路，此处跳过以免同源重复抓取。
+            for _d in _lsc.values():
+                _d["returncode"] = 0
+            lhb["tail"] = (f"skip: lhb_daily 已于 {_today} 完成"
+                           "（避免同源每日两遍）")
+        else:
+            _res = _ld.run_once(days_fetch=6, days_link=7)
+            _ss = _res.get("steps", [])
+            for _i, _key in enumerate(("lhb", "sector", "chain")):
+                if _i < len(_ss):
+                    _s = _ss[_i]
+                    _lsc[_key]["returncode"] = _s.get("returncode")
+                    _lsc[_key]["tail"] = _s.get("tail", "")
+                    if _s.get("error"):
+                        _lsc[_key]["error"] = _s["error"]
     except Exception as e:  # noqa: BLE001
         lhb["error"] = f"{type(e).__name__}: {e}"[:300]
 
@@ -152,40 +183,6 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         holders["tag_error"] = f"{type(e).__name__}: {e}"[:300]
 
-    # ---- 板块扩散（龙虎榜 → 题材板块 → T+1/T+3 验证）----
-    # 缺 T+1 行的最新交易日也照常入库（标 pending），避免断档。
-    sector = {"returncode": None, "tail": ""}
-    try:
-        r5 = subprocess.run(
-            [PY, os.path.join(BASE, "lhb_sector_link.py"), "--days", "7"],
-            cwd=BASE, capture_output=True, text=True,
-            encoding="utf-8", errors="ignore", timeout=1800,
-
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        sector["returncode"] = r5.returncode
-        sector["tail"] = "\n".join((r5.stdout or "").splitlines()[-8:])
-    except Exception as e:  # noqa: BLE001
-        sector["error"] = f"{type(e).__name__}: {e}"[:300]
-
-    # ---- 主线研判链（方向→龙头→梯队→分支）----
-    # 2026-10-12 修复：下方 status["sector_chain"]=chain 引用了从未赋值的 chain，
-    # 一执行到状态落盘就 NameError、整个日更静默断档（状态文件的 ended 永远停在旧日期）。
-    # 此处补上真正跑 sector_chain.py 的子进程，与其它步骤同口径（超时 1800s、失败不阻断后续）。
-    chain = {"returncode": None, "tail": ""}
-    try:
-        r6 = subprocess.run(
-            [PY, os.path.join(BASE, "sector_chain.py")],
-            cwd=BASE, capture_output=True, text=True,
-            encoding="utf-8", errors="ignore", timeout=1800,
-
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        chain["returncode"] = r6.returncode
-        chain["tail"] = "\n".join((r6.stdout or "").splitlines()[-8:])
-    except Exception as e:  # noqa: BLE001
-        chain["error"] = f"{type(e).__name__}: {e}"[:300]
-
     # ---- 本地库备份（规格书 D1：每日 1 份留 7 天 + 每周 1 份留 4 周 + 备份前完整性校验）----
     # 用 sqlite3 在线备份 API（服务在跑、有 WAL 时文件拷贝会拿到不一致副本）。
     # 非致命：备份失败只记状态，不阻断日更（数据抓取优先）。
@@ -208,12 +205,31 @@ def main() -> int:
         if isinstance(after.get(k), int) and isinstance(before.get(k), int)
     }
 
+    # 顶层 ok 必须反映「全部步骤」，而非仅回填（修复：此前只取回填 returncode，
+    # 导致后 6 步全失败时健康检查仍报绿、状态文件误导巡检）。
+    def _step_ok(d: dict) -> bool:
+        if d.get("returncode") not in (0, None):
+            return False
+        if "tag_rc" in d and d.get("tag_rc") not in (0, None):
+            return False
+        return True
+    steps = {
+        "backfill": _step_ok(run),
+        "lhb": _step_ok(lhb),
+        "holders": _step_ok(holders),
+        "sector_link": _step_ok(sector),
+        "sector_chain": _step_ok(chain),
+        "backup": bool(backup.get("ok")),
+    }
+    overall_ok = all(steps.values())
+
     ended = datetime.now()
     status = {
         "started": started.strftime("%Y-%m-%d %H:%M:%S"),
         "ended": ended.strftime("%Y-%m-%d %H:%M:%S"),
         "seconds": int((ended - started).total_seconds()),
-        "ok": run.get("returncode") == 0,
+        "ok": overall_ok,
+        "steps": steps,
         "returncode": run.get("returncode"),
         "error": run.get("error"),
         "wal_checkpoint": ck,

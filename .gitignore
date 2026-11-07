@@ -226,3 +226,6 @@ viewer/logs/backtest/
 data/purge_neq_*.json
 data/api_probe_report.json
 data/quality_funnel_*.csv
+
+# qa 临时产物(运行时 db/草稿, 不入库)
+qa/tmp/
