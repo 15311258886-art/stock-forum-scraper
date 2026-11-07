@@ -19,6 +19,13 @@
 
 > 铁律：**展示层只读，绝不写业务数据**；写库只发生在采集层（出网）与因子/评估层（本地计算）。新增模块若要写库，必须先声明属于哪层。
 
+> **双采集路径（避免误用遗留层）**：
+> - **产品路径（现行，viewer 只读此路）**：`run_backfill_local.py`（五大论坛回填）→ `ingest` → `app.db`；
+>   龙虎榜/板块由 `lhb_daily`、股东由 `holders_fetch`/`holders_tag`、B站博主由 `bili_scan`、金十微博个股人气指数由 `fetch_weibo_heat` 落 `app.db`（表 `weibo_heat`）。
+> - **遗留路径（非产品，勿当数据源）**：`scraper/pipeline.py` 被旧 UI 入口 `main.py`（对应 `_oldui`）使用，
+>   产出平面 `json`/`csv`/`Excel`；`viewer` **不消费**这些文件，仅作合规留档 / 历史对照。
+>   新增功能**不得**把遗留层当作产品数据路径（否则会与 app.db 双写、口径漂移）。
+
 ---
 
 ## 二、干净宇宙 = 唯一选股/评估准入入口（核心规则）
@@ -80,7 +87,25 @@
 ```
 
 - **统一入口**：`tools/pipeline.py`（打印计划 / `--local` 跑本地轻量 / `--full` 跑本地全量）；出网阶段只在进哥本机执行，pipeline 只列命令不自动跑。
-- **统一调度**：`tools/sched_job.py` 的 `JOBS` 字典是所有阶段的唯一注册表（含本次补注册的 `signal_backtest`）。**新功能必须先在这里注册才算"接入主线"**，否则等于游离（此前 P4 回测跑了全量却漏注册，正是反面教材）。
+- **统一调度**：**调度是双注册表，必须两处都登记**（2026-11-05 更正，原文写的是
+  「`tools/sched_job.py` 的 `JOBS` 是所有阶段的唯一注册表」—— 那句话是错的，
+  照它做会漏掉一半）：
+  - `tools/sched_job.py` 的 `JOBS` —— 「**这个任务有实现**」（名字 → 无参可调用）；
+  - `viewer/server.py` 的 `_sched_tasks()` —— 「**它什么时候跑**」（名字 → 时间窗包装）。
+  只登 `JOBS` 不登 `_sched_tasks` = 子进程永远等不到调用方，`job_runs` 零记录，也不报错。
+  2026-11-05 自审实测：`fast_daily`、`plate_members` 两个任务就是这样静默死了
+  （前者废掉 D72 的盘后包快速通道，后者让 §五 承诺的官方板块日更从未发生）。
+  现由 `tools/smoke.py` 第 [7] 节「调度注册一致性」双向把关：JOBS 里每个键都必须有入口，
+  唯一豁免是 `viewer/config.DISABLED_SCHED`（停用）与 `MANUAL_ONLY_SCHED`（明确只人工触发）。
+  **不要**为了让检查变绿去改豁免清单 —— 那是「断言空转」的老毛病。
+
+> **第三套调度（独立进程，非 `_sched_tasks` 同族）**：`auto_update.py` 由 **Windows 任务计划**触发，
+> 负责**全量日更编排**——回填五大源 + 龙虎榜链路（`lhb_daily`）+ 权威股东（`holders_fetch`/`holders_tag`）
+> + 本地库备份（`tools/db_backup.daily_backup`，含备份前完整性校验）+ WAL 回收，落 `auto_update_status.json`
+> 供巡检 / 汇报读取（被 `tests/e2e/audit_health.py` §7b 消费，读顶层 `ok` 与每步 `steps`）。
+> 它与服务进程内 `_sched_tasks` 职责不同：**前者是「每日一次的重活全量」，后者是「随服务常驻的轻量面板刷新」**。
+> **LHB 去重（单一事实源）**：`auto_update` 与 `server` 内嵌调度都委托 `lhb_daily.run_once`；
+> `auto_update` 读 `meta.lhb_daily_state.last_date`，若服务调度当日已刷新龙虎榜链路则跳过，避免同源每日两遍。
 - **频率分级**：日更（因子/评估/选股）、出网（采集，日/增量）、季度（回测重算 `signal_backtest`）。回测不在每日自动调度，避免 30min 空耗。
 
 ---

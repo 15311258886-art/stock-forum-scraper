@@ -36,7 +36,14 @@
 | 四支柱方案 | /api/pillars/* | ✓ 候选池已扩至干净宇宙 2000 |
 | Kronos K线预测 | /api/kronos/* | ✓ 抽样已净化 |
 | 因子信号 / 快照 | /api/indicators* | ✓ |
-| 全宇宙扫描 | /api/universe/scan | ✓ |
+| 全宇宙扫描（多因子） | /api/universe/scan | ✓ |
+| 准入闸门（估值+基本面） | `viewer/gate.py`（内嵌于中线打分） | ✓ D66：硬否决剔除（PB≤0/市值<15亿/负债率>95%/ROE<-30%，实测只碰 3%）、软否决扣分（每条 −2 封顶 −6）；**PE 分位不作主闸门**（全市场 31% 亏损，会误杀困境反转）；行业分位待 plate_members 覆盖 ≥85% 再启用 |
+| 评分日变化（较上日） | /api/universe_box → delta | ✓ D66：`universe_box_hist` 每日全量快照 + d_score/d_rank，首日不编数；缓存按**交易日**失效并回 stale_note |
+| AI 复盘独立取数 | `AI_INDEPENDENT=1`（默认） | ✓ D66：切断 selection/oss/harvest 三路规则引擎产物，只喂原始层；picks_source 落库便于分组统计胜率；`=0` 可回滚 |
+| 工具包（货架 + 级联漏斗） | `viewer/toolbox.py` · `viewer/static/toolbox.js` · /api/toolbox · /api/toolbox/funnel · /api/toolbox/status | ✓ D67：一级入口（决策台右侧）。16 个工具入库（14 可用 + 2 已淘汰带原因），统一 `apply()` 契约，能力卡含收录时间/为什么收/实测表现/短板，淘汰的不撤架；整链离进程算、按签名落盘、按交易日失效。实测 5264 → 闸门 5012 → 箱体 594 → 机构建仓 276 |
+| 形态因子库（二期） | `viewer/factors.py` | ✓ D68：把 B站「技术·价值教学」/ 豆包「技术方法」两套语料里的人话编译成 6 个可算因子（缩量回踩 / 双底W / 平台突破 / MACD底背离 / 波浪位置 / 缠论中枢），统一走工具包插口。全市场实测 5264 → 6 / 488 / 21 / 293 / 521 / 44。三个第一版判据被数据推翻并重写（MACD背离自相矛盾出 0 只、W底下跌中继误判 1117 只、波浪只判截面不判顺序 1804 只） |
+| 因子准入门禁（三期） | `viewer/factor_import.py` · /api/factors/candidates · /api/factors/admit · /api/factors/sources · /api/factors/source_status | ✓ D68：外来因子必须过四条硬线（|IC|≥0.02 / |ICIR|≥0.30 / |t|≥2.5 / 撞车<0.70）+ 20 交易日影子期，IC 转负自动降权。表达式走 AST 白名单（不裸 eval）；IC 自算不抄仓库数；相关性对 8 个已知风格查换皮（自检实测把 `pct(close,20)` 以 corr=1.00 拒掉）。GitHub 发现每日 16:30 自节流 7 天，**只发现不编译**，扫不到时如实降级为「未取到≠没有」 |
+| 全市场箱体波谷（中线主表） | /api/universe_box | ✓ D65：干净宇宙 5003 只 × 750 日箱体，驻留/位置/规整/触及四维打分（驻留 35% 权重），离进程算约 10s 后落盘；与 `/api/universe/scan` 是两件事（那个是多因子扫，这个是箱体形态扫） |
 | 策略模板 | /api/strategy/templates | ✓ |
 | 回测结果 API + 前端可视化 | /api/signal/backtest | ✓ P4 实证 51 行已开放；前端「信号实证 → 信号回测」面板上线（summary 卡片 + 按夏普降序表 + 当前消费权重对照，支持 5/10/20 日窗口筛选）|
 
@@ -62,3 +69,18 @@
 ## 七、一句话总结
 - K线 / 因子 / 评估 / 展示 / 估值 主体已全；P4 信号回测实证已开放后端接口（`/api/signal/backtest`）。**C3 官方板块成分（plate_members）已于 2026-10-28 由 AI 在外网经 westock 连接器闭环**（4998 行 / 17 板块，已并入 `viewer/app.db`），漏斗「官方池」模式现已可用。
 - 功能叠加纪律见 `DECISIONS.md`；系统旋钮集中在 `viewer/config.py`。
+
+## 八、工具「适用板块」归属（2026-11-03 新增）
+
+`tool_registry` 增加 `pillars` / `pillar_note` 两列，22 个工具逐个声明服务哪个板块（短线热点 / 短线超跌 / 中线波段 / 长期埋伏），
+并强制写明理由（`PILLAR_MAP`，缺标注则服务启动即报错）。当前分布：
+
+| 板块 | 工具数 | 专属工具 |
+|---|---|---|
+| 中线波段 | 14 | 缩量回踩、波浪位置、箱体谷底（主用）|
+| 短线热点 | 11 | 短线冲浪、政策漏斗、方法共振 |
+| 短线超跌 | 10 | 超跌反弹、超跌修复、MACD 底背离 |
+| 长期埋伏 | 7 | **无**（全部为跨板块复用）|
+
+**已知缺口（见 `DECISIONS.md` D70 待办）**：`pillar_*` 四工具是内核镜像需摘除、`box_bottom`/`pick_oversold` 有同义重复、
+`tool_run_log` 尚无收益字段故无法做工具级 IC 归因。
