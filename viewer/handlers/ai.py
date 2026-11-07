@@ -14,6 +14,7 @@ from viewer.server import (  # noqa: E402,F401
     _AI_REVIEW_TTL,
     _ai_review_maxid,
     _ai_review_mod,
+    _AI_REVIEW_RUNNING,
 )
 
 def api_ai_review(date: str = "", provider: str = "", force: int = 0,

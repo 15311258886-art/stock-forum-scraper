@@ -12,6 +12,7 @@ from viewer.server import (  # noqa: E402,F401
     STATIC_DIR,
     _BUILD_ID,
     _STARTED_AT,
+    _api_ver_cache,
 )
 
 def api_version() -> dict:

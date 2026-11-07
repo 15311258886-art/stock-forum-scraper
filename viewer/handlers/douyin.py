@@ -18,6 +18,9 @@ from viewer.server import (  # noqa: E402,F401
     _TRACK_DESC,
     _douyin_meta,
     _douyin_ready,
+    _plate_concl_cache,
+    _resonance_cache,
+    time,
 )
 
 def api_douyin_facets(domain: str = "tech") -> dict:

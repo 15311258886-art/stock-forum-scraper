@@ -11,6 +11,7 @@ import json, logging
 from viewer.server import (  # noqa: E402,F401
     DB,
     _cfg_key,
+    load_config,
 )
 
 def api_config_get(key: str) -> dict:

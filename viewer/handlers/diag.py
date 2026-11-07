@@ -17,6 +17,7 @@ from viewer.server import (  # noqa: E402,F401
     api_quote,
     cf,
     valuation,
+    _DIAG_CACHE,
 )
 
 def api_diag(symbol: str, force: bool = False) -> dict:

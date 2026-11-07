@@ -6,6 +6,9 @@
 routes.py 与既有测试（S.api_*）无需改动。
 """
 from __future__ import annotations
+from viewer.server import (  # noqa: E402,F401
+    dragon_mod,
+)
 
 import logging
 

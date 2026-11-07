@@ -22,6 +22,8 @@ from viewer.server import (  # noqa: E402,F401
     postdigest,
     screener,
     watchlib,
+    avoid_mod,
+    lift_mod,
 )
 
 def api_watch_brief() -> dict:

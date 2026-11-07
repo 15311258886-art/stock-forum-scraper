@@ -16,6 +16,7 @@ from viewer.server import (  # noqa: E402,F401
     _bench_tencent,
     _is_trading_now,
     emapi,
+    _MARKET_FRESH_CACHE,
 )
 
 def api_market_freshness() -> dict:

@@ -44,6 +44,7 @@ APP_JS = os.path.join(ROOT, "viewer", "static", "app.js")
 RUN_CJS = os.path.join(ROOT, "tests", "e2e", "run.cjs")
 DOUYIN_JS = os.path.join(ROOT, "viewer", "static", "douyin_corpus.js")
 SERVER_PY = os.path.join(ROOT, "viewer", "server.py")
+HANDLER_DOUYIN_PY = os.path.join(ROOT, "viewer", "handlers", "douyin.py")
 INDEX_HTML = os.path.join(ROOT, "viewer", "static", "index.html")
 
 
@@ -322,7 +323,9 @@ def test_resonance_row_never_prints_literal_null():
     assert "分' + nv(x.score)" in js, "评分格没用 nv() 兜底（score 为空会渲染 null）"
     assert "function nv(" in js, "nv() 兜底函数被删了"
 
-    py = _read(SERVER_PY)
+    # 2026-11-07 拆分：共振/主力卡后端逻辑已迁至 viewer/handlers/douyin.py，
+    # 这里同时读 server.py + douyin handler，既守住 server 端也覆盖已搬走的逻辑。
+    py = _read(SERVER_PY) + "\n" + _read(HANDLER_DOUYIN_PY)
     assert 'card.get(code, ("-", None))' not in py, \
         "后端还在用 \"-\" 假哨兵表示「未覆盖」（前端无从区分）"
     assert 't, rs = card.get(code, (None, None))' in py, "后端缺省值应显式是 None，不是 \"-\""

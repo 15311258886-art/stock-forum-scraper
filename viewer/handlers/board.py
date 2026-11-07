@@ -20,6 +20,7 @@ from viewer.server import (  # noqa: E402,F401
     board_flow_range,
     cf,
     valuation,
+    _BOARD_CACHE,
 )
 
 def api_board_flow_snapshot(kind: str = "industry", pz: int = 60, force: int = 0) -> dict:

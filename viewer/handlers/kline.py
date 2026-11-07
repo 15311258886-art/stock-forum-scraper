@@ -16,6 +16,8 @@ from viewer.server import (  # noqa: E402,F401
     _slice_kline,
     _tencent_kline_result,
     emapi,
+    _KLINE_CACHE,
+    cu,
 )
 
 def api_kline(symbol: str, period: str = "day", limit: int = 250, offset: int = 0) -> dict:

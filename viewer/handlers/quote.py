@@ -10,6 +10,8 @@ from __future__ import annotations
 import time
 from viewer.server import (  # noqa: E402,F401
     _quote_upstream,
+    _QUOTE_CACHE,
+    cu,
 )
 
 def api_quote(symbol: str, force: bool = False) -> dict:

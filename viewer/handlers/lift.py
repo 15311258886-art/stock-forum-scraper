@@ -12,6 +12,7 @@ from viewer.server import (  # noqa: E402,F401
     DB,
     _api_cache_get,
     _api_cache_put,
+    lift_mod,
 )
 
 def api_lift_flags(codes: str = "", limit: int = 100) -> dict:

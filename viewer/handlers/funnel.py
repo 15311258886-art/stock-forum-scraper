@@ -13,6 +13,8 @@ from viewer.server import (  # noqa: E402,F401
     _resonance_dir_global,
     api_douyin_plate,
     bili_scan,
+    avoid_mod,
+    lift_mod,
 )
 
 def api_funnel_score(plate, mode="sentiment"):

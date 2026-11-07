@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from viewer.server import (  # noqa: E402,F401
     DB,
+    _DETAIL_SPECS,
 )
 
 def api_detail(kind: str, _id: int, full: bool = False) -> dict:

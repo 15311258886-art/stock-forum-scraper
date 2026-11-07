@@ -13,6 +13,7 @@ from viewer.server import (  # noqa: E402,F401
     _ri_warm,
     research,
     research_insight,
+    _RI_STATE,
 )
 
 def api_research_reports(pz: int = 30, page: int = 1) -> dict:

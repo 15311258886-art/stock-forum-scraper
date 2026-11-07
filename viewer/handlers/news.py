@@ -11,6 +11,7 @@ import re
 from viewer.server import (  # noqa: E402,F401
     _news_stock_fetch,
     newsfeed,
+    cu,
 )
 
 def api_news_stock(symbol: str, num: int = 30) -> dict:
