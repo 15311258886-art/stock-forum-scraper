@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-07T18:55:40Z",
+ "generated_at": "2026-11-07T21:46:22Z",
  "counts": {
   "yt_cnbc": 15,
   "yt_bloomberg": 15,
@@ -10,8 +10,8 @@
   "bbc_business": 30,
   "aljazeera": 25,
   "nyt_world": 30,
-  "washpost_world": 13,
-  "ft_home": 10,
+  "washpost_world": 12,
+  "ft_home": 9,
   "bloomberg_markets": 20,
   "economist_finance": 30,
   "gnews_conflict": 25,
@@ -532,6 +532,17 @@
    "kind": "influencer"
   },
   {
+   "title": "🎥 'Train to Busan' director says AI-era audiences crave original stories",
+   "url": "https://www.youtube.com/shorts/DEJtGW6KGG0",
+   "summary": "",
+   "publish_time": "2026-11-07 19:00:34",
+   "source_key": "yt_reuters",
+   "source_name": "YouTube·Reuters",
+   "region": "US",
+   "lang": "en",
+   "kind": "influencer"
+  },
+  {
    "title": "Several killed in shooting in Krakow main square, police say",
    "url": "https://www.youtube.com/watch?v=SY8K8r-2UQI",
    "summary": "",
@@ -679,17 +690,6 @@
    "url": "https://www.youtube.com/shorts/1pZv15OCybU",
    "summary": "",
    "publish_time": "2026-11-06 23:00:22",
-   "source_key": "yt_reuters",
-   "source_name": "YouTube·Reuters",
-   "region": "US",
-   "lang": "en",
-   "kind": "influencer"
-  },
-  {
-   "title": "Peru installs giant Pope Leo statue ahead of papal visit",
-   "url": "https://www.youtube.com/shorts/GRYedyw5Z6E",
-   "summary": "",
-   "publish_time": "2026-11-06 22:58:10",
    "source_key": "yt_reuters",
    "source_name": "YouTube·Reuters",
    "region": "US",
@@ -862,10 +862,10 @@
    "kind": "influencer"
   },
   {
-   "title": "What we know about Krakow mass shooting so far",
+   "title": "What we know so far after Krakow gun attack",
    "url": "https://www.bbc.co.uk/news/articles/cmd7q15drwgeo?at_medium=RSS&at_campaign=rss",
-   "summary": "At least six people were killed by a gunman in military fatigues who opened fire in Poland's second largest city.",
-   "publish_time": "2026-11-07 18:22:11",
+   "summary": "Six people were killed in a random shooting in the city's main square, and three bodies were later found at his home.",
+   "publish_time": "2026-11-07 21:13:24",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -928,10 +928,10 @@
    "kind": "media"
   },
   {
-   "title": "Paraguay's president impeached and under house arrest after bank collapse",
+   "title": "Paraguay's former president charged after bank collapse",
    "url": "https://www.bbc.co.uk/news/articles/c68jzzvjgdy9o?at_medium=RSS&at_campaign=rss",
    "summary": "Santiago Peña was ousted due to a banking crisis which left millions of people unable to access their money.",
-   "publish_time": "2026-11-07 07:20:00",
+   "publish_time": "2026-11-07 19:17:22",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -1456,6 +1456,182 @@
    "kind": "media"
   },
   {
+   "title": "Police clash with protesters as anti-government rallies sweep France",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/police-clash-with-protesters-as-anti-government-rallies-sweep-france?traffic_source=rss",
+   "summary": "Police have clashed with protesters in Paris as Yellow Vests defied a ban on their rally, leading to arrests.",
+   "publish_time": "2026-11-07 21:24:10",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Mélenchon promises action against Israeli annexation if elected President",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/melenchon-promises-action-against-israeli-annexation-if-elected-president?traffic_source=rss",
+   "summary": "Mélenchon promises action against Israeli annexation if elected President",
+   "publish_time": "2026-11-07 20:53:47",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Who is behind Europe’s suspected hybrid attacks?",
+   "url": "https://www.aljazeera.com/video/inside-story/2026/11/7/who-is-behind-europes-suspected-hybrid-attacks?traffic_source=rss",
+   "summary": "Bomb hoaxes and supermarket cyberattacks are heightening security fears.",
+   "publish_time": "2026-11-07 20:48:58",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Abdul El-Sayed slams Trump’s tariff war with Canada",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/abdul-el-sayed-slams-trumps-tariff-war-with-canada?traffic_source=rss",
+   "summary": "Michigan Senator-elect Abdul El-Sayed has criticised Trump’s trade war with Canada.",
+   "publish_time": "2026-11-07 20:44:34",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Israel’s president picks Eisenkot over Netanyahu to form next government",
+   "url": "https://www.aljazeera.com/news/2026/11/7/israels-president-picks-eisenkot-over-netanyahu-to-form-next-government?traffic_source=rss",
+   "summary": "President Isaac Herzog formally assigns Eisenkot 28 days to secure 61 Knesset seats and replace Netanyahu as PM.",
+   "publish_time": "2026-11-07 20:26:58",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "More than 140,000 rally as new protests against rising costs sweep France",
+   "url": "https://www.aljazeera.com/news/2026/11/7/more-than-140000-rally-as-new-protests-against-rising-costs-sweep-france?traffic_source=rss",
+   "summary": "Tear gas fired in Paris and Lyon as interior minister warns authorities are &#039;ready and waiting&#039; for rioters and looters.",
+   "publish_time": "2026-11-07 20:12:22",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Ukraine’s Zaporizhzhia faces threat as Russian drones close in",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/0711-reported-audrey-in-zaporizhzhia-071126?traffic_source=rss",
+   "summary": "Ukraine’s Zaporizhzhia, once a refuge for those fleeing the war, is now facing growing danger.",
+   "publish_time": "2026-11-07 20:10:38",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Paraguay’s ousted president appears before prosecutors after impeachment",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/7-11-clip-paraguay-former-president-detained-appears?traffic_source=rss",
+   "summary": "Former Paraguayan President Santiago Pena has appeared before prosecutors.",
+   "publish_time": "2026-11-07 20:08:47",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Masked protesters set off firecrackers and block roads in Albania",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/masked-protesters-set-off-firecrackers-and-block-roads-in-albania?traffic_source=rss",
+   "summary": "Police used water cannons to disperse masked protesters in Albania’s capital, Tirana.",
+   "publish_time": "2026-11-07 19:49:19",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Trump orders DOJ to investigate Democrats for ‘threatening’ people",
+   "url": "https://www.aljazeera.com/news/2026/11/7/trump-orders-doj-to-investigate-democrats-for-threatening-people?traffic_source=rss",
+   "summary": "Trump lashed out at Democrats on Truth Social days after the party won control of Congress.",
+   "publish_time": "2026-11-07 19:42:46",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "How did AIPAC-backed candidates fare in the US midterm elections?",
+   "url": "https://www.aljazeera.com/news/2026/11/7/how-did-aipac-backed-candidates-fare-in-the-us-midterm-elections?traffic_source=rss",
+   "summary": "Many candidates the pro-Israel group backed still won, but most of the money it spent went to candidates who lost.",
+   "publish_time": "2026-11-07 19:29:06",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Malaysian king warns against defying house arrest order for ex-PM Najib",
+   "url": "https://www.aljazeera.com/news/2026/11/7/malaysian-king-warns-against-defying-house-arrest-order-for-ex-pm-najib?traffic_source=rss",
+   "summary": "Attorney general postponed Najib Razak’s transfer from jail after court cleared him for house arrest on Friday.",
+   "publish_time": "2026-11-07 19:24:21",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Latvian farmers protest over ‘blood grain’ trade with Russia",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/7-11-sv-latvia-farmers-protest-russian-grain-transit?traffic_source=rss",
+   "summary": "Latvian farmers are protesting Russian grain transit, arguing that it helps fund Moscow’s war in Ukraine.",
+   "publish_time": "2026-11-07 19:10:34",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Yemeni gov’t forces report advances as Houthis say deadly strikes hit Sanaa",
+   "url": "https://www.aljazeera.com/news/2026/11/7/yemeni-govt-forces-report-advances-as-houthis-say-deadly-strikes-hit-sanaa?traffic_source=rss",
+   "summary": "Civilians bear the brunt of fighting as 27 people reported killed in strikes on a village in Sanaa province.",
+   "publish_time": "2026-11-07 19:06:31",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Demonstration in Berlin calls for an end to arming Israel",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/demonstration-in-berlin-calls-for-an-end-to-arming-israel?traffic_source=rss",
+   "summary": "Demonstration in Berlin calls for an end to arming Israel",
+   "publish_time": "2026-11-07 19:04:04",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Houston mayor orders police to limit cooperation with ICE",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/houston-mayor-orders-police-to-limit-cooperation-with-ice?traffic_source=rss",
+   "summary": "Houston Mayor John Whitmire has instructed police to limit contact with ICE, reversing the city’s previous approach.",
+   "publish_time": "2026-11-07 18:55:40",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Paraguay’s ousted president charged over banking scandal",
    "url": "https://www.aljazeera.com/economy/2026/11/7/paraguays-ousted-president-charged-over-banking-scandal?traffic_source=rss",
    "summary": "Santiago Pena was impeached over the collapse of Ueno Bank, which left millions unable to access their accounts.",
@@ -1555,186 +1731,32 @@
    "kind": "media"
   },
   {
-   "title": "Five killed and at least 10 injured in Krakow shooting",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/7-11-clip-poland-krakow-shooting?traffic_source=rss",
-   "summary": "Five people have been killed and at least 10 injured in a shooting near the main market square in Krakow, Poland.",
-   "publish_time": "2026-11-07 16:06:58",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
+   "title": "Eisenkot, Netanyahu Rival and Opposition Leader, Tapped to Try to Form Government",
+   "url": "https://www.nytimes.com/2026/11/07/world/middleeast/israel-eisenkot-government.html",
+   "summary": "Gadi Eisenkot, a former military chief, hopes to succeed Benjamin Netanyahu as prime minister by cobbling together a coalition after an inconclusive election.",
+   "publish_time": "2026-11-07 19:50:21",
+   "source_key": "nyt_world",
+   "source_name": "NYT World",
+   "region": "US",
    "lang": "en",
    "kind": "media"
   },
   {
-   "title": "Iran’s IRGC says building underground sites for weapons production, storage",
-   "url": "https://www.aljazeera.com/news/2026/11/7/irans-irgc-says-building-underground-sites-for-weapons-production-storage?traffic_source=rss",
-   "summary": "IRGC says underground military complexes allow missile production to continue even under heavy bombardment.",
-   "publish_time": "2026-11-07 15:34:58",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
+   "title": "Eisenkot Seeks to Oust Netanyahu as Prime Minister. Here’s How.",
+   "url": "https://www.nytimes.com/2026/11/07/world/middleeast/eisenkot-israel-new-government.html",
+   "summary": "Gadi Eisenkot gets the chance to form a new government, replacing Benjamin Netanyahu as prime minister. But the obstacles are formidable.",
+   "publish_time": "2026-11-07 20:11:10",
+   "source_key": "nyt_world",
+   "source_name": "NYT World",
+   "region": "US",
    "lang": "en",
    "kind": "media"
   },
   {
-   "title": "Trump’s new chief of staff Stephen Miller says he ‘saved America’",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/7-11-sv-trump-stephen-miller-loyalty-pledge?traffic_source=rss",
-   "summary": "Stephen Miller, US President Donald Trump’s incoming chief of staff praises him.",
-   "publish_time": "2026-11-07 15:29:11",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "At least six people killed in shooting in Poland’s Krakow",
-   "url": "https://www.aljazeera.com/news/2026/11/7/casualties-reported-after-shooting-in-polands-krakow?traffic_source=rss",
-   "summary": "Polish Prime Minister Donald Tusk says police are investigating after &#039;tragic shooting&#039; in second-largest city.",
-   "publish_time": "2026-11-07 15:22:55",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "The Lions by the River Tigris: Restoring Mosul’s artefacts",
-   "url": "https://www.aljazeera.com/video/witness/2026/11/7/the-lions-by-the-river-tigris-restoring-mosuls-artefacts?traffic_source=rss",
-   "summary": "When the ancient Iraqi city of Mosul is devastated after liberation from ISIL, three men strive to revive its beauty.",
-   "publish_time": "2026-11-07 14:30:00",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Iraq’s FM says external parties using Iraqi soil to attack neighbours",
-   "url": "https://www.aljazeera.com/news/2026/11/7/iraqs-fm-says-external-parties-using-iraqi-soil-to-attack-neighbours?traffic_source=rss",
-   "summary": "Iraqi foreign minister tells Al Jazeera that Baghdad is investigating attacks on the Gulf launched from its territory.",
-   "publish_time": "2026-11-07 14:24:48",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "New Zealand’s prime minister says election is ‘too close to call’",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/new-zealands-prime-minister-says-election-is-too-close-to?traffic_source=rss",
-   "summary": "New Zealand prime minister Christopher Luxon says he has a pathway to form the next government.",
-   "publish_time": "2026-11-07 14:03:06",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Who is Hakeem Jeffries, the Democrat poised to become House speaker?",
-   "url": "https://www.aljazeera.com/news/2026/11/7/who-is-hakeem-jeffries-the-democrat-poised-to-become-house-speaker?traffic_source=rss",
-   "summary": "Likely to become the first Black House speaker, Jeffries faces pressure from progressives over Trump and Israel.",
-   "publish_time": "2026-11-07 13:50:15",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "‘Radical’ or ‘hero’?: France debates leftist candidate Jean-Luc Melenchon",
-   "url": "https://www.aljazeera.com/news/2026/11/7/radical-or-hero-france-debates-leftist-candidate-jean-luc-melenchon?traffic_source=rss",
-   "summary": "The hard-left leader has transformed into a real contender in next year presidential elections.",
-   "publish_time": "2026-11-07 13:35:46",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "‘They started bombing us with drones’: Russian attacks unnerve Zaporizhzhia",
-   "url": "https://www.aljazeera.com/news/2026/11/7/they-started-bombing-us-with-drones-russian-attacks-unnerve-zaporizhzhia?traffic_source=rss",
-   "summary": "A region once offering refuge becomes increasingly dangerous, as 50 people are killed in a single attack.",
-   "publish_time": "2026-11-07 13:24:41",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Gaza displacement camps collapse under rainwater",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/gaza-displacement-camps-collapse-under-rainwater?traffic_source=rss",
-   "summary": "Rainwater is inundating displacement camps across Gaza as makeshift shelters collapse. Al Jazeera’s Nour Khaled reports.",
-   "publish_time": "2026-11-07 13:14:53",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Buildings damaged in Israeli bombings risk collapse as rain inundates Gaza",
-   "url": "https://www.aljazeera.com/features/2026/11/7/buildings-damaged-in-israel-bombing-at-risk-of-collapse-as-rain-floods-gaza?traffic_source=rss",
-   "summary": "Floods have swept through Gaza after heavy rain, endangering families and putting war-damaged buildings at risk.",
-   "publish_time": "2026-11-07 13:07:23",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Al Jazeera tries out martial art wushu at Youth Olympics",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/al-jazeera-tries-out-martial-art-wushu-at-youth-olympics?traffic_source=rss",
-   "summary": "Al Jazeera tries out martial art wushu at Youth Olympics",
-   "publish_time": "2026-11-07 13:06:50",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Heavy rains flood displacement camps across Gaza",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/7/heavy-rains-flood-displacement-camps-across-gaza?traffic_source=rss",
-   "summary": "Heavy rains and strong winds have flooded and damaged displacement tents across Gaza.",
-   "publish_time": "2026-11-07 13:04:51",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Pro-Russian hackers leak Italian foreign minister’s data on dark web",
-   "url": "https://www.aljazeera.com/news/2026/11/7/pro-russian-hackers-leak-italian-foreign-ministers-data-on-dark-web?traffic_source=rss",
-   "summary": "The prime minister blames pro-Russian hackers for the leak, as her top diplomat says the cyberthreat was ongoing.",
-   "publish_time": "2026-11-07 12:29:48",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Atletico Madrid vs Barcelona: La Liga – predictions, team news, lineups",
-   "url": "https://www.aljazeera.com/sports/2026/11/7/atletico-madrid-barcelona-la-liga-prediction-team-news-lineups-preview?traffic_source=rss",
-   "summary": "Barcelona and Atletico clash on Sunday in a blockbuster encounter which could upend the La Liga title race this season.",
-   "publish_time": "2026-11-07 12:27:58",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Gunman Opens Fire in Krakow, Killing at Least 5, Polish Police Say",
+   "title": "At Least 6 Dead in Poland After Gunman Opens Fire in Krakow, Police Say",
    "url": "https://www.nytimes.com/2026/11/07/world/europe/krakow-poland-shooting.html",
    "summary": "The authorities said that the gunman, who began shooting from a car near a market square, was shot and taken to a hospital.",
-   "publish_time": "2026-11-07 16:49:25",
+   "publish_time": "2026-11-07 19:21:41",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1753,10 +1775,10 @@
    "kind": "media"
   },
   {
-   "title": "This Israeli Vows to Oust Netanyahu. Here’s How.",
-   "url": "https://www.nytimes.com/2026/11/07/world/middleeast/eisenkot-israel-new-government.html",
-   "summary": "Gadi Eisenkot is poised to get a chance to form a new government, replacing Benjamin Netanyahu as prime minister. But the obstacles are formidable.",
-   "publish_time": "2026-11-07 12:42:56",
+   "title": "Prosecutors Charge Paraguay’s Former President With Corruption",
+   "url": "https://www.nytimes.com/2026/11/06/world/americas/paraguay-president-removed-ueno.html",
+   "summary": "Santiago Peña was impeached, removed from office, placed under house arrest and charged with using his office to enrich himself after a bank with close ties to his administration went under.",
+   "publish_time": "2026-11-07 20:17:15",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1821,8 +1843,8 @@
   {
    "title": "Another Day of France’s Protests Unfurl During an Autumn of Discontent",
    "url": "https://www.nytimes.com/2026/11/07/world/europe/france-fourth-saturday-protests.html",
-   "summary": "Two days after a general strike and huge demonstrations, students and workers took to the streets again on Saturday.",
-   "publish_time": "2026-11-07 17:06:40",
+   "summary": "The crowds were smaller on Saturday than in previous weeks’ demonstrations, but the animating sense of grievance remained.",
+   "publish_time": "2026-11-07 21:00:19",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1834,28 +1856,6 @@
    "url": "https://www.nytimes.com/article/france-student-protests-why.html",
    "summary": "For a fourth consecutive Saturday, tens of thousands of people are expected to demonstrate. The authorities hope a large security presence will deter riots.",
    "publish_time": "2026-11-07 10:13:41",
-   "source_key": "nyt_world",
-   "source_name": "NYT World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "New Zealand’s Election ‘Too Close to Call’ as Voters Turn to Minor Parties",
-   "url": "https://www.nytimes.com/2026/11/06/world/asia/new-zealand-election-vote.html",
-   "summary": "Preliminary results showed the right-wing bloc slightly ahead but no clear winner after an election that was dominated by economic concerns.",
-   "publish_time": "2026-11-07 13:13:40",
-   "source_key": "nyt_world",
-   "source_name": "NYT World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Paraguay’s President Removed and Arrested Over Financial Crisis",
-   "url": "https://www.nytimes.com/2026/11/06/world/americas/paraguay-president-removed-ueno.html",
-   "summary": "Santiago Peña was impeached, removed from office and placed under house arrest after a bank with close ties to his administration went under.",
-   "publish_time": "2026-11-07 01:29:31",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1899,7 +1899,18 @@
    "title": "Inside the Nightclub Sheltering Haitians From Violent Gangs",
    "url": "https://www.nytimes.com/video/world/americas/100000011168848/haiti-nightclub-shelter-gang-violence.html",
    "summary": "Club International was once a popular music venue in Port-au-Prince. Now it’s a makeshift shelter for hundreds of Haitian families fleeing gang violence, and the club’s owner wants them out.",
-   "publish_time": "2026-11-07 18:52:27",
+   "publish_time": "2026-11-07 19:19:20",
+   "source_key": "nyt_world",
+   "source_name": "NYT World",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "New Zealand’s Election ‘Too Close to Call’ as Voters Turn to Minor Parties",
+   "url": "https://www.nytimes.com/2026/11/06/world/asia/new-zealand-election-vote.html",
+   "summary": "Preliminary results showed the right-wing bloc slightly ahead but no clear winner after an election that was dominated by economic concerns.",
+   "publish_time": "2026-11-07 13:13:40",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -2050,12 +2061,12 @@
    "kind": "media"
   },
   {
-   "title": "In French City Hit by Terrorist Attack, Residents Blame Far-Right Rhetoric",
-   "url": "https://www.nytimes.com/2026/11/06/world/europe/france-shooting-trappes.html",
-   "summary": "In Trappes, a suburb of Paris with a large immigrant population, residents believe that a shooting was fueled by years of anti-immigrant sentiment.",
-   "publish_time": "2026-11-06 19:19:56",
-   "source_key": "nyt_world",
-   "source_name": "NYT World",
+   "title": "Israeli president taps ex-general Eisenkot, opponent of Netanyahu, to form government",
+   "url": "https://www.washingtonpost.com/world/2026/11/07/israeli-president-taps-ex-general-eisenkot-opponent-netanyahu-form-government/",
+   "summary": "The former military chief has 28 days to build a coalition, with a possible extension of up to 14 more. If he fails, Prime Minister Benjamin Netanyahu is likely to get his chance.",
+   "publish_time": "2026-11-07 20:02:01",
+   "source_key": "washpost_world",
+   "source_name": "Washington Post World",
    "region": "US",
    "lang": "en",
    "kind": "media"
@@ -2182,28 +2193,6 @@
    "kind": "media"
   },
   {
-   "title": "Nike is hit with religious ban in Libya because its name is a Greek goddess",
-   "url": "https://www.washingtonpost.com/world/2026/11/05/nike-is-hit-with-religious-ban-libya-because-its-name-is-greek-goddess/",
-   "summary": "Dar al-Ifta, Libya’s highest Islamic religious authority, said in its fatwa that wearing Nike’s swoosh logo amounts to “promoting symbols associated with polytheism.”",
-   "publish_time": "2026-11-05 21:45:00",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Multiple bears may have been involved in fatal attack, Canadian authorities say",
-   "url": "https://www.washingtonpost.com/world/2026/11/05/two-killed-bear-attack-bella-coola-british-columbia/",
-   "summary": "Local media identified the victims of the attack in British Columbia as Jennifer Balcarras, 48, and her daughter Selah Reed, 20.",
-   "publish_time": "2026-11-05 19:30:00",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "US believes Nvidia’s Huang had romantic relationship with alleged Chinese spy",
    "url": "https://www.ft.com/content/a55a2a22-4479-4f93-a445-6147a5c6d790?syn-25a6b1a6=1",
    "summary": "American intelligence warned the tech boss was involved with executive recruited by China to gather information on US group",
@@ -2215,10 +2204,10 @@
    "kind": "media"
   },
   {
-   "title": "Trump taps immigration hardliner Stephen Miller as chief of staff",
-   "url": "https://www.ft.com/content/6e8f2244-0e39-45cd-b415-e0be54b0351f?syn-25a6b1a6=1",
-   "summary": "Decision to replace Susie Wiles comes days after Republican Party’s resounding midterm election defeat",
-   "publish_time": "2026-11-06 22:09:58",
+   "title": "Trump asks UFC boss Dana White to be new press secretary",
+   "url": "https://www.ft.com/content/52c3c7ac-f0ee-4b90-a2c8-68e76d120a79?syn-25a6b1a6=1",
+   "summary": "US president signals combative approach in wake of midterms drubbing of his party",
+   "publish_time": "2026-11-07 20:33:52",
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
@@ -2259,6 +2248,17 @@
    "kind": "media"
   },
   {
+   "title": "Israel’s president gives Gadi Eisenkot first shot at forming a government",
+   "url": "https://www.ft.com/content/bf737648-b974-4f87-ba0b-958f2aff1163?syn-25a6b1a6=1",
+   "summary": "Isaac Herzog’s decision means opposition politician has 28 days to attempt to put together a ruling coalition",
+   "publish_time": "2026-11-07 21:03:47",
+   "source_key": "ft_home",
+   "source_name": "Financial Times",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Berkshire Hathaway steps up share buybacks with $9.6bn of purchases",
    "url": "https://www.ft.com/content/1f153350-2377-4e48-a073-0539376eab4c?syn-25a6b1a6=1",
    "summary": "Insurance slowdown drags on performance, with quarterly operating income falling by 5.8 per cent year-on-year",
@@ -2281,28 +2281,6 @@
    "kind": "media"
   },
   {
-   "title": "What will a Democratic Congress mean for Ukraine?",
-   "url": "https://www.ft.com/content/fac3a560-7845-4acf-9487-54ec8a445d74?syn-25a6b1a6=1",
-   "summary": "With Donald Trump retaining control of foreign policy, lawmakers will use legislative tools to try to support Kyiv",
-   "publish_time": "2026-11-07 12:00:04",
-   "source_key": "ft_home",
-   "source_name": "Financial Times",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "A bittersweet year for liberals",
-   "url": "https://www.ft.com/content/3370e949-4a32-4a2d-8738-2f1cde6a35ea?syn-25a6b1a6=1",
-   "summary": "The lesson of 2026 is that people can forgive election subversion, Kremlin support — but not high prices",
-   "publish_time": "2026-11-07 05:00:22",
-   "source_key": "ft_home",
-   "source_name": "Financial Times",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "French far-left presidential hopeful pledges ‘revolutionary’ remaking of society",
    "url": "https://www.ft.com/content/5cb562ec-5493-4ff3-bd2d-99cc9cacfa73?syn-25a6b1a6=1",
    "summary": "Jean-Luc Mélenchon stages show of force with 20,000-strong rally as widespread protests boost his momentum",
@@ -2314,7 +2292,18 @@
    "kind": "media"
   },
   {
-   "title": "Turkey Nabs Regulatory Executives in Growing Fund Probe",
+   "title": "Meta’s $25 Billion Bond Sale Highlights Shifting Landscape for Tech Debt",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-07/meta-s-bond-sale-shows-new-reality-for-tech-debt-credit-weekly",
+   "summary": "Selling billions of dollars of corporate bonds on Election Day seemed like a real gamble.",
+   "publish_time": "2026-11-07 20:00:00",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Top Turkish Regulators Taken Into Custody in Fund Probe",
    "url": "https://www.bloomberg.com/news/articles/2026-11-07/turkey-arrests-former-regulatory-executive-in-growing-fund-probe",
    "summary": "Turkish authorities detained top officials from the country’s regulators on Saturday, local media reported, the latest executives to be caught up in a widening fund scandal.",
    "publish_time": "2026-11-07 13:56:55",
@@ -2516,17 +2505,6 @@
    "url": "https://www.bloomberg.com/news/articles/2026-11-07/beijing-vows-to-hit-back-against-us-sanctions-on-china-companies",
    "summary": "China strongly opposes US sanctions on two Chinese companies over their dealings with a third party and reserves the right to take “necessary measures” to protect its interests, China’s Ministry of Commerce said on Saturday.",
    "publish_time": "2026-11-07 01:54:36",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "How a Bank Scandal Is Taking Down Trump’s Ally in Paraguay",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-06/how-a-banking-scandal-is-taking-down-trump-s-ally-in-paraguay",
-   "summary": "Officials at the Inter-American Development Bank’s investment arm suspected something was off almost as soon as they walked through the doors of Paraguay’s Ueno Bank SA.",
-   "publish_time": "2026-11-06 00:24:58",
    "source_key": "bloomberg_markets",
    "source_name": "Bloomberg Markets",
    "region": "US",
@@ -3172,10 +3150,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Breaking: New wildfire reported in Riverside County on Nov. 7 - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTFBQSmliTlhReU01M3c1WDMxQ0lYVmVlUDhzak8tRGdHalpLSVk1VWU2WmJnUnB6dEc1M1pKZk15eEM5ZjljRDRUd185MW16X1JJNEp0QTRIX2N5eGdjaE5oWmlhTldUeGtSWG9YbldZcVhqWm5L?oc=5",
-   "summary": "Breaking: New wildfire reported in Riverside County on Nov. 7 Sacramento Bee",
-   "publish_time": "2026-11-07 18:19:06",
+   "title": "Breaking: New wildfire reported in Los Angeles County on Nov. 7 - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTFA3d21qVTRpSUNmZ0xzWExILU1QYVQ4b1BGZzhNUkRzTUg0b1hFSHFLbDZHRC1NZTMtUGlaZF9Vcmlzc2x1QjZRd01ZUE5WbXlzWDVGTWgxSjdXdFpOMkkxTHRkNnpYbk5MYUpJQWNLeFBpX1pT?oc=5",
+   "summary": "Breaking: New wildfire reported in Los Angeles County on Nov. 7 Sacramento Bee",
+   "publish_time": "2026-11-07 19:55:06",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3183,21 +3161,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Rutgers study finds prenatal exposure to wildfires may be associated with risk of autism - WHYY",
-   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE13dGVQcFJPOTRhUHM0QVhiOXF1N3Q3UzBhc2EtaXd5NDVtYk5QajhZR2JOOTB3UXctMVBxVG90Q3R0eHdvNTh3alZLREl0UkFnUnRQQnFfdHV0VlQ1Nl82d29CQU15Ui1EVFdIWU1TXzVJbUNB?oc=5",
-   "summary": "Rutgers study finds prenatal exposure to wildfires may be associated with risk of autism WHYY",
-   "publish_time": "2026-11-07 11:04:36",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Flood recovery continues for First Lutheran Church in Janesville - Spectrum News",
-   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPZDAwakpGdi1BanJyYlpNM2VBRmMyTjA4cjR2X0dWU3pTUkZ1TXI5TE1ZWENMa1RFcnVCTzR6UjAtZUgzQlRlSlduZThyOUF0WEowbFpzMjI1YnZNdnYtQ0cyVTJLUXZXZWhXWnh6b3VXRTVjcGd6VE1nYWZOeDk5X3BHMnlHRXZsWmpkWWNUUmtsVU9fc0w3UVVPUUdwNEVmYWN4LQ?oc=5",
-   "summary": "Flood recovery continues for First Lutheran Church in Janesville Spectrum News",
-   "publish_time": "2026-11-07 15:00:00",
+   "title": "Expect lengthy Southwest Colorado detours due to flood damage - Colorado Department of Transportation (.gov)",
+   "url": "https://news.google.com/rss/articles/CBMijAFBVV95cUxPTTJpQ0c5alVGUG9fY0pJWmEtX3BVVW5TNWxNbjdVWmwyT2FGNDNoQjB0RTJGT3J1dWc5SENHa0p6RmVzQ2k3dk51aURIa1lYVFRVX1lXaFBPanI5SGVoaDM1MWptbG1EYldKU1dOUUs1Ujc2b0ZFVnltUEd2M3JMdm5wMmswOE9QV3lvQg?oc=5",
+   "summary": "Expect lengthy Southwest Colorado detours due to flood damage Colorado Department of Transportation (.gov)",
+   "publish_time": "2026-11-06 05:54:34",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3216,10 +3183,142 @@
    "kind": "aggregator"
   },
   {
+   "title": "Flood damage forces lengthy highway closures in southern Colorado - The Denver Post",
+   "url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxNQ3BsYUFfR2VSQnEzR0pGSkx1Z0NhQXBDUFVHbDIwVEdISTRvNHNGWkhPZEh0bGVPVGFWY3ZHdlh6TGRIT0trWFk4RHFhZGJvUnk2VDMzcTlRWUZyUGJkR2hmanJ6WHpxa1RVejVMc1lFc0w4M1YtNG9VWDBhUmtPX1UtWnR4NlVMZHlLLTdPaw?oc=5",
+   "summary": "Flood damage forces lengthy highway closures in southern Colorado The Denver Post",
+   "publish_time": "2026-11-07 19:13:56",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Flood recovery continues for First Lutheran Church in Janesville - Spectrum News",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPZDAwakpGdi1BanJyYlpNM2VBRmMyTjA4cjR2X0dWU3pTUkZ1TXI5TE1ZWENMa1RFcnVCTzR6UjAtZUgzQlRlSlduZThyOUF0WEowbFpzMjI1YnZNdnYtQ0cyVTJLUXZXZWhXWnh6b3VXRTVjcGd6VE1nYWZOeDk5X3BHMnlHRXZsWmpkWWNUUmtsVU9fc0w3UVVPUUdwNEVmYWN4LQ?oc=5",
+   "summary": "Flood recovery continues for First Lutheran Church in Janesville Spectrum News",
+   "publish_time": "2026-11-07 15:00:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Rutgers study finds prenatal exposure to wildfires may be associated with risk of autism - WHYY",
+   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE13dGVQcFJPOTRhUHM0QVhiOXF1N3Q3UzBhc2EtaXd5NDVtYk5QajhZR2JOOTB3UXctMVBxVG90Q3R0eHdvNTh3alZLREl0UkFnUnRQQnFfdHV0VlQ1Nl82d29CQU15Ui1EVFdIWU1TXzVJbUNB?oc=5",
+   "summary": "Rutgers study finds prenatal exposure to wildfires may be associated with risk of autism WHYY",
+   "publish_time": "2026-11-07 11:04:36",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "SnoCo first responders practice water rescues ahead of flood season - HeraldNet.com",
+   "url": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQcE9DbGsxd2NTZlFqZmwzWWk5MU0zbU03RnBHbEJlRHlaaUpkVWMwcnZrcW9ucDFJek9RQ2FKODQ0TmE5Z2phMWNtTmtyd3o1ak50V0FhU2hDTGMzREp3WEV0ejB4bWZXZnF3VlZrWHNBYVhjbDdNLTNnLXZoeGJjTW5zSEgzaW1LQUkzbU9hMm1PR3BHVUNUVUQzOFJlUU41eWYyRHBKb0s?oc=5",
+   "summary": "SnoCo first responders practice water rescues ahead of flood season HeraldNet.com",
+   "publish_time": "2026-11-07 19:28:05",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Alexandria Residents Have Until Dec. 1 to Weigh In on Flood Resilience Plan - The Zebra",
+   "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQNzdtbl96ZWtZYXRHUEp6T0k1elR2XzRPQlF0VUs2M1dJWWJHWG9Ib2VZMFQwa0IwYlBDV3gzN2oxOWJ4M3FBc0kxb1lrQjlET3FFMnkzbWNaZ3ZZR3BwZFRycEFYbFkzVnpYUjdNUHBBblpPZk05LTdTU29fU3lJTDByYm45aENK?oc=5",
+   "summary": "Alexandria Residents Have Until Dec. 1 to Weigh In on Flood Resilience Plan The Zebra",
+   "publish_time": "2026-11-07 19:52:21",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Texas Flood Threat This Weekend - WeatherNation",
    "url": "https://news.google.com/rss/articles/CBMid0FVX3lxTE92UV9zT0ZsTmZvWFlTcnpMbnN0TVBxb2NfVVNoRWRPd29EeWJvZ1gtMmNqWWdCQzNXS1ZhSXZJQURJQ3dQZDlENm9zZHM1OUlCZTdscHdJMFdDREVJSFJ5RUpQdUlqMnpveEpLT180b3M4U3lUb1pZ?oc=5",
    "summary": "Texas Flood Threat This Weekend WeatherNation",
    "publish_time": "2026-11-07 11:40:29",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Need to travel through flood zones in southwestern Colorado? Here are the latest closures and detours - The Colorado Sun",
+   "url": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxNZ3Nnc09vZEwzYjRYdVRJVUpJYWhvR3RfeHpBc3NFWHJ2VDBYcGJUcE9CSE1vZG1uc1pKeF9yaEJPRHJOZmtpZWJyeUJaWF9WVXl1M0JGX0lrMTBTNjFJUWVwbnVqTnBqM181RFBvaF9pMG1fX1FOVER0WFdLN0JTSEZPS1VKbDFZR0hF?oc=5",
+   "summary": "Need to travel through flood zones in southwestern Colorado? Here are the latest closures and detours The Colorado Sun",
+   "publish_time": "2026-11-06 10:52:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "UPDATE: Coastal flood advisory affecting Northern Coastal Humboldt Sunday - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE04SmNteTFlWkc0R1ZPLVJwZlROcmJsTWFtQTZiY3F4cFZyNVIwZmNFbmNicmlQcHplMGJ3ZjFWakd5T3hxU2lSdllHU1dtMXI1clpITXdYV0NmYlhLYWNiMUJCejBqQ0QwRWVfUkhhRQ?oc=5",
+   "summary": "UPDATE: Coastal flood advisory affecting Northern Coastal Humboldt Sunday Sacramento Bee",
+   "publish_time": "2026-11-07 19:57:07",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Update: Seismic activity on Nov. 7 - 2.4 magnitude earthquake close to Chatsworth, CA detected - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE5QUHNpdWJuZXN4dXFIUHhUUTJpMkZOYUtfNEtkQ0NmcUFIeGdBOUZrYWp1d3Z3UVYwZTAxMDdNXy1XcHlvdmJ5S2ZSaTU2TTUycFhiemlVNlBVQ0JkWVY2SUNyTldreDUxaHhtMXNxRTNwU0lQTUFjbjJUbDU?oc=5",
+   "summary": "Update: Seismic activity on Nov. 7 - 2.4 magnitude earthquake close to Chatsworth, CA detected Sacramento Bee",
+   "publish_time": "2026-11-07 18:09:08",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "2.2 magnitude earthquake struck close to Cloverdale, CA on Nov. 7 - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE1jVF9kNHZucjYwYnotMzVZbHE3YU5Ecm1HOFNuRGhRMEQxd2FoTGREclZuLUlMNkM1M1VSejZOZGx5NjItbVg1NWdWcE9RaEdicGczb0c0ZTBOWkhkenUzNkNtZFA5YmxLaFptbk5sSlJZY2U3M0tYNEkxMWE?oc=5",
+   "summary": "2.2 magnitude earthquake struck close to Cloverdale, CA on Nov. 7 Sacramento Bee",
+   "publish_time": "2026-11-07 13:51:06",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Breaking: New wildfire reported in Riverside County on Nov. 7 - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTFBQSmliTlhReU01M3c1WDMxQ0lYVmVlUDhzak8tRGdHalpLSVk1VWU2WmJnUnB6dEc1M1pKZk15eEM5ZjljRDRUd185MW16X1JJNEp0QTRIX2N5eGdjaE5oWmlhTldUeGtSWG9YbldZcVhqWm5L?oc=5",
+   "summary": "Breaking: New wildfire reported in Riverside County on Nov. 7 Sacramento Bee",
+   "publish_time": "2026-11-07 18:19:06",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Space Coast Credit Union donates $75,000 for Brevard County flood relief - WFTV",
+   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPbkh1OFJ4M3ZERE5IdDdPckZ5OWQ0MEtWbktjaFFKT0h2VTdDLW1rdTdXaTl5Q081aDFFMVN5MVcwRkFRUFN1V0MzWTZzZ253bnE5WXpmUnhmQVF2aUVieDFYWkVWeUQ5QmJ2dm9EQnVFQzIybEhsT2hTdkdKQUxnbjJqOEhoWS0wZ3JkZ1N6WU1rSDhkTGE3aGVIMFRoZlRma2M1MjA3Z0FNRWMxYUpSQXg0VVFfS3c4LTFMUWFEZG5OdE5o0gHYAUFVX3lxTFBCNXJiVF94MUdKUjZIazU0cmJ5cWYyS2ZDMGlDZnR2V2hUZWVBZ2lEaFNtWUFFWDRmVUNLaksxZXBXbXNfVlQxS2lPX1RXZVpPRjFPZVFxaUpZMFZ6ekVQa2tacTVZM3loZ21XdzBqVF8xZ0Q4TVA5bWFQM2Q2bG1DZGJkcUdsM3YwSFd4LTRjYkt6cmd3eUZnbmJlNm5CdnIxcjdscVZ3eXBEVTFQMjMtNFNmeHlXcHl4aWgzWXZLRFh5dFFyeUlEYzltT2pKaTdrelhKVHcwcw?oc=5",
+   "summary": "Space Coast Credit Union donates $75,000 for Brevard County flood relief WFTV",
+   "publish_time": "2026-11-07 18:43:38",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Trump's disaster aid denials just got harder to track - Politico",
+   "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxPTUJnWEdKVDRvQlM5TlctTmFhRXBRbzlJX1JfbmhfRWxvVDlyUkc3YlVXTGdyY1R5YjQ1NngyU1VRR3ViVklnb19HblRQSm4wTF9abDV5QWo2X2NxRHVNMHMybVpuaVhLVkR6U2p6eWU4dFkweGlpQ3I4TnB1dl9UeEt1T0M?oc=5",
+   "summary": "Trump's disaster aid denials just got harder to track Politico",
+   "publish_time": "2026-11-05 22:43:00",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3260,131 +3359,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Need to travel through flood zones in southwestern Colorado? Here are the latest closures and detours - The Colorado Sun",
-   "url": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxNZ3Nnc09vZEwzYjRYdVRJVUpJYWhvR3RfeHpBc3NFWHJ2VDBYcGJUcE9CSE1vZG1uc1pKeF9yaEJPRHJOZmtpZWJyeUJaWF9WVXl1M0JGX0lrMTBTNjFJUWVwbnVqTnBqM181RFBvaF9pMG1fX1FOVER0WFdLN0JTSEZPS1VKbDFZR0hF?oc=5",
-   "summary": "Need to travel through flood zones in southwestern Colorado? Here are the latest closures and detours The Colorado Sun",
-   "publish_time": "2026-11-06 10:52:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Democrats planning flood of AI bills when they take control of Congress - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQSW1qclJEWjVTQTNNU0hWWndTVFlOWFpNY1RqQ1I5Z0F2anRxTE5IQnlTTDhjeU9uUGV2anlLaVBfMFdPc0k5eDJVTVk4VTlVbnVZX0VwVnBEMnhHX19fTGRvX2NrQnNJeGN5MzBBaXBLb3d3Y25JdHpjSXFQMENoa01vNk0yLXVLRVBGZjlHLVFuUmI0QWp5aFBBRzRUSDdNMkpCQ1lJVExIei0zVFFiY0x2eVBPcFJ3d2NCeGN6REF0dw?oc=5",
-   "summary": "Democrats planning flood of AI bills when they take control of Congress Reuters",
-   "publish_time": "2026-11-06 21:56:42",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Trump's disaster aid denials just got harder to track - Politico",
-   "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxPTUJnWEdKVDRvQlM5TlctTmFhRXBRbzlJX1JfbmhfRWxvVDlyUkc3YlVXTGdyY1R5YjQ1NngyU1VRR3ViVklnb19HblRQSm4wTF9abDV5QWo2X2NxRHVNMHMybVpuaVhLVkR6U2p6eWU4dFkweGlpQ3I4TnB1dl9UeEt1T0M?oc=5",
-   "summary": "Trump's disaster aid denials just got harder to track Politico",
-   "publish_time": "2026-11-05 22:43:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Space Coast Credit Union donates $75,000 for Brevard County flood relief - WFTV",
-   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPbkh1OFJ4M3ZERE5IdDdPckZ5OWQ0MEtWbktjaFFKT0h2VTdDLW1rdTdXaTl5Q081aDFFMVN5MVcwRkFRUFN1V0MzWTZzZ253bnE5WXpmUnhmQVF2aUVieDFYWkVWeUQ5QmJ2dm9EQnVFQzIybEhsT2hTdkdKQUxnbjJqOEhoWS0wZ3JkZ1N6WU1rSDhkTGE3aGVIMFRoZlRma2M1MjA3Z0FNRWMxYUpSQXg0VVFfS3c4LTFMUWFEZG5OdE5o0gHYAUFVX3lxTFBCNXJiVF94MUdKUjZIazU0cmJ5cWYyS2ZDMGlDZnR2V2hUZWVBZ2lEaFNtWUFFWDRmVUNLaksxZXBXbXNfVlQxS2lPX1RXZVpPRjFPZVFxaUpZMFZ6ekVQa2tacTVZM3loZ21XdzBqVF8xZ0Q4TVA5bWFQM2Q2bG1DZGJkcUdsM3YwSFd4LTRjYkt6cmd3eUZnbmJlNm5CdnIxcjdscVZ3eXBEVTFQMjMtNFNmeHlXcHl4aWgzWXZLRFh5dFFyeUlEYzltT2pKaTdrelhKVHcwcw?oc=5",
-   "summary": "Space Coast Credit Union donates $75,000 for Brevard County flood relief WFTV",
-   "publish_time": "2026-11-07 18:43:38",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Update: Seismic activity on Nov. 7 - 2.4 magnitude earthquake close to Chatsworth, CA detected - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE5QUHNpdWJuZXN4dXFIUHhUUTJpMkZOYUtfNEtkQ0NmcUFIeGdBOUZrYWp1d3Z3UVYwZTAxMDdNXy1XcHlvdmJ5S2ZSaTU2TTUycFhiemlVNlBVQ0JkWVY2SUNyTldreDUxaHhtMXNxRTNwU0lQTUFjbjJUbDU?oc=5",
-   "summary": "Update: Seismic activity on Nov. 7 - 2.4 magnitude earthquake close to Chatsworth, CA detected Sacramento Bee",
-   "publish_time": "2026-11-07 18:09:08",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Breaking: New wildfire reported in Los Angeles County on Nov. 7 - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTFBJWnB2V0NoU3hEZ3VqWnl6WVlXQUdXX1lsMTA1dUF3dExsVmlDeEZvSHFqdm9yaV9Qc1B0QkZlNGpQd3dWaEU1UUpGMWF6MVlJTTBRWS1obFNWUERTV0hUeVlsdE5zQzdkdXV3andKSjdYd1NI?oc=5",
-   "summary": "Breaking: New wildfire reported in Los Angeles County on Nov. 7 Sacramento Bee",
-   "publish_time": "2026-11-07 17:05:05",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "2.2 magnitude earthquake struck close to Cloverdale, CA on Nov. 7 - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE1jVF9kNHZucjYwYnotMzVZbHE3YU5Ecm1HOFNuRGhRMEQxd2FoTGREclZuLUlMNkM1M1VSejZOZGx5NjItbVg1NWdWcE9RaEdicGczb0c0ZTBOWkhkenUzNkNtZFA5YmxLaFptbk5sSlJZY2U3M0tYNEkxMWE?oc=5",
-   "summary": "2.2 magnitude earthquake struck close to Cloverdale, CA on Nov. 7 Sacramento Bee",
-   "publish_time": "2026-11-07 13:51:06",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Kauaʻi’s Nakamura to retain speakership, Morikawa named majority flood leader in House for 34th Hawaiʻi Legislature - Kauai Now",
-   "url": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxNZUdtOVJQWUh0Y1pRTlg0UHVqVXZ5NlJDM2xOX05rb25hR1VzbVVROFhNb2x3RTgtOGtIdnlJSkJfcm1VMC1oQVFNR2Z5QXJJRWs1Qk0xTXBIQ3pITnc5YkZjTGtqaDhuY1JjWFBOaEtpOEZ3cjJZbzZsUTRZdVlUMlZ5dnJlMTlCVGZxQW04aTdRSkRiSTlMdm9oOUc5LXFhcXZmU3VzT0c2Ykp4cXZNQXdITUVtdnlJLXdDUW05YmItc3pDT2MwT3hjbjZJRGdpYUx0TVhDUm81ZUlhb0VocEMwajQyMERER0E?oc=5",
-   "summary": "Kauaʻi’s Nakamura to retain speakership, Morikawa named majority flood leader in House for 34th Hawaiʻi Legislature Kauai Now",
-   "publish_time": "2026-11-07 11:00:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "McCaysville and Copperhill Share Flood Recovery Update, Seeks Volunteers - WTVC",
-   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNc3QtUmlCektsSkpabXFZc3BYSkpoV2hoeDJ2UWI4ZFZILVN0QV9nZ0ZlWEJ2ZUl2a0k3bHV0a3dlcEI5VnBYXzBnVDRESndnNlVlU3ktSWlvYlYwdThpTldabW1tRG5lTGc0NVpObWNjaGYyQ3k0Z0NpMlBtSnhIUTBTOUM5eWRaQjM3S0tQOEpGWE9IM1VDcA?oc=5",
-   "summary": "McCaysville and Copperhill Share Flood Recovery Update, Seeks Volunteers WTVC",
-   "publish_time": "2026-11-07 17:49:34",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Preliminary 2.4 magnitude earthquake jolts Southern California - New York Post",
-   "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxQY2dpZ203U0tBVzl5anV2R2dNb196OFQ5UWpnNnY0VW5jSFRwaHFicnRST0NFV0tHalJfY0p1d1JIWFdpdF9MT0ZiSDduMlNBOXVnOGxnSkxnZnRRSnhBQUdhSmJlcWRPR2tLTkpBcWZzTUZZLWtMbVZac0N1WmdBUExJQ3U3Snh0N1BDVnBOdWRyT0tQVjJmREJ4QlNiNDFTa2dF?oc=5",
-   "summary": "Preliminary 2.4 magnitude earthquake jolts Southern California New York Post",
-   "publish_time": "2026-11-07 18:16:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Water disrupted, roads closed as McCaysville begins rebuilding after catastrophic flood - WSB-TV",
-   "url": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxPYlItNU5OV01RcklqQjFaR29Qdy1Zbk9LemdSR2VRUi1RVVlVQ1FEdmJHNUJrYXBTcGtLemtiMHRLZng1SnB6c2hhdU92cnlSZW1GbDR5YUFPdW5fU0owVVl1UW5tNUZkM0ZHVG0wVXhlZV80eVFFNnZYMlVLSVJtcm9tWGEtaFF5aHlsWDI0Q1V2UGNJVVlDeUtBSWpjOF83ZjdqWThyV2Q3eW5LdklGcWZfQ3NQUlRSZTE2eGI1TF83OGJKOWVVSEgxNE9WVElscVBqSncxYmhEaDRz0gHwAUFVX3lxTFBQQlYzQlFId2F4aV9JSkFkR25USTEyZjFid2RQOHBSOWZDUWtfWTFrQ2JRVDNxakFKVldJRmVXcG83eTdTb3JPWnc3VW1ldGE1b2wzRHVwLUtoQTBZekFWX0tpRnJocHNBcmczMHdTenlOU1YxeVRVZFdsbThDN3JPUUlIYTVJY2ZqYzFFY2FmdXpfb3hOQVZTcFNWcUYwamQta2RTWVpxV29hTDBnM3RDY0JqeElFV29ld3JmTUVfWHNlSS14cHpvMWlQeUtoR3ljc3RURlJETGl2aGtlM2Y0NTJSTDAzYmlINm1YQUVfVQ?oc=5",
-   "summary": "Water disrupted, roads closed as McCaysville begins rebuilding after catastrophic flood WSB-TV",
-   "publish_time": "2026-11-07 16:45:42",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Storms that caused 1-in-1,000 year flood event in Tennessee and Georgia move up Atlantic coast - AP News",
-   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPSFZMamd0MkVJbE04ZzdlcWtua1ZxU3Vud3I4NjNMQW5vcFJSLTZKeEpQYWdFOEhjZGhtTWFWZzNrY2U2Ui0zaDJqSXNVemh1VVlpUEx1czhacURMNXNUazVVWWZRRy1oTVZoOXV6UFB4bUZtV051Qy05b0IyZ2hmQ05GVGxDNEppTW5qc3JfTnhSS2dnWm1tOXZPNHFaSzJYR1FSYVNOdUpkQUZKNGc?oc=5",
-   "summary": "Storms that caused 1-in-1,000 year flood event in Tennessee and Georgia move up Atlantic coast AP News",
-   "publish_time": "2026-11-06 22:02:00",
+   "title": "St. Johns River flooding near Cocoa could rival Tropical Storm Fay as residents brace for major flood - WKMG",
+   "url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxOamFZWFllMWl2LUVlblNuamxlbGx0LXNaUmRxSEVqRERyb2xrM25rcnVzYmJ6UzNqaUUxWlFWN2wwWWtDSmlWSENjNDA4am9vbEN2UktsUW56VGFNOFdvR0RJdU8xZG5wb0llYS1adGdZazhia2NORFB4ZEY5WWlZcm05dnRORGdWV3pSNEpkNnc0aVdublJOV3BZOU9SbXBCSEZQT3VxR05QV0c1VDNUZWNGam5oUDhlOUZMU19pVHltcW5pbDZBUWhQc3Y1VjFGaGdPOWEyUTBoWkktN0JfM2RUUXBwTEk?oc=5",
+   "summary": "St. Johns River flooding near Cocoa could rival Tropical Storm Fay as residents brace for major flood WKMG",
+   "publish_time": "2026-11-07 01:41:51",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3403,10 +3381,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Coastal flood advisory affecting Northern Coastal Humboldt until Saturday midday - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE04SmNteTFlWkc0R1ZPLVJwZlROcmJsTWFtQTZiY3F4cFZyNVIwZmNFbmNicmlQcHplMGJ3ZjFWakd5T3hxU2lSdllHU1dtMXI1clpITXdYV0NmYlhLYWNiMUJCejBqQ0QwRWVfUkhhRQ?oc=5",
-   "summary": "Coastal flood advisory affecting Northern Coastal Humboldt until Saturday midday Sacramento Bee",
-   "publish_time": "2026-11-07 11:11:08",
+   "title": "Colorado voters approve Proposition 137 to divert funds for wildfire prevention, conservation - CBS News",
+   "url": "https://news.google.com/rss/articles/CBMizAFBVV95cUxNdHRrQlQ0ODk0Q1VNTER2elpnOUZNNEQ4V0xlTlJxSTB0NTc0UzZkRUdFZThNTVZQM29QRlZPN3AzQlVnc21faWhZRUF5WWx6UzhnU2FvcEJuQVBERk5aMWtjY2RyZzJoOGs5N3ZxV3hyV1U5QXR1c1BPOVR5Unk5eThnUEloQ2pKVE1uZUtTWXlqcERzSFR5aHgwR2xIdVRBeWhOVm5PeG1FOUdzTDk2UTd2MkVhZzlkRFF5Z2MyVFlpbmpMQmd6bGVtXzA?oc=5",
+   "summary": "Colorado voters approve Proposition 137 to divert funds for wildfire prevention, conservation CBS News",
+   "publish_time": "2026-11-07 19:44:00",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3513,6 +3491,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "New Peer-Reviewed Study Examines How Outdated Animal Testing Became Entrenched in Biomedical Research - Animal Wellness Action",
+   "url": "https://news.google.com/rss/articles/CBMi9AFBVV95cUxQQnZyS3FaWVh5Rmc2anNMNVBsZm8wemNsOGptSExaZmgwcEhZc0VhMFVJbUpOVW5hVFdhakhfVGk1Rl9xR2RvZFZmMmg2dERxY2VubnlMVmdrV3BjN3VBYkdnY19qMk85STFsS0pYcmc5QldKUVFFTVdydTBRelhLbC1iWDdXWGhjUnpmTDFJLWdNbXhFYzJTcFVmdFJadUFOaE45OGVsd1pQeC1LMUZNNWxLakRWQnZQTjVOYTgtZENOR0wyX1FHcGJVSEViTjR0ZThaeW5Pa2tRZ0U1X3VOWEQxckhYOVdTOVlaT1NBclRDdmlf?oc=5",
+   "summary": "New Peer-Reviewed Study Examines How Outdated Animal Testing Became Entrenched in Biomedical Research Animal Wellness Action",
+   "publish_time": "2026-01-15 08:00:00",
+   "source_key": "gnews_research",
+   "source_name": "GoogleNews·科研论文",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "HHS Releases Peer-Reviewed Report Discrediting Pediatric Sex-Rejecting Procedures - HHS.gov",
    "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxOSzNONGotQ01BbVJYOG5SdDQwbEJ0LXY2M2dpZ3FzYVBUTFowV0laMkt0UUo3aHFHakpNM2JONy1yWTRZV3VNRTkzNW9QcHJiVDhPTkRnRWJlMGpNRnQyYmpHa0lJd2R3aU1HOEFJem1tekljZHpWM2RkZmxDaHdCYmRjZlNYdmdhM2pKU2NOSXBVWl83NzFkbHRtTnA1QWljWnFXVnJ0LUlqdlQxUUt1blVBNzJFYlRK?oc=5",
    "summary": "HHS Releases Peer-Reviewed Report Discrediting Pediatric Sex-Rejecting Procedures HHS.gov",
@@ -3601,17 +3590,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "The AI Scientist Generates its First Peer-Reviewed Scientific Publication - Sakana AI",
-   "url": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE5MMVlhNV9NUW9EcEx1SG1HWWtqcWR6Q3hSQmJZY2lXWFZDVkl1MnhtaVU5Z2hESmJUOWtZMjgxaDhtTi1CWFR0LWlqLXNhRnVmNHp5d2ctVFpXb01mcGc?oc=5",
-   "summary": "The AI Scientist Generates its First Peer-Reviewed Scientific Publication Sakana AI",
-   "publish_time": "2025-03-12 07:00:00",
-   "source_key": "gnews_research",
-   "source_name": "GoogleNews·科研论文",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Peer-reviewed homeopathy study sparks uproar in Italy - Nature",
    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBvaHNOdGxKWWFSd0pWQmxveHRJaTlfbkU5TTdfVlBIZzU1RHpDVGphNTM0Qjc2dmJXYndLU2huRkxkOFNLY29UOVhTbHZQTXBEeTJrY21JNm5RRW5zUFFF?oc=5",
    "summary": "Peer-reviewed homeopathy study sparks uproar in Italy Nature",
@@ -3627,6 +3605,17 @@
    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBsZU8yN0pWS1ByN1pwcnljTVozaG11UlViYWlQU2I2anlOS0JSOXdjeXhOUG1SaGtNLU9nbUxVQ1NlTjc2OUdBT0tNTzRjRkN2ZExGYXJXRGk1SGhkdE1n?oc=5",
    "summary": "Expert review of the science underlying nature-based climate solutions Nature",
    "publish_time": "2024-03-21 07:00:00",
+   "source_key": "gnews_research",
+   "source_name": "GoogleNews·科研论文",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "The AI Scientist Generates its First Peer-Reviewed Scientific Publication - Sakana AI",
+   "url": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE5MMVlhNV9NUW9EcEx1SG1HWWtqcWR6Q3hSQmJZY2lXWFZDVkl1MnhtaVU5Z2hESmJUOWtZMjgxaDhtTi1CWFR0LWlqLXNhRnVmNHp5d2ctVFpXb01mcGc?oc=5",
+   "summary": "The AI Scientist Generates its First Peer-Reviewed Scientific Publication Sakana AI",
+   "publish_time": "2025-03-12 07:00:00",
    "source_key": "gnews_research",
    "source_name": "GoogleNews·科研论文",
    "region": "GLOBAL",
@@ -3678,17 +3667,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Methane emissions from US low production oil and natural gas well sites - Nature",
-   "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE96WlJ3dTV6dUY0STNMeU5ZY3dHM2xqOFQ4WmRWYVBBbzhVRkc5NUdoV25sNWl6cDhzbUxhNGpwVUpwcFA5eFFhWklkQ2E4OVdoSW5sdjZhbk9nSkZrc0dF?oc=5",
-   "summary": "Methane emissions from US low production oil and natural gas well sites Nature",
-   "publish_time": "2022-04-19 07:00:00",
-   "source_key": "gnews_research",
-   "source_name": "GoogleNews·科研论文",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Advocates bring new food security network to rural Utah communities - Utah News Dispatch",
    "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxPaDMxYnp2WHl1V0U1SElUN1pFZng5WFBPVWlZbEZqVE5HcE9MOFI3dmRodVVDOEJGYS1MaWF4ZGhDdzhWU19ja1AwcHlDZ21jMXBGNnFUTzZlUlVXOWRwYmxUUllZdHVWY0xmS0tISlhLRzJIdHBwMnNiMlg2RkZabGdSNnRwQkVPVy1PQW52TzJpNWdIMHZRZzZzY2pUS2drOUdqTGhvbjlzSE8y?oc=5",
    "summary": "Advocates bring new food security network to rural Utah communities Utah News Dispatch",
@@ -3722,32 +3700,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "National Policy Dialogue: Making healthy diets affordable in Rwanda: from evidence to joint action - ssa.foodsecurityportal.org",
-   "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9wbm5hX1pjVjFDYW5hUHhWWW4xcVZ1T0NZUWdLZEtSRzRDczZFRUlRdVJ1RF9pX1VTc2NCRnNERExQTjFTZGVKM01OcVJSazJZUHR5V1FRQnVxZ05kVzNXMW1wMEU4Zw?oc=5",
-   "summary": "National Policy Dialogue: Making healthy diets affordable in Rwanda: from evidence to joint action ssa.foodsecurityportal.org",
-   "publish_time": "2026-11-07 14:46:39",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth - Central Current",
    "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNU3kxSVB4Nl9JZERSMndIU2JFZURIX2NoTFM1aGxkQmFpa2UyY0pqdGpiZFdQd0JVcGRiajN5SjBvREhaX3M4eWZtWkgwbGdZZWE4bEh2a3VxOW9BV3RnRDN6OFZaeXlRYWFhRjhhTmpUU1hKcFRnSzJkUU5DbnJBWHh6SjJ3ZzYyZ1lsbGV5SjNMRjc1TzFIRWUzeGJVTUxDRkwwQ0xmdWtUSEhfX2NOQ2NCMWJEcHNvSC00ZVdGNEN5Q1ViWGxYTFJhekhvZw?oc=5",
    "summary": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth Central Current",
    "publish_time": "2026-11-04 21:17:44",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "SNAP Benefit Theft: Skimming, EBT Security, and the Growing Threat to Food Security - Food Research & Action Center (FRAC)",
-   "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE8wcjRYbm93UDkxU1BOeGQ1MzFKQzd4RDZwWldmWWVXeEJ2Q05naXhGd09uSElJYWhieU1IMVNSWlhONk5mR01mMVN6M2tLMlBHbEdmNTc4X04?oc=5",
-   "summary": "SNAP Benefit Theft: Skimming, EBT Security, and the Growing Threat to Food Security Food Research & Action Center (FRAC)",
-   "publish_time": "2026-11-06 14:57:12",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3766,10 +3722,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Letter: Ownership of AI resembles Rome’s control of the grain supply - Financial Times",
-   "url": "https://news.google.com/rss/articles/CBMicEFVX3lxTE4zcGVsbm1aWWJxYnppVzR4SWRvQUd6LWZ6Tnk4bXZkV0NVUnRydTBrV21hdGt1SXJIYTJMZ3BWQ2laMl9za3FlemhfUjJpQnZZU3B0S3VacnlfNEJFaTlCR2Jzbk1faFU5OFc4VlFLLWY?oc=5",
-   "summary": "Letter: Ownership of AI resembles Rome’s control of the grain supply Financial Times",
-   "publish_time": "2026-11-07 00:08:10",
+   "title": "National Policy Dialogue: Making healthy diets affordable in Rwanda: from evidence to joint action - Africa South of the Sahara",
+   "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9wbm5hX1pjVjFDYW5hUHhWWW4xcVZ1T0NZUWdLZEtSRzRDczZFRUlRdVJ1RF9pX1VTc2NCRnNERExQTjFTZGVKM01OcVJSazJZUHR5V1FRQnVxZ05kVzNXMW1wMEU4Zw?oc=5",
+   "summary": "National Policy Dialogue: Making healthy diets affordable in Rwanda: from evidence to joint action Africa South of the Sahara",
+   "publish_time": "2026-11-07 14:46:39",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3781,17 +3737,6 @@
    "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxNRVNpSWYwbVpPV2NGREZUSGdteHZKR0N1RVl6Vy1hSDFxcDVSTjFSUE5pODJRQXdPWTR1dktfMk5yamMyTG5Md3hyYy14amhQSjZRbEdhOU1iM0pzS29rNno2ck51a2tnRDRCWUdtdHZ3ZklMbEFVSnF6UzJ2WGJqbko5LS1VZDNGZUVEQm1pM0VPcnp5OF9kT1JZV19TYWNsR0FteU10RjZFaXE3Nk9Vdmpxc2hEak1tYk5VeTBB?oc=5",
    "summary": "Donor aid models don’t determine food security in Zambia, but local farming practices do The Conversation",
    "publish_time": "2026-11-05 14:23:46",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "CPMA Welcomes Food System Investments In Budget 2026; Ron Lemaire Shares - AndNowUKnow",
-   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxNNWIwZE9CVGlHWldBLUNPQW1KSTJidkxoSzREUkFuQmh4MVM4Nk5iWkUwVUVIcXh4ZGtPWmVSNjBHdFA1MlFXZldVZFJid2xSUzNHWWROWExpYzlKSEwyOEE3SXZ2VzBVdGc1djlzZGhKSXZQRnZwcVZXUjZwQWpqbXJJRDBFWUE0VXU4UVE1S1VBY3pJdGJFanhPaWk4ZVU1RFZCQWh1ZkJFdDhJR2NSVW1sTFdFS01Td3JGTg?oc=5",
-   "summary": "CPMA Welcomes Food System Investments In Budget 2026; Ron Lemaire Shares AndNowUKnow",
-   "publish_time": "2026-11-07 11:19:56",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3821,10 +3766,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Utah Food Security Network Launches in Wendover - Hoodline",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPVkUtQnJLSm1ySmdkVmpUQ3hILVpycWxBZU1YVEN5SlUtdHZ6WkJvc0FkZkxVWDRRbDVELUh4UFpETS11MGpsdzM4UnZVUnFVZmxCRWlfTkMyYnBoOHRZOWE3LWNkTzFxMHRvRGZLX3h1T0JhTjRhbDM5elE2MzZXQUNFcWUwYTRlbG5wM3h3SVdYRFJyUng5X2lsc2FreEE?oc=5",
-   "summary": "Utah Food Security Network Launches in Wendover Hoodline",
-   "publish_time": "2026-11-07 15:21:00",
+   "title": "Letter: Ownership of AI resembles Rome’s control of the grain supply - Financial Times",
+   "url": "https://news.google.com/rss/articles/CBMicEFVX3lxTE4zcGVsbm1aWWJxYnppVzR4SWRvQUd6LWZ6Tnk4bXZkV0NVUnRydTBrV21hdGt1SXJIYTJMZ3BWQ2laMl9za3FlemhfUjJpQnZZU3B0S3VacnlfNEJFaTlCR2Jzbk1faFU5OFc4VlFLLWY?oc=5",
+   "summary": "Letter: Ownership of AI resembles Rome’s control of the grain supply Financial Times",
+   "publish_time": "2026-11-07 00:08:10",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3843,10 +3788,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "ActionAid Study in 10 African Countries Proves Sustainable Agriculture Delivers Food Security, Market Growth - pan african visions",
-   "url": "https://news.google.com/rss/articles/CBMi3wFBVV95cUxORXdsX0JGNk1LeFJJNlIwQTR2eEVDZzVuRm1vS3pnR01fbzhWRVZkZVgxd2FUOHJ0NzFERzZjSXJqbW16U0lqODZLbDlibHVJMG5tNmU4MUoybkF2VGJ4U1ptbWJtbnQ4aTA2S3FnSnhIOEJkQkY2YU1tODUyTkszZ3B0M3BPZVdwQV9Kd0RPem16NWI1eW5fdUItaXozU19EeXctOExwRE9zWEdOMnNQT1BHQy05ZkpYS3h1YnY2aWxHbkRMbGE1cTh3b0RGTklOMFAyUGhreUxvYkZFaTBZ?oc=5",
-   "summary": "ActionAid Study in 10 African Countries Proves Sustainable Agriculture Delivers Food Security, Market Growth pan african visions",
-   "publish_time": "2026-11-06 17:01:04",
+   "title": "CPMA Welcomes Food System Investments In Budget 2026; Ron Lemaire Shares - AndNowUKnow",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxNNWIwZE9CVGlHWldBLUNPQW1KSTJidkxoSzREUkFuQmh4MVM4Nk5iWkUwVUVIcXh4ZGtPWmVSNjBHdFA1MlFXZldVZFJid2xSUzNHWWROWExpYzlKSEwyOEE3SXZ2VzBVdGc1djlzZGhKSXZQRnZwcVZXUjZwQWpqbXJJRDBFWUE0VXU4UVE1S1VBY3pJdGJFanhPaWk4ZVU1RFZCQWh1ZkJFdDhJR2NSVW1sTFdFS01Td3JGTg?oc=5",
+   "summary": "CPMA Welcomes Food System Investments In Budget 2026; Ron Lemaire Shares AndNowUKnow",
+   "publish_time": "2026-11-07 11:19:56",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Utah Food Security Network Launches in Wendover - Hoodline",
+   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPVkUtQnJLSm1ySmdkVmpUQ3hILVpycWxBZU1YVEN5SlUtdHZ6WkJvc0FkZkxVWDRRbDVELUh4UFpETS11MGpsdzM4UnZVUnFVZmxCRWlfTkMyYnBoOHRZOWE3LWNkTzFxMHRvRGZLX3h1T0JhTjRhbDM5elE2MzZXQUNFcWUwYTRlbG5wM3h3SVdYRFJyUng5X2lsc2FreEE?oc=5",
+   "summary": "Utah Food Security Network Launches in Wendover Hoodline",
+   "publish_time": "2026-11-07 15:21:00",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3887,17 +3843,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Regional Outlook: Caribbean El Niño Agrifood Systems and Food Security Outlook (October 2026) - ReliefWeb",
-   "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOQTM5VnloQ3NEaTNFSERvS0haT3RTWU1WYVB6djAtSUtKRGVhN0F4a0l6MWlkOV83UklETmJQN0l6Q1NDQ1Uwc3BoMlNzTHRzZHdQLUR5QWRacURBb0gtMXl1S01IM29jeTVWeS1peHAwTnZfNl9nRTFOcGtoYTRGdGM4SWJmUnQyM2p6azJUODRzVU1QM0lVVUtRVXF3THpieWwwNTNFRFl1RGxnN2d5MEhWV1o1cDVsWHFKWHllMmZvams?oc=5",
-   "summary": "Regional Outlook: Caribbean El Niño Agrifood Systems and Food Security Outlook (October 2026) ReliefWeb",
-   "publish_time": "2026-11-04 10:11:47",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Gulfood Manufacturing 2026 highlights advanced technologies to enhance food security - صوت الإمارات",
    "url": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxPSjRSQ0c5NzN4eU16VWFYeHA4QVRXWlpYQmJrU21LUnQyMEQ3ZjFndkdJR1hUMkpudTNJU253X092T19kLXN4ZnZCM3hGdkhWa2VmOHBRV2FhSm52bjFRYzZUMUcxQnVWTkxGdkg5Q29RZ2NXbDd2TEtXdno5VU1JWDhMUU9NQVBWNFE0YlZWQ3ljUWtzbHBYUUlmMGRMSXd3OHg5R21tMWl6bGhQZUd3LUc1SjY0M3EyQmZVaTNQWFAyQy1WYVFMWlVVTE5yTHRjaFQxVkFESTF2bElxcFctSk5TQzB4S2FZVHUyRnN3?oc=5",
    "summary": "Gulfood Manufacturing 2026 highlights advanced technologies to enhance food security صوت الإمارات",
@@ -3913,6 +3858,17 @@
    "url": "https://news.google.com/rss/articles/CBMigAJBVV95cUxOVENVbGlocFpfdFJCeVN2Q1lzbjZVU204Zk1QNGxSUEsybjEzWG14ZzRJU3VCX2xhZE44R0ZGTExrUlh3d19jdHp6UWdUX1ZUUEpaM0g2RWNJSTV0bEppdUZUU01EeEtSLUE3eHRPQlpIdjVmMHZmQzhaZnZTWkFHUFpyUEFUTFJHdVg0ZkZiSDNIdTA5eExrSmc2YlBfY1hhTDB4azkwT2Q1Q3NRYzNWcWtYNlJIWFpUeVNLQW5yVExFNjFzWUNRbUdIVnZGZWswSmFuN3NqYnVmMGlrZjljakNBeG1EMmdVRlRUMmNLZGVTcXJXbXNLWTN4NEhlNksw?oc=5",
    "summary": "Rice Krispies No Longer Using Rice In The UK – A Sign Of The Times? Major Journal Calls For Urgent Research Into Climate Crisis Food Security IFLScience",
    "publish_time": "2026-11-04 17:34:02",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Regional Outlook: Caribbean El Niño Agrifood Systems and Food Security Outlook (October 2026) - ReliefWeb",
+   "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOQTM5VnloQ3NEaTNFSERvS0haT3RTWU1WYVB6djAtSUtKRGVhN0F4a0l6MWlkOV83UklETmJQN0l6Q1NDQ1Uwc3BoMlNzTHRzZHdQLUR5QWRacURBb0gtMXl1S01IM29jeTVWeS1peHAwTnZfNl9nRTFOcGtoYTRGdGM4SWJmUnQyM2p6azJUODRzVU1QM0lVVUtRVXF3THpieWwwNTNFRFl1RGxnN2d5MEhWV1o1cDVsWHFKWHllMmZvams?oc=5",
+   "summary": "Regional Outlook: Caribbean El Niño Agrifood Systems and Food Security Outlook (October 2026) ReliefWeb",
+   "publish_time": "2026-11-04 10:11:47",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3953,10 +3909,32 @@
    "kind": "aggregator"
   },
   {
+   "title": "Morocco launches 2026-2027 agricultural season, targets higher output and food security - HESPRESS English - Morocco News",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxPT1EyWGhfeERWbF90ZDhHaUoxbHFVR0g1WlFxYWQwUDRpM2Nac0tySzJsWW0zRW0zblJEX1l6c0Ntbm5CVnF3TGhjbGtMUGc3eFB1NHdpd2dHYmN0UlFBSm4weVNoaTE4dk51Tm05WktzMzNCMlFuekU1cDhhX0RvM3JBRFJqN3JfUEJyWllhZUl2aU5PeTBmcklIQTNJcGQ5TElGSE9VSVlibFNaNERyTFdDQ2oyQWc0OTZUTXBrVQ?oc=5",
+   "summary": "Morocco launches 2026-2027 agricultural season, targets higher output and food security HESPRESS English - Morocco News",
+   "publish_time": "2026-11-07 19:07:27",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Hongqiao forum discusses agri-food trade and food security - CGTN",
    "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxQN3B3MnNmb0RZaFptMGVsd2x0dXpUQWtOX2RMbGNkNHdXMmNOR25BVlpnZ05GMHBMX3NZNzlGQ0h4QkF2N0NLSEZUZTlkeXcxMU0xUHF3LVRsT1l3WWxxbWhmcXBtc1ZLbEdqNG9QQWFtc3d3NmJMbmFHUmFEcE9Zd3YxMVBjZ3J2VXU2cm53NWVBbjliQUROdmJtN3ZfYldPNnEyUTIyVW8xMEwzSWtKYWdZRHBYZw?oc=5",
    "summary": "Hongqiao forum discusses agri-food trade and food security CGTN",
    "publish_time": "2026-11-06 13:56:30",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Federal Budget 2026 targets affordability and northern food security, says Nipissing–Timiskaming MP - BayToday.ca",
+   "url": "https://news.google.com/rss/articles/CBMi2AFBVV95cUxQRURyek5mNkJtZ2c3ODQ5RVJBYmhoNHNIa2p4M0dDMUt4dVJlMUoxWUZ3cE96YkFYVURSQTJwRXU0ejRvLUlZMTJ3akd6RkFnQVNvYXlBLW4xM0x6Um9rNTBuYWgxencwaFE4ck84LWZqX21qWG5VOGhUYnpkVklZV25WVFJJaTF1Z3BMUjY1Yl9HUi1mZDJ6eDNvdFBrN3czQzVhOG5CczB4SXNGSmZqaS04eG1qbVhUSkw5UUtYM2gzUktWa2RPQkpJMTl4S19UQnRtSGI5eGI?oc=5",
+   "summary": "Federal Budget 2026 targets affordability and northern food security, says Nipissing–Timiskaming MP BayToday.ca",
+   "publish_time": "2026-11-07 19:01:57",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3986,6 +3964,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "Nebraska Cold Weather natural gas rule takes effect - Rural Radio Network",
+   "url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxNZEs1ZzdHRkRoR3Q5aW5ibGs3OENsb3hsNkN4cFBZNC1kWFVxNWRUTGppVk1YYWphN1ZDYnNzOGV1aW1uMEFGRXF2V0Vya0oxMGJsbmZYd3FkbWlXVzliTzJFdHEwakRodG5FajNxemF0aEdYbnlMNHBkQUNlNFV2TS1xYTRadm5Hb0swZHJSZlZYdw?oc=5",
+   "summary": "Nebraska Cold Weather natural gas rule takes effect Rural Radio Network",
+   "publish_time": "2026-11-07 21:00:20",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Brent Last Day Financial Overview - CME Group",
    "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNWGU2ejZ1bGYtNEFGUUVqYVFyaFJ6NGFQWFRxM01tU3kzSWtUNDdSUDRRSnF5SDRORGVBbGZDeWstQUR2SFdkVlBmVlp2eGxwTjJ3NHZhTG41RXJHZGlCMWczZWszTXBadHI5clRjSEJ1WkdOdklQWHNGeTlBdGFFMnNqNndmZw?oc=5",
    "summary": "Brent Last Day Financial Overview CME Group",
@@ -3997,19 +3986,8 @@
    "kind": "aggregator"
   },
   {
-   "title": "Oil Futures Slide As Market Holds Out Hopes for Middle East Diplomacy - WSJ",
-   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxNdXo3c0pXbll5VVJ6eUlRbTJQZ0xLSnFISGlnVGRReWlBTnJYT2d5RVd5cTZmTnFkS0VoZ3h1cVNGOEhOMHUtMUlRU0hPMDhhTmtINTNHdC1JeVRlTExaSklrRWNvaHpMSERXOF9VRlRZTGh4YmZ4aWg3a2ctdlI1bkVsdUY4X0RDMElsTHpaOFN4VVE4YzBwRzVHRk0yamVxM2dJMmdVYlNSdVZoaGR6akhlUGU5WTlx?oc=5",
-   "summary": "Oil Futures Slide As Market Holds Out Hopes for Middle East Diplomacy WSJ",
-   "publish_time": "2026-11-06 20:34:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "When Geopolitics Overwhelms Seasonality: A Brent Crude Trading Lesson - Barchart.com",
-   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQUDl0Z3FVZ25BZTU0WVRFWWlyN01nTFZndXRjMWgtamU5M2F4RVp3V2V5cHl6bURfbVBDVXJpTkppZWxSY1NaMEJoRE5PS3c5Rk1sb1BHUFl4WWVOdUlPOGtsRVZMNHFGWGloSW9EU29XakJ4RDBWVmxmcDNxODRUc1VNSkZxczJKcFY3OHdEaWFkNUdxMVpha0hSMkQxZDdJTlJQQVozZ1poSVJMTTB1UUNR?oc=5",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQaFJlRENyWVdjSWZ6Y0trMUkyMnhNbnZrNlhOUkp1NU1xRXNPOTFfbU1FYkE2akhiVmJGVFl5eTBreXh0LWk1bDZPMDdGV0ZrQjRUajZDaW5pVWhpWDFtQTNUYmUzVUxqeVViQXdMSjFCM3AtSlI1THFUd1JzbVd0M0d2dHAyLUxCa0hZUnF0MVc4bG5aTU54UXVuSWIzSGF5NmxHV0tlZ1hmNHN4UEQ4QlFn?oc=5",
    "summary": "When Geopolitics Overwhelms Seasonality: A Brent Crude Trading Lesson Barchart.com",
    "publish_time": "2026-11-07 15:45:35",
    "source_key": "gnews_oil",
@@ -4019,10 +3997,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Iraq seeks higher OPEC oil export quota: minister - The New Region",
-   "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE5iSm5ma1d1QVA1UXpEeC1VU2RSNUdtVXZKQ0d2dWhvSjM2ZDloQVE5OTFzQWtvT1d2VjN1QWQybW5YcGEzZmdUX3EzNA?oc=5",
-   "summary": "Iraq seeks higher OPEC oil export quota: minister The New Region",
-   "publish_time": "2026-11-07 14:41:36",
+   "title": "Oil Futures Slide As Market Holds Out Hopes for Middle East Diplomacy - WSJ",
+   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxNdXo3c0pXbll5VVJ6eUlRbTJQZ0xLSnFISGlnVGRReWlBTnJYT2d5RVd5cTZmTnFkS0VoZ3h1cVNGOEhOMHUtMUlRU0hPMDhhTmtINTNHdC1JeVRlTExaSklrRWNvaHpMSERXOF9VRlRZTGh4YmZ4aWg3a2ctdlI1bkVsdUY4X0RDMElsTHpaOFN4VVE4YzBwRzVHRk0yamVxM2dJMmdVYlNSdVZoaGR6akhlUGU5WTlx?oc=5",
+   "summary": "Oil Futures Slide As Market Holds Out Hopes for Middle East Diplomacy WSJ",
+   "publish_time": "2026-11-06 20:34:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4052,17 +4030,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Oil prices tumble for the week as investors weigh Iran conflict risk after midterm elections - CNBC",
-   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5zQW9uWnVUd0hLODVnWG1oa29OUEJuQlFjLXNlMjhyZDdrNGl5T1MxRTJDQXJ0TUJNbXh4MDhaYk1DeUM2bHh1b3RsNWZ3Sm1zT05udHZJQ3JzWS16RXd3NjR0Qmt5UWtPQnRMbE5MWdIBdEFVX3lxTE9DMzBrTllWWDUtQmdHLV9fR0hwU21fcllTNWZ2bnZTRDlTNUthbmRnWk83V1NMYVZ3eTZZSl8tZnh5NGNGanN5VEtfYVIza0huQnR3S3NVRTl5bkpzaGF0R0d1LXdCcURLVlJYWHRwS2ljS2Uz?oc=5",
-   "summary": "Oil prices tumble for the week as investors weigh Iran conflict risk after midterm elections CNBC",
-   "publish_time": "2026-11-06 05:06:56",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Brent crude jumps, settles up over $3 after tanker attacks - Reuters",
    "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxQdzM2c3YzcktwU285aS1QaVVzTk51WFR0UnpxMXlnaFdEd2RtZWYzMm81TDZQUTJZS0ZlLXFVV3ZhcGFibkdLZm9Remo3YjlhNHJTd1lxSXNMUFNzejhIMkt0TlFRXy1RZl9TdTkxbDhfdjQxUEIzcUhaYlpOMjZJSVViNmVPV0dRV0RmaTJ3dDJ3QUs4TTFleFlnZnNyUHhVYlQ5NldaZVRZRFd5dU5nVnRKVUQ0UFE?oc=5",
    "summary": "Brent crude jumps, settles up over $3 after tanker attacks Reuters",
@@ -4074,10 +4041,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Brent crude caps biggest weekly drop since pandemic as war premium begins to unwind (USO:NYSEARCA) - Seeking Alpha",
-   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxPVjk5WktlY1YtOGN0N3JFYzBzaDhKNzlwYkY1YjJIamE1RWxNU3gxc2NPbHAxSVdNX19pYmkxQ2RjQ1NMWnhSV3BYRGZPejY1N1loY21CWDBOZTVNbnk2cmlBVjBOVlJHMFFUcVp5QlVWSWxIbGhBeDh5cXhPU3ZfZmgxOUF3Qm9FUk9UdzdmbnZSS3FQTEZGYnFOOURHcEx4V1V5YW52WmVDc3hFUnNCV2g4ZGg3V1Iyem5RaDBB?oc=5",
-   "summary": "Brent crude caps biggest weekly drop since pandemic as war premium begins to unwind (USO:NYSEARCA) Seeking Alpha",
-   "publish_time": "2026-11-07 00:57:48",
+   "title": "Iraq seeks higher OPEC oil export quota: minister - The New Region",
+   "url": "https://news.google.com/rss/articles/CBMijAFBVV95cUxNUEdleEYtM200eFFrSURSa2JRUmUxdnV0WHZoRURPQzZBRS1qNDRYdmZ2LWh6TS1GaWhYU1ZiMXJqdFl3SnFuaFYzLTBza3pVVDhPSE5hLXczRGwyZmhNb2xTMTZrZ0pxbjF6NG5GZHpNQ09BVkFFSXFjZ2FQbzdVOURjNDRjZjhGSEUtWQ?oc=5",
+   "summary": "Iraq seeks higher OPEC oil export quota: minister The New Region",
+   "publish_time": "2026-11-07 14:41:36",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4085,32 +4052,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Spire seeks natural gas rate increase in Missouri - KY3",
-   "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxOY0dtWFBrR29IYUZZbGJ5OGwzUGs4ZGY3azAtaXA4eF90QWstai14XzR4NWxkbTA3ZWt1bU84clRsSXFlbVY1eXFzRHlyZWplRjI2ejQwWHV0cmZHRDN5ckNSTFpoWGxEOG9jcWh6M3VrYXFCRTVxdEV0RUhxN2hMRkxCeknSAZgBQVVfeXFMT0lwU2hiTUhlWHdhZ3JQNWViSVp1VTNHdXdBUEJVYmpPYW82QjVYbzU2cEsxZTd0cTNZdWhlSzR4MzROZEhJYnJaLWxOOFZ6MElld2RuenlTT2pTTG9tTkctcjhSWngtUXlJMUF1WVoxVkpSS3BSS2NVcjdMbEFCcllNYTR1d0Y3WTdDZllITmZUVEJjOTdHWlU?oc=5",
-   "summary": "Spire seeks natural gas rate increase in Missouri KY3",
-   "publish_time": "2026-11-06 19:59:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Northwest Natural Gas Q3 Earnings Call Highlights - Yahoo Finance",
-   "url": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPY1Mwck1aaEYybmYyTkRMckxfMjRzZkVlZ3I1QThNUWhnbS13RU1YZmZWX1lidGswU2lDbjVSR1dpenBVbGlxMFZZLUJIbVNuN05ldDRPbFdiSTNfMVRpYXZZbklVMXF2TEZidm5WNXB5Ym5zYjBDY290dWg5N1JFN1EwSU9rdjdBT1haZl9memhyTkNn?oc=5",
-   "summary": "Northwest Natural Gas Q3 Earnings Call Highlights Yahoo Finance",
-   "publish_time": "2026-11-07 03:14:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "U.S. Oil, Gas Drillers See Minor Uptick as Oil Prices Crash - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxQWEtBeVRSdXhZcy14VFF2ZEdXeXZKV0Jqb2ZBRm4tMTdJYTE2bmd5WmNKU0JFVkpKVGF6RlpSdC1kR0pZc3huaTdNSk8xWDlRWERFelNudEJaM1RDNjA3S2k5Sm9Kd3B4RHVoaUQ2N0pkR3MtRVdPdEdsRlNLcm5MOV9pRTB0bnNId0FtaGhSMk9LSGU3YkhySzFhUExRTjlCRmFGRXlZd9IBrAFBVV95cUxQUG9PZ2pJelBINnFXNlp2ZFRVYVJ1RDlvWk85bk1TNU5FTjFTc3JDbVJVLW5Jc2FieUpwLURTOFQyblZOcmJLQk5lanJlb0w2UEhzS1RvZGVTX3FMM3VhTWN1bXBCbFJkSGRPSEc5aG4xczB4UjZLODNNc3VleGFWTlA3a1RqWDFFcUxXYmVjeXNydGtjSVJMYVlvQ3Ytbk0wZzItTXhsMWh6a1hQ?oc=5",
-   "summary": "U.S. Oil, Gas Drillers See Minor Uptick as Oil Prices Crash Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-06 18:21:00",
+   "title": "Oil prices tumble for the week as investors weigh Iran conflict risk after midterm elections - CNBC",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5zQW9uWnVUd0hLODVnWG1oa29OUEJuQlFjLXNlMjhyZDdrNGl5T1MxRTJDQXJ0TUJNbXh4MDhaYk1DeUM2bHh1b3RsNWZ3Sm1zT05udHZJQ3JzWS16RXd3NjR0Qmt5UWtPQnRMbE5MWdIBdEFVX3lxTE9DMzBrTllWWDUtQmdHLV9fR0hwU21fcllTNWZ2bnZTRDlTNUthbmRnWk83V1NMYVZ3eTZZSl8tZnh5NGNGanN5VEtfYVIza0huQnR3S3NVRTl5bkpzaGF0R0d1LXdCcURLVlJYWHRwS2ljS2Uz?oc=5",
+   "summary": "Oil prices tumble for the week as investors weigh Iran conflict risk after midterm elections CNBC",
+   "publish_time": "2026-11-06 05:06:56",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4122,6 +4067,17 @@
    "url": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxQYUJLYkpBS2YzZ01lWVU3MGJNQ1RucGpwZXFDY1VoblNacG5BTUl0VkRWVDA1MU9YaTdja0xFQ2Rodnc2Y2NKWVE3MDQyNU5RcldBZ25UMnRDSDhCWi1MdWpLQXh5ZXJwNER2UW1fZktBeFlGRzEwa1RKYUs0R0R1Mk1KcVl3N2lTeGlnTDBKb215YUJDM0w5bTV4SnJ6a2lnYkxmZjh5VzRNcU82OWVFWXZ2RHpodlh3NjI00gHAAUFVX3lxTFBfUnNKc1Rkam5WZ09yRFV2NmRqM0ZRUXpxZHAteHZfMm1RSFg4cy1NV3FKcWR3OWlKS1Z2Qml3RmNVZDZndW5zXzRJTVRldjk0VjkxeXVBc0JIV3JBTGxVbTdxVFlOMkkxTVo5WFRPTzd2dDZVLWhHaHNnanYzaGZQSGRzTmVhc3NfVHVUY2JKMnVKa0w0ODZ3WThiOWQ1R2JuQWx4VEJqUmVxZkYzOUlWVFJlYVE2Y2NaX21DYnYzSA?oc=5",
    "summary": "Oil Prices Head for 12% Weekly Loss Despite Fresh Tanker Attacks Crude Oil Prices Today | OilPrice.com",
    "publish_time": "2026-11-06 06:05:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "U.S. Oil, Gas Drillers See Minor Uptick as Oil Prices Crash - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxQWEtBeVRSdXhZcy14VFF2ZEdXeXZKV0Jqb2ZBRm4tMTdJYTE2bmd5WmNKU0JFVkpKVGF6RlpSdC1kR0pZc3huaTdNSk8xWDlRWERFelNudEJaM1RDNjA3S2k5Sm9Kd3B4RHVoaUQ2N0pkR3MtRVdPdEdsRlNLcm5MOV9pRTB0bnNId0FtaGhSMk9LSGU3YkhySzFhUExRTjlCRmFGRXlZd9IBrAFBVV95cUxQUG9PZ2pJelBINnFXNlp2ZFRVYVJ1RDlvWk85bk1TNU5FTjFTc3JDbVJVLW5Jc2FieUpwLURTOFQyblZOcmJLQk5lanJlb0w2UEhzS1RvZGVTX3FMM3VhTWN1bXBCbFJkSGRPSEc5aG4xczB4UjZLODNNc3VleGFWTlA3a1RqWDFFcUxXYmVjeXNydGtjSVJMYVlvQ3Ytbk0wZzItTXhsMWh6a1hQ?oc=5",
+   "summary": "U.S. Oil, Gas Drillers See Minor Uptick as Oil Prices Crash Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-06 18:21:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4184,39 +4140,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Brent crude plunged 13% in a single week, falling below the $100 mark; hedge funds had already reduced their long bets prior to the election. - Moomoo",
-   "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxOT0FOREZSR1ZObW5MUjhMY1RvN0o2Mm1CMlMzM1RhTUs4Mlpyb2dKNG5uc3VBb096X193WEFGSl9BTFE2TFRfbFlSaHA0a0xHdFJjU3pkSjRWTmFLOXdEeDJXTjRmQnppaEVlWVBraFA5TjVadk9peVNocHZzZ0hhUWtxanlCT2NZeTB3Rm5WQWIxWmhiMUdpOEZHY2xMZw?oc=5",
-   "summary": "Brent crude plunged 13% in a single week, falling below the $100 mark; hedge funds had already reduced their long bets prior to the election. Moomoo",
-   "publish_time": "2026-11-07 07:03:20",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Firefighters train on natural gas emergencies at Hope Gas facility - WDTV 5",
-   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxQMUpSMXItLUlDRGxoRjF4ZlFZdWFLZGtQLVVmU0lQTXFtYTAxOEg5dmtpOWY5NmRvcjRmbV9EWkNIZDJHQlR5czhaY3J1SmJmb1RnYlNmYUdMOVg1QTR4MW1MMWI3c3h4T0tYQ2gxNUM4VnU3NE5PSDNGZVVnQm1QRV9mOXJ4bm9iUG9VdDdGVlZpYzhJSUVCd9IBrAFBVV95cUxOY1RPRmhwWGdXQmQzaUxJLUItYTZMWVlLNTFPRm1hN0N0dC1kNnMxa2xyT0N5M2U5dVZoSmVnbVNER2dyNWxiLS1OWE44UkVVeG1zdmlkZG1IelNOTE9xSWhWSmt3aXNtdUhFdHBfZmJiUDY5dGNQaUQ1bENQeEQ0QXBxVy05azQ2enprRG5ZcFA2aDkxN1lKd3dQejBockw5Y1hjclppOXkxREpP?oc=5",
-   "summary": "Firefighters train on natural gas emergencies at Hope Gas facility WDTV 5",
-   "publish_time": "2026-11-06 21:17:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Physical Natural Gas Prices Power Up for Weekend - Natural Gas Intelligence",
-   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOZTRDSV9LUnV1UU1uNUhCVk5OWDVYai01R2o5RkxlODh6Mlh3SV85VHJqbnZ6RUVkelA2aW1qN0Jfb05VRFVMRFBZZFh0Ri1vd01UazNLV1JpRWJJWGh5U1ZnLWJRYXo2TTFMYl9PMzF2SklONDNjcmlNMkJydXozN0dKZGJBaWVTeWc?oc=5",
-   "summary": "Physical Natural Gas Prices Power Up for Weekend Natural Gas Intelligence",
-   "publish_time": "2026-11-06 21:58:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "China's Carbon Emissions Plunge 3.1% as Oil Demand Slumps - Crude Oil Prices Today | OilPrice.com",
    "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNakFoSW5UOXF3b1ZYcVBYbWlORDkxc2xfR3ZLbWZBdms0cDhGa1I2Nm0tWGthUVdPM1hsZUNDbDFrMVd0dVVDcEhQbldGS3h4Z1pBc0FYTVA4Tkpud3NhYVQzLU13aGF6UGdzRE9hTnBTN1U1WjZYdV80SmZ6emsyVjBxMDVZdjcyWmpkQ3NJQUtfNmgxNnhJcTB6a053NlRoT0lfQXdBN1pRUUZWSWtz0gG0AUFVX3lxTE5SZ0IzaVRuVnRleWFNNURzeEx0dHNsWm1vdnBvZ0VRa2hnOTJNSFBwY0ZRdHE3SE1jSXYyTktMckc1UkhNb2V1bXJMa01sNkxmdVNwUmloaUY3N1RvYnVQMkxXdU13YXJsbnhlN1hfcUxyMVRsdnlmaHQzc3h2b3hzS2F0alY0REM0NnkzNVZhUjlpYmlqQk0wMFp0TlFHZFRBdVJWVHVnanZfMUk0TUlOMTloag?oc=5",
    "summary": "China's Carbon Emissions Plunge 3.1% as Oil Demand Slumps Crude Oil Prices Today | OilPrice.com",
@@ -4239,10 +4162,65 @@
    "kind": "aggregator"
   },
   {
-   "title": "October CPI Forecasts Show Inflation Softening, but December Rate Hike Still Looks Likely - Morningstar",
-   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOcFBCOGtkQkJnOEl3ZVJrREZlSzhYRVBGSWJuaERjY3RNYjlQTklQNGdVV3h0RU94YlN2U09nZnZLUVliUUEzWXU2RVhlOVpUVlNsMTV1U1BIYnRrc1dfamxtTEdMME9wNFRHb3RROFVNZ2E2aTBBMzJqSkV1V05Oanh2ZzJhWlNnSVh0cjBSSklfSEllNklybXJBQkxXeDBhcXRsck0tUEhqZUJpRFBWMTFhUmMwNzZPRU4zaQ?oc=5",
-   "summary": "October CPI Forecasts Show Inflation Softening, but December Rate Hike Still Looks Likely Morningstar",
-   "publish_time": "2026-11-06 20:28:52",
+   "title": "Amendment 82, which would add \"right to natural gas\" to Colorado Constitution, appears unlikely to pass - The Colorado Sun",
+   "url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxQZkpqZmhDZWRrRjFINDlKa0c1MXpvV0hxY2tmNWQ0SXI3UWVWYUxKSTktZW8zU19kenpTckxOdXJCVUYxdm1qWHczWHQ0WkpfTDFEeEIwRlFxNXdyamN2dTUzZ2V4bVhHc2QyZDJDLUZXdlI3WFY0emg0NWZ2bjFWRzAtSQ?oc=5",
+   "summary": "Amendment 82, which would add \"right to natural gas\" to Colorado Constitution, appears unlikely to pass The Colorado Sun",
+   "publish_time": "2026-11-04 07:10:33",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "OPEC crude oil output is nearing pre-war levels as Saudi Arabia rebounds - Quartz",
+   "url": "https://news.google.com/rss/articles/CBMid0FVX3lxTE1YQ0swOThadE9ZVkxxeWFzQXljR3pLQlNLZk53eDNlTEZORFl2dlBnb05UM0t2VjhNR1BuTkFhUG5pejdfcEFKMUtaQ0VZNUFkd1cydEhKWGxOT1dTVHBKQU1obXVrNWo2RWRFRkZReUJaYVdTRTRn?oc=5",
+   "summary": "OPEC crude oil output is nearing pre-war levels as Saudi Arabia rebounds Quartz",
+   "publish_time": "2026-11-06 15:19:40",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Brent crude plunged 13% in a single week, falling below the $100 mark; hedge funds had already reduced their long bets prior to the election. - Moomoo",
+   "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxOT0FOREZSR1ZObW5MUjhMY1RvN0o2Mm1CMlMzM1RhTUs4Mlpyb2dKNG5uc3VBb096X193WEFGSl9BTFE2TFRfbFlSaHA0a0xHdFJjU3pkSjRWTmFLOXdEeDJXTjRmQnppaEVlWVBraFA5TjVadk9peVNocHZzZ0hhUWtxanlCT2NZeTB3Rm5WQWIxWmhiMUdpOEZHY2xMZw?oc=5",
+   "summary": "Brent crude plunged 13% in a single week, falling below the $100 mark; hedge funds had already reduced their long bets prior to the election. Moomoo",
+   "publish_time": "2026-11-07 07:03:20",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Spire seeks natural gas rate increase in Missouri - KY3",
+   "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxOY0dtWFBrR29IYUZZbGJ5OGwzUGs4ZGY3azAtaXA4eF90QWstai14XzR4NWxkbTA3ZWt1bU84clRsSXFlbVY1eXFzRHlyZWplRjI2ejQwWHV0cmZHRDN5ckNSTFpoWGxEOG9jcWh6M3VrYXFCRTVxdEV0RUhxN2hMRkxCeknSAZgBQVVfeXFMT0lwU2hiTUhlWHdhZ3JQNWViSVp1VTNHdXdBUEJVYmpPYW82QjVYbzU2cEsxZTd0cTNZdWhlSzR4MzROZEhJYnJaLWxOOFZ6MElld2RuenlTT2pTTG9tTkctcjhSWngtUXlJMUF1WVoxVkpSS3BSS2NVcjdMbEFCcllNYTR1d0Y3WTdDZllITmZUVEJjOTdHWlU?oc=5",
+   "summary": "Spire seeks natural gas rate increase in Missouri KY3",
+   "publish_time": "2026-11-06 19:59:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Northwest Natural Gas Q3 Earnings Call Highlights - Yahoo Finance",
+   "url": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPY1Mwck1aaEYybmYyTkRMckxfMjRzZkVlZ3I1QThNUWhnbS13RU1YZmZWX1lidGswU2lDbjVSR1dpenBVbGlxMFZZLUJIbVNuN05ldDRPbFdiSTNfMVRpYXZZbklVMXF2TEZidm5WNXB5Ym5zYjBDY290dWg5N1JFN1EwSU9rdjdBT1haZl9memhyTkNn?oc=5",
+   "summary": "Northwest Natural Gas Q3 Earnings Call Highlights Yahoo Finance",
+   "publish_time": "2026-11-07 03:14:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "US Inflation Set to Simmer Down Some After Recent Pickup - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNMHB3c0hUZDUwNkFjQmh3VW9PTGE3dmpzRkUwRWI2d25MZWhOcmRPOHhmaVdBNGp0YTF3WU9IaVQ0NVNtVG1nZDZTbXlYRVNWdmdpcUJ3cVdVcE5mMUltMWdwZE10Q3lmcFdHR2RINEtlcW54RW56ZkY1MnNsell5b3VLanVoTnh1Y0FKUVhZampkZ2xWUHJPOWxhSWVxa0VFRWhPbzdITTdjRzA?oc=5",
+   "summary": "US Inflation Set to Simmer Down Some After Recent Pickup Bloomberg.com",
+   "publish_time": "2026-11-07 21:00:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4250,10 +4228,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "ECB’s Lagarde Says Inflation Likely to Stay High in Near Future - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOTjNxNHB3bnV6QkhJdWVmNHZpeTVVUVVqRG5vV0MwdHVzdE41TWtFd2lJcGlLNTh3ZzhDZ2tFQkVOakVkcm5xcndlanN1UnIyQ3V1bnVPZldQSW11OVFfWjZuMFZfS192bmVNLUR0cl8waHFuZ1hmWUdQNlpKc0xuVXl5MGF6aHVJVXh0ckhSQmJiOFBzTDViQTR0NmlKNmhzNFhNa2xvS2VqbDRyWWRybW1jN3o?oc=5",
-   "summary": "ECB’s Lagarde Says Inflation Likely to Stay High in Near Future Bloomberg.com",
-   "publish_time": "2026-11-07 14:52:20",
+   "title": "October CPI Forecasts Show Inflation Softening, but December Rate Hike Still Looks Likely - Morningstar",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOcFBCOGtkQkJnOEl3ZVJrREZlSzhYRVBGSWJuaERjY3RNYjlQTklQNGdVV3h0RU94YlN2U09nZnZLUVliUUEzWXU2RVhlOVpUVlNsMTV1U1BIYnRrc1dfamxtTEdMME9wNFRHb3RROFVNZ2E2aTBBMzJqSkV1V05Oanh2ZzJhWlNnSVh0cjBSSklfSEllNklybXJBQkxXeDBhcXRsck0tUEhqZUJpRFBWMTFhUmMwNzZPRU4zaQ?oc=5",
+   "summary": "October CPI Forecasts Show Inflation Softening, but December Rate Hike Still Looks Likely Morningstar",
+   "publish_time": "2026-11-06 20:28:52",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4272,10 +4250,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Inflation, housing, jobs and corporate earnings will dominate the business calendar this week - AP News",
-   "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNSXlkbFpKOEMwVnUzUllPOUxLUkxYc2JEb3QySXkyLWVwVU5lVjhpTWdwdE9hTlo2YzNVemlsdUZ0UU96U0I0OUpnU3B1S2JSYktQQU9jRDBGdlB2U3FEVU5FTzV6QzdlMkZNQ1hOdklKZEJGOWhqQXNrMUJUWkhCZUlveXdhRVpqRm45S0Fn?oc=5",
-   "summary": "Inflation, housing, jobs and corporate earnings will dominate the business calendar this week AP News",
-   "publish_time": "2026-11-07 17:01:00",
+   "title": "Americans are on a 'treadmill of high inflation' and more rate hikes are likely, Fed's Daly says - CNBC",
+   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE83d09fT01uTmdIZ09Wb0pDYWg4VU5rRTF3MWstQ25hU2dDM011N3k3cVBzRFFOeGtuTjVSMHJVcy1zb25qY0Q4NERLSUIxN3JUN2tUbEZoZ2FLbVBDajRHUFktYVEtOTZ2cWxlX21NbF8xd1JxN25GNkNn0gF_QVVfeXFMUFM0YzVQazV4YXplRlQzdkpaM3ZtTGNVdlU3OG83N1o1ZmhtVFVGaEdvOC1WckhzNEQwNXdLb0hBQWptVjJuOVdNV2hrM0lCbmQzWk1veVdQTnJjbEZJRXJuZXByelRRWHJoakE1UktiTV90Zl90R1M1OHBBTXYxZw?oc=5",
+   "summary": "Americans are on a 'treadmill of high inflation' and more rate hikes are likely, Fed's Daly says CNBC",
+   "publish_time": "2026-11-06 18:39:20",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4283,10 +4261,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Americans are on a 'treadmill of high inflation' and more rate hikes are likely, Fed's Daly says - CNBC",
-   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE83d09fT01uTmdIZ09Wb0pDYWg4VU5rRTF3MWstQ25hU2dDM011N3k3cVBzRFFOeGtuTjVSMHJVcy1zb25qY0Q4NERLSUIxN3JUN2tUbEZoZ2FLbVBDajRHUFktYVEtOTZ2cWxlX21NbF8xd1JxN25GNkNn?oc=5",
-   "summary": "Americans are on a 'treadmill of high inflation' and more rate hikes are likely, Fed's Daly says CNBC",
-   "publish_time": "2026-11-06 18:39:20",
+   "title": "Inflation, housing, jobs and corporate earnings will dominate the business calendar this week - AP News",
+   "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNSXlkbFpKOEMwVnUzUllPOUxLUkxYc2JEb3QySXkyLWVwVU5lVjhpTWdwdE9hTlo2YzNVemlsdUZ0UU96U0I0OUpnU3B1S2JSYktQQU9jRDBGdlB2U3FEVU5FTzV6QzdlMkZNQ1hOdklKZEJGOWhqQXNrMUJUWkhCZUlveXdhRVpqRm45S0Fn?oc=5",
+   "summary": "Inflation, housing, jobs and corporate earnings will dominate the business calendar this week AP News",
+   "publish_time": "2026-11-07 17:01:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4327,21 +4305,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "President Donald Trump Just Proclaimed That \"Inflation Is Way Down,\" but Federal Reserve Economists Have a Different Take - The Motley Fool",
-   "url": "https://news.google.com/rss/articles/CBMiygFBVV95cUxOWUZrODR3aVR4d1FKVGs5a044TC0wMW9hMThPbHFDOGI4VmExMjJ5MFdzSGNKVW8tVTM4UmU0V1o1UW1MYzJMeXZHSUFUSlhOUFlnekhUTG9CQXhEdnlBY0ZfWC1meW43T2hVbm5vYzkwMXBpbV8zakpnSVR3Mk12NFpfdTQ3MEx1M29fWmhsaGZ5Q21hdEU0VXJUeHZ0bDlkeTdRTHVQVnl5Wm9IS3FxS3lrU0VHYVllVnZrX3IyV2tLNFF5TURaNUpB?oc=5",
-   "summary": "President Donald Trump Just Proclaimed That \"Inflation Is Way Down,\" but Federal Reserve Economists Have a Different Take The Motley Fool",
-   "publish_time": "2026-11-07 09:06:00",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Inflation Fears Return as Corporate America Counts the Cost - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxPNkZJY0ZLLTJiR0VRajV2YkVMNTZFUm9acEZWOVdRQ2hfM2NPVUxsRjJOMFV6TjZxeFcxSEFuWXpBYkc4RDZjbnVkemQ5VFNsSlZPX2s4N0lhZTZpU0NKV1BkU1ZRTGpkV3NQem42X2JNV011WkxYVTV6ZW5WSXQwVVRYWmw0X25SdGN1aHJ5dm93RzFFalM0MFZFWFg3MkU5VzkwX29kTG1JdkdPdldF?oc=5",
-   "summary": "Inflation Fears Return as Corporate America Counts the Cost Bloomberg.com",
-   "publish_time": "2026-11-07 14:00:00",
+   "title": "ECB’s Lagarde Says Inflation Likely to Stay High in Near Future - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOTjNxNHB3bnV6QkhJdWVmNHZpeTVVUVVqRG5vV0MwdHVzdE41TWtFd2lJcGlLNTh3ZzhDZ2tFQkVOakVkcm5xcndlanN1UnIyQ3V1bnVPZldQSW11OVFfWjZuMFZfS192bmVNLUR0cl8waHFuZ1hmWUdQNlpKc0xuVXl5MGF6aHVJVXh0ckhSQmJiOFBzTDViQTR0NmlKNmhzNFhNa2xvS2VqbDRyWWRybW1jN3o?oc=5",
+   "summary": "ECB’s Lagarde Says Inflation Likely to Stay High in Near Future Bloomberg.com",
+   "publish_time": "2026-11-07 14:52:20",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4371,10 +4338,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Markets fret over growth and inflation, just as tech rout gains speed - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxONUh4V2hzQnA1Rk9zNTN6d3ZxcVZycGZQVmNUNjR3NmpXSmphZHh4LWZvaGJmTTVEWDdBc0lNWmZyUUp3MTFndk5uZl80Qnk0QXotRmo5S1g0MVhDejlwMjJlczNLVWY1eHRLZ1c4dExyOUNqdjJPaUFhVnE2WC16QUc4aTVfUlAwQUtKMktZYi1STk94cXBnSXF5OEQ?oc=5",
-   "summary": "Markets fret over growth and inflation, just as tech rout gains speed Reuters",
-   "publish_time": "2026-11-06 05:09:00",
+   "title": "Republicans were punished in the midterms for Trump's economic policies, The AP Voter Poll shows - AP News",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOQ21uZTBtcHVVa1pjcFN6eHhxWllCcEpzV2hpTmN6SWhMY3dqY2dpOWtxd0dtdGFPRV9RSUM1SEhrSDVHUHI3YmIwZzZucVoyZDd2V1hzNGJLT2w4OG5VRGpDRkNYbmJ4V2xadVlUVldoOUJ1THc2RVA0WkFtZmpaRDdWdG9iU3pZX285WkRhRi1MUF90UF9SekFzVjMyRzZNTmZoQmlEMVdmb3lHaUV2WTBZdFU?oc=5",
+   "summary": "Republicans were punished in the midterms for Trump's economic policies, The AP Voter Poll shows AP News",
+   "publish_time": "2026-11-05 14:35:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4382,10 +4349,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "ECB Candidate de Cos Says Vigilance Needed on Inflation Risks - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxONXlPRnNMN3ZxRTZaa2xseXcwNnlXUUJmTmdCOUZrRmlNQ0o4X2s2NnJkYnlueVJZeFk1WC10VmRsSl9qTzhwSkM1bFdub3hBSXZtV3Y0NFpvWGp3UnVGVTJ4ZWYtNlgyTl82UmpOUFJ6Rmg5bFJ2bUZvQ2tTa24zOEN3a05QOUphV1VZenF5ajBlRUh3WXVWT3ZpcGhuQlFabXBMaDI0QWZ2bmZkbUFOX1JB?oc=5",
-   "summary": "ECB Candidate de Cos Says Vigilance Needed on Inflation Risks Bloomberg.com",
-   "publish_time": "2026-11-07 08:30:32",
+   "title": "Inflation Fears Return as Corporate America Counts the Cost - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxPNkZJY0ZLLTJiR0VRajV2YkVMNTZFUm9acEZWOVdRQ2hfM2NPVUxsRjJOMFV6TjZxeFcxSEFuWXpBYkc4RDZjbnVkemQ5VFNsSlZPX2s4N0lhZTZpU0NKV1BkU1ZRTGpkV3NQem42X2JNV011WkxYVTV6ZW5WSXQwVVRYWmw0X25SdGN1aHJ5dm93RzFFalM0MFZFWFg3MkU5VzkwX29kTG1JdkdPdldF?oc=5",
+   "summary": "Inflation Fears Return as Corporate America Counts the Cost Bloomberg.com",
+   "publish_time": "2026-11-07 14:00:00",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Markets fret over growth and inflation, just as tech rout gains speed - Reuters",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxONUh4V2hzQnA1Rk9zNTN6d3ZxcVZycGZQVmNUNjR3NmpXSmphZHh4LWZvaGJmTTVEWDdBc0lNWmZyUUp3MTFndk5uZl80Qnk0QXotRmo5S1g0MVhDejlwMjJlczNLVWY1eHRLZ1c4dExyOUNqdjJPaUFhVnE2WC16QUc4aTVfUlAwQUtKMktZYi1STk94cXBnSXF5OEQ?oc=5",
+   "summary": "Markets fret over growth and inflation, just as tech rout gains speed Reuters",
+   "publish_time": "2026-11-06 05:09:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4415,6 +4393,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "ECB Candidate de Cos Says Vigilance Needed on Inflation Risks - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxONXlPRnNMN3ZxRTZaa2xseXcwNnlXUUJmTmdCOUZrRmlNQ0o4X2s2NnJkYnlueVJZeFk1WC10VmRsSl9qTzhwSkM1bFdub3hBSXZtV3Y0NFpvWGp3UnVGVTJ4ZWYtNlgyTl82UmpOUFJ6Rmg5bFJ2bUZvQ2tTa24zOEN3a05QOUphV1VZenF5ajBlRUh3WXVWT3ZpcGhuQlFabXBMaDI0QWZ2bmZkbUFOX1JB?oc=5",
+   "summary": "ECB Candidate de Cos Says Vigilance Needed on Inflation Risks Bloomberg.com",
+   "publish_time": "2026-11-07 08:30:32",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Wall St Week Ahead: As tech swoon roils market, US inflation data on tap - Reuters",
    "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPYWlPMS1sdHZxcTUxa3RDeUkwRFNDMFhEeGVNRktDVW9xeTNnMTFXbWMxQjlOTkttTkx5b19EVlVZOThRRGNCX0FrR2dIVTZpUHQzblctejRubG4yTWNyajJVaU8yV3JoYjZ1T19HY1U2dHBlMVE2a2oyUHpBZFZtb2g0T3FtSWRaT0hscHhkdGMwNktlb092R2g4cUFWWE9QS2RCOHh6d1QteW5pcWc?oc=5",
    "summary": "Wall St Week Ahead: As tech swoon roils market, US inflation data on tap Reuters",
@@ -4437,43 +4426,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Fed policymakers consider rate hike after strong jobs report - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQMF93ekZ4N2wtdW4zX1llS2FoZWpNVlhMLTRNOGVJTUktZmpLQUNBSzY2bW16Mm9mb3lrZERqNFZ6WkRmYkhBTG00Z2k2NFYyNTVLcmVBSkV5eVJRU1RwZFc5blM4MkRmcUxYU2hadXRWbVh0VXpjektqM1BGS3ZlZlNMeW43VWxmeE5TQm13d0E3bTVwUnp5dzFFNA?oc=5",
-   "summary": "Fed policymakers consider rate hike after strong jobs report Reuters",
-   "publish_time": "2026-11-06 20:58:34",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "COMMENTARY: Trump's midterm trouncing underscores inflation's political poison - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxPN1lTU2JBOVVUN1RhOXdmMkFUTlBvRGd6NWtFNDNaaG9pZVc1cnBPV1VqSXd0dEttWkdXY1IycnZzTGoyQXpzZGEyN0lGaFA5SUplczQ5QXh3WGlyUG9pZlJwQ3VRaFdLRXIxV1hWQUo2V0p4ZVk3U1Bnam5xOGRTTzhNUUxVLWlhRlJVVUFsMFdrRldIYVQxREZvYUdKZm5jTWg5VWtwRjlmRENZRTBzZVRLYTYxMVh3RUs4RE1Wd0hVc09VZDRqZE5Vb2hNdw?oc=5",
-   "summary": "COMMENTARY: Trump's midterm trouncing underscores inflation's political poison Reuters",
-   "publish_time": "2026-11-04 23:30:33",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Gold drops as strong US payrolls boost dollar, yields - Reuters",
    "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxQQVNBUlY0RkQ3Vm5qcDFmbS12Nlo0Wjd4RWNEWkROOFRSX0hha1VobWJkTW82YTM1QzNMUXlzX1V5bktiSHJDYklFR2ZDUnN4aEhGM3U0UmlRT3pDcjVFRkR5ak9IZ1NVbG4wempaX1Y0R2JXb0U2THRLcE80d0l1NFppQ3l5b2M4c3RQZU1sS1RNRHdiYmFsYmw0czRoUnVJRVJLNTl0VmVNODg3NWVR?oc=5",
    "summary": "Gold drops as strong US payrolls boost dollar, yields Reuters",
    "publish_time": "2026-11-06 03:46:00",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Republicans were punished in the midterms for Trump's economic policies, The AP Voter Poll shows - AP News",
-   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOQ21uZTBtcHVVa1pjcFN6eHhxWllCcEpzV2hpTmN6SWhMY3dqY2dpOWtxd0dtdGFPRV9RSUM1SEhrSDVHUHI3YmIwZzZucVoyZDd2V1hzNGJLT2w4OG5VRGpDRkNYbmJ4V2xadVlUVldoOUJ1THc2RVA0WkFtZmpaRDdWdG9iU3pZX285WkRhRi1MUF90UF9SekFzVjMyRzZNTmZoQmlEMVdmb3lHaUV2WTBZdFU?oc=5",
-   "summary": "Republicans were punished in the midterms for Trump's economic policies, The AP Voter Poll shows AP News",
-   "publish_time": "2026-11-05 14:35:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4492,10 +4448,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Goldman Sachs Cuts Gold Price Forecasts as Hawkish Federal Reserve Weighs on Demand - Yahoo Finance",
-   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxNcXdtR1VXSWUweFNhelI3MHEwaElMZjVBNjUtdFFYQkNTZTlOWVp3ZUg1c1BTZjdtMXFNQmVHVnZlR21SU2VxWlVVcWN1cGc5WjhOdEVTdTQ4ZTg5QUxWeGtzZ19mRGRwNExXbzR2Ym1sM04xTkZoS0RGTTBtaXNGeWM3ZnJfZEhJaExpVVE3ZkdoYlQzSUNvLVNqSmlJaHRu?oc=5",
-   "summary": "Goldman Sachs Cuts Gold Price Forecasts as Hawkish Federal Reserve Weighs on Demand Yahoo Finance",
-   "publish_time": "2026-11-07 14:51:46",
+   "title": "President Donald Trump Just Proclaimed That \"Inflation Is Way Down,\" but Federal Reserve Economists Have a Different Take - The Motley Fool",
+   "url": "https://news.google.com/rss/articles/CBMiygFBVV95cUxOWUZrODR3aVR4d1FKVGs5a044TC0wMW9hMThPbHFDOGI4VmExMjJ5MFdzSGNKVW8tVTM4UmU0V1o1UW1MYzJMeXZHSUFUSlhOUFlnekhUTG9CQXhEdnlBY0ZfWC1meW43T2hVbm5vYzkwMXBpbV8zakpnSVR3Mk12NFpfdTQ3MEx1M29fWmhsaGZ5Q21hdEU0VXJUeHZ0bDlkeTdRTHVQVnl5Wm9IS3FxS3lrU0VHYVllVnZrX3IyV2tLNFF5TURaNUpB?oc=5",
+   "summary": "President Donald Trump Just Proclaimed That \"Inflation Is Way Down,\" but Federal Reserve Economists Have a Different Take The Motley Fool",
+   "publish_time": "2026-11-07 09:06:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4507,6 +4463,28 @@
    "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNVjBUS1hWaUZ3MDNEWmF0bjYxLWNzZ2ZJTk4xNGFvZlFnRTBxbmdGWWxCU0pYM2gxUzZia2lnOUxpM2JleFJYenIxQ0wycFJCMWJNSEV1dy1yVXNMYm5naGpFNHM4QWVrZm4xSXJiRmw1OTVmOXlTMktBMU5Ud0NjanNzNmZNbERoZ2R1cGt4NG4?oc=5",
    "summary": "Bank of Canada keeps 2% inflation target Reuters",
    "publish_time": "2026-11-05 21:58:03",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Fed policymakers consider rate hike after strong jobs report - Reuters",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQMF93ekZ4N2wtdW4zX1llS2FoZWpNVlhMLTRNOGVJTUktZmpLQUNBSzY2bW16Mm9mb3lrZERqNFZ6WkRmYkhBTG00Z2k2NFYyNTVLcmVBSkV5eVJRU1RwZFc5blM4MkRmcUxYU2hadXRWbVh0VXpjektqM1BGS3ZlZlNMeW43VWxmeE5TQm13d0E3bTVwUnp5dzFFNA?oc=5",
+   "summary": "Fed policymakers consider rate hike after strong jobs report Reuters",
+   "publish_time": "2026-11-06 20:58:34",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Bank of England Unanimously Hikes Rates, Sees 4.9% Inflation - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNYWs5QVQtM2FoOGZNTEI4Nm55VUVpdGJhQmdXcG5zc3VJWG5aQTU3X2NPT2xIdmdYZW0zdG5VakdqamlqY0VReDI3TzFHcUZBZlU3VU9nLXpzWEI4N0dtcWNueFNSUDFCbzFJcUNvOHdtVEoxUEMweU4tNUNLcWprWG5BRkxWWWNNZ1pfR09XaThGTV9lYXJfLThMdFZBaWFRUms2UjBncExjUjdqMzhXT3Iwcw?oc=5",
+   "summary": "Bank of England Unanimously Hikes Rates, Sees 4.9% Inflation Bloomberg.com",
+   "publish_time": "2026-11-05 13:16:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
