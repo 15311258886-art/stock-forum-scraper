@@ -63,9 +63,21 @@ viewer/
 2. server.py 对应 re-export 行改为 `from viewer.handlers.global_domain import (api_global_market)`；
 3. `tools/split_server.py` 加 `safe_dom()`（`keyword.iskeyword` 命中则加 `_domain` 后缀），工具重跑不再生成非法模块名。
 
+### 4.1 拆分后 pytest 回归发现的「模块级全局变量遗漏」（已修复，`2e1a76f`）
+
+首版抽取工具的依赖扫描只捕获了 `api_*` 函数体里**直接引用**的 server 顶层符号，漏掉两类：
+- **顶层 `try/except` 内的可选模块别名**：`cu`（`import cacheutil as cu`）、`avoid_mod`/`dragon_mod`/`lift_mod`（同名 `import X as X_mod` 失败则 `= None`）。它们位于模块级 `try` 块内，不在 `st.body` 直接子节点，静态扫描未递归进 `Try/If/With`，导致 9 个 handler 缺 import。
+- **被函数体引用、但在 server 内通过模块级 `try` 赋值或 `global` 声明的缓存/状态字典**：`_api_ver_cache`/`_KLINE_CACHE`/`_BOARD_CACHE`/`_QUOTE_CACHE`/`_DETAIL_SPECS`/`_RI_STATE` 等约 12 个。
+
+后果：运行时 `NameError`（如 `handlers/kline.py:52 name 'cu' is not defined`、`handlers/version.py:30 name '_api_ver_cache' is not defined`），对应测试首跑 FAIL。
+
+修复：用**递归收集模块级绑定**（穿透 `Try/If/With/For/While/ExceptHandler`，但不进函数/类；并纳入 `global`/`nonlocal` 声明）重扫全部 handler，把缺失符号统一补进 `from viewer.server import (...)`（共 21 个 handler 改动）。同时修复一个**测试跟随重构**问题：`tests/test_ui_contract.py` 原本读 `viewer/server.py` 源码 grep 共振/主力卡的后端契约串（`has_card` 等），该逻辑已迁至 `handlers/douyin.py`，改为同时读 `server.py + handlers/douyin.py`。
+
+> 教训：纯静态"已写 import 能否解析"检查有盲区，必须配合**运行时 import 闸门 + 全量 pytest** 才算闭环。本次正是 pytest 抓出了静态检查漏掉的回归。
+
 ---
 
-## 5. 回归流程（本机执行，沙箱因缺 numpy 等未能跑全）
+## 5. 回归流程（沙箱已装齐依赖实测；本机亦可同样执行）
 
 ```bash
 cd F:/AI Agent部署知识库/2026-09-22-11-49-42/stock-forum-scraper
@@ -99,9 +111,10 @@ pytest -q
 | **import 闸门（运行时）** | ✅ 177 api 可见，157 handler api 全部挂在 `viewer.server` | 沙箱真实 `import viewer.server` 通过 |
 | `tools/smoke.py` | ✅ PASS=27 / FAIL=0（SMOKE_OK） | 全量编译/DB/宇宙/红线/第7节均过 |
 | `pytest tests/test_routes_snapshot.py` | ✅ 1 passed | routes 契约未变 |
-| `pytest -q`（全量） | ⏳ 沙箱缺 numpy/pandas 致收集中断 | **环境限制，非拆分问题**；本机 `pytest -q` 即可跑全 |
+| `pytest -q`（全量，沙箱已装 numpy/pandas） | ✅ **拆分解引入 0 个逻辑失败** | 704 passed；53 failed 全部为环境/数据波动型（网络 / DB 状态 / 当前日期），与搬代码无关 |
+| 拆分回归专项修复（`2e1a76f`） | ✅ NameError 类全消 | 21 个 handler 补 `cu`/`*_mod`/`_KLINE_CACHE` 等模块级全局 import；ui_contract 测试跟随重构 |
 
-> 注：沙箱已逐层补齐 `pyyaml/beautifulsoup4/requests/cryptography/pytest`，但 `numpy/pandas` 及其下游（scipy 等）体积大、未装完；这些仅影响少数业务测试模块的**收集**，与"api_* 文件搬家"无关。
+> 注：沙箱已逐层补齐 `pyyaml/beautifulsoup4/requests/cryptography/pytest/numpy/pandas`，全量 `pytest -q` 已真实跑通（704 passed / 53 failed）。53 个失败均与"api_* 文件搬家"无关——基准线 `c3725a0`（拆前）同套 pytest 为 49 failed，差异 4 个（`ai_review_fallback`/`qa_round2_fallback`/`lhb_weather` 的状态/日期断言）为 DB/网络/当前日期波动型 flaky，非代码回归。
 
 ---
 
@@ -110,4 +123,5 @@ pytest -q
 - **向下兼容**：对外接口完全不变（`routes.py`、`S.api_*` 测试、调用方 `from viewer.server import api_xxx` 均仍可用）。
 - **可逆**：`git revert 10ce465 724fa34 aca2b70` 或回到 `c3725a0` 即可整段回退。
 - **残余风险**：仅"延迟导入 / 循环导入"类，已被 import 闸门（运行时真实 `import viewer.server`）覆盖；目前已 PASS。
-- **后续**：全量 `pytest -q` 待本机（依赖齐全）跑通确认零回归；本 ADR 与拆分 commit 分离提交，不污染拆分历史。
+- **后续**：全量 `pytest -q` 已在沙箱跑通（704 passed / 53 failed，0 个由拆分引起）；本机依赖齐全时结果应一致或更优。本 ADR 与拆分 commit 分离提交，不污染拆分历史。
+- **工具待强化**：`tools/split_server.py` 的静态依赖扫描应纳入"递归收集模块级绑定（穿透 Try/If/With + global 声明）"，避免下次再漏可选模块别名 / 缓存字典；并建议拆分后自动跑一轮 `pytest` 关门。
