@@ -210,3 +210,19 @@ viewer/server_dy8.out
 
 # 根目录临时探测输出（td2.json 等，任务结束即弃）
 /td*.json
+
+# ===== 运行时/生成产物（不入库，2026-11-08 清理）=====
+*.npz
+*.npy
+*.pkl
+*.parquet
+viewer/data/*.tmp
+viewer/data/*.json
+viewer/logs/*.npz
+viewer/logs/*.json
+viewer/logs/*.csv
+viewer/logs/*.md
+viewer/logs/backtest/
+data/purge_neq_*.json
+data/api_probe_report.json
+data/quality_funnel_*.csv
