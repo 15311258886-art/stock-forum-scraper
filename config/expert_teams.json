@@ -1,0 +1,45 @@
+[
+  {
+    "key": "stock-partner",
+    "name": "腾讯自选股股票投研专家团",
+    "tags": ["估值定价", "资金风向", "短线节奏"],
+    "pack": "stock-partner-team",
+    "lead": "agents/stock-partner-lead.md",
+    "members": [
+      "agents/industry-strategist.md",
+      "agents/signal-chief.md",
+      "agents/valuation-analyst.md",
+      "agents/contrarian-investor.md",
+      "agents/fundamental-researcher.md",
+      "agents/shortterm-surfer.md"
+    ]
+  },
+  {
+    "key": "stock-app-arch",
+    "name": "股票行情应用架构专家团",
+    "tags": ["股票行情应用", "全栈架构拆解"],
+    "pack": "",
+    "lead": "",
+    "members": [],
+    "match_name": "股票行情应用架构专家团"
+  },
+  {
+    "key": "finance-suite",
+    "name": "金融业务全流程专家团",
+    "tags": ["金融建模与估值", "投资银行与证券研究"],
+    "pack": "finance-workflow-suite",
+    "lead": "agents/finance-workflow-suite-team-lead.md",
+    "members": []
+  },
+  {
+    "key": "five-wave",
+    "name": "股票五浪法专家团",
+    "tags": ["波浪数浪", "时段研究", "三个月研究"],
+    "pack": "stock-five-wave",
+    "lead": "agents/stock-five-wave-team-lead.md",
+    "members": [
+      "agents/elliott-wave-analyst.md",
+      "agents/market-window-analyst.md"
+    ]
+  }
+]
