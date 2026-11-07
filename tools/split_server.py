@@ -5,22 +5,32 @@
 把指定域的 api_* 函数**物理搬运**到 viewer/handlers/<domain>.py：
   - 函数体源码原样截取（零逻辑改动）；
   - handler 顶部 `from viewer.server import (依赖符号)` 把 server 模块级符号
-    重定向进本地命名空间（裸名解析等价）；标准库本地 import；
-  - server.py 原位置删除这些函数，在 `if __name__` 前插入 re-export，
-    保持 server 命名空间兼容 → routes.py 与既有测试（S.api_*）无需改动。
+    重定向进本地命名空间（裸名解析等价）；标准库本地导入；
+  - 同域内 api 互相依赖不重导入（本地可见，避免循环导入）；
+  - server.py 原位置删除这些函数，并在 `if __name__` 前**重建完整的、
+    按依赖拓扑序排序的 re-export 块**（被依赖域在前），保持命名空间兼容 →
+    routes.py 与既有测试（S.api_*）无需改动，且彻底消除跨域 api 的循环/顺序导入。
 
 用法：
-  python tools/split_server.py --domains version,summary,valuation,dragon,evidence,weibo,sentiment,public [--dry-run]
+  python tools/split_server.py --domains a,b,c [--dry-run]
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import keyword
+import os
 from pathlib import Path
+
+
+def safe_dom(d: str) -> str:
+    """域前缀若为 Python 关键字（如 global）则加后缀，避免生成非法模块名/import。"""
+    return d + "_domain" if keyword.iskeyword(d) else d
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVER = ROOT / "viewer" / "server.py"
 HANDLERS = ROOT / "viewer" / "handlers"
+REEXPORT_MARKER = "# ── 2026-11-07 拆分：以下 api_* 已迁至 viewer/handlers/"
 
 STDLIB = {
     "json", "re", "logging", "threading", "time", "datetime", "os", "sqlite3", "math",
@@ -104,20 +114,22 @@ def extract_range(node):
 
 
 def build_handler(dom: str, nodes, TOP: set) -> tuple[str, list[str], list[str], str]:
-    """返回 (filename_stem, server_deps, stdlib_deps, body_text)。"""
+    """返回 (stem, server_deps, stdlib_deps, body_text)。"""
     stdlib_deps: set = set()
     server_deps: set = set()
+    own_names = {nd.name for nd in nodes}
     blocks = []
     for nd in nodes:
         d = api_deps(nd, TOP)
         for x in d:
+            if x in own_names:
+                continue  # 同域本地定义，无需从 server 重导入（避免循环/冗余）
             if x in STDLIB:
                 stdlib_deps.add(x)
             else:
                 server_deps.add(x)
         s, e = extract_range(nd)
         blocks.append((s, e))
-    # body 按源码顺序拼接（nodes 已按出现顺序）
     src_lines = SERVER.read_text(encoding="utf-8").splitlines(keepends=True)
     body = ""
     for s, e in blocks:
@@ -125,9 +137,47 @@ def build_handler(dom: str, nodes, TOP: set) -> tuple[str, list[str], list[str],
     return dom, sorted(server_deps), sorted(stdlib_deps), body
 
 
+def scan_handler_cross_deps(handler_path: Path, handler_domains: set) -> set:
+    """返回该 handler 依赖的其他 handler 域集合（跨域 api_* 依赖）。"""
+    src = handler_path.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    cross = set()
+    for n in tree.body:
+        if isinstance(n, ast.ImportFrom) and n.module == "viewer.server":
+            for a in n.names:
+                if a.name.startswith("api_"):
+                    d = safe_dom(a.name[4:].split("_")[0])
+                    if d != handler_path.stem and d in handler_domains:
+                        cross.add(d)
+    return cross
+
+
+def topo_order(handler_domains: set) -> list[str]:
+    dom_deps = {d: scan_handler_cross_deps(HANDLERS / f"{d}.py", handler_domains)
+                for d in handler_domains}
+    visited: set = set()
+    order: list = []
+
+    def visit(d, stack):
+        if d in visited:
+            return
+        if d in stack:
+            return  # 环：忽略该边，避免死循环（单向依赖下不会出现）
+        stack.add(d)
+        for dep in sorted(dom_deps.get(d, set())):
+            visit(dep, stack)
+        stack.discard(d)
+        visited.add(d)
+        order.append(d)
+
+    for d in sorted(handler_domains):
+        visit(d, set())
+    return order
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--domains", required=True, help="逗号分隔的域前缀，如 version,summary")
+    ap.add_argument("--domains", required=True, help="逗号分隔的域前缀")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划，不落盘")
     args = ap.parse_args()
     domains = [d.strip() for d in args.domains.split(",") if d.strip()]
@@ -139,7 +189,7 @@ def main() -> None:
     apis = {}
     for n in tree.body:
         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("api_"):
-            dom = n.name[4:].split("_")[0]
+            dom = safe_dom(n.name[4:].split("_")[0])
             apis.setdefault(dom, []).append(n)
 
     plan = {}
@@ -153,11 +203,10 @@ def main() -> None:
         print("无可用域，退出")
         return
 
-    # 生成各 handler 内容（dry-run 也生成以便检查）
     HANDLERS.mkdir(exist_ok=True)
+    handler_files: list[tuple[Path, str]] = []
     reexports: dict[str, list[str]] = {}
     removed_ranges: list[tuple[int, int]] = []
-    handler_files: list[tuple[Path, str]] = []
 
     for dom, nodes in plan.items():
         stem, server_deps, stdlib_deps, body = build_handler(dom, nodes, TOP)
@@ -196,12 +245,12 @@ def main() -> None:
         print("\n[DRY-RUN] 未落盘。确认依赖无误后去掉 --dry-run 执行。")
         return
 
-    # ── 落盘 ──
+    # ── 落盘 handler ──
     for out, content in handler_files:
         out.write_text(content, encoding="utf-8")
         print(f"[write] {out}")
 
-    # 改 server.py：从后往前删函数区间
+    # ── 改 server.py：删除目标函数 ──
     removed_ranges.sort(reverse=True)
     new_lines = lines[:]
     for s, e in removed_ranges:
@@ -219,11 +268,35 @@ def main() -> None:
             cleaned.append(ln)
     new_lines = cleaned
 
-    # re-export 插入 if __name__ 之前
+    # ── 删除旧 re-export 块（若存在）──
+    no_reexport = []
+    skip = False
+    for ln in new_lines:
+        if skip:
+            if ln.strip().startswith("if __name__"):
+                skip = False
+                no_reexport.append(ln)
+            continue
+        if REEXPORT_MARKER in ln:
+            skip = True
+            continue
+        no_reexport.append(ln)
+    new_lines = no_reexport
+
+    # ── 重建完整 re-export 块（所有 handlers 域，按依赖拓扑序）──
+    existing = {f[:-3] for f in os.listdir(HANDLERS)
+                if f.endswith(".py") and f != "__init__.py"}
+    ordered = topo_order(existing)
     reexport_text = (
-        "\n# ── 2026-11-07 拆分：以下 api_* 已迁至 viewer/handlers/，re-export 保持命名空间兼容 ──\n"
+        "\n" + REEXPORT_MARKER + "，re-export 保持命名空间兼容 ──\n"
     )
-    for dom, names in reexports.items():
+    for dom in ordered:
+        # 该 handler 定义的 api 名
+        hsrc = (HANDLERS / f"{dom}.py").read_text(encoding="utf-8")
+        htree = ast.parse(hsrc)
+        names = [n.name for n in htree.body
+                 if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                 and n.name.startswith("api_")]
         reexport_text += (
             f"from viewer.handlers.{dom} import ({', '.join(names)})"
             f"  # 2026-11-07 拆分 re-export\n"
@@ -237,7 +310,7 @@ def main() -> None:
     SERVER.write_text("".join(new_lines), encoding="utf-8")
     print(
         f"\n[done] server.py 已更新：删除 {len(removed_ranges)} 个函数，"
-        f"新增 re-export {len(reexports)} 个域"
+        f"重建 re-export 块（{len(ordered)} 域，拓扑序）"
     )
 
 
