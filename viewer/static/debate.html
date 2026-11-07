@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多智能体辩论研究 · 股票论坛查看器</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#161b22; --panel2:#1c232c; --line:#2a323d;
+    --tx:#e6edf3; --tx2:#9aa7b4; --acc:#d4a017; --up:#e5484d; --dn:#2ea043;
+    --warn:#d29922; --chip:#222b36;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+       font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  a{color:var(--acc);text-decoration:none}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);
+         display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.5px}
+  header .sub{color:var(--tx2);font-size:12px}
+  header .spacer{flex:1}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 22px 60px}
+  .banner{background:#2a2110;border:1px solid #5a4415;color:#e9c46a;
+          padding:10px 14px;border-radius:8px;font-size:12.5px;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--tx)}
+  .card .hint{color:var(--tx2);font-size:12px;margin:0 0 12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--tx2)}
+  input{background:var(--bg);border:1px solid var(--line);color:var(--tx);
+        border-radius:7px;padding:8px 10px;width:96px;font-size:13px}
+  input.wide{width:120px}
+  button{background:var(--acc);color:#1a1205;border:0;border-radius:7px;
+         padding:9px 16px;font-weight:600;cursor:pointer;font-size:13px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--tx);border:1px solid var(--line)}
+  .status{margin:18px 0 10px;color:var(--tx2);font-size:13px;min-height:20px}
+  .verdict{background:linear-gradient(180deg,#1b2430,#161b22);border:1px solid var(--line);
+           border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .verdict .v{font-size:15px;color:var(--tx)}
+  .verdict .m{color:var(--tx2);font-size:12px;margin-top:6px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--tx2);font-weight:500;position:sticky;top:0;background:var(--panel)}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .pill{display:inline-block;background:var(--chip);border-radius:20px;
+        padding:1px 8px;font-size:11px;color:var(--tx2)}
+  .score{font-weight:700;font-variant-numeric:tabular-nums}
+  .risk{color:var(--warn);font-size:11.5px}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+          padding:12px 14px;margin-top:14px}
+  summary{cursor:pointer;color:var(--tx);font-weight:600;font-size:13px}
+  .debate{border-top:1px solid var(--line);padding:10px 0;font-size:12.5px}
+  .debate:first-of-type{border-top:0}
+  .debate .name{font-weight:600;margin-bottom:4px}
+  .bull{color:var(--up)} .bear{color:var(--dn)} .judge{color:var(--acc)}
+  ul{margin:4px 0 4px 18px;padding:0}
+  .empty{color:var(--tx2);padding:24px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+  .foot{color:var(--tx2);font-size:11.5px;margin-top:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1>多智能体辩论研究</h1>
+  <span class="sub">候选池 → 4 分析师 → 多空辩论 → 票单 → 风控</span>
+  <span class="spacer"></span>
+  <a href="/">← 返回主面板</a>
+</header>
+
+<div class="wrap">
+  <div class="banner">
+    ⚠️ AI 多智能体研究，仅供学习参考，<b>不构成投资建议</b>。LLM 采样有随机性，同一标的两次结论可能不同。
+    本页<b>只对候选池做深度研究，不扫全市场</b>（阶段一粗筛沿用主面板内置逻辑）。
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>形态 A · 盘后批量</h2>
+      <p class="hint">从内置筛选出的候选池里，逐只做多角色辩论，终推 15~18 只。约 1~2 分钟。</p>
+      <p class="hint" style="margin-top:-8px">🕒 每个交易日<b>首次启动会自动补跑一次</b>：已跑过的不重复跑、抓取没跑完不跑、盘中不跑（等 15:10 后）。不用你手动点。</p>
+      <div class="row">
+        <label>候选池<input id="pool" type="number" value="50" min="1" max="200"></label>
+        <label>终推下限<input id="fmin" type="number" value="15" min="1" max="50"></label>
+        <label>终推上限<input id="fmax" type="number" value="18" min="1" max="50"></label>
+        <button id="btnBatch" onclick="startBatch()">开始批量辩论</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>形态 B · 单股深研</h2>
+      <p class="hint">输入一只票的 6 位代码，只对它跑同一套分析师 + 辩论 + 票单链。约 15~30 秒。</p>
+      <div class="row">
+        <label>股票代码<input class="wide" id="code" type="text" placeholder="600519" maxlength="6"></label>
+        <button id="btnSingle" onclick="startSingle()">开始单股深研</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div id="out"></div>
+
+  <div class="foot">
+    数据口径：候选池来自 stock_universe_scan / 信号 / 策略模板；每只票的估值、因子、舆情均为本地库现有数据。
+    缺失项会标注「数据缺失」，不会编造。接口：<code>POST /api/ai_debate/run</code>、<code>POST /api/ai_debate/single</code>、
+    <code>GET /api/ai_debate</code>。
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let timer = null, pollMode = 'batch', pollCode = '';
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function setStatus(t){ $('status').textContent = t || ''; }
+function stopPoll(){ if(timer){ clearInterval(timer); timer = null; } }
+
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', credentials:'same-origin',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify(body || {})});
+  return r.json();
+}
+
+async function startBatch(){
+  stopPoll();
+  $('btnBatch').disabled = true;
+  const pool = +$('pool').value || 50, fmin = +$('fmin').value || 15, fmax = +$('fmax').value || 18;
+  try{
+    const j = await post(`/api/ai_debate/run?pool=${pool}&final_min=${fmin}&final_max=${fmax}`);
+    if(!j.ok){ setStatus('启动失败：' + (j.error || '未知')); $('btnBatch').disabled = false; return; }
+    pollMode = 'batch'; pollCode = '';
+    setStatus(j.state === 'computing' ? ('后台辩论中… ' + (j.note || '')) : (j.note || ''));
+    $('out').innerHTML = '<div class="empty">正在对候选池做多智能体辩论，请稍候（可离开本页，稍后回来查看结果）。</div>';
+    poll();
+    timer = setInterval(poll, 3000);
+  }catch(e){ setStatus('请求异常：' + e); $('btnBatch').disabled = false; }
+}
+
+async function startSingle(){
+  stopPoll();
+  const code = ($('code').value || '').trim();
+  if(!/^\d{6}$/.test(code)){ setStatus('请输入 6 位数字代码'); return; }
+  $('btnSingle').disabled = true;
+  try{
+    const j = await post(`/api/ai_debate/single?code=${encodeURIComponent(code)}`);
+    if(!j.ok){ setStatus('启动失败：' + (j.error || '未知')); $('btnSingle').disabled = false; return; }
+    pollMode = 'single'; pollCode = code;
+    setStatus('单股深研中：' + code);
+    $('out').innerHTML = '<div class="empty">正在对该股做分析师 + 多空辩论 + 票单…</div>';
+    poll();
+    timer = setInterval(poll, 2500);
+  }catch(e){ setStatus('请求异常：' + e); $('btnSingle').disabled = false; }
+}
+
+async function poll(){
+  const url = pollMode === 'single'
+    ? `/api/ai_debate?mode=single&code=${encodeURIComponent(pollCode)}`
+    : '/api/ai_debate?mode=batch';
+  let j;
+  try{ j = await (await fetch(url, {credentials:'same-origin'})).json(); }
+  catch(e){ return; }
+  if(j.state === 'computing'){
+    setStatus('后台辩论中… 已运行 ' + (j.elapsed_sec || 0) + ' 秒');
+    return;
+  }
+  stopPoll();
+  $('btnBatch').disabled = false; $('btnSingle').disabled = false;
+  if(j.state === 'empty'){ setStatus(j.note || '暂无结果'); $('out').innerHTML = ''; return; }
+  setStatus('完成：' + (j.created_at || '') + ' ｜ 候选池 ' + (j.produced != null ? j.produced : '—') + ' 只入选 ｜ 调用 ' + (j.calls || '—') + ' 次');
+  render(j.data || {}, pollMode, pollCode);
+}
+
+function render(d, mode, code){
+  if(mode === 'single'){
+    const pick = d.pick;
+    let h = `<div class="verdict"><div class="v">${esc(d.name)}（${esc(d.code)}）单股深研</div>
+      <div class="m">${pick ? '已产出可执行票单' : '未产出合规票单'}${d.reject && d.reject.length ? ' ｜ ' + esc(JSON.stringify(d.reject)) : ''}</div></div>`;
+    if(pick){ h += picksTable([pick]); }
+    h += debateDetails([{symbol:d.code, name:d.name, judge:(d.debate||{}).judge||{},
+                         bull:(d.debate||{}).bull_case||[], bear:(d.debate||{}).bear_case||[]}]);
+    h += `<div class="foot">${esc(d.disclaimer||'')}</div>`;
+    $('out').innerHTML = h;
+    return;
+  }
+  const picks = d.picks || [];
+  let h = `<div class="verdict"><div class="v">${esc(d.verdict || '')}</div>
+    <div class="m">候选池 ${esc(d.pool)} → 分析师 ${esc(d.briefed)} → 辩论 ${esc(d.shortlist)} → 票单 ${esc(d.planned)} → 终推 <b>${esc(d.final)}</b> 只
+    ${d.note ? ' ｜ ' + esc(d.note) : ''}</div></div>`;
+  h += picks.length ? picksTable(picks) : '<div class="empty">本轮无票通过风控（空仓是合法结论）。</div>';
+  if(d.risk_note) h += `<div class="card" style="margin-top:12px"><b>组合提醒：</b>${esc(d.risk_note)}</div>`;
+  h += debateDetails(d.debate_summary || []);
+  h += `<div class="foot">${esc(d.disclaimer||'')}</div>`;
+  $('out').innerHTML = h;
+}
+
+function picksTable(picks){
+  let h = `<table><thead><tr>
+    <th>代码</th><th>名称</th><th>评分</th><th>动作</th><th>买入区间</th><th>止损</th><th>目标</th><th>逻辑</th></tr></thead><tbody>`;
+  for(const p of picks){
+    const r = p.risk_flag ? `<div class="risk">${esc(p.risk_flag)}</div>` : '';
+    h += `<tr>
+      <td class="num">${esc(p.symbol)}</td>
+      <td>${esc(p.name)}</td>
+      <td class="score">${esc(p.score)}</td>
+      <td><span class="pill">${esc(p.action||'')}</span></td>
+      <td class="num">${esc(p.entry_low)}~${esc(p.entry_high)}</td>
+      <td class="num">${esc(p.stop)}</td>
+      <td class="num">${esc(p.target)}</td>
+      <td>${esc(p.thesis||'')}${r}</td>
+    </tr>`;
+  }
+  return h + '</tbody></table>';
+}
+
+function debateDetails(list){
+  if(!list.length) return '';
+  let h = `<details><summary>查看多空辩论过程（${list.length} 只）</summary>`;
+  for(const b of list){
+    const j = b.judge || {};
+    h += `<div class="debate">
+      <div class="name">${esc(b.name || '')}（${esc(b.symbol || '')}）
+        <span class="judge">${esc(j.stance || '')} ${j.adjusted_score != null ? '· ' + esc(j.adjusted_score) + '分' : ''}</span>
+        ${j.one_line ? '· ' + esc(j.one_line) : ''}</div>
+      <div><span class="bull">看多</span><ul>${(b.bull||[]).map(x=>`<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul></div>
+      <div><span class="bear">看空</span><ul>${(b.bear||[]).map(x=>`<li>${esc(x)}</li>`).join('') || '<li>—</li>'}</ul></div>
+    </div>`;
+  }
+  return h + '</details>';
+}
+
+// 打开即预热：确保写接口 token Cookie 已下发（同源 GET 会带 Set-Cookie）
+fetch('/api/version', {credentials:'same-origin'}).catch(()=>{});
+// 有历史结果就直接展示
+poll();
+</script>
+</body>
+</html>

@@ -5270,3 +5270,601 @@ span.miss{
 
 /* 可执行 > 0 是"今天真有能动手的"，用涨色；其余保持中性灰，不抢判断条 */
 .dk-chip.hi { background: color-mix(in srgb, var(--bull) 14%, transparent); color: var(--bull); font-weight: 600; }
+
+
+/* ============================================================================
+   工具包（2026-11-03 进哥需求）· 独立一级入口「工具包」
+   ----------------------------------------------------------------------------
+   配色只用既有 CSS 变量（--bg/--panel/--text/--muted/--border/--accent）——
+   暗色/亮色主题自动跟随，不写死颜色。红色只给「淘汰/失败」，绿色只给「通过」，
+   不抢 A 股涨跌的红绿语义（那一套只在本页的表格数字里出现，且本页不显示涨跌幅）。
+   ========================================================================== */
+.tb-head { padding: 2px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.tb-titleRow { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.tb-title { font-size: var(--fs-xl, 22px); font-weight: 700; letter-spacing: -.01em; }
+.tb-stat { font-size: var(--fs-sm, 12px); color: var(--muted); }
+.tb-stat b { color: var(--text); font-variant-numeric: tabular-nums; }
+.tb-stat b.tb-dead { color: #c0392b; }
+.tb-lead { margin-top: 7px; font-size: var(--fs-md, 13px); color: var(--muted); line-height: 1.65; }
+
+.tb-wrap { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1080px) { .tb-wrap { grid-template-columns: 1fr; } }
+
+/* ---------- 左：货架 ---------- */
+.tb-list { position: sticky; top: 8px; max-height: calc(100vh - 130px); overflow-y: auto; padding-right: 4px; }
+.tb-grp { font-size: var(--fs-2xs, 10px); letter-spacing: .1em; color: var(--muted);
+  text-transform: uppercase; margin: 14px 0 6px; padding-left: 2px; }
+.tb-grp:first-child { margin-top: 0; }
+.tb-item { border: 1px solid var(--border); border-radius: var(--r-md, 8px); background: var(--panel);
+  padding: 9px 10px; margin-bottom: 6px; cursor: pointer; transition: border-color .12s, background .12s; }
+.tb-item:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.tb-item.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.tb-item.dead { opacity: .82; border-style: dashed; }
+.tb-itemTop { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.tb-name { font-size: var(--fs-md, 13px); font-weight: 600; }
+.tb-itemBot { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.tb-at { font-size: var(--fs-2xs, 10px); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tb-io { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-left: auto;
+  font-variant-numeric: tabular-nums; }
+.tb-badge { font-size: var(--fs-2xs, 10px); padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--border); white-space: nowrap; line-height: 1.6; }
+.tb-k-view { color: #1d4ed8; border-color: color-mix(in srgb, #1d4ed8 35%, var(--border)); }
+.tb-k-filter { color: #0f766e; border-color: color-mix(in srgb, #0f766e 35%, var(--border)); }
+.tb-k-score { color: #b45309; border-color: color-mix(in srgb, #b45309 35%, var(--border)); }
+.tb-s-active { color: #0f766e; border-color: color-mix(in srgb, #0f766e 35%, var(--border)); }
+.tb-s-shadow { color: var(--muted); }
+.tb-s-exp { color: #7c3aed; border-color: color-mix(in srgb, #7c3aed 35%, var(--border)); }
+.tb-s-retired { color: #c0392b; border-color: color-mix(in srgb, #c0392b 45%, var(--border));
+  background: color-mix(in srgb, #c0392b 10%, transparent); font-weight: 600; }
+
+/* ---------- 右：能力卡 ---------- */
+.tb-cardHead { border: 1px solid var(--border); border-radius: var(--r-lg, 12px) var(--r-lg, 12px) 0 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--panel)),
+    color-mix(in srgb, var(--accent) 4%, var(--panel))); padding: 13px 16px 11px; }
+.tb-cardHead.dead { background: linear-gradient(135deg, #7f1d1d, #3f1414); }
+.tb-cardHead.dead .tb-cardTop b, .tb-cardHead.dead .tb-cardMeta { color: #fee2e2; }
+.tb-cardTop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tb-cardTop b { font-size: var(--fs-lg, 16px); }
+.tb-tk { font-family: Consolas, "Cascadia Code", monospace; font-size: var(--fs-2xs, 10px);
+  color: var(--muted); margin-left: auto; }
+.tb-cardMeta { font-size: var(--fs-sm, 12px); color: var(--muted); margin-top: 5px; }
+.tb-cardMeta b { color: var(--text); }
+.tb-cardBody { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--r-lg, 12px) var(--r-lg, 12px);
+  background: var(--panel); padding: 4px 16px 14px; }
+.tb-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--border); }
+.tb-row:last-of-type { border-bottom: none; }
+.tb-rowK { flex: 0 0 72px; font-size: var(--fs-sm, 12px); color: var(--muted); padding-top: 1px; }
+.tb-rowV { flex: 1; min-width: 0; font-size: var(--fs-md, 13px); line-height: 1.72; }
+.tb-muted { color: var(--muted); }
+.tb-run { display: inline-block; font-size: var(--fs-2xs, 10px); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; margin: 0 4px 3px 0;
+  font-variant-numeric: tabular-nums; }
+.tb-deadBox { margin: 10px 0 4px; padding: 10px 12px; border-radius: var(--r-md, 8px);
+  background: color-mix(in srgb, #c0392b 10%, var(--panel));
+  border: 1px solid color-mix(in srgb, #c0392b 42%, var(--border)); font-size: var(--fs-md, 13px);
+  line-height: 1.7; }
+.tb-deadBox > b { color: #c0392b; }
+.tb-deadAt { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-left: 8px; }
+.tb-params { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-md, 8px);
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel)); border: 1px dashed var(--border); }
+.tb-paramH { font-size: var(--fs-2xs, 10px); letter-spacing: .08em; color: var(--muted); margin-bottom: 7px; }
+.tb-paramRow { display: flex; gap: 14px; flex-wrap: wrap; }
+.tb-param { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm, 12px); color: var(--muted); }
+.tb-param input, .tb-param select { font-size: var(--fs-sm, 12px); padding: 3px 6px;
+  border: 1px solid var(--border); border-radius: var(--r-sm, 6px); background: var(--bg); color: var(--text); }
+.tb-acts { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.tb-tip { font-size: var(--fs-sm, 12px); color: var(--muted); }
+
+/* ---------- 漏斗 ---------- */
+.tb-sec { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--r-lg, 12px);
+  background: var(--panel); padding: 13px 16px 15px; }
+.tb-secH { font-size: var(--fs-lg, 16px); font-weight: 600; margin-bottom: 10px;
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tb-secN { font-size: var(--fs-sm, 12px); font-weight: 400; color: var(--muted); }
+.tb-chainEmpty { font-size: var(--fs-md, 13px); color: var(--muted); line-height: 1.7;
+  padding: 12px 14px; border: 1px dashed var(--border); border-radius: var(--r-md, 8px); }
+.tb-chainBar { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; padding: 4px 0 2px; }
+.tb-node { position: relative; min-width: 118px; flex: 0 1 auto; border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px); background: var(--bg); padding: 9px 12px; text-align: center; }
+.tb-node.start { background: color-mix(in srgb, var(--accent) 7%, var(--bg)); }
+.tb-nodeN { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.tb-nodeL { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-top: 1px; white-space: nowrap; }
+.tb-nodeD { font-size: var(--fs-2xs, 10px); color: #c0392b; font-variant-numeric: tabular-nums; }
+.tb-nodeX { position: absolute; top: 2px; right: 5px; font-size: 13px; line-height: 1;
+  color: var(--muted); cursor: pointer; padding: 2px; }
+.tb-nodeX:hover { color: #c0392b; }
+.tb-arrow { display: flex; align-items: center; padding: 0 7px; color: var(--muted); font-size: 18px; }
+.tb-presetRow { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.tb-preset { font-size: var(--fs-sm, 12px); padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+.tb-preset:hover { border-color: var(--accent); color: var(--accent); }
+.tb-presetN { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-left: 5px; }
+
+/* ---------- 结果 ---------- */
+.tb-computing { font-size: var(--fs-md, 13px); color: var(--muted); padding: 14px;
+  border: 1px dashed var(--border); border-radius: var(--r-md, 8px); line-height: 1.7; }
+.tb-stepNotes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.tb-note { flex: 1 1 200px; min-width: 190px; border: 1px solid var(--border); border-radius: var(--r-md, 8px);
+  background: var(--bg); padding: 8px 10px; font-size: var(--fs-sm, 12px); }
+.tb-note.err { border-color: color-mix(in srgb, #c0392b 45%, var(--border)); }
+.tb-noteT { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-top: 4px; line-height: 1.6; }
+.tb-toggle { font-size: var(--fs-sm, 12px); color: var(--muted); margin-bottom: 8px; }
+.tb-toggle label { cursor: pointer; }
+.tb-tblWrap { max-height: 60vh; overflow: auto; }
+.tb-tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-sm, 12.5px); }
+.tb-tbl th, .tb-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left;
+  vertical-align: top; }
+.tb-tbl th { position: sticky; top: 0; background: var(--panel); font-size: var(--fs-2xs, 10px);
+  letter-spacing: .05em; color: var(--muted); white-space: nowrap; z-index: 1; }
+.tb-tbl td.num, .tb-tbl th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tb-tbl td.tc, .tb-tbl th.tc { text-align: center; width: 30px; padding-left: 2px; padding-right: 2px; }
+.tb-tbl .mono { font-family: Consolas, monospace; font-variant-numeric: tabular-nums; }
+.tb-rowDead { opacity: .78; }
+.tb-rowDead .mono { color: var(--muted); }
+.tb-dot { display: inline-block; width: 16px; height: 16px; line-height: 15px; border-radius: 50%;
+  font-size: 9px; text-align: center; font-weight: 700; }
+.tb-dot.ok { color: #0f766e; background: color-mix(in srgb, #0f766e 16%, transparent); }
+.tb-dot.no { color: #c0392b; background: color-mix(in srgb, #c0392b 16%, transparent); }
+.tb-pass { color: var(--muted); }
+.tb-fail { color: #c0392b; }
+.tb-toast { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%);
+  background: #111827; color: #f9fafb; padding: 9px 16px; border-radius: 8px;
+  font-size: 12.5px; z-index: 9999; max-width: 60vw; line-height: 1.6;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .32); }
+.tb-cardHead.dead .tb-badge { color: #fee2e2; border-color: rgba(254,226,226,.55); background: rgba(0,0,0,.22); }
+.tb-cardHead.dead .tb-tk { color: rgba(254,226,226,.7); }
+.tb-thSub { font-size: 9px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+
+/* ---------- 三期：外来因子准入门禁 ---------- */
+.tb-facTry { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; margin: 4px 0 8px; }
+.tb-inp { font-family: inherit; font-size: var(--fs-sm, 12px); padding: 6px 9px; border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--border); background: var(--bg); color: var(--fg); min-width: 130px; }
+.tb-inp:focus { outline: none; border-color: var(--accent); }
+.tb-inpExpr { flex: 1 1 280px; min-width: 220px; font-family: Consolas, monospace; }
+.tb-inpWhy { flex: 1 1 200px; }
+.tb-btn { font-size: var(--fs-sm, 12px); padding: 6px 16px; border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+  color: var(--accent); cursor: pointer; white-space: nowrap; }
+.tb-btn:hover { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); }
+.tb-btn:disabled { opacity: .55; cursor: default; }
+.tb-hintLine { font-size: var(--fs-2xs, 10.5px); color: var(--muted); line-height: 1.75; margin-top: 7px; }
+.tb-facMsg { margin: 2px 0 4px; }
+.tb-okBox, .tb-badBox { font-size: var(--fs-sm, 12px); line-height: 1.75; padding: 8px 11px;
+  border-radius: var(--r-sm, 6px); border: 1px solid; }
+.tb-okBox { border-color: color-mix(in srgb, #0f766e 45%, var(--border));
+  background: color-mix(in srgb, #0f766e 9%, var(--panel)); color: var(--fg); }
+.tb-badBox { border-color: color-mix(in srgb, #c0392b 45%, var(--border));
+  background: color-mix(in srgb, #c0392b 9%, var(--panel)); color: var(--fg); }
+.tb-bad { color: #c0392b; }
+.tb-dim { color: var(--muted); }
+.tb-fstat { display: inline-block; font-size: var(--fs-2xs, 10px); padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--border); white-space: nowrap; }
+.tb-fAct { color: #0f766e; border-color: color-mix(in srgb, #0f766e 50%, var(--border));
+  background: color-mix(in srgb, #0f766e 12%, transparent); }
+.tb-fSha { color: #b45309; border-color: color-mix(in srgb, #b45309 50%, var(--border));
+  background: color-mix(in srgb, #b45309 12%, transparent); }
+.tb-fRej { color: #c0392b; border-color: color-mix(in srgb, #c0392b 50%, var(--border));
+  background: color-mix(in srgb, #c0392b 10%, transparent); }
+.tb-fDec { color: #7c3aed; border-color: color-mix(in srgb, #7c3aed 50%, var(--border));
+  background: color-mix(in srgb, #7c3aed 10%, transparent); }
+.tb-fCan { color: var(--muted); }
+.tb-fnote { font-size: var(--fs-2xs, 10.5px); line-height: 1.6; color: var(--muted); max-width: 380px; }
+.tb-tbl td.tb-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tb-miniBtn { font-size: var(--fs-2xs, 10px); padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tb-miniBtn:hover { border-color: var(--accent); color: var(--accent); }
+.tb-srcLink { color: var(--accent); text-decoration: none; font-size: var(--fs-sm, 12px); }
+.tb-srcLink:hover { text-decoration: underline; }
+/* 表头/单元格：固定布局防止列宽被长文本撑飞 */
+.tb-tbl.tb-fixed { table-layout: fixed; }
+.tb-tbl.tb-fixed td, .tb-tbl.tb-fixed th { overflow: hidden; }
+.tb-ellip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-tbl td.tb-fnote { max-width: none; }
+/* 2026-11-03：工具「适用板块」徽章 —— 短线热点/短线超跌/中线波段/长期埋伏 */
+.tb-badge.tb-p{background:rgba(88,166,255,.14);color:#58a6ff;border:1px solid rgba(88,166,255,.35);font-weight:500}
+.tb-pnote{margin-top:4px;color:#8b949e;font-size:11px;line-height:1.55}
+
+/* ============================================================================
+   工具包「筛台」（2026-11-05）：全部 .tbx- 前缀，与上面的旧 .tb- 规则互不影响
+   （旧面板别处还在用，删不得也改不得）。颜色一律走主题变量，
+   这样 4 套主题（浅色科技 / 深色大屏 / 简约报表 / 卡片暖色）都不用另写补丁。
+   ========================================================================== */
+
+/* ---- 「已在筛道」专用色（2026-11-05，QA P1-3）----------------------------
+   为什么不能直接用 --accent：深色大屏主题的 --accent 是品牌红 #DA291C，
+   选中态跟红色会和「危险 / 已淘汰」撞成一个语种；浅色主题下 --accent 对比度只有 4.26:1，
+   达不到 AA 的 4.5:1。所以这组颜色横跨 4 套主题固定指向青系（青 = 「在用 / 已生效」），
+   每套主题只调深浅。
+   定义在 `html` 上（不是 `:root`）是有意的：深色主题用 `html:root` 覆盖，
+   特异性更高，所以跟主题 CSS 的加载顺序无关。改这里前先看 themes/dark-dashboard.css。 */
+html {
+  --tbx-on-border: #0F766E;                 /* 选中卡片的边框 */
+  --tbx-on-bg:     rgba(15, 118, 110, .10); /* 选中卡片的底色（叠在 --bg 之上）*/
+  --tbx-on-text:   #0B635B;                 /* 选中卡片里的文字（比边框深一档，保证 ≥4.5:1）*/
+}
+
+/* ---- 头部：标题 + 右侧大数字「当前池子」 ---- */
+.tbx-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding: 2px 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; flex-wrap: wrap; }
+.tbx-title { font-size: var(--fs-xl, 22px); font-weight: 700; letter-spacing: -.01em; }
+.tbx-sub { margin-top: 6px; font-size: var(--fs-sm, 12px); color: var(--muted);
+  line-height: 1.65; max-width: 720px; }
+.tbx-pool { text-align: right; min-width: 118px; }
+.tbx-poolL { font-size: var(--fs-2xs, 10px); color: var(--muted); letter-spacing: .08em; }
+.tbx-poolN { font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; color: var(--accent); }
+
+/* ---- 顶部红字（请求失败时才有；筛道和数字一律保留，不清空） ---- */
+.tbx-alert { display: none; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 12px;
+  border-radius: var(--r-md, 8px); font-size: var(--fs-sm, 12px); line-height: 1.6;
+  border: 1px solid color-mix(in srgb, var(--err, #B91C1C) 45%, var(--border));
+  background: color-mix(in srgb, var(--err, #B91C1C) 9%, var(--panel)); color: var(--text); }
+.tbx-alertT { flex: 1 1 auto; }
+
+/* ---- 分区外壳 ---- */
+.tbx-sec { margin-top: 16px; border: 1px solid var(--border); border-radius: var(--r-lg, 12px);
+  background: var(--panel); padding: 12px 14px 14px; }
+.tbx-secH { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.tbx-secT { font-size: var(--fs-lg, 15px); font-weight: 600; }
+.tbx-secN { font-size: var(--fs-sm, 12px); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tbx-mini { margin-left: auto; font-size: var(--fs-2xs, 10.5px); padding: 3px 10px; cursor: pointer;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); }
+.tbx-mini:hover { border-color: var(--accent); color: var(--accent); }
+.tbx-empty { font-size: var(--fs-md, 13px); color: var(--muted); padding: 14px 4px; line-height: 1.7; }
+.tbx-dim { color: var(--muted); }
+.tbx-bad { color: var(--err, #B91C1C); }
+
+/* ---- ② 筛道 ---- */
+.tbx-lane { min-height: 34px; }
+.tbx-laneEmpty { font-size: var(--fs-md, 13px); color: var(--muted); line-height: 1.7; padding: 4px 2px; }
+.tbx-laneBar { display: flex; align-items: stretch; flex-wrap: wrap; padding: 2px 0; }
+.tbx-node { position: relative; min-width: 104px; flex: 0 1 auto; padding: 7px 12px 8px;
+  border: 1px solid var(--border); border-radius: var(--r-md, 8px); background: var(--bg); }
+.tbx-node.start { background: color-mix(in srgb, var(--accent) 7%, var(--bg)); }
+.tbx-node.out { border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.tbx-node.pend { border-style: dashed; color: var(--muted); }
+.tbx-node.err { border-color: color-mix(in srgb, var(--err, #B91C1C) 55%, var(--border)); }
+.tbx-nN { font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; }
+.tbx-nL { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-top: 1px; white-space: nowrap; }
+.tbx-nD { font-size: var(--fs-2xs, 10px); color: var(--err, #B91C1C);
+  font-variant-numeric: tabular-nums; }
+/* 视觉 16×15，热区 24×24（QA P2-2）：撤一刀是高危操作，点不中会误点左右两个节点。
+   同样是把盒子撑到 24×24、字号不变，十字居中。 */
+.tbx-nX { position: absolute; top: -1px; right: -1px; min-width: 24px; min-height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; color: var(--muted); cursor: pointer; border-radius: 6px; }
+.tbx-nX:hover { color: var(--err, #B91C1C); background: var(--hover); }
+.tbx-arrow { display: flex; align-items: center; padding: 0 7px; color: var(--muted); font-size: 18px; }
+
+/* ---- ③ 建议下一刀 ---- */
+.tbx-next { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 11px 14px; border-radius: var(--r-md, 8px);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel)); }
+.tbx-next.off { border-color: var(--border); background: var(--bg); }
+.tbx-nextK { font-size: var(--fs-2xs, 10px); letter-spacing: .1em; color: var(--muted);
+  white-space: nowrap; }
+.tbx-nextBody { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1 1 auto; }
+.tbx-nextName { font-size: var(--fs-lg, 15px); font-weight: 700; }
+.tbx-nextN { font-size: var(--fs-md, 13px); font-variant-numeric: tabular-nums; }
+.tbx-nextN b { color: var(--accent); }
+.tbx-nextT { font-size: var(--fs-md, 13px); color: var(--muted); line-height: 1.65; }
+.tbx-nextI { font-size: var(--fs-2xs, 10.5px); color: var(--muted); cursor: pointer;
+  text-decoration: underline dotted; margin-left: auto; }
+.tbx-nextI:hover { color: var(--accent); }
+
+/* ---- ④ 工具墙 ---- */
+/* 卡片最小宽度 168px（2026-11-05，QA P2-1）：148px 时「本次 5,264 → 5,018」会折成两行，
+   同一排的数字对不齐。168px 减去左右内边距还剩 150px，够放 5 位数的「本次 → 结果」。 */
+/* 2026-11-05 按持有周期分组后：.tbx-wall 退成**纵向容器**，网格下沉到 .tbx-grpWall。
+   为什么不把分组标题也做成网格的一项：grid 会把标题挤进一格卡片位（168px 宽），
+   标题只能折行，整面墙的列宽也被标题撑乱 —— 看上去像"某个工具叫竞价冲浪"。 */
+.tbx-wall { display: block; transition: opacity .18s ease; }
+.tbx-grpWall { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px; }
+/* 等新数字时先把旧的压暗，拿到结果再替换 —— 不是先清空，避免整面墙闪一下 */
+.tbx-wall.tbx-busy { opacity: .5; }
+.tbx-card { position: relative; display: flex; flex-direction: column; gap: 2px;
+  min-height: 92px; padding: 8px 9px 7px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--r-md, 8px); background: var(--bg);
+  transition: border-color .15s, background .15s, transform .12s; }
+.tbx-card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  transform: translateY(-1px); }
+/* 选中态：整卡走「已生效」青系，不再跟 --accent 走（见文件顶部 --tbx-on-* 的注释）。
+   文字统一用 --tbx-on-text：浅色 5.85:1、深色 9.1:1，
+   层级的区别交给字号/字重，不靠降透明度（降透明度会掉到 4.5:1 以下）。 */
+.tbx-card.on { border-color: var(--tbx-on-border);
+  background: linear-gradient(var(--tbx-on-bg), var(--tbx-on-bg)), var(--bg); }
+.tbx-card.on .tbx-cName,
+.tbx-card.on .tbx-cNum,
+.tbx-card.on .tbx-cNum b,
+.tbx-card.on .tbx-cFoot { color: var(--tbx-on-text); }
+.tbx-card.on .tbx-bar { background: color-mix(in srgb, var(--tbx-on-border) 28%, transparent); }
+.tbx-card.on .tbx-bar > i { background: var(--tbx-on-border); }
+.tbx-card.dead { opacity: .72; border-style: dashed; cursor: pointer; }
+.tbx-card.dead:hover { opacity: .9; transform: none; }
+/* 「这一刀会把池子清空」的卡片：红边框只做提示，真正拦人靠点击前的确认 */
+.tbx-card.danger { border-color: color-mix(in srgb, var(--err, #B91C1C) 45%, var(--border)); }
+.tbx-card.danger .tbx-bar > i { background: var(--err, #B91C1C); }
+.tbx-cName { font-size: var(--fs-md, 13px); font-weight: 600; line-height: 1.35;
+  padding-right: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tbx-cNum { font-size: var(--fs-sm, 11.5px); color: var(--muted); font-variant-numeric: tabular-nums;
+  line-height: 1.5; white-space: nowrap; }
+.tbx-cNum b { color: var(--text); font-size: var(--fs-md, 13px); }
+/* 会清空 / 几乎清空：红色和琥珀色小字，跟数字同一行的视觉重量但更醒目 */
+.tbx-cNum .tbx-hell { color: var(--err, #B91C1C); }
+.tbx-warnT { font-size: var(--fs-2xs, 10px); line-height: 1.4; color: var(--warn, #B45309);
+  font-weight: 600; }
+.tbx-card.danger .tbx-warnT { color: var(--err, #B91C1C); }
+.tbx-bar { height: 4px; border-radius: 999px; background: var(--border); overflow: hidden;
+  margin: 6px 0 3px; }
+.tbx-bar > i { display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2, var(--accent))); }
+.tbx-cFoot { font-size: var(--fs-2xs, 10px); color: var(--muted); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: auto; }
+/* 「判据回看 X · 建议持有 Y」——卡片上那次改动加的第二行小字（2026-11-05）。
+   单独一行、比卡片其余小字更淡：它回答的是"这张卡属于哪一档持有期"，
+   不是这张卡今天的表现，所以不能抢走「本次 5,264 → N」的注意力。
+   允许折行（实测 168px 卡片上不折行会被截成「建议持有 1~4…」，等于这条标注白加）。 */
+.tbx-cHold { font-size: var(--fs-2xs, 10px); line-height: 1.35; color: var(--muted);
+  opacity: .92; white-space: normal; word-break: keep-all;
+  font-variant-numeric: tabular-nums; }
+
+/* ---- ④-1 按持有周期分组（2026-11-05）----
+   每组一个标题行：中文名 + 持有期标注（老板要的那句）+ 工具数。
+   标注用等宽数字、比标题淡一档：它要能一眼扫过去，但不能比工具名更响。 */
+.tbx-grp { margin-bottom: 16px; }
+.tbx-grp:last-child { margin-bottom: 0; }
+.tbx-grpH { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 0 0 5px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.tbx-grpT { font-size: var(--fs-md, 13.5px); font-weight: 700; color: var(--fg, inherit); }
+.tbx-grpS { font-size: var(--fs-sm, 12px); color: var(--accent, #2563EB); font-weight: 600;
+  font-variant-numeric: tabular-nums; }
+.tbx-grpN { font-size: var(--fs-2xs, 10.5px); color: var(--muted); margin-left: auto; }
+.tbx-grpNote { font-size: var(--fs-2xs, 10.5px); color: var(--muted); line-height: 1.5;
+  margin: -3px 0 7px; }
+/* 图标本身画成 14px 的小圆点，但**元素盒子是 24×24**（QA P2-2：热区必须 ≥24px，
+   视觉不放大）。用 ::before 画那个小圆，文字用 flex 居中 —— 这样量
+   getBoundingClientRect 得到的是 24×24，任何取尺寸的工具都不会误判。 */
+.tbx-i { position: absolute; top: 0; right: 0; width: 24px; height: 24px; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  font-size: 9px; font-style: italic; font-weight: 700; color: var(--muted); }
+.tbx-i::before { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--panel); }
+.tbx-i:hover { color: var(--accent); }
+.tbx-i:hover::before { border-color: var(--accent); }
+.tbx-dead { position: absolute; right: 6px; bottom: 5px; font-size: 9px; padding: 0 4px;
+  border-radius: 3px; color: var(--err, #B91C1C);
+  border: 1px solid color-mix(in srgb, var(--err, #B91C1C) 40%, var(--border)); }
+
+/* ---- ⑤ 结果表 ---- */
+.tbx-toggle { font-size: var(--fs-sm, 12px); color: var(--muted); margin-bottom: 8px; }
+.tbx-toggle label { cursor: pointer; }
+.tbx-tblWrap { max-height: 62vh; overflow: auto; border-radius: var(--r-sm, 6px); }
+.tbx-tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-sm, 12.5px); }
+.tbx-tbl th, .tbx-tbl td { padding: 6px 8px; text-align: left;
+  border-bottom: 1px solid var(--border); vertical-align: top; }
+.tbx-tbl thead th { position: sticky; top: 0; z-index: 1; background: var(--panel);
+  font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.tbx-tbl td.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: .3px; }
+.tbx-tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbx-tbl .tc { text-align: center; }
+.tbx-thSub { font-size: 9.5px; font-weight: 400; color: var(--muted); }
+.tbx-dot { font-size: 11px; font-weight: 700; }
+.tbx-dot.ok { color: var(--bear, #15803D); }
+.tbx-dot.no { color: var(--err, #B91C1C); }
+.tbx-pass { font-size: var(--fs-2xs, 11px); color: var(--muted); line-height: 1.5; }
+.tbx-fail { font-size: var(--fs-2xs, 11px); color: var(--err, #B91C1C); line-height: 1.5; }
+.tbx-rowDead { background: color-mix(in srgb, var(--err, #B91C1C) 5%, transparent); }
+
+/* 结果表整行可点 → 打开该股详情（2026-11-05 王总反馈「这里股票点不开」）。
+   底色刻意不用 --accent：深色主题的 accent 是品牌红，会被误读成「淘汰/危险」。 */
+.tbx-tbl tbody tr[data-tbx-sym] { cursor: pointer; }
+.tbx-tbl tbody tr[data-tbx-sym]:hover > td { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.tbx-tbl tbody tr[data-tbx-sym]:active > td { background: color-mix(in srgb, var(--text) 12%, transparent); }
+.tbx-tbl .tbx-sym { text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent);
+  text-underline-offset: 2px; }
+
+/* ---- ⑥ 右侧抽屉 ---- */
+.tbx-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, .42); opacity: 0;
+  pointer-events: none; transition: opacity .2s ease; z-index: 60; }
+.tbx-mask.open { opacity: 1; pointer-events: auto; }
+.tbx-drawer { position: fixed; top: 0; right: 0; height: 100%; width: 420px;
+  max-width: 92vw; background: var(--panel); border-left: 1px solid var(--border);
+  box-shadow: -12px 0 34px rgba(0, 0, 0, .22); z-index: 61;
+  transform: translateX(102%); transition: transform .22s ease;
+  display: flex; flex-direction: column; }
+.tbx-drawer.open { transform: translateX(0); }
+.tbx-dHead { padding: 13px 16px 11px; border-bottom: 1px solid var(--border); }
+.tbx-dTop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tbx-dTop b { font-size: var(--fs-lg, 16px); }
+.tbx-dClose { margin-left: auto; cursor: pointer; font-size: 20px; line-height: 1;
+  color: var(--muted); padding: 2px 6px; }   /* 热区 ≥24×24（QA P2-2 同类问题） */
+.tbx-dClose:hover { color: var(--err, #B91C1C); }
+.tbx-dMeta { margin-top: 6px; font-size: var(--fs-sm, 12px); color: var(--muted); line-height: 1.7; }
+.tbx-dMeta b { color: var(--text); }
+.tbx-dBody { flex: 1 1 auto; overflow: auto; padding: 12px 16px 22px; }
+.tbx-badge { font-size: var(--fs-2xs, 10px); padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.tbx-badge.dead { color: var(--err, #B91C1C);
+  border-color: color-mix(in srgb, var(--err, #B91C1C) 45%, var(--border)); }
+.tbx-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--border); }
+.tbx-row:last-of-type { border-bottom: none; }
+.tbx-rowK { flex: 0 0 66px; font-size: var(--fs-sm, 11.5px); color: var(--muted); padding-top: 2px; }
+.tbx-rowV { flex: 1 1 auto; min-width: 0; font-size: var(--fs-md, 12.5px); line-height: 1.72; }
+.tbx-pnote { margin-top: 4px; font-size: var(--fs-2xs, 10.5px); color: var(--muted); line-height: 1.6; }
+.tbx-run { display: inline-block; font-size: var(--fs-2xs, 10px); color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.tbx-deadBox { margin: 6px 0 8px; padding: 10px 12px; border-radius: var(--r-md, 8px);
+  font-size: var(--fs-sm, 12px); line-height: 1.75;
+  border: 1px solid color-mix(in srgb, var(--err, #B91C1C) 40%, var(--border));
+  background: color-mix(in srgb, var(--err, #B91C1C) 7%, var(--panel)); }
+.tbx-deadBox > b { color: var(--err, #B91C1C); }
+.tbx-deadAt { font-size: var(--fs-2xs, 10px); color: var(--muted); margin-left: 8px; }
+.tbx-paramBox { margin-top: 12px; padding: 10px 12px; border-radius: var(--r-md, 8px);
+  border: 1px solid var(--border); background: var(--bg); }
+.tbx-paramH { font-size: var(--fs-2xs, 10px); letter-spacing: .06em; color: var(--muted);
+  margin-bottom: 8px; }
+.tbx-paramRow { display: flex; flex-direction: column; gap: 8px; }
+.tbx-param { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm, 12px);
+  color: var(--muted); }
+.tbx-param > span { flex: 0 0 auto; }
+.tbx-param input, .tbx-param select { font-size: var(--fs-sm, 12px); padding: 3px 6px;
+  border: 1px solid var(--border); border-radius: var(--r-sm, 6px);
+  background: var(--panel); color: var(--text); width: 120px; }
+/* 2026-11-04：A 股建议值提示（只出现在带 suggest 字段的参数后面，即三期开源规则）。
+   默认值＝原作（美股）参数，这个提示是「在 A 股该调成多少」，两者必须能一眼分开。 */
+.tbx-sugg { font-style: normal; font-size: var(--fs-2xs, 10px); white-space: nowrap;
+  opacity: .85; }
+/* 2026-11-05：抽屉底部「面板级口径说明」（只给 source_kind=github 的 11 条开源规则）。
+   它是公共交代，不是这一条工具的卖点 —— 所以小字号、低对比、与正文拉开距离，
+   让用户扫得到、但不会把它当结论读。 */
+.tbx-basis { margin-top: 16px; padding-top: 10px; border-top: 1px dashed var(--line, #d8dde5);
+  font-size: var(--fs-2xs, 10px); line-height: 1.7; opacity: .62; }
+/* 说明性标注（2026-11-05）——11 条开源规则的定位：留在货架上、能点能用，但不当买卖依据。
+   刻意用中性灰而不是告警色：页面上已经有一个红色的「已淘汰」，再来一个告警色，
+   人会分不清「不能用」和「不许用」。角标放左下（右上被 i 占着、右下被已淘汰占着）。 */
+.tbx-card.adv { padding-bottom: 20px; }
+.tbx-cardAdv { position: absolute; left: 6px; bottom: 5px; font-size: 9px; line-height: 1.5;
+  padding: 0 4px; border-radius: 3px; color: var(--muted);
+  border: 1px solid var(--line, #d8dde5); opacity: .85; }
+.tbx-card.adv.on .tbx-cardAdv { opacity: 1; }
+/* 抽屉里那句：左边一条灰竖线，不抢正文，也不像告警 */
+.tbx-advBar { margin: 2px 0 10px; padding: 7px 10px 7px 11px;
+  font-size: var(--fs-xs, 11px); line-height: 1.7; color: var(--text); opacity: .78;
+  border-left: 3px solid var(--line, #d8dde5); border-radius: 0 var(--r-sm, 6px) var(--r-sm, 6px) 0;
+  background: color-mix(in srgb, var(--text) 3%, transparent); }
+.tbx-dActs { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.tbx-inp { flex: 1 1 140px; min-width: 0; font-size: var(--fs-sm, 12px); padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: var(--r-sm, 6px);
+  background: var(--bg); color: var(--text); }
+.tbx-btn { font-size: var(--fs-sm, 12px); padding: 5px 13px; border-radius: 999px;
+  cursor: pointer; white-space: nowrap; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); }
+.tbx-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tbx-btn.primary { background: var(--accent); border-color: var(--accent);
+  color: var(--on-accent, #fff); }
+.tbx-btn.primary:hover { background: color-mix(in srgb, var(--accent) 82%, #000);
+  color: var(--on-accent, #fff); }
+.tbx-btn.danger { color: var(--err, #B91C1C);
+  border-color: color-mix(in srgb, var(--err, #B91C1C) 45%, var(--border)); }
+.tbx-btn.danger:hover { background: color-mix(in srgb, var(--err, #B91C1C) 12%, var(--bg)); }
+
+/* 兜底提示（页面拿不到 window.toast 时用） */
+.tbx-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  max-width: 78vw; padding: 10px 16px; border-radius: var(--r-md, 8px); z-index: 9999;
+  font-size: var(--fs-md, 13px); line-height: 1.6; color: #fff; background: rgba(20, 22, 28, .94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3); }
+
+@media (max-width: 760px) {
+  .tbx-poolN { font-size: 26px; }
+  .tbx-wall { grid-template-columns: none; }
+  .tbx-grpWall { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
+  .tbx-node { min-width: 88px; padding: 6px 9px 7px; }
+  .tbx-nN { font-size: 17px; }
+}
+
+/* ============================================================================
+   2026-11-06 今日路由（审计 T05/T06/T07）
+   ----------------------------------------------------------------------------
+   这一块要回答的是「今天该开哪把工具」，与工具墙的「点一下能剩多少」是两件事。
+   视觉上必须能一眼分出三种状态，否则用户还是会回到"33 个里自己挑一个"的老路：
+     go      今日可用   → 青色（与 --accent 同族，表示"可以走"）
+     watch   仅观察     → 琥珀（"能看，别下结论"）
+     abstain 弃权       → 中性灰（**不是红色**：弃权是合法的正确答案，不是错误）
+   ========================================================================== */
+.tbx-router { padding: 10px 12px; border: 1px solid var(--border);
+  border-left: 3px solid var(--muted); border-radius: var(--r-md, 8px);
+  background: var(--bg); }
+.tbx-router.go { border-left-color: var(--accent); }
+.tbx-router.watch { border-left-color: var(--warn, #B45309); }
+.tbx-router.abstain { border-left-color: var(--muted); }
+.tbx-router.loading { opacity: .75; }
+
+.tbx-rTop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tbx-rT { font-size: var(--fs-md, 13px); font-weight: 700; }
+.tbx-rBadge { font-size: var(--fs-xs, 11px); font-weight: 700; padding: 1px 8px;
+  border-radius: 999px; white-space: nowrap; }
+.tbx-rBadge.go { background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent); }
+.tbx-rBadge.watch { background: color-mix(in srgb, var(--warn, #B45309) 14%, transparent);
+  color: var(--warn, #B45309); }
+.tbx-rBadge.abstain { background: color-mix(in srgb, var(--muted) 16%, transparent);
+  color: var(--muted); }
+.tbx-rCtx { font-size: var(--fs-2xs, 10px); color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+
+/* 持有期切换：这是「换个问题」而不是「翻页」，所以做成小胶囊按钮组，
+   当前档位必须能一眼看出选中（否则用户不知道自己正在看哪个周期的判定）。 */
+.tbx-hzWrap { display: inline-flex; gap: 3px; margin-left: auto; }
+.tbx-hz { font-size: var(--fs-2xs, 10px); padding: 2px 7px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; background: transparent;
+  color: var(--muted); font-family: inherit; font-variant-numeric: tabular-nums; }
+.tbx-hz:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.tbx-hz.on { background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent); font-weight: 600; }
+
+.tbx-rReason { font-size: var(--fs-sm, 12px); color: var(--text); line-height: 1.6;
+  margin-top: 5px; }
+
+.tbx-rChain, .tbx-rBlock { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 7px; }
+.tbx-rChainK { font-size: var(--fs-2xs, 10px); color: var(--muted); flex: 0 0 auto;
+  padding-right: 2px; }
+.tbx-rStep { display: inline-flex; align-items: baseline; gap: 5px;
+  font-size: var(--fs-xs, 11px); font-weight: 600; padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: var(--r-sm, 6px);
+  background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.tbx-rStep i { font-style: normal; font-weight: 400; font-size: var(--fs-2xs, 10px);
+  color: var(--muted); }
+.tbx-rArrow { color: var(--muted); font-size: var(--fs-sm, 12px); }
+
+/* 「为什么不用」：一条一行，不折成一长串 —— 用户要能扫读，而不是读句子。 */
+.tbx-rBlock { flex-direction: column; align-items: flex-start; gap: 2px; }
+.tbx-rWhyItem { font-size: var(--fs-2xs, 10px); color: var(--muted); line-height: 1.55; }
+.tbx-rWhyItem b { color: var(--text); font-weight: 600; }
+.tbx-rWhyMore { font-size: var(--fs-2xs, 10px); color: var(--muted); opacity: .85; }
+
+.tbx-rCount { font-size: var(--fs-xs, 11px); color: var(--muted); margin-top: 7px;
+  font-variant-numeric: tabular-nums; }
+.tbx-rCount b { font-size: var(--fs-sm, 12px); }
+.tbx-rCount b.go { color: var(--accent); }
+.tbx-rCount b.watch { color: var(--warn, #B45309); }
+.tbx-rCount b.off { color: var(--muted); }
+.tbx-rHint { margin-left: 6px; opacity: .8; }
+.tbx-rStale { font-size: var(--fs-2xs, 10px); color: var(--warn, #B45309);
+  margin-top: 6px; line-height: 1.5; }
+
+/* 工具墙视图切换（按持有期 / 按今日资格） */
+.tbx-viewTab { display: inline-flex; gap: 3px; margin-left: 8px; }
+.tbx-viewTab button { font-size: var(--fs-2xs, 10px); padding: 2px 8px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; background: transparent;
+  color: var(--muted); font-family: inherit; }
+.tbx-viewTab button.on { background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent); font-weight: 600; }
+
+/* 资格视图下卡片的左侧色条：用 3px 内阴影而不是 border-left，
+   因为卡片本身已有 1px 边框，再加一条会让四边不等宽、卡片错位。 */
+.tbx-card.elig-go { box-shadow: inset 3px 0 0 var(--accent); }
+.tbx-card.elig-watch { box-shadow: inset 3px 0 0 var(--warn, #B45309); }
+.tbx-card.elig-off { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--muted) 55%, transparent);
+  opacity: .82; }
+.tbx-card.elig-off:hover { opacity: 1; }
+
+/* 筛道中止态（2026-11-06 审计 P1-02）：明确锁住结果区，不显示任何"看起来正常"的数字。
+   用 --err 而不是 --warn：链断了是"这次没结果"，不是"结果可能不准"，两者的处理动作不同。 */
+.tbx-resErr { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--err, #B91C1C) 40%, var(--border));
+  border-left: 3px solid var(--err, #B91C1C); border-radius: var(--r-md, 8px);
+  background: color-mix(in srgb, var(--err, #B91C1C) 5%, transparent); }
+.tbx-resErrH { font-size: var(--fs-md, 13px); font-weight: 700;
+  color: var(--err, #B91C1C); line-height: 1.5; }
+.tbx-resErrB { font-size: var(--fs-sm, 12px); color: var(--text); line-height: 1.6;
+  margin-top: 4px; word-break: break-word; }
+.tbx-resErrN { font-size: var(--fs-xs, 11px); color: var(--muted); line-height: 1.5;
+  margin-top: 6px; }

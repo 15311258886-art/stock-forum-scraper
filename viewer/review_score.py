@@ -876,10 +876,21 @@ def picks_context(conn, date: str, limit: int = 8) -> str:
 
     L = ["【上次荐股的结果 —— 系统按收盘价回填的事实，不是你的回忆】",
          "复盘日 %s，你推了 %d 只（按推荐分排序）：" % (rdate, len(rows))]
+    def _num(v, default=None):
+        """ai_call 的收益列在库里可能是 TEXT（历史回填/导入留下），
+        直接拿去 %+.2f 会 TypeError 把整个对账单上下文打没（2026-11-02 实测：
+        server-20261102.log「上次荐股对账单生成失败」）。统一先转 float。"""
+        if v is None or v == "":
+            return default
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
+
     for r in rows:
-        sym, nm, sc = r[0], r[1], r[2] or 0
-        n1r, n1e, n1h = r[3], r[4], r[5]
-        h5r, h5e, h5h = r[6], r[7], r[8]
+        sym, nm, sc = r[0], r[1], _num(r[2], 0)
+        n1r, n1e, n1h = _num(r[3]), _num(r[4]), r[5]
+        h5r, h5e, h5h = _num(r[6]), _num(r[7]), r[8]
         st, vr = r[9], r[10]
         seg = "· %s %s（推荐分 %d）" % (sym or "-", nm or "", sc)
         if st == "void":

@@ -508,8 +508,17 @@ def record_from_review(conn, review_id: int, review_date: str, provider: str,
 MIN_EFFECT = 0.30
 
 
-def test_open(conn, limit: int = 20) -> dict:
-    """回测所有 open 的假说，写结论，并把**真正可用**的沉淀进 evo_knowledge。"""
+def test_open(conn, limit: int = 5) -> dict:
+    """回测所有 open 的假说，写结论，并把**真正可用**的沉淀进 evo_knowledge。
+
+    2026-11-02 修（进哥：「等了得有好几分钟，依然没有出来」）：
+      ① `limit` 20 → 5。单条 `evaluate` 要扫最近 150 个交易日的全市场（约 75 万行），
+         实测 20 条约 400 秒；
+      ② **每条 UPDATE 后立即 commit**。原来 commit 在循环外，第一个 UPDATE 就拿到写锁
+         然后攥着不放 —— 400 秒长事务期间，服务进程写什么都报 `database is locked`，
+         连 AI 复盘结果都落不了库（于是每次点都重算，界面永远出不来）。
+         这是「一个后台任务拖垮整个前台」的典型，改成分条提交后锁只在毫秒级持有。
+    """
     ensure_schema(conn)
     rows = list(conn.execute(
         "SELECT * FROM ai_hypothesis WHERE status='open' ORDER BY id LIMIT ?", (limit,)))
@@ -549,12 +558,22 @@ def test_open(conn, limit: int = 20) -> dict:
                 "note=? WHERE id=?",
                 (status, e.get("n"), e.get("days"), e.get("excess"), e.get("t"),
                  e.get("win"), now, (e.get("note") or "")[:300], r["id"]))
+            # 2026-11-02：立即提交，把写锁持有时长从「整批 400 秒」压到「单条毫秒级」。
+            conn.commit()
         except Exception:  # noqa: BLE001
             log.exception("[hypothesis] 回填失败 id=%s", r["id"])
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
             continue
         res["tested"] += 1
         if status in ("confirmed", "opposite"):
             _write_evo(conn, r, e, status)
+            try:
+                conn.commit()
+            except Exception:  # noqa: BLE001
+                pass
     conn.commit()
     return res
 

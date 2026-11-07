@@ -282,6 +282,18 @@ class Database:
                 source TEXT,      -- 来源：config/builtin/eastmoney/db
                 updated_at TEXT
             );
+            -- 金十微博个股人气指数（2026-11-07 接入）：注意力/热度信号，非全文情绪。
+            -- 来源：datacenter-api.jin10.com/weibo/list（按股票名称返回 rate 热度值，
+            -- 经 stock_names 反查为 code）。每天落一次（meta.weibo_heat_done 闸门）。
+            CREATE TABLE IF NOT EXISTS weibo_heat (
+                code TEXT NOT NULL,
+                trade_date TEXT NOT NULL,
+                timescale TEXT NOT NULL,
+                rate REAL,
+                raw_name TEXT,
+                fetched_at TEXT DEFAULT (datetime('now','localtime')),
+                PRIMARY KEY (code, trade_date, timescale)
+            );
             -- 个股「公司概况」缓存表（2026-09-26 新增）：主营业务 / 公司简介 / 行业。
             -- 来源：东方财富 F10 公司概况（RPT_F10_BASIC_ORGINFO）。变更频率极低（以年计），
             -- 故长期落库、离线可复用，前端「重要信息」板块末尾展示。
@@ -404,6 +416,33 @@ class Database:
                 item_count INTEGER DEFAULT 0,  -- 本次处理条目数（仅供参考）
                 error TEXT
             );
+            -- ============ 四家专家团每日评估（2026-11-04 进哥需求） ============
+            -- 报告不是本进程调模型生成的：每天 04:00 由 WorkBuddy 定时任务里的专家团
+            -- 分析后经 `expert_desk.py --save` 回写。本表只做「存 + 取」，不含任何生成逻辑。
+            -- UNIQUE(review_date, expert_key)：一家一天一份，重复回写走 upsert（不堆垃圾行）。
+            -- 结构化列存 JSON 文本（mainlines/picks/watch/risks）：专家团每次的字段形状
+            -- 都不完全一样，拆成规范化表只会让每次微调都变成一次迁移。
+            CREATE TABLE IF NOT EXISTS ai_expert_review (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                review_date TEXT NOT NULL,            -- 报告针对的交易日（YYYY-MM-DD）
+                expert_key  TEXT NOT NULL,            -- 与 config/expert_teams.json 的 key 一致
+                expert_name TEXT NOT NULL,            -- 冗余中文名：配置改名不影响历史报告可读性
+                status      TEXT NOT NULL DEFAULT 'ok',
+                stance      TEXT,                     -- 偏多 / 偏空 / 中性
+                position    TEXT,                     -- 建议仓位，如「半仓以内」
+                verdict     TEXT,                     -- 一句话结论
+                market_read TEXT,
+                mainlines_json TEXT,                  -- [{sector,stage,note}]
+                picks_json  TEXT,                     -- [{code,name,action,reason,entry,stop,horizon}]
+                watch_json  TEXT,                     -- ["..."]
+                risks_json  TEXT,                     -- ["..."]
+                report_md   TEXT,                     -- 完整 markdown 报告（前端展开就是它）
+                model       TEXT,
+                elapsed_ms  INTEGER,
+                err         TEXT,
+                created_at  TEXT,
+                UNIQUE(review_date, expert_key)
+            );
             -- ============ 学习知识库（「跟我学习 → 中短线炒股」） ============
             -- 知识库是**只读、整篇替换**的文档型数据：读者永远「一次取一份文档」，
             -- 故结构化结果整体存成 payload(JSON)，不拆规范化表（拆表只增维护成本）。
@@ -446,6 +485,8 @@ class Database:
             CREATE INDEX IF NOT EXISTS ix_ov_news_time ON overseas_news(publish_time);
             CREATE INDEX IF NOT EXISTS ix_ov_mentions_symbol ON overseas_mentions(symbol);
             CREATE INDEX IF NOT EXISTS ix_ov_daily_day ON overseas_sentiment_daily(day);
+            -- 专家团报告按「交易日」整批取（API 每次都要 4 条），放一个日期索引。
+            CREATE INDEX IF NOT EXISTS idx_ai_expert_date ON ai_expert_review(review_date);
             """
         )
         c.commit()
@@ -2166,6 +2207,18 @@ class Database:
 
     def close(self):
         self.conn.close()
+
+
+# ── #2 DB 收口：主库连接单例 ────────────────────────────────────────────────
+# 所有主库（app.db）访问统一走 DB.get_conn()，保证 WAL + busy_timeout=15000 +
+# 只读 mode=ro 路径一致，降低 ThreadingHTTPServer 多线程下的锁竞争；并消除各模块
+# 各自 sqlite3.connect(DB_PATH, timeout=X) 的重复连接逻辑（pragma 不一致）。
+DB = Database()
+
+
+def get_main_conn(*, read_only: bool = False) -> sqlite3.Connection:
+    """主库连接工厂：只读站点传 read_only=True（开 file:...?mode=ro，不抢写锁）。"""
+    return DB.get_conn(read_only=read_only)
 
 
 if __name__ == "__main__":

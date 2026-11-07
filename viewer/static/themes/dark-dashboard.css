@@ -65,3 +65,14 @@
   --info: #7E94AB;
   --neutral-fg: #9AA1AC; --neutral-bg: #262A33; --neutral-line: #3A414C;
 }
+
+/* ---- 筛台「已在筛道」专用色（2026-11-05，QA P1-3）----
+   选中态不能用 --accent：本主题的 --accent 是品牌红 #DA291C，跟「危险 / 已淘汰」撞成一个语种，
+   而且 <b> 用红字对 12% 红底只有 3.37:1，达不到 AA 4.5:1。改用固定青系。
+   选择器写 `html:root`（特异性 0,1,1）而不是 `:root`：app.css 里浅色默认值定义在 `html`（0,0,1）上，
+   这样不管两个文件谁先加载，深色这套都能盖住浅色那套。 */
+html:root {
+  --tbx-on-border: #5DCAA5;
+  --tbx-on-bg:     rgba(93, 202, 165, .14);
+  --tbx-on-text:   #9FE1CB;
+}

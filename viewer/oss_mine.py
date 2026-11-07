@@ -532,12 +532,16 @@ QUERIES = (
 )
 
 
-def scan_github(days: int = 14, per_query: int = 8) -> list:
-    """按关键词扫 GitHub 近 N 天有更新的仓库。返回候选列表（可能为空）。"""
+def scan_github(days: int = 14, per_query: int = 8, queries=None) -> list:
+    """按关键词扫 GitHub 近 N 天有更新的仓库。返回候选列表（可能为空）。
+
+    `queries` 可传自定义检索词（2026-11-03 因子发现复用本函数，不再写第二套 HTTP）：
+    默认仍用本模块的 QUERIES（面向"规则回测"），因子发现传自己的（面向"因子表达式"）。
+    """
     since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     out: list = []
     seen = set()
-    for q in QUERIES:
+    for q in (queries or QUERIES):
         query = "%s pushed:>%s" % (q, since)
         url = ("https://api.github.com/search/repositories?q=%s&sort=stars&order=desc&per_page=%d"
                % (urllib.parse.quote(query), per_query))
@@ -555,7 +559,10 @@ def scan_github(days: int = 14, per_query: int = 8) -> list:
                 continue
             seen.add(fn)
             out.append({"full_name": fn, "stars": it.get("stargazers_count") or 0,
-                        "lang": it.get("language") or "", "descr": (it.get("description") or "")[:180]})
+                        "lang": it.get("language") or "", "descr": (it.get("description") or "")[:180],
+                        # 因子发现要用到：仓库地址给人点，pushed_at 判断"还在不在维护"
+                        "url": it.get("html_url") or ("https://github.com/" + fn),
+                        "pushed_at": str(it.get("pushed_at") or "")[:10]})
         time.sleep(0.8)      # 未认证 API 限 10 次/分钟，宁可慢
     return out
 

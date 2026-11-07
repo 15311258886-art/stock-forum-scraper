@@ -28,11 +28,18 @@
   <!-- 2026-10-31 wggroup4：空表占位文案分流 —— 组视图里「只是本组空了」不再误报「池子为空」，改为显示本组无票 + 池内总数 -->
   <!-- 2026-10-31 layout1：「今日决策/今日看板」版面去噪 —— 四要素收成紧凑档、历史背景与旁证
        折叠、看板结论压成一行；「资金风向」并入「资金动向·资金温度」消除与一类导航撞名 -->
-  <meta name="app-version" content="20261031-layout3" />
+  <!-- 2026-11-03 toolbox1：新增「工具包」一级入口（决策台右侧）—— 
+       方法论沉淀成可点可叠的工具 + 级联漏斗，含收录时间/为什么收/实测表现，淘汰的留架并写明原因 -->
+    <!-- 2026-11-04 expertdesk1：WorkBuddy 分支下新增「四家专家团 · 每日评估」——
+       每天 04:00 由定时任务里的四家 agent 写好报告回写库，本页只读展示（DeepSeek 分支不受影响） -->
+    <!-- 2026-11-04 board1：专家团下方新增「今日荐股 · 合并榜」——
+       四家 picks 合并、按各自体系自评 0-100 分排序，≥85 全列（不足 5 只补足并标观察），
+       点代码直开个股详情、点行看买点/止损。分数是各家自评，不跨家比较 -->
+<meta name="app-version" content="20261105-advisory" />
   <title>股票讨论实时查看器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E" />
   <link id="theme-link" rel="stylesheet" href="static/themes/dark-dashboard.css" />
-  <link rel="stylesheet" href="static/app.css?v=20261031-layout10" />
+  <link rel="stylesheet" href="static/app.css?v=20261105-advisory" />
   <link rel="stylesheet" href="static/etf.css?v=20261017-etf-2" />
   <link rel="stylesheet" href="static/visual-upgrade.css" />
   <link rel="stylesheet" href="static/bili_methods.css?v=20261012-biliconsensus" />
@@ -41,7 +48,7 @@
   <link rel="stylesheet" href="static/funnel.css?v=20261029-aireview5" />
   <link rel="stylesheet" href="static/industry_leaders.css?v=20260922-il1" />
   <!-- AI 复盘面板（2026-10-29）：独立样式层，颜色全走主题变量，暗/浅自适应 -->
-  <link rel="stylesheet" href="static/ai_review.css?v=20261031-airscore1" />
+  <link rel="stylesheet" href="static/ai_review.css?v=20261105-advisory" />
   <!-- 资金风向面板（2026-10-30 D35）：独立样式层，暖/冷=资金活跃度，不是涨跌色 -->
   <link rel="stylesheet" href="static/lhb_weather.css?v=20261030-lhbw1" />
   <!-- 公告实证面板 + VIZ 图表基元（2026-10-31）：独立样式层，颜色全走主题变量 -->
@@ -82,11 +89,21 @@
     <button class="btn" id="btnOverseas" hidden title="（已并入一键刷新）手动：抓取海外舆情数据并刷新对应面板">刷新海外舆情</button>
     <button class="btn" id="btnFetch" hidden title="（已并入一键刷新）手动：抓取淘股吧+东财新数据并入库">抓取并更新</button>
     <button class="btn primary" id="btnAllRefresh" title="一键完成：① 登录检测 → ② 抓取淘股吧/东财新数据 → ③ 刷新海外舆情（联网，失败自动保留旧数据） → ④ 同步国际局势事件库 → 刷新全部面板。按钮会显示当前进度（第几步）。">一键刷新</button>
+    <!-- 2026-11-03 D72：一键抓取。与「一键刷新」不是一回事，所以并列而不是合并：
+         「一键刷新」管的是论坛/舆情（淘股吧、东财、海外、国际局势）；
+         这个管的是**行情底座**（全市场当日 K 线 → 前复权库/后复权库 → 四个重面板预热）。
+         点了它，日更抓取从「逐只打新浪、合计 87 分钟」变成「一个 zip、十几秒」。 -->
+    <button class="btn" id="btnFastGrab" title="一键抓取（行情底座）：① 判通达信盘后包是否发布 → ② 取全市场当日一根 → ③ 写前复权库 kline_daily.db → ④ 写后复权库 kbase.db → ⑤ 预热四个重面板（低位箱体/换手榜/中线箱体/工具链漏斗）。包未发布时会自动降级成腾讯全市场快照（不写 K 线），晚上调度会自动补日线。按钮会显示当前步骤。">一键抓取</button>
     <span class="tb-sep"></span>
     <!-- 2026-10-22 全量整改新增：信息密度 / 命令面板 / 设置（运维）入口 -->
     <button class="btn sm" id="btnDensity" title="切换「紧凑 / 舒适」密度，立即生效并记忆">舒适密度</button>
     <button class="btn sm" id="btnCmdPalette" title="命令面板（Ctrl/⌘+K）：搜个股、跳面板、执行动作">⌘ 命令</button>
     <button class="btn sm" id="btnSettings" title="设置 / 运维：后台服务可控、日志目录、备份恢复、刷新与回填配置">⚙ 设置</button>
+    <!-- 2026-11-02：多智能体辩论研究入口。刻意做成独立页新标签打开，不动 app.js（2 万行）与 NAV 配置，
+         零侵入、零回归风险。页面自带「A 盘后批量 / B 单股深研」两种形态与合规提示条。 -->
+    <a class="btn sm" id="btnDebate" href="/static/debate.html" target="_blank" rel="noopener"
+       style="text-decoration:none;display:inline-flex;align-items:center;gap:4px"
+       title="多智能体辩论研究：4 位分析师（基本面/舆情/量价/大盘板块）→ 看涨 vs 看跌辩论 → 交易员出票单 → 风控审单。A=盘后批量（候选池50→终推15~18），B=单股深研。结论具随机性，仅供学习，不构成投资建议。">🧠 辩论研究</a>
   </div>
 
   <!-- P2-36 免责声明横幅（2026-10-22 全量整改）：个人研究工具，所有数据/结论仅供学习，不构成任何投资建议。常驻、不可关闭，仅本会话可折叠。 -->
@@ -123,14 +140,20 @@
 
       <!-- 今日决策（2026-10-12 体验审计 P0-A）：新的默认落地页 —— 一屏四卡（方向/机会/风险/我的票）
            + 一句话结论，数据来自 /api/today_decision（复用既有口径，不新造引擎）。 -->
-      <!-- 决策台（2026-11-01 进哥需求）：按「这次打算拿多久」分四道门 ——
-           短线热点 / 短线超跌 / 中线波段 / 长期埋伏，与「今日决策」并列但用途不同：
-           今日决策回答"今天能不能动手"，决策台回答"这个方向现在有没有机会"。
-           四页共用一套骨架（判断条 → 证据区 → 候选表 → 跳回原面板），只读今日已落库结果，
-           不在进页面时触发任何重算。tab 键是新的 desk_*，不抢占、不移动任何既有面板。 -->
+      <!-- 决策台（2026-11-01 进哥需求）：按「这次打算拿多久」分门 ——
+           2026-11-05 由四道门拆成六道（进哥：分得再细一点、标注要一眼看出持有多久）：
+           竞价冲浪 1~3 日 / 短线热点 3~10 日 / 超跌修复 1~4 周 /
+           中线突破 1~3 个月 / 筑底布局 3~6 个月 / 长期埋伏 半年~1 年。
+           与「今日决策」并列但用途不同：今日决策回答"今天能不能动手"，
+           决策台回答"这个方向现在有没有机会、该拿多久"。
+           六页共用一套骨架（判断条 → 证据区 → 候选表 → 跳回原面板），只读今日已落库结果，
+           不在进页面时触发任何重算。tab 键是新的 desk_*，不抢占、不移动任何既有面板；
+           原有 desk_hot/desk_dip/desk_mid/desk_long 四个键**保持原名**（深链接不能断）。 -->
+      <div class="panel" id="p-desk_t1"></div>
       <div class="panel" id="p-desk_hot"></div>
       <div class="panel" id="p-desk_dip"></div>
       <div class="panel" id="p-desk_mid"></div>
+      <div class="panel" id="p-desk_base"></div>
       <div class="panel" id="p-desk_long"></div>
       <div class="panel" id="p-today"></div>
       <!-- AI 复盘（2026-10-29 进哥需求）：与「今日决策」并列，但是完全不同的路 ——
@@ -270,6 +293,10 @@
     <div class="panel" id="p-integrate"></div>
     <div class="panel" id="p-dy_reso"></div>
     <div class="panel" id="p-funnel"></div>
+    <!-- 工具包（2026-11-03 进哥拍板：决策台旁边的一级入口）。
+         左边货架（含已淘汰工具的标注与原因）+ 右边能力卡 + 级联漏斗 + 结果表，
+         全部由 static/toolbox.js 渲染，进入面板才拉 /api/toolbox。 -->
+    <div class="panel" id="p-toolbox"></div>
     </div>
   </div>
 
@@ -332,7 +359,8 @@
   <script src="static/ann_event_data.js?v=20261030-thlow7"></script>
   <script src="static/ann_event.js?v=20261030-thlow7"></script>
   <script src="static/news_rules.js?v=20261007-fast"></script>
-  <script src="static/app.js?v=20261031-layout10"></script>
+  <script src="static/app.js?v=20261105-advisory"></script>
+  <script src="static/toolbox.js?v=20261105-advisory"></script>
   <script src="static/screener_extra.js?v=20261007-b125"></script>
   <script src="static/industry_leaders.js?v=20261008-il1"></script>
   <script src="static/bottleneck.js?v=20261024-bn1"></script>

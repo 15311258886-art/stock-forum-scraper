@@ -118,10 +118,26 @@ def provider_key(name: str) -> str:
         return ""
 
 
+# 2026-11-02（进哥）：「混元和千问，既然现在我不给它接，把按键先消除掉，
+# 只有 DeepSeek 和 WorkBuddy 就可以了。」——所以界面按钮收成白名单，
+# 混元/千问的定义、Key 存储、调用逻辑一概没删，只是不再出现在切换条上。
+# 以后要恢复：环境变量 AI_REVIEW_PROVIDERS=deepseek,hunyuan,qwen,workbuddy 即可，不改代码。
+VISIBLE_PROVIDERS: tuple = tuple(
+    x.strip() for x in (os.environ.get("AI_REVIEW_PROVIDERS") or "deepseek,workbuddy").split(",")
+    if x.strip()
+)
+
+
 def available_providers() -> list:
-    """只返回**已配 Key** 的模型，前端据此渲染切换按钮（不让人点了才发现没配）。"""
+    """返回**界面上要显示**的大脑：默认只有 DeepSeek + WorkBuddy。
+
+    历史：原先返回全部模型，混元/千问永远以「未配 Key·点我填」的样子占位。
+    进哥 2026-11-02 明确不接这两家，故改为白名单过滤（可用 AI_REVIEW_PROVIDERS 覆盖）。
+    """
     out = []
     for k, p in PROVIDERS.items():
+        if k not in VISIBLE_PROVIDERS:
+            continue
         ok = bool(provider_key(k))
         out.append({"key": k, "label": p["label"], "model": p["model"], "ready": ok,
                     "need_key": k != "workbuddy",
@@ -873,6 +889,25 @@ def _sec_selection(conn) -> dict:
         return {}
 
 
+# ── 2026-11-03 D66：AI 取数独立化 ────────────────────────────────────────────
+# 进哥原话：「不能让 AI 复盘找的这些数据依据是从我们现有功能当中去再做升级……
+# AI 复盘是 AI 复盘的，它们这些策略和现有库里的策略不要有交集，至少选股的逻辑上不要有交集。」
+#
+# 实测到的"交集"在哪：原 build_context 的 13 个分区里，有 3 个直接喂的是**规则引擎
+# 已经算好的选股结论**，AI 只是把它们换个说法输出 —— 那就不是"独立判断"，是"复述"：
+#   · selection = 短线形态证伪 + 低波池（就是我们的选股结论）
+#   · oss       = 开源规则/因子的重测结论（别人策略的结论）
+#   · harvest   = 局面判定 + 当日陷阱名单（局部也是选股结论）
+# 保留的是**原始层**：market / mainlines / money / news / attention / portfolio
+# —— 这些是"发生了什么"，不是"该买什么"，AI 用它们自己推，才算独立。
+# doctrine 保留但去掉 rules：docs 是用户自己的知识库文档（他的东西），
+# rules 是从文档机械化提炼的规则（属策略层，且会与规则引擎撞车）。
+#
+# 回滚：AI_INDEPENDENT=0 恢复旧行为（三路全喂）。
+AI_INDEPENDENT = os.environ.get("AI_INDEPENDENT", "1") != "0"
+_AI_RULE_SECTIONS = ("selection", "oss", "harvest")
+
+
 def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
     """汇聚当日信息包。每个分区独立取数，单区失败不影响整体。"""
     # 先回填「上次推荐的票现在什么结果」——**必须在取上下文之前做**，
@@ -882,21 +917,41 @@ def build_context(conn, date: str, provider: str = DEFAULT_PROVIDER) -> dict:
 
     ctx = {
         "review_date": date,
+        # ── 原始层：只回答"发生了什么"，不回答"该买什么" ──
         "market": _sec_market(conn, date),
         "mainlines": _sec_mainlines(conn, date),
         "money": _sec_money(conn, date),
         "news": _sec_news(conn, date),
         "attention": _sec_attention(conn, date),
         "portfolio": _sec_portfolio(conn, date),
-        "doctrine": _sec_doctrine(conn),
         "evidence": _sec_evidence(conn),
         "last": _sec_last(conn, date, provider),
         "data_health": _sec_health(conn, date),
-        "harvest": _sec_harvest(conn),
-        "oss": _sec_oss(conn),
-        "selection": _sec_selection(conn),
         "picks_ctx": "",
+        "picks_source": "ai_independent" if AI_INDEPENDENT else "rule_blended",
     }
+    if AI_INDEPENDENT:
+        # 用户知识库文档保留，但剥掉机械化提炼的 rules（详见上方常量处注释）
+        _dc = _sec_doctrine(conn)
+        if isinstance(_dc, dict):
+            _dc = dict(_dc)
+            _dc.pop("rules", None)
+            _dc["rules_omitted"] = (
+                "AI 独立模式：系统不投喂从文档提炼的规则，请你自己从上面的文档与证据里形成判断。")
+        ctx["doctrine"] = _dc
+        ctx["independence"] = {
+            "on": True,
+            "dropped_sections": list(_AI_RULE_SECTIONS),
+            "why": ("AI 复盘与规则引擎的选股逻辑必须无交集：规则引擎的候选名单、开源因子结论、"
+                    "当日陷阱名单都不投喂给模型。模型只能看原始层数据（行情/资金/新闻/关注度/持仓）"
+                    "和自己的历史成绩，自行形成观点。两边选出来的票撞了不处理，但推导路径不同源。"),
+            "switch": "环境变量 AI_INDEPENDENT=0 可回退到旧行为（三路全喂）",
+        }
+    else:
+        ctx["doctrine"] = _sec_doctrine(conn)
+        ctx["harvest"] = _sec_harvest(conn)
+        ctx["oss"] = _sec_oss(conn)
+        ctx["selection"] = _sec_selection(conn)
     try:
         import review_score as RS
         ctx["picks_ctx"] = RS.picks_context(conn, date)
@@ -1184,6 +1239,14 @@ def _render_user(ctx: dict) -> str:
     if m.get("regime"):
         L.append("系统判定的市场状态：%s（%s）" % (m["regime"].get("state"), m["regime"].get("note") or ""))
 
+    ind = ctx.get("independence") or {}
+    if ind.get("on"):
+        L.append("\n## 独立性约定（重要）")
+        L.append("本次复盘为 **AI 独立模式**：系统**没有**把规则引擎的候选票、开源因子结论、"
+                 "当日陷阱名单给你（这些维度被刻意切断），以免你的结论只是在复述另一套系统的输出。")
+        L.append("你只能用上面的原始层数据（行情广度 / 主线资金 / 龙虎榜 / 新闻政策 / 关注度 / 持仓）"
+                 "加上你自己的历史成绩单来形成判断。如果你觉得某个结论和系统推荐差不多，"
+                 "那是巧合，不用刻意避开，但推导过程必须是你自己的。")
     hv = ctx.get("harvest") or {}
     if hv.get("text"):
         L.append("\n" + hv["text"])
@@ -1439,23 +1502,36 @@ def run(conn, date: str = "", provider: str = DEFAULT_PROVIDER) -> dict:
         "err": err or None,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    try:
-        conn.execute(
-            "INSERT INTO ai_review (review_date, provider, model, status, context_json, "
-            "context_chars, output_json, raw_text, prompt_tokens, completion_tokens, "
-            "elapsed_ms, err, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (row["review_date"], row["provider"], row["model"], row["status"],
-             row["context_json"], row["context_chars"], row["output_json"],
-             row["raw_text"], row["prompt_tokens"], row["completion_tokens"],
-             row["elapsed_ms"], row["err"], row["created_at"]),
-        )
-        conn.commit()
-    except Exception:  # noqa: BLE001
-        log.exception("ai_review 落库失败")
+    # 2026-11-02：落库失败 = 这次模型调用白跑（没有缓存 → 下次进来还得再烧一遍）。
+    # 实测收盘后日更子进程（review_score_daily 的假说回测）长时间持写锁时，
+    # busy_timeout(15s) 会耗尽 → `database is locked`，结果直接丢掉。
+    # 这里对「锁」做有限重试（3 次，约 1.5s/3s/6s 退避）；非锁错误不重试。
+    for _i in range(3):
         try:
-            conn.rollback()
-        except Exception:  # noqa: BLE001
-            pass
+            conn.execute(
+                "INSERT INTO ai_review (review_date, provider, model, status, context_json, "
+                "context_chars, output_json, raw_text, prompt_tokens, completion_tokens, "
+                "elapsed_ms, err, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (row["review_date"], row["provider"], row["model"], row["status"],
+                 row["context_json"], row["context_chars"], row["output_json"],
+                 row["raw_text"], row["prompt_tokens"], row["completion_tokens"],
+                 row["elapsed_ms"], row["err"], row["created_at"]),
+            )
+            conn.commit()
+            break
+        except Exception as _e:  # noqa: BLE001
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+            _locked = "locked" in str(_e).lower() or "busy" in str(_e).lower()
+            if _locked and _i < 2:
+                log.warning("ai_review 落库遇锁，%.1fs 后重试（第 %d/3 次）",
+                            1.5 * (2 ** _i), _i + 1)
+                time.sleep(1.5 * (2 ** _i))
+                continue
+            log.exception("ai_review 落库失败（第 %d 次，已放弃）", _i + 1)
+            break
 
     _register_calls(conn, date, provider, out_json, res.get("elapsed_ms") or 0)
 

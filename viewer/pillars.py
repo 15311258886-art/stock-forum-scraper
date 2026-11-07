@@ -393,7 +393,7 @@ def pillar_t1_surf(con, td, bars_map, names) -> dict:
 
 
 # ---------------------------------------------------------------- C 超跌修复逆向
-def pillar_dip_revert(con, td, bars_map, names) -> dict:
+def _pillar_dip_revert_v1(con, td, bars_map, names) -> dict:
     """60 日深度超跌 + 企稳确认（近 3 日不创新低 + 末日收阳或收复 5 日前收盘）。
 
     诚实边界：逆向策略在「普跌」市场状态下风控闸会主动降级（见 D 支柱），本支柱自身不做择时。
@@ -455,6 +455,190 @@ def pillar_dip_revert(con, td, bars_map, names) -> dict:
                     "两档都要求「近3日不创新低 + 收阳或收复5日前收盘」，未企稳不接飞刀。条数：%s"
                     % (len(strict), len(relax), len(picked), n_relax,
                        COUNT_SPEC["dip_revert"]["label"])}
+
+
+# ---- 超跌 v2（2026-11-02 圆桌重构）----------------------------------------
+# 进哥原话：「超跌应该是连着阴跌了很多比较长的时间之后，你不能说今天掉了 10%、
+# 明天就立刻让我抄；或者连着两天掉了 5% 就让我抄，这不太对。」
+#
+# 根因**不是阈值松，是窗口短**：60 个交易日装不下一次完整阴跌，系统只能看见"急跌"，
+# 而急跌之后的第 1 根阳线必然是反弹、不是止跌 —— 所以旧版必然在"接飞刀"。
+# 故窗口 60→250 日，并补三个旧版完全没有的维度：
+#   ① 时长   dip_days —— 250 日最高收盘距今的交易日数。≥60 才算阴跌，<60 一律叫回调。
+#   ② 平滑度 smooth   —— 累计跌幅 ÷ 最大单日跌幅。≥5 说明是一路小阴；
+#                        一根断头铡刀（单日 -9%）会把它打到 3 以下，直接出局。
+#   ③ 企稳档 confirm_level —— 0/1/2/3。单日收阳只到档 1，不再"1 天收阳就放行"。
+#
+# 与现有实现的兼容：items 结构（symbol/name/score/reason/detail）不变，前端无需改；
+# detail 保留旧键 pos60 / no_new_low / yang / recover / relaxed，并新增新键。
+# 回滚：设环境变量 DIP_V2=0 走旧的 60 日逻辑（_pillar_dip_revert_v1）。
+DIP_WIN = 250               # 阴跌判定窗口（旧版 60）
+DIP_MIN_DAYS = 60           # 阴跌持续交易日数下限：一个季度，低于此叫回调不叫阴跌
+DIP_MIN_DD = -0.20          # 累计回撤下限
+DIP_MIN_SMOOTH = 5.0        # 累计跌幅 ÷ 最大单日跌幅 下限（断头铡刀排除）
+DIP_YIN_MIN = 0.50          # 近 120 日阴线占比（阴跌是"小阴不断"）
+DIP_MA20_BELOW_MIN = 0.60   # 近 120 日低于 MA20 的天数占比（贴线阴跌）
+DIP_BIGDROP_MAX = 1         # 近 120 日单日跌 >7% 的最大次数
+DIP_LOOKBACK = 120          # 结构类统计回看窗口
+
+
+def pillar_dip_revert(con, td, bars_map, names) -> dict:
+    """超跌修复逆向 v2：长期阴跌 + 平滑下行 + 企稳分档。
+
+    入池三硬门槛：阴跌时长 ≥60 日、累计回撤 ≥20%、平滑度 ≥5（无断头铡刀）。
+    企稳档 0 直接不进池（连跌阶段不该上榜）；档 1 为观察档，档 2/3 为确认档。
+    打分以「时长 / 平滑 / 阴线占比」为主，**跌幅本身不直接加分** ——
+    跌得多不给分，跌得久才给分（圆桌逆向投资人主张，2026-11-02）。
+    """
+    import os as _os
+    if _os.environ.get("DIP_V2", "1") == "0":
+        return _pillar_dip_revert_v1(con, td, bars_map, names)
+    strict, relax = [], []
+    for sym, bars in bars_map.items():
+        if len(bars) < DIP_WIN or str(bars[-1].get("d", ""))[:10] != td:
+            continue
+        nm = names.get(sym) or sym
+        w = bars[-DIP_WIN:]
+        closes = [float(b.get("c") or 0) for b in w]
+        if len(closes) < DIP_WIN or closes[-1] <= 0:
+            continue
+        cur = closes[-1]
+        # ① 阴跌时长：250 日最高收盘距今多少个交易日
+        hi = max(closes)
+        dip_days = len(closes) - 1 - closes.index(hi)
+        dd = (cur / hi - 1.0) if hi > 0 else 0.0
+        # ② 平滑度 + 单日大跌计数（近 DIP_LOOKBACK 日）
+        rets = [closes[k] / closes[k - 1] - 1.0
+                for k in range(len(closes) - DIP_LOOKBACK, len(closes))
+                if k > 0 and closes[k - 1] > 0]
+        max_drop = min(rets) if rets else 0.0
+        smooth = (abs(dd) / abs(max_drop)) if max_drop < 0 else 0.0
+        n_big = sum(1 for r in rets if r <= -0.07)
+        # ③ 阴线占比 / 低于 MA20 占比
+        seg = closes[-DIP_LOOKBACK:]
+        yin = sum(1 for k in range(1, len(seg)) if seg[k] < seg[k - 1]) / max(1, len(seg) - 1)
+        flags = []
+        for k in range(len(closes) - DIP_LOOKBACK, len(closes)):
+            if k >= 19:
+                flags.append(closes[k] < sum(closes[k - 19:k + 1]) / 20.0)
+        below_ma20 = (sum(flags) / len(flags)) if flags else 1.0
+        # —— 硬门槛 ——
+        if dip_days < DIP_MIN_DAYS or dd > DIP_MIN_DD or smooth < DIP_MIN_SMOOTH:
+            continue
+        if n_big > DIP_BIGDROP_MAX:
+            continue
+        # —— 企稳分档 ——
+        prev10 = closes[-12:-2] if len(closes) >= 12 else closes[:-2]
+        no_new_low = bool(prev10) and (min(closes[-2:]) >= min(prev10))
+        ma5 = sum(closes[-5:]) / 5.0
+        ma20v = sum(closes[-20:]) / 20.0
+        vols = [float(b.get("v") or 0) for b in w]
+        vol5 = sum(vols[-5:]) / 5.0
+        vol20 = sum(vols[-20:]) / 20.0
+        shrink = bool(vol20 > 0) and vol5 <= vol20 * 0.9
+        lastb = w[-1]
+        yang = float(lastb.get("c") or 0) >= float(lastb.get("o") or 0)
+        c5b = closes[-6] if len(closes) >= 6 else closes[0]
+        recover = cur > c5b
+        level = 0
+        if yang or recover:
+            level = 1
+        if level >= 1 and no_new_low and cur > ma5:
+            level = 2
+        if level >= 2 and cur > ma20v:
+            level = 3
+        if level < 1:
+            continue          # 连跌阶段：不上榜（旧版此时也会因"未企稳"剔除，口径一致）
+        # —— 打分（权重合计 1.0）：平滑 35 / 阴线 25 / 时长 25 / 企稳 15 ——
+        s_smooth = min(1.0, max(0.0, (smooth - DIP_MIN_SMOOTH) / 10.0)) * 100.0
+        s_yin = min(1.0, max(0.0, (yin - DIP_YIN_MIN) / 0.25)) * 100.0
+        s_days = min(1.0, max(0.0, (dip_days - DIP_MIN_DAYS) / 90.0)) * 100.0
+        s_conf = level / 3.0 * 100.0
+        score = 0.35 * s_smooth + 0.25 * s_yin + 0.25 * s_days + 0.15 * s_conf
+        pos60s = sorted(closes[-60:])
+        pos60 = (pos60s.index(cur) / max(1, len(pos60s) - 1)) if cur in pos60s else 0.5
+        bits = ["阴跌 %d 日" % dip_days,
+                "累计回撤 %.1f%%" % (dd * 100),
+                "累计/最大单日 %.1f×" % smooth,
+                "阴线占比 %.0f%%" % (yin * 100),
+                "低于MA20 %.0f%%" % (below_ma20 * 100)]
+        if level >= 2:
+            bits.append("企稳档 %d（连续2日不创新低+站上5日线）" % level)
+        else:
+            bits.append("企稳档 %d（仅止跌迹象，未确认）" % level)
+        row = {"symbol": sym, "name": nm, "score": round(score, 2),
+               "reason": "长期阴跌+企稳：" + "，".join(bits),
+               "detail": {"pos60": round(pos60, 3), "dd": round(dd, 3),
+                          "no_new_low": int(no_new_low), "yang": int(yang),
+                          "recover": int(recover), "relaxed": int(level < 2),
+                          "dip_days": dip_days, "smooth": round(smooth, 1),
+                          "yin": round(yin, 3), "below_ma20": round(below_ma20, 3),
+                          "n_big_drop": n_big, "level": level,
+                          "shrink": int(shrink)}}
+        (strict if (level >= 2 and below_ma20 >= DIP_MA20_BELOW_MIN) else relax).append(row)
+    strict.sort(key=lambda x: -x["score"])
+    relax.sort(key=lambda x: -x["score"])
+    cap, mn = CAP["dip_revert"], MIN_N["dip_revert"]
+    picked = strict[:cap]
+    if len(picked) < mn:
+        picked = picked + relax[: mn - len(picked)]
+    picked.sort(key=lambda x: -x["score"])
+    # ④ 两套风控口径对齐（2026-11-02 自查项①）。这里必须先说清一个坑：
+    #    页面上那个「⚠避雷」红标**不是** `viewer/avoid.py` 算出来的 —— 它走 `/api/avoid`
+    #    → `resonance.avoid_payload()`，口径是「共振卡 tier C 低分 + 负面归因条数」，
+    #    2026-11-02 实测 507 只 C 级（占全市场 13%）。而 `avoid.compute()` 算的是另一件事：
+    #    放量/龙虎榜/MACD 的**下跌风险**实时评分（high≥7 / mid≥2）。
+    #    两套都留着、各管一段，因为混用会得出错误结论（实测：按 tier C 直接剔除会把
+    #    超跌名单砍掉一半，而 tier C 里既有"真雷"也有"跌到位只是没人炒"的票）。
+    #
+    #    分工：
+    #      · `avoid.compute` high 档 → **剔除**（硬风险：立案/大额减持/异动，不该出现在"抄底"名单）
+    #      · `resonance` tier C     → **打标不剔除**（软信号：共振卡评分低，与"阴跌够久"是两个维度）
+    #    两个模块任一不可用都**不阻断**超跌名单（宁可少一层闸门，也不能让整个支柱挂掉），只留痕。
+    n_avoid_high = n_avoid_mid = n_avoid_c = 0
+    _av = {}
+    try:
+        from viewer import avoid as _AV
+        _av = _AV.compute(con, [x["symbol"] for x in picked], as_of=td) or {}
+    except Exception:      # noqa: BLE001
+        logging.getLogger(__name__).warning("超跌支柱：下跌风险评分不可用，本轮未做硬闸门")
+    _tier_c = set()
+    try:
+        from viewer import resonance as _RS
+        _ap = _RS.avoid_payload(con, limit=800) or {}
+        _tier_c = {str(_i.get("code") or "") for _i in (_ap.get("items") or [])
+                   if str(_i.get("tier") or "") == "C"}
+    except Exception:      # noqa: BLE001
+        logging.getLogger(__name__).warning("超跌支柱：共振卡避雷名单不可用，本轮未做交叉打标")
+    _kept = []
+    for _x in picked:
+        _a = _av.get(_x["symbol"]) or {}
+        _lv = _a.get("level")
+        if _lv == "high":
+            n_avoid_high += 1
+            continue
+        if _lv == "mid":
+            n_avoid_mid += 1
+            _keys = [str((_f or {}).get("key") or "") for _f in (_a.get("flags") or [])[:2]]
+            _x["reason"] = ("⚠ 下跌风险（%s）：" % ("、".join(k for k in _keys if k) or "中风险")
+                            ) + _x["reason"]
+            _x["detail"]["avoid_level"] = "mid"
+        if _x["symbol"] in _tier_c:
+            n_avoid_c += 1
+            _x["reason"] = "⚠避雷C档｜" + _x["reason"]
+            _x["detail"]["avoid_tier"] = "C"
+        _kept.append(_x)
+    picked = _kept
+    n_relax = sum(1 for x in picked if x["detail"]["relaxed"])
+    return {"items": picked,
+            "note": "超跌v2：250日窗口 / 阴跌≥%d日 / 回撤≥%d%% / 累计跌幅÷最大单日≥%.0f×"
+                    "（断头铡刀出局）；确认档 %d 只 / 观察档 %d 只 → 取 %d 只。"
+                    "旧版「60日分位+1日收阳」口径已停用（DIP_V2=0 可回退）。条数：%s。"
+                    "风控对齐：下跌风险高风险剔除 %d 只、中风险打标 %d 只；共振卡 C 档交叉打标 %d 只。"
+                    % (DIP_MIN_DAYS, abs(DIP_MIN_DD) * 100, DIP_MIN_SMOOTH,
+                       len(strict), len(relax), len(picked),
+                       COUNT_SPEC["dip_revert"]["label"],
+                       n_avoid_high, n_avoid_mid, n_avoid_c)}
 
 
 # ---------------------------------------------------------------- 打分校准 + 排序校准

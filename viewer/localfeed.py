@@ -46,12 +46,42 @@ def _appdb_path() -> str:
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.db")
 
 
+def _master_codes() -> set:
+    """`security_master` 里 kind='stock' 的代码集合（权威 A 股名单）。
+
+    为什么需要它：`stock_names` 是**采集管道的落地表**，任何采集口径错误都会直接
+    写进去；而本函数是「全市场池」的第二个来源，一旦不设闸，采集侧的错会变成
+    全站口径的错。2026-11-05 就是这么炸的 —— 东财 clist 的北交所子句漏了 `+s:2048`，
+    6464 只**新三板**被当成北交所股票写进 stock_names，本函数把名称表整表并进来，
+    池子由 5600 涨到 12030，`kline_daily` 逐只拉新浪、5860 只必失败 →
+    任务每天判失败、健康度 degraded、单轮白烧 2171s。
+
+    `security_master` 由 `tools/build_security_master.py` 用「多源合成 + 显式标注
+    kind」建成，是项目里唯一声明「这是不是股票」的地方（ARCHITECTURE §四.4 单一事实源）。
+    取不到时返回空集，调用方据此退回旧行为 —— 不因为主表缺失就把池子砍成 0。
+
+    ★ 注意：**不能靠代码段区分**新三板与北交所（43/83/87/92 段两者通用），
+    所以这里只能做「主表白名单」，不做前缀黑名单。
+    """
+    try:
+        from viewer import security_master as SM
+        con = sqlite3.connect("file:%s?mode=ro" % _appdb_path(), uri=True)
+        try:
+            return set(SM.stock_codes(con))
+        finally:
+            con.close()
+    except Exception:  # noqa: BLE001  主表不可用 → 退回旧行为（由采集侧修源头）
+        return set()
+
+
 def pool(with_names: bool = True) -> dict:
-    """全市场股票池 {code: name}：本地 K 线库 ∪ 名称表。
+    """全市场股票池 {code: name}：本地 K 线库 ∪ 名称表（名称表那一半必须过主表白名单）。
 
     · 以 `kbase.db` 的 code 为准（有日线才算「可扫描」，这是各面板的实际前提）；
     · 名称从 `app.db.stock_names` 补（kbase 不存名称）；
-    · 名称缺失的票保留在池里但名字为空串 —— 宁可显示代码，也不把票从池里丢掉。
+    · 名称缺失的票保留在池里但名字为空串 —— 宁可显示代码，也不把票从池里丢掉；
+    · **名称表独有的票（kbase 没有的）必须同时出现在 `security_master` 才并入** ——
+      它们是「新上市 / 停采」的补票通道，而这个通道以前没有闸（见 `_master_codes`）。
     """
     codes = []
     try:
@@ -73,11 +103,16 @@ def pool(with_names: bool = True) -> dict:
     out = {}
     for c in codes:
         out[c] = names.get(c, "")
-    # 名称表里有些票 kbase 没有（新上市/停采），也放进来，让调用方自己决定要不要补
+    # 名称表里有些票 kbase 没有（新上市/停采），也放进来，让调用方自己决定要不要补。
+    # 但必须过主表白名单：否则采集侧一次口径错误就会把整个「全市场」放大一倍。
+    allow = _master_codes()
     for c, n in names.items():
         if c not in out and n:
+            if allow and c not in allow:
+                continue
             out[c] = n
     return out
+
 
 
 def names(codes) -> dict:

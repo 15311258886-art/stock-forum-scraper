@@ -16,8 +16,28 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
+import time as _time
 from datetime import datetime
 from pathlib import Path
+
+# ── 单次请求的取数预算（2026-11-05 自审新增）──────────────────────────────
+# 为什么必须有：`_compute` 的路径是「1 次全市场行情 + 1 次行业列表 + 逐行业 1 次成分股」，
+# 实测 31 个行业 → 33 次串行第三方 HTTP，akshare 那层**没有超时参数**。
+# 于是网络一抽风，这个接口就在**请求线程里无限等**：2026-11-05 探活实测
+# `GET /api/industry_leaders` 跑到 45s 仍未返回（curl 直接 000 超时），
+# 而服务是单进程多线程 —— 一个卡死的请求会一直占着线程，用户看到的是「点了没反应」。
+#
+# 处理原则沿用本模块红线②：**诚实降级，绝不编造**。
+# 超时只是"这次没取到"，返回 available:False + 明确原因，前端照原样提示即可，
+# 绝不拿上一次的/别的行业的数字凑一份看起来完整的表格。
+_DEADLINE_SEC = 25.0
+
+# 单飞闸：同一时刻只允许一个 `_compute` 在跑。
+# 没有它的话，超时返回后用户会连点，每次点都新起一个 33 次 HTTP 的后台计算 →
+# 线程与连接成倍堆积，比原来"卡一次"更糟。拿到锁的那次跑完才释放，
+# 期间其它请求立刻得到「正在计算」，不排队、不叠加。
+_COMPUTE_LOCK = threading.Lock()
 
 # ── 第三方库搜索路径注入（沙箱用 --target extlib 安装，本机若无则自动忽略）──
 _THIS_FILE = Path(__file__).resolve()
@@ -96,6 +116,7 @@ def _compute(top: int) -> dict:
 
     绝不在此构造任何虚假市值 / 虚假头部：无市值的成分股一律沉底，且不会被标记为头部。
     """
+    _t0 = _time.time()
     # 1) 申万一级行业名（东方财富行业板，约 31 个，对齐任务要求）
     name_df = _ak.stock_board_industry_name_em()
     if name_df is None or len(name_df) == 0:
@@ -127,8 +148,16 @@ def _compute(top: int) -> dict:
         }
 
     # 2)+4) 逐行业取成分股 → 按真实市值降序 → Top N 标头部
+    # 2026-11-05：逐个行业之间先看还剩多少预算。到点就**带着已拿到的行业收工**，
+    # 而不是继续把 31 次 HTTP 跑完 —— 后台线程才有机会真正结束、把单飞锁放掉。
+    # 注意这不是"降级成假数据"：已拿到的每个行业都是真实成分股与真实市值，
+    # 只是行业数少于全量，用 partial 标记如实告知。
     industries = []
+    timed_out = False
     for iname in industry_names:
+        if _time.time() - _t0 > _DEADLINE_SEC:
+            timed_out = True
+            break
         try:
             cons_df = _ak.stock_board_industry_cons_em(symbol=iname)
         except Exception:  # noqa: BLE001
@@ -181,7 +210,12 @@ def _compute(top: int) -> dict:
         "available": True,
         "top": top,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "message": "",
+        # partial=True 只表示「行业没收全」，不代表数据是造的：每个行业都是真实成分股。
+        # 前端可据此提示"本次只覆盖 N/M 个行业"。
+        "partial": bool(timed_out),
+        "industry_total": len(industry_names),
+        "message": ("取数超预算，仅完成 %d/%d 个行业（数据均为真实值，未补造）"
+                    % (len(industries), len(industry_names))) if timed_out else "",
         "industry_count": len(industries),
         "industries": industries,
     }
@@ -214,16 +248,53 @@ def get_industry_leaders(top: int = 5) -> dict:
         cached.pop("_date", None)
         return cached
 
-    try:
-        result = _compute(top)
-    except Exception as e:  # noqa: BLE001
-        # 红线②：任意真实源调用抛异常 → 诚实降级，绝不编造市值 / 头部
+    # ── 带预算的执行（2026-11-05）──────────────────────────────────────
+    # 不能直接 `result = _compute(top)`：实测是 **59 个行业 × 1.2s ≈ 71 秒**的串行第三方
+    # HTTP，akshare 那层没有超时参数，且跑在请求线程里 → 接口挂死（实测 45s 无响应）。
+    # 改成「后台线程算 + 主线程最多等 _DEADLINE_SEC」：到点就返回降级态，接口永不挂死。
+    #
+    # ★ 缓存必须写在**子线程**里（下面 _run 的 finally 之前），不能写在 join 之后。
+    #   否则主线程 25s 超时返回、子线程 ~71s 算完却没人落缓存 → 下一次请求又从零开始、
+    #   又超时 → 当日缓存永远填不上，接口永久处于「降级」。第一版就写错了这一点。
+    if not _COMPUTE_LOCK.acquire(blocking=False):
         return {"available": False,
-                "message": _UNAVAILABLE_MSG + "（真实源异常：" + str(e)[:160] + "）",
+                "message": "行业龙头正在取数（首次约 1~3 分钟，成功后当天缓存、之后秒出），"
+                           "请稍后重试。",
                 "industries": []}
 
-    # 落当日缓存（仅成功结果，绝不缓存降级态）
-    result["_date"] = datetime.now().strftime("%Y-%m-%d")
-    _save_cache(cache_key, result)
-    result.pop("_date", None)
+    _box: dict = {}
+
+    def _run() -> None:
+        try:
+            _res = _compute(top)
+            # 落当日缓存（仅成功结果，绝不缓存降级态）—— 与主线程是否已超时无关
+            _res["_date"] = datetime.now().strftime("%Y-%m-%d")
+            _save_cache(cache_key, _res)
+            _res.pop("_date", None)
+            _box["r"] = _res
+        except Exception as e:  # noqa: BLE001
+            _box["e"] = e
+        finally:
+            # 故意在**子线程**里释放：若主线程已超时返回，锁仍由这一轮持有，
+            # 后续请求会拿到「正在计算」而不是再起一轮 —— 这就是单飞的实现。
+            try:
+                _COMPUTE_LOCK.release()
+            except RuntimeError:
+                pass
+
+    _th = threading.Thread(target=_run, name="industry-leaders", daemon=True)
+    _th.start()
+    _th.join(_DEADLINE_SEC)
+    if _th.is_alive():
+        # 红线②的延伸：超时 = "这次没取到"，不是"给别人一份旧的"。
+        return {"available": False,
+                "message": _UNAVAILABLE_MSG + "（取数超过 %.0f 秒未完成，后台仍在继续；"
+                                              "算完后当天内再打开即秒出）" % _DEADLINE_SEC,
+                "industries": []}
+    if "e" in _box:
+        return {"available": False,
+                "message": _UNAVAILABLE_MSG + "（真实源异常：" + str(_box["e"])[:160] + "）",
+                "industries": []}
+    result = _box["r"]
+    # 缓存已由 _run() 在子线程里落过（见上面的说明：不能等 join 之后再存）。
     return result

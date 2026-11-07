@@ -54,6 +54,11 @@ const _API_HEAVY_PATHS = [
   // （读市场横截面/主线/资金/政策/情绪/持仓/知识库十余张表）。实测本机在调度重活期间
   // 拼一次包可能超过 15 秒 —— 那是"后端在干活"，不该被判成"坏了"并触发重试。
   "/api/ai_review",
+  // 2026-11-02（进哥：「等了得有好几分钟，依然没有出来」）：/api/ai_picks 被漏在这份名单外，
+  // 一直吃 15s 默认预算，而它实测 17~23s（回填打分 + 票单 + 成绩单）→ **每次必然判超时** →
+  // 自动重试 3 轮（4s/10s/25s）→ 每轮又跑 18s → 界面永远停在「已等待 0 秒」。
+  // 这不是"它坏了"，是"它慢"被当成了"它坏"。补进重接口名单，与 /api/ai_review 同待遇。
+  "/api/ai_picks",
 ];
 /* 2026-10-29：GET 单飞表（key → 在飞 Promise）。同一接口同一参数已有请求在飞时，直接复用，
    不再另发——这才是「越刷越堵」的根治：实测重试风暴把后端队列撑到 17~25 分钟才回。 */
@@ -4104,6 +4109,13 @@ function tdRowMetaBadge(kind, x) {
  * 数据来自 /api/ai_review（后端 viewer/ai_review.py，每次调用落库可审计）。
  * ============================================================================ */
 const AIR = { data: null, provider: "", polling: null, tries: 0, hist: null, sinceId: 0, date: "" };
+// 2026-11-03：与后端 viewer/server.py 的 _AI_WB_FALLBACK_SEC 同一口径。
+// 前端用它决定"这句文案是催还是安抚"，后端用它决定"要不要真启动兜底" ——
+// 两处必须一致，否则会出现「页面说会自动兜底，后端还在傻等」的假承诺。
+const WB_FALLBACK_SEC = 30;
+// 同理对应后端 _AI_WB_TAKEN_STALE_SEC：取包后 5 分钟没回填 = 那一路死了，转兜底。
+// 前端拿它做文案（"5 分钟没回填会自动兜底"），不参与任何判定。
+const WB_TAKEN_STALE_SEC = 300;
 
 function airProviderName(key) {
   const p = (AIR.data && AIR.data.providers || []).find((x) => x.key === key);
@@ -4126,6 +4138,9 @@ function loadAiReview(opts) {
   const dt = o.date || AIR.date;
   if (dt) qs.push("date=" + encodeURIComponent(dt));
   if (o.force) qs.push("force=1");
+  // 2026-11-02：peek = 只看不动手。切换大脑时用它，避免"切一下就把当天重算一遍"。
+  // 与 force / since_id 互斥：peek 只关心"有没有现成结论"，不参与水位线判断。
+  else if (o.peek) qs.push("peek=1");
   // 结果水位线：点「重新分析」后后台要算 10s，这期间如果轮询只看「有没有缓存」，
   // 会立刻拿到上一份旧结果并误判成已完成（真实踩到过：库里还是旧 id，页面显示旧判断）。
   // 所以重算时记下当时的 MAX(id)，轮询带上它，只有出现更新的记录才算这一轮真出结果。
@@ -4147,6 +4162,10 @@ function loadAiReview(opts) {
       if (ready.length) AIR.provider = ready[0].key;
     }
     renderAiReview();
+    // 2026-11-04：四家专家团只在 WorkBuddy 分支挂载（paintAiExpert 内部自查 provider，
+    // DeepSeek/混元等一律直接返回，不渲染也不发请求）。放在 renderAiReview 之后，
+    // 是因为 renderAiReview 会重写 innerHTML，必须等它写完再挂到顶部。
+    paintAiExpert();
     if (d && d.state === "computing") airStartPoll();
     else airStopPoll();
     return d;
@@ -4190,10 +4209,15 @@ function airRenderError(e) {
 function airStartPoll() {
   if (AIR.polling) return;
   AIR.tries = 0;
-  // 前快后慢：模型正常 10~60s 出结果，前 30s 每 3s 问一次，之后 8s 一次，最多约 4 分钟
+  // 前快后慢：模型正常 10~60s 出结果，前 30s 每 3s 问一次，之后 8s 一次。
+  // 2026-11-03（进哥：「还在那转圈」）：上限从 30 次（≈190s）提到 70 次（≈9 分钟）。
+  // 为什么必须放宽：WorkBuddy 走「入队 → 30 秒没人接单 → 自动用 DeepSeek 兜底」，
+  // 兜底本身还要 7~11 秒；旧上限 190 秒会在某些时序下**先停轮询**，画面就冻在
+  // 「排队 N 秒」+ CSS 转圈上 —— 用户看到的"转了十几分钟"其实是轮询早就停了。
+  // 只有轮询还在跑，兜底结果才能被接住；停在 70 次是为了仍然有尽头（不至于无限请求）。
   const tick = () => {
     AIR.tries += 1;
-    if (AIR.tries > 30) { airStopPoll(); return; }
+    if (AIR.tries > 70) { airStopPoll(); return; }
     const wait = AIR.tries <= 10 ? 3000 : 8000;
     AIR.polling = setTimeout(() => {
       AIR.polling = null;
@@ -4204,6 +4228,363 @@ function airStartPoll() {
 }
 function airStopPoll() {
   if (AIR.polling) { clearTimeout(AIR.polling); AIR.polling = null; }
+}
+
+/* ============================================================================
+ * 四家专家团 · 每日评估（2026-11-04 进哥需求）
+ * ----------------------------------------------------------------------------
+ * 为什么只挂在 WorkBuddy 分支下：
+ *   WorkBuddy 与 DeepSeek 是两条完全不同的链路 ——
+ *     · DeepSeek：点了就现算，10 秒出结果（本文件的 AIR 那条链路）；
+ *     · 专家团  ：每天 04:00 由定时任务里的四家 agent 写好报告存进库，
+ *                 本页面只是「读」它们（/api/ai_expert，只读、零模型调用）。
+ *   把四张卡挂在 DeepSeek 下面，用户会以为「DeepSeek 变慢了/变复杂了」。
+ *   所以 provider !== workbuddy 时这里**不渲染、不发请求**（一次都不发）。
+ *
+ * 为什么不做轮询：报告一天只变一次（04:00 写）。轮询只会白耗请求，
+ * 还会让「今日未跑」这件事看起来像"正在加载"。进 tab 时拉一次即可。
+ * ============================================================================ */
+const AIE = {
+  data: null,      // /api/ai_expert 的响应（items 恒为 4 条）
+  loading: false,  // 单飞：避免进入 tab 时重复发请求
+  asked: false,    // 本轮是否已经自动问过一次（失败后不再自动重试，防止打爆接口）
+  date: "",        // 用户手动选的交易日（空 = 接口默认的最新一天）
+  openKey: "",     // 当前展开全文的那一家
+  openPk: "",      // 合并榜里当前展开买点/止损的那一只（key|code）
+  boardMap: {},    // { code: [榜单行] } —— 点代码开个股时把各家推荐理由带进抽屉
+  report: {},      // { key: report_md } —— 全文按需取，点开才请求
+  dates: [],       // 见过的日期（下拉用；接口只回 latest_date 与当前 date）
+  err: ""
+};
+
+/* 是否该显示这一块：只看「当前大脑是不是 WorkBuddy」，与报告数据无关。
+   强制转成布尔：AIR.data 为空时 `&&` 会返回 null，虽然调用方用 `!` 判断不受影响，
+   但一个叫 Visible 的谓词返回 null 会让下一个人以为它返回的是"数据"，读代码时多疑一次。 */
+function aieVisible() {
+  return !!(AIR.provider === "workbuddy" ||
+            (AIR.data && AIR.data.provider === "workbuddy"));
+}
+
+/* 极简 markdown → HTML。**先 esc 再处理标记**，绝不把未转义内容塞进 innerHTML。
+   为什么要自己写：本项目没有引入任何 markdown 库（marked 不在依赖里，也不该为一块面板
+   新增第三方依赖）。报告的写法是可预期的（标题/列表/粗体/表格），够用即止。 */
+function aieMd(md) {
+  const src = esc(String(md || "")).replace(/\r\n/g, "\n");
+  const inline = (s) => s
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  const out = [];
+  let tbl = null;
+  const flushTbl = () => {
+    if (tbl && tbl.length) out.push(`<table class="aie-tbl">${tbl.join("")}</table>`);
+    tbl = null;
+  };
+  src.split("\n").forEach((raw) => {
+    const line = raw.trim();
+    if (/^\|/.test(line)) {
+      // 表格分隔行（|---|---|）没有信息量，直接丢
+      if (/^[\s|:\-]+$/.test(line)) return;
+      const cells = line.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      if (!tbl) {
+        tbl = [];
+        tbl.push("<tr>" + cells.map((c) => `<th>${inline(c)}</th>`).join("") + "</tr>");
+      } else {
+        tbl.push("<tr>" + cells.map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>");
+      }
+      return;
+    }
+    flushTbl();
+    if (!line) { out.push('<div class="aie-gap"></div>'); return; }
+    const h = line.match(/^(#{1,6})\s*(.+)$/);
+    if (h) {
+      out.push(`<div class="aie-h" data-lv="${h[1].length}">${inline(h[2])}</div>`);
+      return;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      out.push(`<div class="aie-li">• ${inline(line.replace(/^[-*]\s+/, ""))}</div>`);
+      return;
+    }
+    out.push(`<div class="aie-p">${inline(line)}</div>`);
+  });
+  flushTbl();
+  return out.join("");
+}
+
+/* 状态徽标：三种情况必须一眼分清
+   ① 没装专家包 → 不可能有报告（说「未安装」，不让人干等）
+   ② 装了但今天没跑 → 「今日未跑 · 每天 04:00 自动」
+   ③ 有报告 → 直接显示 立场·仓位（这才是用户要的第一信息） */
+function aieBadge(it) {
+  if (!it.installed) return '<span class="aie-badge off">专家包未安装</span>';
+  if (it.status && it.status !== "missing") {
+    const t = [it.stance, it.position].filter(Boolean).join(" · ");
+    return `<span class="aie-badge ok">${esc(t || "已出报告")}</span>`;
+  }
+  return '<span class="aie-badge miss">今日未跑 · 每天 04:00 自动</span>';
+}
+
+function aieCard(it) {
+  const has = it.status && it.status !== "missing";
+  const picks = (it.picks || []).slice(0, 3).map((p) => (
+    `<div class="aie-pick"><b>${esc(p.code || "")}</b> ${esc(p.name || "")}` +
+    (p.action ? ` · ${esc(p.action)}` : "") +
+    // 有评分就带上分数：卡片上先给一眼，详细的理由在合并榜里
+    (p.score != null ? ` <span class="aie-pk-sc${p.score >= 85 ? " hot" : ""}">${p.score}</span>` : "") +
+    "</div>"
+  )).join("");
+  return `<div class="aie-card${has ? "" : " dim"}" onclick="aieToggle('${escAttr(it.key)}')"
+      title="${has ? "点开看完整报告" : "今天还没有这一家的报告"}">
+    <div class="aie-name">${esc(it.name)}</div>
+    <div class="aie-tags">${(it.tags || []).map((t) => `<span>${esc(t)}</span>`).join("")}</div>
+    ${aieBadge(it)}
+    <div class="aie-verdict">${esc(it.verdict || (has ? "" : "—"))}</div>
+    ${picks ? `<div class="aie-picks">${picks}</div>` : ""}
+    ${has && (it.picks || []).length > 3
+      ? `<div class="aie-more">另有 ${(it.picks || []).length - 3} 只 → 点开看全文</div>` : ""}
+    ${has && it.score_note
+      ? `<div class="aie-note" title="这一家的评分口径：分数不可跨家比较">评分口径：${esc(it.score_note)}</div>` : ""}
+  </div>`;
+}
+
+/* 日期下拉：用接口回的 latest_date + 本次 date 组成（最多两个），
+   不编造"上一交易日"—— 04:00 时 latest_date 本身就是上一个交易日。 */
+function aieDateSel(d) {
+  const seen = [];
+  (AIE.dates || []).concat([d.latest_date, d.date]).forEach((x) => {
+    if (x && seen.indexOf(x) < 0) seen.push(x);
+  });
+  seen.sort().reverse();
+  if (seen.length < 2) {
+    return `<span class="aie-sub">${esc(d.date || "")}${d.date && d.date === d.latest_date ? "（最新交易日）" : ""}</span>`;
+  }
+  const opts = seen.map((x) => (
+    `<option value="${escAttr(x)}"${x === (AIE.date || d.date) ? " selected" : ""}>` +
+    `${esc(x)}${x === d.latest_date ? "（最新交易日）" : ""}</option>`
+  )).join("");
+  return `<select class="air-date" onchange="aiePickDate(this.value)" title="回看之前的交易日">${opts}</select>`;
+}
+
+/* 今日荐股 · 合并榜（2026-11-04 进哥需求）
+ * ----------------------------------------------------------------------------
+ * 为什么要合并成一张表，而不是在四张卡里各列一遍：
+ *   四张卡各占一格，二十来只票散在四格里，人得读完四家才能横向比较；
+ *   进哥要的是「今天都有哪些票、哪几只最值得看」——那就必须排在一起、按分数说话。
+ *
+ * 为什么分数旁边要写清「各家尺度不同」：
+ *   85 分在腾讯团是"体系内可下单"，在五浪法可能只是"浪型没走完"。
+ *   分数是**各家自评**，不跨家可比。不写这句，跨家比大小就是误读。
+ *   我们只保证一件事：分数是各家自己给的、我们没有二次加工（(0-100 归一化除外）。
+ */
+function aieBoardHtml(d) {
+  const b = d && d.board;
+  if (!b) return "";
+  const rows = b.items || [];
+  AIE.boardMap = {};   // 每次渲染重建：换交易日后旧理由绝不能留在这只票的抽屉里
+  const head = `<div class="aie-board-hd">
+      <b class="aie-title">今日荐股 · 合并榜</b>
+      <span class="aie-sub">四家自评 0-100（各家尺度不同，别跨家比大小）· ≥${b.min_score} 分 = 各家体系里的「可下单」档${
+        b.n_strong ? ` · 今日达标 ${b.n_strong} 只` : ""}</span>
+    </div>`;
+  if (!rows.length) {
+    return `<div class="aie-board">${head}<div class="aie-sub" style="padding:6px 0">
+      这一天的报告没有评分（评分从下一批报告开始生效）。点开上面的卡片仍可看全文。</div></div>`;
+  }
+  const body = rows.map((r) => {
+    const k = r.key + "|" + r.code;
+    const open = AIE.openPk === k;
+    const cls = "aie-brow" + (r.strong ? " hot" : "") + (open ? " open" : "");
+    // 同码多家的理由汇总，供「点代码开个股」时带进抽屉（进哥：点开个股之后也要能看见推荐理由）
+    (AIE.boardMap[r.code] = AIE.boardMap[r.code] || []).push(r);
+    return `<div class="${cls}" onclick="aiePkToggle('${escAttr(k)}')">
+      <div class="aie-score${r.strong ? " hot" : ""}">${r.score}</div>
+      <div class="aie-bk">
+        <div class="aie-bk-hd">
+          <b class="aie-code" title="点开这只票的个股详情"
+             onclick="event.stopPropagation();aieOpenStock('${escAttr(r.code)}',this)">${esc(r.code)}</b>
+          <b>${esc(r.name)}</b>
+          <span class="aie-bk-team">${esc(r.team)}</span>
+          <span class="aie-bk-act">${esc(r.action)}</span>
+          ${r.co_teams > 1 ? `<span class="aie-bk-co">${r.co_teams} 家共推</span>` : ""}
+        </div>
+        <div class="aie-bk-rs">${esc(r.reason)}</div>
+        ${open ? `<div class="aie-bk-x">买点：${esc(r.entry || "—")}　止损：${esc(
+          r.stop || "—")}　周期：${esc(r.horizon || "—")}</div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="aie-board">${head}<div class="aie-brows">${body}</div>${
+    b.n_scored > rows.length
+      ? `<div class="aie-sub" style="padding-top:4px">另有 ${
+          b.n_scored - rows.length} 只低于达标线，见各家全文</div>`
+      : ""}</div>`;
+}
+
+/* 点一行展开买点/止损（同一时间只展开一只，避免整页跳）。点代码是另一个动作：
+   直接开个股详情，所以那个 span 必须 stopPropagation，否则会先触发本行展开。 */
+function aiePkToggle(k) {
+  if (!k) return;
+  AIE.openPk = (AIE.openPk === k) ? "" : k;
+  paintAiExpert();
+}
+
+/* 点代码 → 开个股详情，并把「哪些专家团推了它、推多少分、为什么」**贴在最上面**。
+ * 为什么不走 openStock 的 extraHtml 参数：那个位置在抽屉最底部（K 线、持仓选手之后），
+ * 是给「共同持仓/共识」这类补充信息用的。进哥要的是"点开个股就看得到推荐理由"，
+ * 贴在几屏之后等于没贴。所以这里开完抽屉，自己把块插到 body 顶部（跳转 chips 之后）。
+ * 同一只票可能几家都推（共推），全部列出，分数高的在前。 */
+function aieOpenStock(code, anchorEl) {
+  if (!/^\d{6}$/.test(String(code || ""))) return;
+  const rows = (AIE.boardMap || {})[code] || [];
+  openStock(code, anchorEl);
+  if (!rows.length) return;
+  const body = document.getElementById('drawerBody');
+  if (!body) return;
+  const extra = `<div class="aie-dr">
+      <div class="aie-dr-hd">专家团最新评估 · 共 ${rows.length} 家提到这只票</div>
+      ${rows.map((r) => `<div class="aie-dr-row">
+        <div class="aie-dr-t"><b class="aie-dr-sc${r.strong ? " hot" : ""}">${r.score}</b>
+          ${esc(r.team)}<span class="aie-bk-act">${esc(r.action)}</span></div>
+        <div class="aie-dr-rs">${esc(r.reason)}</div>
+        <div class="aie-dr-x">买点：${esc(r.entry || "—")}　止损：${esc(r.stop || "—")}　周期：${esc(r.horizon || "—")}</div>
+      </div>`).join("")}
+      <div class="aie-sub">分数是各家按自己体系给的（0-100），不跨家比较。</div>
+    </div>`;
+  const jump = body.querySelector('.drawer-jump');
+  if (jump) jump.insertAdjacentHTML('afterend', extra);
+  else body.insertAdjacentHTML('afterbegin', extra);
+}
+
+function aieHtml() {
+  const d = AIE.data;
+  const head = `<div class="aie-head">
+      <div class="aie-hd-l"><b class="aie-title">四家专家团 · 每日评估</b>
+        ${d ? aieDateSel(d) : ""}</div>
+      <div class="aie-hd-r"><span class="aie-sub">每天 04:00 自动出报告 · 点卡片看全文</span></div>
+    </div>`;
+  if (AIE.err) {
+    return `${head}<div class="aie-err">专家团报告没取到：${esc(AIE.err)}
+      <button class="btn sm" onclick="aieReload(this)">重试</button>
+      <span class="aie-sub">（不影响上面 WorkBuddy 的复盘结果）</span></div>`;
+  }
+  if (!d || !d.items) {
+    return `${head}<div class="aie-loading">正在读取四家专家团当天报告…</div>`;
+  }
+  let html = head + `<div class="aie-grid">${d.items.map(aieCard).join("")}</div>` + aieBoardHtml(d);
+  if (AIE.openKey) {
+    const it = (d.items || []).find((x) => x.key === AIE.openKey) || {};
+    const has = it.status && it.status !== "missing";
+    const body = AIE.report[AIE.openKey];
+    html += `<div class="aie-full">
+      <div class="aie-full-hd"><b>${esc(it.name || AIE.openKey)}</b>
+        <span class="aie-sub">${esc(it.created_at || "")}${
+          it.elapsed_ms ? ` · 用时 ${(it.elapsed_ms / 1000).toFixed(1)}s` : ""}</span>
+        <button class="btn sm" onclick="aieToggle('${escAttr(AIE.openKey)}')">收起</button></div>
+      ${!has
+        ? '<div class="aie-sub">这一家今天还没有报告。每天 04:00 的定时任务跑完后会自动出现在这里。</div>'
+        : (body == null
+          ? '<div class="aie-sub">正在读取全文…</div>'
+          : (body ? `<div class="aie-md">${aieMd(body)}</div>`
+                  : '<div class="aie-sub">这一家只回了结论，没有留全文报告。</div>'))}
+    </div>`;
+  }
+  return html;
+}
+
+/* 把整块插到 AI 复盘**结果区顶部**（标题/大脑切换条之下、结论之上）。
+   为什么每次都重新找节点再 insertBefore：renderAiReview 会重写 box.innerHTML，
+   我们不可能也不该去改它的每个分支（尤其不能碰 DeepSeek 那段），
+   所以由这里在外层"补挂"，是改动面最小、且对既有渲染零影响的做法。
+   为什么排在 .air-head 之后而不是 box 第一行：标题条里有「用哪个大脑」的切换按钮，
+   把它压到四张卡下面，用户换回 DeepSeek 得先滚过一屏 —— 那不是"新功能"，那是把旧功能藏起来。 */
+function paintAiExpert() {
+  const box = $("#p-ai_review");
+  if (!box) return;
+  let el = $("#air-expert");
+  if (!aieVisible()) {
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    return;
+  }
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "air-expert";
+    el.className = "aie";
+  }
+  const head = box.querySelector(".air-head");
+  if (head && head.parentNode === box) box.insertBefore(el, head.nextSibling);
+  else if (box.firstChild !== el) box.insertBefore(el, box.firstChild);
+  el.innerHTML = aieHtml();
+  if (!AIE.data && !AIE.loading && !AIE.asked) {
+    AIE.asked = true;
+    loadAiExpert(AIE.date);
+  }
+}
+
+/* 取数（只读）。失败也**不抛**：上面 WorkBuddy 的复盘是独立的一条链路，
+   专家团拿不到不该把整页拖进错误态。 */
+function loadAiExpert(date) {
+  if (AIE.loading) return Promise.resolve(null);
+  AIE.loading = true;
+  const dt = date || "";
+  const url = "/api/ai_expert" + (dt ? ("?date=" + encodeURIComponent(dt)) : "");
+  return api(url, { label: "专家团报告" }).then((r) => {
+    AIE.loading = false;
+    AIE.err = "";
+    AIE.data = r || null;
+    if (r && r.date) {
+      AIE.date = r.date;
+      if (AIE.dates.indexOf(r.date) < 0) AIE.dates.push(r.date);
+    }
+    if (r && r.latest_date && AIE.dates.indexOf(r.latest_date) < 0) AIE.dates.push(r.latest_date);
+    AIE.report = {};           // 换日期后旧全文作废（否则会把昨天正文挂到今天标题下）
+    paintAiExpert();
+    return r;
+  }).catch((e) => {
+    AIE.loading = false;
+    AIE.err = (e && (e.message || e.code)) || "未知错误";
+    paintAiExpert();
+    return null;
+  });
+}
+
+function aieReload() {
+  AIE.asked = true;
+  AIE.data = null;
+  AIE.err = "";
+  paintAiExpert();
+  loadAiExpert(AIE.date);
+}
+
+function aiePickDate(d) {
+  if (!d) return;
+  AIE.date = d;
+  AIE.openKey = "";
+  AIE.openPk = "";
+  AIE.data = null;
+  AIE.asked = true;
+  paintAiExpert();
+  loadAiExpert(d);
+}
+
+/* 点卡片展开全文。全文单独请求（列表接口不带 report_md，一次四份几万字没必要）。 */
+function aieToggle(key) {
+  if (!key) return;
+  const d = AIE.data;
+  if (AIE.openKey === key) { AIE.openKey = ""; paintAiExpert(); return; }
+  AIE.openKey = key;
+  paintAiExpert();
+  if (AIE.report[key] != null) return;
+  const dt = (d && d.date) || AIE.date || "";
+  api("/api/ai_expert?date=" + encodeURIComponent(dt) + "&key=" + encodeURIComponent(key),
+      { label: "专家团全文" })
+    .then((r) => {
+      const it = ((r && r.items) || []).find((x) => x.key === key) || {};
+      AIE.report[key] = it.report_md || "";
+      paintAiExpert();
+    })
+    .catch(() => {
+      AIE.report[key] = "";
+      paintAiExpert();
+    });
 }
 
 function airProviderBar() {
@@ -4225,17 +4606,48 @@ function airProviderBar() {
 function airSwitch(key) {
   if (!key || key === AIR.provider) return;
   AIR.provider = key;
-  AIR.sinceId = 0;   // 换模型是全新一轮，旧水位线作废
+  AIR.sinceId = 0;   // 换大脑是全新一轮，旧水位线作废
   AIR.data = null;
   airStopPoll();
   const box = $("#p-ai_review");
-  if (box) box.innerHTML = `<div class="panel-loading">正在用 ${esc(airProviderName(key))} 重新分析…</div>`;
-  loadAiReview({ force: true }).catch((e) => reportLoadError("AI 复盘", e));
+  if (box) box.innerHTML = `<div class="panel-loading">正在读取 ${esc(airProviderName(key))} 的结论…</div>`;
+  // 2026-11-02（进哥：「点开 WorkBuddy 时间特别长，切回 DeepSeek 也特别长」）：
+  // 这里原来传的是 force:true —— 等于**每切一次就把当天重算一遍**。
+  //   ・DeepSeek：真调一次模型 9~11 秒，明明 4 小时内已算过也用不上缓存；
+  //   ・WorkBuddy：先把队列里待取的分析包作废，再重建 4.8 万字信息包，排队计时还清零。
+  // 日志能对上：22:04:33 入队 #9，22:05:19 又入队 #10，#9 标成 superseded by force rerun。
+  // 现在切换只做"看"：有当天的结论立刻显示，没有就提示你点【开始分析】。
+  // 真正重算只由【重新分析】/【开始分析】按钮触发 —— 花钱的动作必须由人明确发起。
+  loadAiReview({ peek: true }).catch((e) => reportLoadError("AI 复盘", e));
 }
 
 function airRerun(btn) {
   if (btn) { btn.disabled = true; btn.textContent = "分析中…"; }
   loadAiReview({ force: true }).catch((e) => reportLoadError("AI 复盘", e));
+}
+
+/* 2026-11-03：排队态里的「立刻出结果」出口。
+ * 为什么不能只 airSwitch("deepseek") 就完事：airSwitch 是 peek 语义（只看不算），
+ * 它只会去读"deepseek 有没有当天结论"，没有就显示空的 —— 用户点了按钮却什么都没发生，
+ * 比没按钮更糟。所以切过去之后必须显式 force 一次，真的调模型出一份。
+ * 为什么要 setTimeout 60ms：airSwitch 内部先置 AIR.provider 再发请求，
+ * force 请求要用到新的 provider 参数，必须等它落定，否则打回 workbuddy 去。
+ * 代价说明：force 会花 token。这正是不做成"自动"的原因 —— 自动走后台兜底（不重复扣这次点击），
+ * 这个按钮只服务于"我不想等，现在就给我结果"。 */
+function airFallbackNow(btn) {
+  // 后台兜底已经在用同一个大脑跑了：这时再 force 一次 = 同一份复盘扣两遍钱。
+  // 此刻点按钮的真实诉求是"我现在就要看到"，所以只做一次**免费**刷新 ——
+  // 兜底一落库，下一次轮询/这次刷新就把它接住。按钮留着但绝不再买第二份。
+  if (AIR.data && AIR.data.fallback) {
+    if (btn) { btn.disabled = true; btn.textContent = "刷新中…"; }
+    loadAiReview().catch(() => {}).then(() => {
+      if (btn) { btn.disabled = false; btn.textContent = "改用 DeepSeek 立刻出结果"; }
+    });
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = "切换中…"; }
+  airSwitch("deepseek");
+  setTimeout(() => { if (AIR.provider === "deepseek") loadAiReview({ force: true }).catch(() => {}); }, 60);
 }
 
 /* ============================================================================
@@ -4635,10 +5047,47 @@ function renderAiReview() {
     // 外部模型：本进程正在调 API，10~60 秒。
     // WorkBuddy：任务已入队，等主代理来取包 —— 不可能是"自己在算"，必须说清怎么触发。
     const body = isWB
-      ? `<b>已把 ${esc(d.review_date || "")} 的分析包放进队列（任务 #${esc(String(d.queue_id || "-"))}，${esc(String(d.brief_chars || 0))} 字）</b>
-         <span>已等待 ${esc(String(sec))} 秒。这是「用 WorkBuddy 的算力」通道：查看器不调用任何外部 API，
-         而是把信息包备好，由 WorkBuddy 取走后分析、再回填到这里。<br>
-         去 WorkBuddy 说一句 <code>分析今天的复盘</code> 即可，回来刷新就能看到结果。</span>`
+      ? (() => {
+          // 2026-11-03（进哥：「我打开都得快十多分钟了，还在那转圈。」）：
+          // 后端现在有了兜底 —— WorkBuddy 队列 30 秒没人接单，本进程直接用 DeepSeek 算。
+          // 所以这里必须**四种情况分开说**，并且**删掉**「所以它不会自己出结果」这类话：
+          // 那是旧实现（只入队、没人取就永远 computing）留下的绝望文案，
+          // 与现在的行为相反，会让人以为只能干等。
+          const taken = String(d.queue_state || "") === "taken";
+          const secN = Number(sec) || 0;
+          // taken 态要显示的是"取走之后过了多久"，不是"入队之后过了多久"（后端 taken_sec 为准）；
+          // 拿 created_at 的年龄去说"已分析 N 秒"会平白多算上排队时间，看起来像卡得更久。
+          const takenSec = d.taken_sec != null ? (Number(d.taken_sec) || 0) : secN;
+          const fb = String(d.fallback || "");
+          const qid = esc(String(d.queue_id || "-"));
+          const chars = esc(String(d.brief_chars || 0));
+          // 排队态始终给一个立刻出结果的出口：点一下就用 DeepSeek 真算一份（会花 token，所以只在人点时才发生）
+          const fbBtn = `<button class="btn sm primary" onclick="airFallbackNow(this)">改用 DeepSeek 立刻出结果</button>`;
+          if (taken) {
+            // 2026-11-03（QA 必修 2）：taken 也是死等路径 —— 外部代理取包后崩掉就永远 computing。
+            // 后端现在会在取走 5 分钟没回填时判死单并转兜底，这里必须把"会自己好"讲出来，
+            // 并且同样给出手动出口：只留一句"回来即好"等于让用户干等 5 分钟。
+            return `<b>分析包已被取走，WorkBuddy 正在分析（任务 #${qid}，${chars} 字）</b>
+         <span>已分析 ${esc(String(takenSec))} 秒。取走后 ${esc(String(WB_TAKEN_STALE_SEC / 60))} 分钟没回填会自动改用 DeepSeek 兜底，不用你操作。
+         等不及可以点下面按钮立刻出一份。</span>
+         ${fbBtn}`;
+          }
+          if (fb) {
+            return `<b>WorkBuddy ${esc(String(WB_FALLBACK_SEC))} 秒没接单，已自动改用 ${esc(airProviderName(fb))} 计算中（约 1 分钟）</b>
+         <span>任务 #${qid} 已在队列排队 ${esc(String(secN))} 秒 → 兜底已启动，<b>不用你操作</b>，算完自动出现在这里。
+         ${esc(airProviderName(fb))} 读的还是同一份信息包，结论同样可审计。</span>
+         ${fbBtn}`;
+          }
+          if (secN < WB_FALLBACK_SEC) {
+            return `<b>分析包已备好，等 WorkBuddy 接单（${esc(String(secN))} 秒）</b>
+         <span>任务 #${qid}，信息包 ${chars} 字。<b>超过 ${esc(String(WB_FALLBACK_SEC))} 秒没人接单会自动改用 DeepSeek 出结果，不用你操作。</b>
+         也可以现在点下面按钮让它立刻开始。</span>
+         ${fbBtn}`;
+          }
+          return `<b>排队异常：任务 #${qid} 已排队 ${esc(String(secN))} 秒还没人接单，自动兜底也没起来</b>
+         <span>多半是本机没有可用的 DeepSeek Key（兜底没得可用），而不是它算得慢。点下面按钮直接切到 DeepSeek 立刻出结果。</span>
+         ${fbBtn}`;
+        })()
       : `<b>正在让 ${esc(airProviderName(d.provider || AIR.provider))} 读完 ${esc(d.review_date || "")} 的全部信息再判断…</b>
          <span>已等待 ${esc(String(sec))} 秒。它在读：市场横截面 / 主线板块 / 龙虎榜 / 政策与公告 / 社区情绪 / 你的持仓 / 你自己的 9 份知识库准则。通常 10~60 秒完成，可以先去别的面板，回来即好。</span>`;
     box.innerHTML = `
@@ -4671,6 +5120,9 @@ function renderAiReview() {
   // —— 还没有任何一份（首份没算过）：给一个明确入口
   const o = (d && d.data) || {};
   if (!o || !o.verdict) {
+    // 2026-11-02：区分"刚切过来看一眼"与"真没算过"。
+    // 切换大脑不再自动重算（那是花钱的动作），所以这里必须说清：不是它在后台偷偷跑，是等你按。
+    const justPeeked = d.state === "idle";
     box.innerHTML = `
       <div class="air-head">
         <div class="air-hd-l"><b class="air-title">AI 复盘</b>
@@ -4678,8 +5130,8 @@ function renderAiReview() {
         <div class="air-hd-r">${provBar}</div>
       </div>
       <div class="air-empty">
-        <b>还没有这一天的 AI 复盘</b>
-        <div>点下面按钮，让 ${esc(airProviderName(AIR.provider))} 把当天的市场数据、资金、消息、情绪和你自己的交易体系一起读完，给出一份带理由的判断。</div>
+        <b>${justPeeked ? `${esc(airProviderName(AIR.provider))} 还没分析过这一天` : "还没有这一天的 AI 复盘"}</b>
+        <div>点下面按钮，让 ${esc(airProviderName(AIR.provider))} 把当天的市场数据、资金、消息、情绪和你自己的交易体系一起读完，给出一份带理由的判断。${justPeeked ? "切换大脑只是查看，不会自动重算 —— 免得重复花钱。" : ""}</div>
         <button class="btn sm primary" onclick="airRerun(this)">开始分析</button>
       </div>`;
     return;
@@ -4784,10 +5236,17 @@ function renderAiReview() {
       <div class="air-conf-bar"><i style="width:${Math.max(2, Math.min(100, conf))}%"></i></div>
       <b>${esc(String(conf))}</b><span class="air-conf-unit">/100</span></div>`;
 
+  // 2026-11-03：这份是「代出」的必须如实标注。
+  // 后端自动兜底后会把 provider 改回 workbuddy、真实来源放在 fallback_from ——
+  // 页面若不标，用户会以为 WorkBuddy 当时真的在跑它，等于把"没人接单"这件事藏起来。
+  const fbSub = d.fallback_from
+    ? `<span class="air-sub" style="color:#b45309">（这份由 ${esc(airProviderName(d.fallback_from))} 代出，WorkBuddy 当时没接单）</span>`
+    : "";
+
   box.innerHTML = `
     <div class="air-head">
       <div class="air-hd-l"><b class="air-title">AI 复盘</b>
-        <span class="air-sub">${esc(d.review_date || "")} · ${esc(airProviderName(d.provider))}</span></div>
+        <span class="air-sub">${esc(d.review_date || "")} · ${esc(airProviderName(d.provider))}</span>${fbSub}</div>
       <div class="air-hd-r">${provBar}${airDateBar()}${airPicksCheckChip(d.picks_check)}<button class="btn sm" onclick="airRerun(this)" title="跳过缓存，重新让模型分析一次（会花 token）">重新分析</button></div>
     </div>
     <div class="air-meta">${metaLine}</div>
@@ -9620,6 +10079,141 @@ async function allRefresh() {
   loadAll();
 }
 $("#btnAllRefresh").onclick = allRefresh;
+
+/* ---------- 一键抓取（2026-11-03 D72）----------
+   进哥抱怨的两件事，这个按钮各治一半：
+     · 「打开应用/切页要等」 → 抓完顺手预热四个重面板（低位箱体 33s / 换手榜 14s /
+       中线箱体 7~8s / 工具链漏斗 8s），用户点开时命中的是落盘结果，不再是现算；
+     · 「日更抓取很慢」 → 后端把它从「逐只打新浪 5550 次、合计 87 分钟」
+       换成「一次请求拿全市场」，实测十几秒。
+   与「一键刷新」的分工：那个管论坛/舆情，这个管行情底座（K 线两库 + 面板预热）。
+
+   刻意做成「POST 起任务 + 每秒轮询 status」而不是一个长请求：
+   抓取 + 预热要十几秒到一分钟，压在一次 fetch 上必然撞上前端超时预算（15s），
+   然后用户看到的是「失败」，而服务端其实还在好好跑 —— 那种体验比慢更糟。 */
+const FASTGRAB = { timer: null, lastStep: "", stall: 0 };
+
+function fgRestore(btn) {
+  if (btn) { btn.disabled = false; btn.textContent = "一键抓取"; }
+  if (FASTGRAB.timer) { clearTimeout(FASTGRAB.timer); FASTGRAB.timer = null; }
+}
+
+/* 把后端的 5 个步骤收敛成按钮上的一句话。
+   后端 STEPS = [判包, 取数, 写前复权库, 写后复权库, 快照/收尾] + 收尾后的「预热重面板」。
+   这里**原样显示后端步骤名**，不自造「快照/日线/指标/预热」四段：
+   本端点不跑指标层（indicators_daily 实测 2987 秒，压在这个按钮后面等于卡 50 分钟），
+   指标层由调度任务 fast_daily 负责 —— 谎报一个「指标」阶段比少显示一段更坏。 */
+function fgPhaseText(st) {
+  const total = st.total_steps || 5;
+  const idx = Math.max(1, Math.min(total, st.step_index || 1));
+  const label = st.step || "准备";
+  return `抓取中 ${idx}/${total} · ${label}`;
+}
+
+function fgSummary(res) {
+  const r = res || {};
+  const st = r.steps || {};
+  const kl = st.kline || {};
+  const kb = st.kbase || {};
+  const sn = st.snapshot || {};
+  const warm = r.prewarm || {};
+  const parts = [];
+  if (r.degraded) {
+    // 降级绝不能说成成功：K 线两库这轮根本没动，晚上还要靠调度补
+    parts.push("⚠ 日线包未发布，已用腾讯快照顶上（快照 " + (sn.insert || 0) + " 只）");
+    parts.push("前复权/后复权两库本轮未写入，晚上调度自动补日线");
+  } else {
+    parts.push("前复权库写入 " + (kl.insert || 0) + " 行"
+      + (kl.new_codes ? "（其中 " + kl.new_codes + " 只是库里从没进过的新代码）" : "")
+      + (kl.refetch_full ? "，除权票全量重抓 " + kl.refetch_full + " 只" : ""));
+    parts.push("后复权库写入 " + (kb.insert || 0) + " 行");
+  }
+  const wn = Object.keys(warm).filter((k) => warm[k] && warm[k].ok).length;
+  if (wn) parts.push("已预热 " + wn + "/4 个重面板");
+  if (r.reason && !r.degraded) parts.push(r.reason);
+  const secs = r.elapsed_sec != null ? "（" + r.elapsed_sec + "s）" : "";
+  return (r.degraded ? "⚠ 一键抓取完成（降级）" : "✅ 一键抓取完成") + secs + " → " + parts.join(" ｜ ");
+}
+
+async function fgPoll(btn) {
+  let st;
+  try {
+    st = await api("/api/fast_grab/status");
+  } catch (e) {
+    // 轮询本身失败不必把整件事判死：网络抖一下就重启轮询，连续失败才报错
+    FASTGRAB.stall += 1;
+    if (FASTGRAB.stall >= 8) {
+      fgRestore(btn);
+      setHint("一键抓取进度查询失败（已重试 8 次）：" + apiErrText(e) + " —— 抓取可能仍在后台跑，稍后点开面板看数据。");
+      return;
+    }
+    FASTGRAB.timer = setTimeout(() => fgPoll(btn), 1500);
+    return;
+  }
+  FASTGRAB.stall = 0;
+  if (st && st.running) {
+    const txt = fgPhaseText(st);
+    if (btn) btn.textContent = txt;
+    if (txt !== FASTGRAB.lastStep) {
+      FASTGRAB.lastStep = txt;
+      setHint("一键抓取 " + txt + (st.detail ? "：" + st.detail : "…"));
+    }
+    FASTGRAB.timer = setTimeout(() => fgPoll(btn), 1000);
+    return;
+  }
+  // 跑完了（或启动就失败）
+  fgRestore(btn);
+  if (st && st.error) {
+    // 真实原因必须露出来，不许只写「失败」
+    setHint("❌ 一键抓取失败：" + st.error);
+    return;
+  }
+  if (!st || !st.last_result) {
+    setHint("一键抓取已结束，但没有拿到结果摘要（服务可能刚重启过）。请再点一次，或看 viewer/logs。");
+    return;
+  }
+  setHint(fgSummary(st.last_result));
+  markServiceHealthy && markServiceHealthy();
+  try { loadAll(); } catch (e) { /* 重绘失败不影响抓取结果 */ }
+}
+
+async function fastGrab() {
+  const btn = $("#btnFastGrab");
+  if (FASTGRAB.timer) { setHint("一键抓取正在跑，请等它结束…"); return; }
+  setHint("一键抓取：正在启动…");
+  FASTGRAB.lastStep = "";
+  FASTGRAB.stall = 0;
+  if (btn) { btn.disabled = true; btn.textContent = "抓取中 0/5 · 启动"; }
+  let start;
+  try {
+    start = await api("/api/fast_grab", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch (e) {
+    fgRestore(btn);
+    setHint("一键抓取启动失败：" + apiErrText(e));
+    return;
+  }
+  if (!start || start.ok === false) {
+    // 服务端已有实例在跑时就是这个分支：把「在跑哪一步」说清楚，别只说"失败"
+    const why = (start && (start.reason || start.error)) || "未知原因";
+    const at = start && start.step ? "（当前在「" + start.step + "」第 " + start.step_index + " 步）" : "";
+    fgRestore(btn);
+    setHint("一键抓取未启动：" + why + at + " —— 若确在抓取中，等它跑完再点。");
+    if (start && start.run_id && start.reason === "正在抓取中") {
+      // 已经在跑：直接接管进度显示，而不是把用户挡在门外
+      if (btn) { btn.disabled = true; btn.textContent = "抓取中 · 接续进度"; }
+      FASTGRAB.timer = setTimeout(() => fgPoll(btn), 800);
+    }
+    return;
+  }
+  setHint("一键抓取已启动（run_id " + (start.run_id || "-") + "），正在抓取全市场…");
+  FASTGRAB.timer = setTimeout(() => fgPoll(btn), 800);
+}
+$("#btnFastGrab").onclick = fastGrab;
+
 /* ================= 自选 / 关注池 + 到价提醒（2026-09-27 新增一级分类） =================
    数据：GET /api/watch_list（分组 + 标的 + 最新价）、GET /api/watch_alerts（告警历史）。
    写：POST /api/watch_item_add|update|remove、/api/watch_group_add|rename|remove、
@@ -10623,7 +11217,7 @@ const COSTB = { data: null, loading: false };
    ⚠️ 顺序有约束：每组**第一项必须是非 fold、非 child 的主项** —— `firstRealTab()` 用它做
    「点左栏大类」的落地点，也是 renderNav 里计数与高亮的基准。 */
 const NAV = [
-  // ⓪ 决策台（2026-11-01 进哥需求）—— 按「这次打算拿多久」分四道门。
+  // ⓪ 决策台（2026-11-01 进哥需求）—— 按「这次打算拿多久」分门。
   //
   // 为什么单开一组，而不是并进现有五组：
   //   现有五组按**信息类型**切（今天 / 我的 / 市场 / 个股 / 方法），回答的是「这条信息归哪类」；
@@ -10634,12 +11228,37 @@ const NAV = [
   // 本组**不新增任何引擎、不复制任何数据源**：只是把既有面板按持有周期重排，
   // 并加一层「先给判断、再给名单、底部可跳回原面板」的聚合视图。
   // 所以 43 个静态入口一个不少、一个不改名（tab 键仍是原面板的键）——
-  // 本组新增的 4 个 tab 是**新的聚合页**，不抢占、不移动任何既有面板。
+  // 本组新增的 6 个 tab 是**新的聚合页**，不抢占、不移动任何既有面板。
+  //
+  // 2026-11-05 进哥第二次改口径（原话）：
+  //   「决策层你现在只分了四个，也可以分的再细一点，因为你这里边分跟那个分应该是对应的呀」
+  //   「标注要清晰，至少文字描述上让我知道，这是三日内的，那是十日内的，
+  //     然后这是 20 日内的，那个可能是三个月到半年内的」
+  //   「有的箱体两三个月根本看不出来，有的半年起步，甚至将近一年」
+  // → 四道门拆成六道，顺序＝持有期从短到长，并且与工具包的工具分类**一一对应**
+  //   （分类表在 viewer/toolbox.py 的 PILLAR_ORDER，两边同名同序，不是两套口径）。
+  //
+  // ⚠️ tab 键只**新增**两个（desk_t1 / desk_base）。
+  //    原有的 desk_hot / desk_dip / desk_mid / desk_long 一个都不改名 ——
+  //    它们是深链接 `#desk/desk_hot` 与面板容器 `#p-desk_hot` 的唯一键，改名等于删面板。
+  //    名字里的 "hot/dip/mid/long" 现在只是代号，界面上的中文名一律走 DESK_META。
   { key: "desk", label: "决策台", icon: "◈", items: [
+    { tab: "desk_t1", label: "竞价冲浪" },
     { tab: "desk_hot", label: "短线热点" },
-    { tab: "desk_dip", label: "短线超跌" },
-    { tab: "desk_mid", label: "中线波段" },
+    { tab: "desk_dip", label: "超跌修复" },
+    { tab: "desk_mid", label: "中线突破" },
+    { tab: "desk_base", label: "筑底布局" },
     { tab: "desk_long", label: "长期埋伏" }] },
+  // ⓪-2 工具包（2026-11-03 进哥拍板：「放到决策台旁边做成一个一级入口」）
+  //
+  // 为什么不并进研究工具折叠区：进哥要的是「我选股的时候能点来点去」，
+  // 研究工具默认收起，藏起来等于没有。而且那 8 个板块是「看内容」，这里是「筛股票」——
+  // 一个是阅读，一个是动作，放同一组会让人以为它们是一类东西。
+  //
+  // 里面的工具由 viewer/toolbox.py 登记，本组不写任何判据：判据写在页面里就变成
+  // 「这个页面专用」，再也拿不去别处用，级联也就无从谈起。
+  { key: "toolbox", label: "工具包", icon: "⚒", items: [
+    { tab: "toolbox", label: "工具包" }] },
   // ① 今日交易计划（原「今日总览」）—— 盘中所有决策动作都在这组里闭环。
   { key: "today", label: "今日交易计划", icon: "◎", items: [
     // 今日决策为主项，复盘/看板/汇总/我的提示 挂其右侧（tab 仍平铺，深链接不变）
@@ -14646,6 +15265,7 @@ function selectNav(catKey, tabKey, push) {
   if (tab === "ai_review") {
     if (AIR.data) {
       renderAiReview();
+      paintAiExpert();   // 2026-11-04：切回本 tab 时把四家专家团一起补挂回去
       if (AIR.data.state === "computing") airStartPoll();
     } else {
       loadAiReview().catch((e) => reportLoadError("AI 复盘", e));
@@ -14662,12 +15282,16 @@ function selectNav(catKey, tabKey, push) {
     if (DASH.data) renderDashboard();
     else loadDashboard().catch((e) => reportLoadError("今日看板", e));
   }
-  // 决策台（2026-11-01 进哥需求）：四道门，进页即读"今日已落库的结果"。
+  // 决策台（2026-11-01 进哥需求）：六道门，进页即读"今日已落库的结果"。
   // 不在这里触发任何重算（低位扫描/换手率榜都在对应原面板里由用户点），
-  // 所以这四页是秒开的；数据已在同一次会话里拉过就不再重复请求。
+  // 所以这六页是秒开的；数据已在同一次会话里拉过就不再重复请求。
+  // 2026-11-05：四道门拆成六道（t1 竞价冲浪 / base 筑底布局 新增），
+  // tab 键 desk_hot / desk_dip / desk_mid / desk_long 保持原名 —— 深链接不能断。
+  if (tab === "desk_t1") loadDesk("t1");
   if (tab === "desk_hot") loadDesk("hot");
   if (tab === "desk_dip") loadDesk("dip");
   if (tab === "desk_mid") loadDesk("mid");
+  if (tab === "desk_base") loadDesk("base");
   if (tab === "desk_long") loadDesk("long");
   // 每日预测（pred-v1.0）：总览第三个 tab，进入时按需（重）渲染
   // 2026-10-15 修 TDZ：initNav 在脚本顶层执行（早于 const PRED 声明行），深链接
@@ -14737,6 +15361,18 @@ function selectNav(catKey, tabKey, push) {
   // Kronos K线基础模型预测（2026-10-24 进哥需求）：独立顶层 tab，进入时按需（重）渲染
   if (tab === "kronos") {
     loadKronos().catch((e) => reportLoadError("Kronos K线预测", e));
+  }
+  // 工具包（2026-11-03 进哥拍板：决策台旁边的一级入口）。
+  // 渲染全在 static/toolbox.js（window.TB），这里只负责"进页就拉清单"。
+  // 脚本万一没加载（旧缓存），给一句人话而不是让面板空白 —— 与 ann_event 同口径。
+  if (tab === "toolbox") {
+    if (window.TB && typeof window.TB.load === "function") {
+      window.TB.load();
+    } else {
+      const _tbBox = ensurePanel("toolbox");
+      if (_tbBox) _tbBox.innerHTML = '<div class="empty">工具箱脚本未加载（static/toolbox.js）。'
+        + "请强制刷新页面（Ctrl+F5）后再试。</div>";
+    }
   }
   // 抓取管道三块（原「知识获取」的 数据源/原始存档/抓取与登录记录）：2026-09-26 已从导航撤下，
   // 故正常点选与改 hash 都到不了这里（未知 tab 会被纠回首项）。保留这段是配合上面 NAV 的注释——
@@ -15613,21 +16249,37 @@ window.addEventListener("message", (ev) => {
    **绝不在进页面时偷跑扫描** —— 那会让页面从"秒开"变成"转圈一分钟"，
    而他打开决策台的动机是"快速看一眼"。需要耐心的操作，必须由他点。
    今天这套系统经常得出"没机会"，那也是结论，照写。 */
+/* 2026-11-05 六道门（进哥：四道拆细，标注要让人一眼看出持有多久）。
+   key 与 viewer/toolbox.py 的 PILLAR_ORDER 一一对应，也能对上工具包的分组：
+     t1 → t1_surf（竞价冲浪）  hot → short_hot（短线热点）
+     dip → short_dip（超跌修复） mid → mid_break（中线突破）
+     base → mid_base（筑底布局） long → long_hold（长期埋伏）
+   `span` 就是持有期标注 —— 老板要的那句「这是三日内的、那是十日内的」，
+   一字不改照抄 toolbox.PILLAR_SPAN（两边必须同字，否则工具包与决策台会各说一套）。 */
 const DESK = {
+  t1: { data: null, loading: false, error: null },
   hot: { data: null, loading: false, error: null },
   dip: { data: null, loading: false, error: null },
   mid: { data: null, loading: false, error: null },
+  base: { data: null, loading: false, error: null },
   long: { data: null, loading: false, error: null },
 };
+/* cls 只复用既有的四套配色（hot 琥珀 / dip 红 / mid 蓝 / long 绿），不新造主题：
+   t1 与 hot 同属「几天内」，共用一个色系；base 与 long 同属「在谷底」，共用一个色系。
+   相邻持有期同色是刻意的 —— 颜色在这里表达的是「长短档位」，不是「六个互不相干的分类」。 */
 const DESK_META = {
-  hot: { title: "短线热点", span: "1–3 天", cls: "hot",
-         q: "哪个板块热、里面买哪只" },
-  dip: { title: "短线超跌", span: "1–2 周", cls: "dip",
-         q: "哪只跌狠了、但公司其实还行" },
-  mid: { title: "中线波段", span: "2–3 个月", cls: "mid",
-         q: "哪个能拿两三个月" },
-  long: { title: "长期埋伏", span: "6 个月以上", cls: "long",
-          q: "哪个趴在地板上、等它翻身" },
+  t1: { title: "竞价冲浪", span: "1~3 日 · 今买明卖", cls: "hot",
+        q: "今天竞价与封板结构最强的几只，隔夜就要重新判一次" },
+  hot: { title: "短线热点", span: "3~10 日 · 追势不追高", cls: "hot",
+         q: "今天资金在打哪个板块、里面跟着买哪只，追的是刚启动那一段" },
+  dip: { title: "超跌修复", span: "1~4 周 · 等止跌不看当天跌幅", cls: "dip",
+         q: "连着阴跌两三个月、刚刚止跌的票（不是今天跌狠的）" },
+  mid: { title: "中线突破", span: "1~3 个月 · 等突破确认", cls: "mid",
+         q: "趋势与形态在 60~120 日里走顺了、刚确认突破的票" },
+  base: { title: "筑底布局", span: "3~6 个月 · 在谷底慢慢买", cls: "long",
+          q: "在 750 日箱体里磨着、正趴在谷底的票，赚它自己走出箱体的钱" },
+  long: { title: "长期埋伏", span: "半年~1 年 · 按周期埋", cls: "long",
+          q: "三五年一轮的周期股，资质过关、正趴在谷底等下一轮" },
 };
 
 async function loadDesk(ch, force) {
@@ -15637,22 +16289,57 @@ async function loadDesk(ch, force) {
   st.loading = true; st.error = null;
   renderDesk(ch);
   try {
-    if (ch === "hot") {
-      // 这两个接口都是"读已落库的今日结果"，毫秒级；today_decision 自带 60s 缓存
-      const [td, pil] = await Promise.all([api("/api/today_decision"), api("/api/pillars")]);
+    if (ch === "t1") {
+      /* ① 竞价冲浪（2026-11-05 新增）：**只复用既有接口，不新写后端**。
+         today_decision 给「今天资金主攻哪个板块 + 信号门禁判定」（自带 60s 缓存），
+         pillars.t1_surf 给「连板梯队」——它的 item.detail 里有 streak（几连板）/ sealed（是否封住）
+         / vol_ratio / pct，这就是竞价冲浪唯一需要的东西。
+         ai_picks 不拉：AI 票单是「另一条线」，周期不由它决定，放短线热点那一页就够了。 */
+      const [td, pil] = await Promise.all([
+        api("/api/today_decision"),
+        api("/api/pillars"),
+      ]);
       st.data = { td, pil };
+    } else if (ch === "hot") {
+      // 这两个接口都是"读已落库的今日结果"，毫秒级；today_decision 自带 60s 缓存
+      // 2026-11-02 进哥需求：决策台要能看到 AI 复盘推荐的票（放在短期这一块）。
+      // ai_picks 失败不影响本页 —— 它是"另一条线"，不能把规则名单一起带崩。
+      const [td, pil, aip] = await Promise.all([
+        api("/api/today_decision"),
+        api("/api/pillars"),
+        api("/api/ai_picks").catch(() => null),
+      ]);
+      st.data = { td, pil, aip };
     } else if (ch === "dip") {
       st.data = { pil: await api("/api/pillars") };
     } else if (ch === "mid") {
-      // 低位突破：后端有缓存就秒回，没缓存会自己起后台扫描并回 computing=true。
-      // 这不是"偷跑"——它是懒加载接口，原面板也是这个行为；只是把"要不要等"变成可见的进度，
-      // 而不是让页面无声地空着。同理见 long 分支。
-      const [pil, lb] = await Promise.all([
+      // 2026-11-02 D65：中线主表换成「全市场箱体波谷」（/api/universe_box，5003 只 × 750 日）。
+      // 原主表 lowbox 池子只有 64 只，而箱体/分位全是分位数指标 —— 64 个样本的"分位"没有
+      // 统计意义，排出来的名次是假的。现在 lowbox 降级为下面的「深加工」次表（它有基本面，
+      // 但只能跑小池子），两者并列不互相替代。
+      // 三个接口都是"读落盘结果/懒加载"，universe_box 首次约 8 秒会回 computing=true。
+      const [pil, ub, lb] = await Promise.all([
         api("/api/pillars"),
+        api("/api/universe_box?limit=40").catch(() => null),
         api("/api/screener_lowbox?limit=10").catch(() => null),
       ]);
-      st.data = { pil, lb };
-      if (lb && lb.computing) _deskPoll("mid", 8); else _DESK_POLL.mid = 0;
+      st.data = { pil, ub, lb };
+      if ((ub && ub.computing) || (lb && lb.computing)) _deskPoll("mid", 8); else _DESK_POLL.mid = 0;
+    } else if (ch === "base") {
+      /* ⑤ 筑底布局（2026-11-05 新增）：数据源与「中线突破」**共用**（同一张 750 日箱体表），
+         因为筑底布局本来就是中线突破的前一段：同一批票，在箱底磨的时候叫筑底，破了箱顶才叫突破。
+         不新写接口 —— 差别只在「看哪几列、怎么解释」：
+           中线突破看 pos / 距箱顶 / touches（在等它破位）
+           筑底布局看 box_years / dwell_ratio / dwell_max_run（在等它磨够）
+         ⚠️ 已知缺口（不编数据）：universe_box 只给箱体几何，**没有**"这只票在谷底待了几个月"
+            的日历天数，所以本页说不出「磨了 4 个月」这种话，只能给交易日占比。 */
+      const [pil, ub, lb] = await Promise.all([
+        api("/api/pillars"),
+        api("/api/universe_box?limit=40").catch(() => null),
+        api("/api/screener_lowbox?limit=10").catch(() => null),
+      ]);
+      st.data = { pil, ub, lb };
+      if ((ub && ub.computing) || (lb && lb.computing)) _deskPoll("base", 8); else _DESK_POLL.base = 0;
     } else {
       const [br, bt] = await Promise.all([
         api("/api/lowbox_breakouts?limit=200"),
@@ -15670,7 +16357,7 @@ async function loadDesk(ch, force) {
 
 /* 扫描还没算完时的自愈轮询：最多 8 次 × 8 秒（约 64 秒，覆盖后端 30~60 秒的首扫）。
    用户不用手动点刷新 —— 但也不会无限转：到点就停下，页面照实写"还没算完"。 */
-const _DESK_POLL = { mid: 0, long: 0 };
+const _DESK_POLL = { t1: 0, hot: 0, dip: 0, mid: 0, base: 0, long: 0 };
 function _deskPoll(ch, maxTimes) {
   if (_DESK_POLL[ch] >= (maxTimes || 8)) return;
   _DESK_POLL[ch] += 1;
@@ -15785,13 +16472,162 @@ function renderDesk(ch) {
     return;
   }
   if (!st.data) { host.innerHTML = `<div class="dk-empty">尚未加载</div>`; return; }
-  if (ch === "hot") renderDeskHot(host, st.data);
+  if (ch === "t1") renderDeskT1(host, st.data);
+  else if (ch === "hot") renderDeskHot(host, st.data);
   else if (ch === "dip") renderDeskDip(host, st.data);
   else if (ch === "mid") renderDeskMid(host, st.data);
+  else if (ch === "base") renderDeskBase(host, st.data);
   else renderDeskLong(host, st.data);
 }
 
+/* ---------- ⓪ 竞价冲浪（1~3 日 · 今买明卖）----------
+   数据：/api/today_decision（主线方向 + 证据门禁判定）+ /api/pillars（t1_surf 连板梯队）。
+   为什么这一页最短：它判的是**今天这一根 K 线**的结构（几连板、封没封住、量比多大），
+   隔夜就要重新判一次。所以页面上不写"目标价/持有逻辑"，只写"今天是什么状态"。
+   ⚠️ 已知缺口（不编数据）：t1_surf 的 detail 里没有"封单金额/封板时间"，所以这里只看
+      连板高度、是否封住、量比、当日涨幅 —— 拿不到的一律不写。 */
+function renderDeskT1(host, d) {
+  const td = d.td || {}, pil = d.pil || {};
+  const P = pil.pillars || {};
+  const t1 = P.t1_surf || {};
+  const items = (t1.items || []).slice(0, 12);
+  const mk = _dkMkt(pil);
+  const ss = td.signal_state || {};
+  const dirs = td.directions || [];
+  const d0 = dirs[0] || null;
+
+  // 连板高度：直接读 detail.streak（几连板），没有就老实写「—」
+  const streakOf = (x) => {
+    const s = (x && x.detail && x.detail.streak);
+    return (s == null || !isFinite(Number(s))) ? null : Number(s);
+  };
+  const maxStreak = items.reduce((m, x) => Math.max(m, streakOf(x) || 0), 0);
+  const sealedN = items.filter((x) => Number((x.detail || {}).sealed) === 1).length;
+
+  let v = "";
+  if (!items.length) {
+    v = `今天竞价与封板结构<b>没有</b>筛出可冲浪的票 —— 空仓也是结论，隔夜不硬做。`;
+  } else {
+    v = `今天按「当日封板结构 + 竞价强度」筛出 <b>${items.length}</b> 只，`
+      + `其中 <b>${sealedN}</b> 只封住、最高 <b>${maxStreak || "—"}</b> 连板。`;
+    if (d0) {
+      v += `资金主攻 <b>${esc(d0.sector || "—")}</b>（净买 ${_dkNum(d0.net_yi, 1)} 亿`
+        + (d0.leader_name ? ` · 龙头 ${esc(d0.leader_name)} ${_dkPct(d0.leader_pct)}` : "") + `）。`;
+    }
+    v += `<br><span style="color:var(--muted)">这一页只回答「今天能不能打、打哪只」，`
+      + `不回答「拿多久」—— 它就是 <b>1~3 个交易日</b>的事：隔夜不给溢价、次日不能更强，`
+      + `这一笔就该结束。别把冲浪的票改成"再看看"拿成短线热点。</span>`;
+  }
+  v += `<br>大盘 <b>${esc(mk.state)}</b>：上涨占比 ${mk.upR}、中位 ${mk.med}。`;
+  if (ss && ss.verdict) {
+    v += ` 证据门禁：可执行 <b>${_dkNum(ss.executable_count, 0)}</b> 只、`
+      + `观察 ${_dkNum(ss.watch_count, 0)} 只、拦下 ${_dkNum(ss.blocked_count, 0)} 只。`;
+  }
+
+  const tbl = items.length
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup>`
+      + `<col style="width:13%"><col style="width:9%"><col style="width:7%"><col style="width:8%">`
+      + `<col style="width:8%"><col style="width:8%"><col style="width:9%"><col></colgroup>`
+      + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">分</th>`
+      + `<th class="c">连板</th><th class="c">封住</th><th class="c">量比</th>`
+      + `<th class="c">当日</th><th>判据说了什么</th></tr></thead><tbody>`
+      + items.map((x) => {
+        const st = streakOf(x);
+        const det = x.detail || {};
+        const sealed = Number(det.sealed) === 1;
+        return `<tr>`
+          + `<td class="nm">${_dkLink(x.symbol, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.symbol, x.symbol, 1)}</td>`
+          + `<td class="c">${_dkScore(x.score)}</td>`
+          + `<td class="c">${st == null ? "—" : st + " 连板"}</td>`
+          + `<td class="c">${det.sealed == null ? "—" : (sealed ? "是" : "否")}</td>`
+          + `<td class="c">${_dkNum(det.vol_ratio)}</td>`
+          + `<td class="c">${_dkPct(det.pct)}</td>`
+          + `<td class="why" title="${escAttr(_dkZh(x.reason))}">${esc(_dkZh(_dkCut(x.reason, 80)))}</td>`
+          + `</tr>`;
+      }).join("") + `</tbody></table></div>`
+    : `<div class="dk-empty">今天没有连板/封板结构的票 —— 竞价冲浪这一档空着是正常现象，`
+      + `大盘没量的时候它本来就该空着。</div>`;
+
+  const dirTbl = dirs.length
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup>`
+      + `<col style="width:22%"><col style="width:14%"><col style="width:12%"><col style="width:18%"><col></colgroup>`
+      + `<thead><tr><th>板块</th><th class="c">净买（亿）</th><th class="c">上榜</th>`
+      + `<th class="c">龙头</th><th>阶段</th></tr></thead><tbody>`
+      + dirs.map((x) => `<tr>`
+        + `<td class="nm">${esc(x.sector || "—")}</td>`
+        + `<td class="c">${_dkNum(x.net_yi, 1)}</td>`
+        + `<td class="c">${_dkNum(x.onlist_n, 0)}</td>`
+        + `<td class="c">${_dkLink(x.leader_code, x.leader_name || "—")} ${_dkPct(x.leader_pct)}</td>`
+        + `<td class="src">${esc(x.stage || "—")}</td>`
+        + `</tr>`).join("") + `</tbody></table></div>`
+    : `<div class="dk-empty">今天没识别出资金主攻方向。</div>`;
+
+  host.innerHTML = _dkHero("t1", v, [
+    { t: items.length ? `梯队 ${items.length} 只` : "梯队空着" },
+    { t: sealedN ? `封住 ${sealedN} 只` : "无封板" },
+    { t: `最长 ${maxStreak || "—"} 连板` },
+    { t: "隔夜单，次日重判" },
+  ], td.data_date || pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">今日梯队<span class="dk-sec-n">`
+      + `判据回看＝<b>当日</b>：连板高度 / 是否封住 / 量比 / 当日涨幅。`
+      + `持有 <b>1~3 个交易日</b>，次日不强就走，不摊平、不降级成长线</span></div>${tbl}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">资金主攻方向<span class="dk-sec-n">`
+      + `当天哪个板块最有钱，决定冲浪票可不可以打</span></div>${dirTbl}</div>`
+    + (ss && ss.verdict
+      ? `<div class="dk-sec"><div class="dk-sec-h">证据门禁<span class="dk-sec-n">`
+        + `没实证的票不许当"可执行"——这一档只影响提示，不改梯队本身的判据</span></div>`
+        + `<div class="dk-tblcard"><table class="dk-tbl"><thead><tr>`
+        + `<th>可执行</th><th>观察</th><th>拦下</th><th>判定</th></tr></thead><tbody><tr>`
+        + `<td class="c">${_dkNum(ss.executable_count, 0)}</td>`
+        + `<td class="c">${_dkNum(ss.watch_count, 0)}</td>`
+        + `<td class="c">${_dkNum(ss.blocked_count, 0)}</td>`
+        + `<td class="src">${esc(ss.verdict || "—")}（数据日 ${esc(ss.as_of || "—")}）</td>`
+        + `</tr></tbody></table></div></div>`
+      : "")
+    + _dkFoot([
+      { cat: "today", tab: "today", label: "今日决策（完整版）" },
+      { cat: "today", tab: "resonance", label: "多源共振（声量+资金）" },
+      { cat: "mine", tab: "rate", label: "入手概率" },
+    ]);
+}
+
 /* ---------- ① 短线热点：今天资金打哪儿、哪几只跟着走 ---------- */
+/* ---------- AI 独立票单（2026-11-02 进哥需求：决策台要看得到 AI 复盘推的票） ----------
+   与下面「候选票」是两条独立的线：候选票来自规则引擎四支柱，这张表来自大模型独立判断。
+   进哥的要求是「AI 复盘和现有策略不要有交集，选完撞票无所谓」——所以这里：
+     · 互不覆盖、互不加权、互不删票；
+     · 撞票只显示，不改任何一方的分数；
+     · 空仓是合法结论，如实写"今天没给票"，不拿规则名单来凑。 */
+function _dkAiPicks(aip) {
+  const b = (aip && aip.board) || {};
+  const items = (b.items || []).filter((x) => x && x.symbol);
+  const head = `<div class="dk-sec-h">AI 独立票单<span class="dk-sec-n">大模型独立判断 ${items.length ? items.length + " 只" : ""} · 与上面规则名单不同源、互不加权</span></div>`;
+  if (!items.length) {
+    return `<div class="dk-sec">${head}<div class="dk-empty">AI 今天没有给出票单（空仓也是结论，不拿规则名单凑数）。</div></div>`;
+  }
+  const rows = items.map((x) => {
+    const rng = (x.entry_low != null && x.entry_high != null)
+      ? `${_dkNum(x.entry_low)}~${_dkNum(x.entry_high)}` : "—";
+    const why = (x.thesis || "") + (x.why_now ? "｜" + x.why_now : "");
+    return `<tr>
+      <td class="nm">${_dkLink(x.symbol, x.name || x.symbol)}</td>
+      <td class="cd">${_dkLink(x.symbol, x.symbol, 1)}</td>
+      <td class="c">${_dkScore(x.score)}</td>
+      <td class="src">${esc(x.action || "—")}</td>
+      <td class="c">${rng}</td>
+      <td class="c">${x.stop != null ? _dkNum(x.stop) : "—"}</td>
+      <td class="c">${x.target != null ? _dkNum(x.target) : "—"}</td>
+      <td class="why" title="${escAttr(why)}">${esc(_dkCut(why, 90))}</td>
+    </tr>`;
+  }).join("");
+  return `<div class="dk-sec">${head}
+    <div class="dk-tblcard"><table class="dk-tbl"><colgroup>
+      <col style="width:12%"><col style="width:8%"><col style="width:6%"><col style="width:9%"><col style="width:14%"><col style="width:7%"><col style="width:7%"><col></colgroup>
+      <thead><tr><th>名称</th><th class="cd">代码</th><th class="c">分</th><th>操作</th><th class="c">买入区</th><th class="c">止损</th><th class="c">目标</th><th>为什么</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>`;
+}
+
 function renderDeskHot(host, d) {
   const td = d.td || {}, pil = d.pil || {};
   const P = pil.pillars || {};
@@ -15884,6 +16720,7 @@ function renderDeskHot(host, d) {
   host.innerHTML = _dkHero("hot", v, chips, td.data_date || pil.run_date)
     + `<div class="dk-sec"><div class="dk-sec-h">板块方向<span class="dk-sec-n">${dirs.length} 个 · 资金强度 × 龙头强度 × 共振广度</span></div>${dirHtml}</div>`
     + `<div class="dk-sec"><div class="dk-sec-h">候选票<span class="dk-sec-n">${rows.length} 只（去重后，按"被几支同时提名"排序）</span></div>${tbl}</div>`
+    + _dkAiPicks(d.aip)
     + _dkFoot([
         { cat: "today", tab: "prediction", label: "每日预测（四支柱全量）" },
         { cat: "today", tab: "resonance", label: "多源共振" },
@@ -15910,6 +16747,21 @@ function renderDeskDip(host, d) {
   }
   v += `<br>共振风控另有 <b>${rsnItems.length}</b> 只，但按 ${esc(rsn.title || "共振风控")} 的口径，`;
   v += `它们都只被单支柱提名、属"补位"而非真共振，只能观察不能当买点。`;
+  /* 共振卡 C 档交叉打标（2026-11-02 实测：当日 5 只超跌票 5 只全是 C 档）。
+     这是个必须解释、不能沉默的信号 —— 用户看到"叫你抄"和"⚠避雷"同时出现会以为系统自相矛盾。
+     事实是 tier C（全市场 507 只低分）与"长期阴跌"天然高度重叠：跌了两三个月的票评分必然低。
+     两者看的时间尺度不同，所以打标不剔除，且必须把话说透。 */
+  const _nTierC = dipItems.filter((x) => x.detail && x.detail.avoid_tier === "C").length;
+  if (dipItems.length && _nTierC >= Math.ceil(dipItems.length * 0.6)) {
+    v += `<br><span style="color:var(--muted)">你可能注意到这 ${dipItems.length} 只里有 ${_nTierC} 只带「⚠避雷C档」`
+      + ` —— 这不是自相矛盾：共振卡 C 档（全市场 507 只低分票）和"长期阴跌"本来就高度重叠，`
+      + `跌了两三个月的票评分必然低。区别在时间尺度：C 档说的是<b>未来 5 天的相对强弱</b>，`
+      + `超跌修复赌的是<b>1~2 周内的反弹</b>。标出来只表示"它现在没有任何多头证据"，不等于不能碰。</span>`;
+  }
+  if (dipItems.some((x) => x.detail && Number(x.detail.level) <= 1)) {
+    v += `<br><span style="color:var(--muted)">注意「企稳档」：只有<b>档2/3</b>才是"连续 2 日不创新低 + 站上 5 日线"的真止跌；`
+      + `<b>档1</b>只是"今天没再跌"，历史上这种单一证据的假信号率约 55~65% —— 当观察，别当买点。</span>`;
+  }
   if (mk.isFall) {
     v += `<br><span style="color:var(--muted)">大盘 ${esc(mk.state)}（上涨占比 ${mk.upR}、中位 ${mk.med}）—— 普跌里做超跌，要的是"跌不动"，不是"跌得多"。</span>`;
   }
@@ -15919,18 +16771,34 @@ function renderDeskDip(host, d) {
     { t: `共振风控 ${rsnItems.length} 只` },
     { t: `大盘 ${mk.state}` },
   ];
+  /* 企稳档可见化（2026-11-02 自查项③）：后端早就把 level 0/1/2/3 算出来了，但前端只把它
+     塞在 reason 长文本里，档 1（仅止跌、假信号率 55~65%）和档 3（连续不创新低+站上5日线）
+     在页面上一模一样长 —— 用户没法一眼分辨"真止跌"和"刚不跌"。这里单独成一列。
+     配色：档2/3 蓝（已确认）、档1 橙（未确认）、档0 灰（无迹象），不用绿，避免和"跌"混。 */
+  /* 内联 nowrap：app.css 为了防横向溢出统一去掉了 .dk-tag 的 nowrap（见该处注释），
+     代价是"档3 确认"这类短标在 12% 宽的列里被拆成两行（实测截图确认）。
+     这里只对这一列恢复 nowrap —— 文案固定 4~6 字符，不会撑破页面。 */
+  const _dipLv = (x) => {
+    const lv = x && x.detail && x.detail.level != null ? Number(x.detail.level) : null;
+    const st = ' class="dk-tag" style="white-space:nowrap"';
+    if (lv == null) return `<span${st}>—</span>`;
+    if (lv >= 2) return `<span class="dk-tag p0" style="white-space:nowrap">档${lv} 确认</span>`;
+    if (lv === 1) return `<span class="dk-tag p1" style="white-space:nowrap">档1 止跌</span>`;
+    return `<span class="dk-tag p3" style="white-space:nowrap">档0 无</span>`;
+  };
   const rowHtml = (items, tag) => items.length
-    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:18%"><col style="width:10%"><col style="width:10%"><col></colgroup>
-      <thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th>入选理由</th></tr></thead>
+    ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:15%"><col style="width:9%"><col style="width:7%"><col style="width:13%"><col></colgroup>
+      <thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th class="c">企稳档</th><th>入选理由</th></tr></thead>
       <tbody>${items.map((x) => `<tr>
         <td class="nm">${_dkLink(x.symbol || x.code, x.name)}</td>
         <td class="cd">${_dkLink(x.symbol || x.code, String(x.symbol || x.code || ""), 1)}</td>
         <td class="c">${_dkScore(x.score)}</td>
+        <td class="c">${_dipLv(x)}</td>
         <td class="why" title="${escAttr(_dkZh(x.reason))}">${esc(_dkCut(_dkZh(x.reason), 110))}</td></tr>`).join("")}</tbody></table></div>`
     : `<div class="dk-empty">${esc(tag)}今天没有票。</div>`;
 
   host.innerHTML = _dkHero("dip", v, chips, pil.run_date)
-    + `<div class="dk-sec"><div class="dk-sec-h">超跌修复<span class="dk-sec-n">${dipItems.length} 只 · 60 日分位 + 回撤 + 是否止跌</span></div>${rowHtml(dipItems, "超跌修复")}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">超跌修复<span class="dk-sec-n">${dipItems.length} 只 · 阴跌时长 ≥60 日 + 下跌平滑度 + 企稳档（旧版 60 日分位口径已停用）</span></div>${rowHtml(dipItems, "超跌修复")}</div>`
     + `<div class="dk-sec"><div class="dk-sec-h">共振风控<span class="dk-sec-n">${rsnItems.length} 只 · 多支柱共振闸门</span></div>${rowHtml(rsnItems, "共振风控")}</div>`
     + _dkFoot([
         { cat: "today", tab: "prediction", label: "每日预测（看四支柱全貌）" },
@@ -15943,32 +16811,125 @@ function renderDeskDip(host, d) {
 function renderDeskMid(host, d) {
   const pil = d.pil || {};
   const mk = _dkMkt(pil);
+  const ub = d.ub || {};
   const lb = d.lb || {};
-  const rows = (lb.rows || []).slice(0, 10);
-  const computing = !!lb.computing;
+  const rows = (ub.rows || []).slice(0, 40);
+  const ubComputing = !!ub.computing;
+  const lbRows = (lb.rows || []).slice(0, 8);
+  const lbComputing = !!lb.computing;
   const top = rows[0] || null;
+  const pool = ub.passed2 != null ? ub.passed2 : null;
+  const uni = ub.universe != null ? ub.universe : null;
+  const minDwell = ub.min_dwell != null ? ub.min_dwell : 0.15;
+
+  /* 「较上日」列（2026-11-03）：同一只票今天与上一交易日的**分数**变化。
+     红=分数上移、绿=下移（跟 A 股涨跌配色一致，因为这里衡量的是"变强/变弱"）。
+     三种状态必须能分辨，不能糊成一个色：
+       · 新进（昨日不在榜）→ 紫标，不是"涨了"
+       · 有变化 → 带正负号的红/绿
+       · 无基准（首日快照 / 昨日该票不在池里但也不是新进）→ 灰横杠，不编数 */
+  const _dkDelta = (x) => {
+    if (x.is_new) return `<span class="dk-tag p2" style="white-space:nowrap">新进</span>`;
+    if (x.d_score == null || !isFinite(Number(x.d_score))) {
+      return `<span style="color:var(--muted)">—</span>`;
+    }
+    const v = Number(x.d_score);
+    if (Math.abs(v) < 0.05) return `<span style="color:var(--muted)">0.0</span>`;
+    const cls = v > 0 ? "pl-up" : "pl-down";
+    return `<span class="${cls}" style="white-space:nowrap">${v > 0 ? "+" : ""}${v.toFixed(1)}</span>`;
+  };
+
+  /* 得分列 + 闸门扣分（2026-11-03）：硬否决的票已被剔出榜，这里只处理软否决。
+     显示"形态分 86.6 − 2"，而不是直接把 84.6 摆出来 —— 否则用户会以为形态变差了，
+     实际是"形状没变、公司基本面被扣了分"，这两件事必须能分开看。 */
+  const _dkScoreGated = (x) => {
+    const base = _dkScore(x.score);
+    const pen = Number(x.gate_penalty || 0);
+    if (!pen) return base;
+    const why = (x.gate_soft || []).join("；");
+    const tip = `形态分 ${x.tech_score != null ? Number(x.tech_score).toFixed(1) : "—"}，`
+      + `按估值/基本面扣 ${pen.toFixed(1)} 分${why ? "：\n" + why : ""}`;
+    return base + `<span class="dk-tag p1" title="${escAttr(tip)}" `
+      + `style="white-space:nowrap;margin-left:3px;font-size:10px">−${pen.toFixed(0)}</span>`;
+  };
 
   let v = `大盘 <b>${esc(mk.state)}</b>：上涨占比 ${mk.upR}、中位 ${mk.med}。`;
-  if (computing) {
-    v += `低位扫描正在跑（首次 30~60 秒），算完这一页会自己刷新，不用你动手。`;
+  /* 落盘数据日 ≠ 最新交易日时，后端会带 stale_note 回来（2026-11-03）。
+     必须显式提示，不能让用户以为屏幕上是今天的分 —— 这是"评分必须每天变"的另一半。 */
+  if (ub.stale_note) {
+    v += `<br><b style="color:#b8791f">⚠ ${esc(ub.stale_note)}</b>`;
+  }
+  if (ubComputing) {
+    v += `全市场箱体扫描正在跑（5000+ 只 × 750 日，首次约 8 秒），算完这一页会自己刷新，不用你动手。`;
   } else if (top) {
-    v += `低位榜单现成 <b>${rows.length}</b> 只，分数最高的是 <b>${esc(top.name)}</b>`
-      + `（${_dkNum(top.score, 1)} 分 · 全历史分位 ${_dkNum(top.pct_all, 1)}% · 箱体 ${_dkNum(top.box_years, 1)} 年）。`;
-    v += `<br>这批票的共性是"趴得够久、但还没抬头" —— 中线要等的是它们自己走出箱体，不是你今天下手。`;
+    v += `全市场 <b>${_dkNum(uni, 0)}</b> 只里，有 <b>${_dkNum(pool, 0)}</b> 只现在正趴在箱体下 1/3（谷底区）`
+      + `并且已经趴了一阵子，下面是分数最高的 ${rows.length} 只。`;
+    v += `<br>榜首 <b>${esc(top.name)}</b>：750 日箱体 ${_dkNum(top.box_years, 1)} 年，`
+      + `现价只在箱体从底往上 <b>${_dkNum(top.pos * 100, 0)}%</b> 的位置，`
+      + `近 250 日有 <b>${_dkNum(top.dwell_ratio * 100, 0)}%</b> 的交易日待在谷底区`
+      + `（最长连着 ${_dkNum(top.dwell_max_run, 0)} 日）。`;
+    v += `<br><span style="color:var(--muted)">这批票的共性是"在箱体里来回磨、现在正磨在箱底"。`
+      + `中线赚的是它自己走出箱体的钱，所以名单会<b>连续很多天不变</b> —— 那是它在谷底继续磨，不是系统卡了。`
+      + `当天涨 1% 也不会把它踢出榜，只要它还在这条谷底带里。</span>`;
+    /* 2026-11-03 进哥当场指出：名单可以不变，但**分数必须随行情每天变**。
+       这句话原来是"文案兜底"，现在有机制支撑了 —— 每个交易日全量快照 + 与上一交易日对比，
+       分数上移/下移/新进的只数是他能一眼核对的硬数字。没有上一日数据时如实说"暂无基准"。 */
+    /* 闸门摘要（2026-11-03）：把"剔了几只、扣了几只、按哪些规则"摊在明面上，
+       不做黑箱。数字用户可以自己拿个股去核对。 */
+    const gt = ub.gate || {};
+    if (gt.available !== false && gt.n) {
+      const rc = gt.rule_cnt || {};
+      const rcTxt = Object.keys(rc).map((k) => `${k} ${rc[k]}`).join(" · ");
+      v += `<br><b>准入闸门</b>：${_dkNum(gt.n, 0)} 只在榜票里，`
+        + `<b>${_dkNum(gt.n_hard_dropped || gt.n_hard, 0)} 只</b>因硬伤被剔除`
+        + `（净资产为负 / 市值<15亿 / 负债率>95% / ROE<-30%），`
+        + `<b>${_dkNum(gt.n_soft, 0)} 只</b>按估值与基本面扣分（每条 −2，最多 −6，不剔除）。`;
+      if (rcTxt) v += `<br><span style="color:var(--muted)">命中明细：${esc(rcTxt)}</span>`;
+    }
+    const dl = ub.delta || {};
+    if (dl.available) {
+      v += `<br><b>分数在动</b>：与上一交易日 ${esc(dl.prev_date || "—")} 相比，`
+        + `${_dkNum(dl.n_today, 0)} 只在榜票里 <b class="pl-up">${_dkNum(dl.n_up, 0)} 只分数上移</b>、`
+        + `<b class="pl-down">${_dkNum(dl.n_down, 0)} 只下移</b>、${_dkNum(dl.n_new, 0)} 只新进。`
+        + `名单没换不代表分数没动 —— 每只票的"较上日"看下面那一列。`;
+    } else if (dl.n_today) {
+      v += `<br><span style="color:var(--muted)">今天是首个快照日（${_dkNum(dl.n_today, 0)} 只已入库），`
+        + `明天起这里会显示"多少只分数上移 / 下移"，用来核对名单没换时分数到底动没动。</span>`;
+    }
     if (mk.isFall) {
       v += `<br><span style="color:var(--muted)">普跌里建中线仓，等于用两三个月的仓位去接当天的刀。</span>`;
     }
   } else {
-    v += `低位扫描暂时没有结果。`;
+    v += `全市场箱体扫描暂时没有结果。`;
   }
 
-  const tbl = computing
-    ? `<div class="dk-empty">正在扫描全市场低位箱体（首次 30~60 秒），算完自动出现…</div>`
+  const tbl = ubComputing
+    ? `<div class="dk-empty">正在扫描全市场 750 日箱体 + 谷底驻留（首次约 8 秒），算完自动出现…</div>`
     : (rows.length
+      ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:13%"><col style="width:9%"><col style="width:7%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:6%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th>`
+        + `<th class="c">较上日</th><th class="c">谷底驻留</th><th class="c">最长连续</th>`
+        + `<th class="c">箱体位置</th><th class="c">触及</th><th class="c">箱体</th></tr></thead><tbody>`
+        + rows.map((x) => `<tr>`
+          + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
+          + `<td class="c">${_dkScoreGated(x)}</td>`
+          + `<td class="c">${_dkDelta(x)}</td>`
+          + `<td class="c">${_dkNum(x.dwell_ratio * 100, 0)}%</td>`
+          + `<td class="c">${_dkNum(x.dwell_max_run, 0)} 日</td>`
+          + `<td class="c">${_dkNum(x.pos * 100, 0)}%</td>`
+          + `<td class="c">${_dkNum(x.touches, 0)}</td>`
+          + `<td class="c">${_dkNum(x.box_years, 1)} 年</td>`
+          + `</tr>`).join("") + `</tbody></table></div>`
+      : `<div class="dk-empty">今天没有符合"在谷底磨着"的票 —— 空仓也是一种结果。</div>`);
+
+  const lbTbl = lbComputing
+    ? `<div class="dk-empty">低位深加工扫描中（含基本面/估值/国资系，首次 30~60 秒），算完自动出现…</div>`
+    : (lbRows.length
       ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup><col style="width:15%"><col style="width:10%"><col style="width:9%"><col style="width:15%"><col style="width:11%"><col style="width:13%"><col></colgroup>`
         + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th><th class="c">全历史分位</th>`
         + `<th class="c">箱体年数</th><th class="c">距箱顶</th><th class="c">量比</th></tr></thead>`
-        + `<tbody>${rows.map((x) => `<tr>`
+        + `<tbody>${lbRows.map((x) => `<tr>`
           + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
           + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
           + `<td class="c">${_dkScore(x.score)}</td>`
@@ -15977,7 +16938,7 @@ function renderDeskMid(host, d) {
           + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
           + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
           + `</tr>`).join("")}</tbody></table></div>`
-      : `<div class="dk-empty">低位榜单是空的。</div>`);
+      : `<div class="dk-empty">低位深加工榜单是空的。</div>`);
 
   const cards = [
     { t: "入手概率", d: "全市场换手率形态榜 + 历史入市价的兑现情况。首次计算 5~15 秒。", tab: "mine/rate" },
@@ -15990,18 +16951,145 @@ function renderDeskMid(host, d) {
     + `<div class="dk-card-d">${esc(c.d)}</div></a>`).join("")}</div>`;
 
   host.innerHTML = _dkHero("mid", v, [
-    { t: computing ? "低位扫描：算着呢" : `低位榜单 ${rows.length} 只` },
-    { t: `大盘 ${mk.state}` },
+    { t: ubComputing ? "箱体扫描：算着呢" : `谷底磨着 ${pool != null ? _dkNum(pool, 0) : rows.length} 只` },
+    { t: uni != null ? `全市场 ${_dkNum(uni, 0)} 只` : "全市场" },
     { t: mk.isFall ? "中线：等企稳" : "中线：可看" },
-  ], pil.run_date)
-    + `<div class="dk-sec"><div class="dk-sec-h">低位突破<span class="dk-sec-n">`
-      + `全历史分位 + 箱体形态 + 长窗值得率，按综合分排序</span></div>${tbl}</div>`
+  ], ub.trade_date || pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">谷底磨盘 · 全市场<span class="dk-sec-n">`
+      + `750 日箱体；谷底驻留≥${_dkNum(minDwell * 100, 0)}% · 触及≥2 次；`
+      + `打分＝驻留 35% + 位置 30% + 规整 20% + 触及 15%（驻留最重＝震荡越久分越高）</span></div>${tbl}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">同池深加工<span class="dk-sec-n">`
+      + `带基本面/估值/国资加分，但要逐只取外部数据，所以只能跑小池子 —— 与上表并列，不互相替代</span></div>${lbTbl}</div>`
     + `<div class="dk-sec"><div class="dk-sec-h">另外四件<span class="dk-sec-n">点开才算，不点不占你时间</span></div>${cardHtml}</div>`
     + _dkFoot([
         { cat: "mine", tab: "lowbox", label: "低位突破（完整版·可改筛选）" },
         { cat: "today", tab: "harvest", label: "大势研判（局面判定）" },
         { cat: "strategy", tab: "backtest", label: "信号回测（这套方法到底成不成立）" },
       ]);
+}
+
+/* ---------- ⑤ 筑底布局（3~6 个月 · 在谷底慢慢买）----------
+   与「中线突破」共用同一张 750 日箱体表（数据源一字不改，还是 universe_box + lowbox），
+   因为筑底与突破本来就是同一只票的两段：在箱底磨的时候叫筑底，破了箱顶才叫突破。
+
+   两页的**差别只在看哪几列、怎么解释**：
+     中线突破：pos（在箱体哪个位置）+ 距箱顶（离突破还有多远）→ 在等破位
+     筑底布局：box_years（箱体多长）+ dwell_ratio / dwell_max_run（在谷底磨了多久）→ 在等磨够
+
+   老板原话「有的箱体两三个月根本看不出来，有的半年起步，甚至将近一年」：
+   所以这里必须把 box_years 摆在最显眼的列上 —— 箱体短于半年的票，
+   它画的"底"本来就不算底，这一页要让人一眼看出这件事。
+
+   ⚠️ 已知缺口（不编数据）：接口只给"谷底驻留占 250 日的百分之几"和"最长连续几日"，
+       **没有**"已经磨了几个月"的日历口径，所以本页不说"磨了 4 个月"，只说交易日占比。
+       箱体年数（box_years）是接口真给的，可以直接说"2.6 年"。 */
+function renderDeskBase(host, d) {
+  const pil = d.pil || {};
+  const mk = _dkMkt(pil);
+  const ub = d.ub || {};
+  const lb = d.lb || {};
+  const rows = (ub.rows || []).slice(0, 40);
+  const ubComputing = !!ub.computing;
+  const lbRows = (lb.rows || []).slice(0, 8);
+  const lbComputing = !!lb.computing;
+  const pool = ub.passed2 != null ? ub.passed2 : null;
+  const uni = ub.universe != null ? ub.universe : null;
+
+  /* 箱体长度分档：老板说的「两三个月看不出来 / 半年起步 / 将近一年」可机判版本。
+     只统计，不改任何判据 —— 判据仍是 universe_box 那套（750 日箱体 + 谷底驻留 + 规整度）。 */
+  const band = { short: 0, half: 0, one: 0, long: 0 };
+  rows.forEach((x) => {
+    const y = Number(x.box_years);
+    if (!isFinite(y)) return;
+    if (y < 0.5) band.short++;
+    else if (y < 1) band.half++;
+    else if (y < 2) band.one++;
+    else band.long++;
+  });
+  const longN = band.one + band.long;
+
+  let v = "";
+  if (ubComputing) {
+    v = `全市场箱体扫描正在跑（5000+ 只 × 750 日，首次约 8 秒），算完这一页会自己刷新。`;
+  } else if (rows.length) {
+    v = `全市场 <b>${_dkNum(uni, 0)}</b> 只里，有 <b>${_dkNum(pool, 0)}</b> 只正趴在箱体下 1/3，`
+      + `下面是分数最高的 ${rows.length} 只。`;
+    v += `<br>其中箱体 <b>1 年以上</b>的有 <b>${longN}</b> 只（这个数量才是"能筑底"的量 —— `
+      + `箱体只有两三个月的票，它画的底本来就不算底，<b>半年起步才有意义</b>，`
+      + `将近一年的才值得按周期看）。`;
+    v += `<br><span style="color:var(--muted)">这一类要拿 <b>3~6 个月</b>：买在谷底不是买在最低点，`
+      + `是买在"已经磨够、跌不动"的位置，然后等它自己走出箱体。`
+      + `名单很多天不变是正常的 —— 那是它还在磨，不是系统卡了。</span>`;
+  } else {
+    v = `全市场箱体扫描暂时没有结果。`;
+  }
+  v += `<br>大盘 <b>${esc(mk.state)}</b>：上涨占比 ${mk.upR}、中位 ${mk.med}。`;
+  if (ub.stale_note) v += `<br><b style="color:#b8791f">⚠ ${esc(ub.stale_note)}</b>`;
+  if (mk.isFall) {
+    v += `<br><span style="color:var(--muted)">普跌里建底仓不用急 —— 谷底要的是"磨够"，`
+      + `不是"跌得多"。这一档本来就是慢慢买，分几笔比一把梭更重要。</span>`;
+  }
+
+  const tbl = ubComputing
+    ? `<div class="dk-empty">正在扫描全市场 750 日箱体 + 谷底驻留（首次约 8 秒），算完自动出现…</div>`
+    : (rows.length
+      ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup>`
+        + `<col style="width:13%"><col style="width:9%"><col style="width:7%"><col style="width:10%">`
+        + `<col style="width:10%"><col style="width:11%"><col style="width:9%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th>`
+        + `<th class="c" title="箱体越长，这个底越算底">箱体年数</th>`
+        + `<th class="c">谷底驻留</th><th class="c">最长连续</th>`
+        + `<th class="c">谷底位置</th><th class="c">触及</th></tr></thead><tbody>`
+        + rows.map((x) => `<tr>`
+          + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
+          + `<td class="c">${_dkScore(x.score)}</td>`
+          + `<td class="c">${_dkNum(x.box_years, 1)} 年</td>`
+          + `<td class="c">${_dkNum(x.dwell_ratio * 100, 0)}%</td>`
+          + `<td class="c">${_dkNum(x.dwell_max_run, 0)} 日</td>`
+          + `<td class="c">${_dkNum(x.pos * 100, 0)}%</td>`
+          + `<td class="c">${_dkNum(x.touches, 0)}</td>`
+          + `</tr>`).join("") + `</tbody></table></div>`
+      : `<div class="dk-empty">今天没有符合"在谷底磨着"的票 —— 空仓也是一种结果。</div>`);
+
+  const lbTbl = lbComputing
+    ? `<div class="dk-empty">低位深加工扫描中（含基本面/估值/国资系，首次 30~60 秒），算完自动出现…</div>`
+    : (lbRows.length
+      ? `<div class="dk-tblcard"><table class="dk-tbl"><colgroup>`
+        + `<col style="width:15%"><col style="width:10%"><col style="width:9%"><col style="width:14%">`
+        + `<col style="width:11%"><col style="width:12%"><col></colgroup>`
+        + `<thead><tr><th>名称</th><th class="cd">代码</th><th class="c">得分</th>`
+        + `<th class="c">全历史分位</th><th class="c">箱体年数</th>`
+        + `<th class="c">距箱顶</th><th class="c">量比</th></tr></thead><tbody>`
+        + lbRows.map((x) => `<tr>`
+          + `<td class="nm">${_dkLink(x.code, x.name)}</td>`
+          + `<td class="cd">${_dkLink(x.code, x.code, 1)}</td>`
+          + `<td class="c">${_dkScore(x.score)}</td>`
+          + `<td class="c">${_dkNum(x.pct_all, 1)}%</td>`
+          + `<td class="c">${_dkNum(x.box_years, 1)}</td>`
+          + `<td class="c">${_dkPct(x.breakout_pct)}</td>`
+          + `<td class="c">${_dkNum(x.vol_ratio)}</td>`
+          + `</tr>`).join("") + `</tbody></table></div>`
+      : `<div class="dk-empty">低位深加工榜单是空的。</div>`);
+
+  const bandTxt = `箱体 <0.5 年 ${band.short} 只 · 0.5~1 年 ${band.half} 只 · 1~2 年 ${band.one} 只 · 2 年以上 ${band.long} 只`;
+
+  host.innerHTML = _dkHero("base", v, [
+    { t: ubComputing ? "箱体扫描：算着呢" : `谷底磨着 ${pool != null ? _dkNum(pool, 0) : rows.length} 只` },
+    { t: `箱体 ≥1 年 ${longN} 只` },
+    { t: "判据回看 250~750 日" },
+    { t: mk.isFall ? "建底仓：不用急" : "建底仓：可分批" },
+  ], ub.trade_date || pil.run_date)
+    + `<div class="dk-sec"><div class="dk-sec-h">谷底磨盘 · 全市场<span class="dk-sec-n">`
+      + `判据回看 <b>250~750 日</b>；箱体长度分档：${esc(bandTxt)}</span></div>${tbl}</div>`
+    + `<div class="dk-sec"><div class="dk-sec-h">同池深加工<span class="dk-sec-n">`
+      + `带基本面/估值/国资加分，要逐只取外部数据所以只能跑小池子 —— 与上表并列，不互相替代`
+      + `</span></div>${lbTbl}</div>`
+    + _dkFoot([
+      { cat: "mine", tab: "lowbox_bottom", label: "长期底部埋伏（完整版·可改档位）" },
+      { cat: "mine", tab: "lowbox", label: "低位突破（完整版·可改筛选）" },
+      { cat: "today", tab: "harvest", label: "大势研判（局面判定）" },
+    ]);
 }
 
 /* ---------- ④ 长期埋伏：多数日子就是"没有动作" ---------- */

@@ -338,7 +338,8 @@ def summary(con, codes):
 # ------------------------------------------------------------------ CLI 自检
 def _main():
     import sys
-    con = sqlite3.connect(DB_PATH)
+    from viewer import db as _db
+    con = _db.get_main_conn(read_only=True)
     codes = sys.argv[1:] or [r[0] for r in con.execute(
         "SELECT code FROM stock_indicators_daily"
         " WHERE date=(SELECT MAX(date) FROM stock_indicators_daily) LIMIT 400")]

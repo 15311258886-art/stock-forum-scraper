@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>巴菲特价值投资选股策略 · A股周度筛选研报（2026-11-03）</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F8; --card:#FFFFFF; --ink:#1F2933; --ink2:#4A5568; --ink3:#718096;
+    --line:#E2E6EA; --teal:#0E7490; --teal-soft:#E6F2F5;
+    --up:#C62828; --down:#2E7D32; --warn:#C05621; --warn-bg:#FFF6EE;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",Arial,sans-serif;
+       line-height:1.75;font-size:15px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 60px;}
+  header.top{border-bottom:3px solid var(--teal);padding-bottom:18px;margin-bottom:26px;}
+  .eyebrow{font-size:12px;letter-spacing:2px;color:var(--teal);font-weight:700;}
+  h1{font-size:27px;margin:8px 0 6px;letter-spacing:.5px;}
+  .sub{color:var(--ink2);font-size:14px;}
+  .meta{color:var(--ink3);font-size:12.5px;margin-top:10px;}
+  h2{font-size:20px;margin:38px 0 14px;padding-left:12px;border-left:5px solid var(--teal);}
+  h3{font-size:16px;margin:24px 0 10px;color:var(--ink);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:16px;}
+  .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+  .kpi{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+  .kpi .n{font-size:30px;font-weight:800;color:var(--teal);line-height:1.2;}
+  .kpi .l{font-size:12.5px;color:var(--ink3);margin-top:2px;}
+  .kpi.core .n{color:#2B6CB0;} .kpi.watch .n{color:var(--warn);} .kpi.out .n{color:#718096;}
+  .tier-line{font-size:14px;margin:6px 0;}
+  .tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-right:6px;}
+  .t-core{background:#E8F0FE;color:#2B6CB0;}
+  .t-watch{background:var(--warn-bg);color:var(--warn);}
+  .t-out{background:#EDF0F2;color:#5A6472;}
+  ol.finds{margin:6px 0 0;padding-left:20px;}
+  ol.finds li{margin-bottom:9px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:center;}
+  th{background:#EEF2F5;font-weight:700;color:var(--ink2);font-size:12.5px;}
+  td.name{text-align:left;font-weight:600;}
+  td.code{font-family:Consolas,Menlo,monospace;color:var(--ink2);}
+  td.left{text-align:left;}
+  tbody tr:nth-child(even){background:#FAFBFC;}
+  .up{color:var(--up);font-weight:600;}
+  .down{color:var(--down);font-weight:600;}
+  .flat{color:var(--ink3);}
+  .note{background:var(--warn-bg);border-left:4px solid var(--warn);padding:12px 16px;font-size:13.2px;color:#5A3A18;border-radius:0 6px 6px 0;margin:12px 0;}
+  .note.info{background:var(--teal-soft);border-left-color:var(--teal);color:#14505F;}
+  .src{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.6;}
+  .chartbox{margin:14px 0 4px;}
+  .chart{width:100%;height:400px;}
+  .grid2{display:flex;gap:16px;flex-wrap:wrap;}
+  .grid2>div{flex:1;min-width:300px;}
+  .grid3{display:flex;gap:14px;flex-wrap:wrap;}
+  .grid3>div{flex:1;min-width:290px;}
+  .badge{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:4px;font-weight:700;}
+  .b-core{background:#2B6CB0;color:#fff;}
+  .b-watch{background:var(--warn);color:#fff;}
+  .b-out{background:#8A94A6;color:#fff;}
+  .b-same{background:#E2E6EA;color:#4A5568;}
+  .b-new{background:#C62828;color:#fff;}
+  .b-exit{background:#7A6A8A;color:#fff;}
+  .stock-block{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:#FCFDFD;}
+  .stock-block h4{margin:0 0 8px;font-size:15.5px;}
+  .kv{font-size:13.2px;color:var(--ink2);margin:3px 0;}
+  .kv b{color:var(--ink);}
+  .verdict{margin-top:8px;padding:8px 12px;background:#EEF2F5;border-radius:6px;font-size:13.2px;}
+  footer{margin-top:36px;border-top:1px solid var(--line);padding-top:16px;font-size:12.5px;color:var(--ink3);}
+  .disc{margin-top:14px;background:#FFF9F9;border:1px solid #F0C9C9;border-radius:8px;padding:14px 18px;color:#6B2C2C;font-size:13px;}
+  @media(max-width:720px){ .kpi{min-width:120px;} .chart{height:340px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">WEEKLY QUANT SCREEN &middot; VALUE INVESTING</div>
+  <h1>巴菲特价值投资选股策略 &middot; A股周度筛选研报</h1>
+  <div class="sub">8 项量化指标取交集（TTM 口径）＋ 近 2 年历史盈利稳定性核查（必做环节）</div>
+  <div class="meta">
+    报告日期：<b>2026-11-03（周二）</b>　&middot;　财务数据基准日：<b>全部 9 只为 2026-09-30</b>（2026 年三季报 TTM，本期首次实现全池同基准日）　&middot;　历史核查区间：2024 / 2025 两个完整年度（2023 年仅作趋势参照）<br>
+    行情与估值快照：<b>2026-11-02 收盘</b>（最近一个完整交易日；本报告生成于 2026-11-03 09:07，A 股尚未开盘）　&middot;　上期报告：2026-10-27（行情快照 10-26 收盘）　&middot;　A 股语境：红涨绿跌
+  </div>
+</header>
+
+<!-- ① TL;DR -->
+<h2>一、TL;DR 结论卡</h2>
+<div class="kpis">
+  <div class="kpi"><div class="n">9</div><div class="l">量化入围标的数<br>（上期 12 只，本期 -3）</div></div>
+  <div class="kpi core"><div class="n">3</div><div class="l">核心推荐<br>盈利持续稳定</div></div>
+  <div class="kpi watch"><div class="n">1</div><div class="l">观察档<br>量化达标但指标贴线</div></div>
+  <div class="kpi out"><div class="n">5</div><div class="l">剔除档<br>历史不稳 / 指标失真</div></div>
+  <div class="kpi"><div class="n">2 / 5</div><div class="l">新进入 / 出池<br>本期净减 3 只</div></div>
+</div>
+
+<div class="tier-line"><span class="tag t-core">核心推荐 3</span>新和成 002001 &middot; 金钼股份 601958 &middot; 中国海油 600938</div>
+<div class="tier-line"><span class="tag t-watch">观察 1</span>宝丰能源 600989</div>
+<div class="tier-line"><span class="tag t-out">剔除 5</span>招商轮船 601872（新进）&middot; 九安医疗 002432 &middot; 世纪华通 002602 &middot; 粤桂股份 000833（新进）&middot; 巨人网络 002558</div>
+
+<div class="card">
+  <h3 style="margin-top:4px;">本期七点结论</h3>
+  <ol class="finds">
+    <li><b>入围数由 12 只降至 9 只，为本系列报告首次出现净减员。</b>名单变动为：<b>出池 5 只</b>（三七互娱 002555、泸州老窖 000568、伟星新材 002372、通化东宝 600867、东方铁塔 002545）、<b>新进 2 只</b>（招商轮船 601872、粤桂股份 000833）。三档结构由 <b>核心 4 / 观察 3 / 剔除 5</b> 变为 <b>核心 3 / 观察 1 / 剔除 5</b>。这是事实，可逐只核对。</li>
+    <li><b>净减员的主因是三季报全池切换，而非一周内的基本面突变。</b>上期仅宝丰能源 600989 一只用 2026-09-30 基准，本期 9 只全部切至三季报口径。按监管要求三季报须在 10 月 31 日前披露完毕，因此本周是<b>指标成体系重算的第一周</b>；上期报告已预告"下一期全池将整体切换至 2026-09-30 口径，指标会成体系变动，属口径切换而非基本面突变"，本期兑现。<b>交叉验证锚点</b>：宝丰能源 TTM ROE 上期与本期均为 <b>29.46%</b>（因其基准日本已是 09-30），与"引擎未串期"相符。</li>
+    <li><b>核心档首次减员，且减的是此前两期连续预警的三七互娱 002555。</b>其 ROE(TTM) 由 23.18% 降至 <b>14.94%</b>（差阈值 0.06pct）、净利率由 22.10% 降至 <b>12.84%</b>（差 2.16pct），<b>两项同时越界，直接出池而非降档</b>。上期报告已将其"中报营收 -16.23% 而归母 +26.14%"的背离列为"下期首要复核项"，本期三季报显示<b>前三季归母 14.70 亿元、同比 -37.29%，Q3 单季归母同比 -79.28%</b>——背离以"利润失速"的形式解决，此前判断得到验证。</li>
+    <li><b>泸州老窖 000568 连续两期被标为"出池风险最高"的标的，本期兑现。</b>ROE(TTM) 由 16.41% 降至 <b>12.20%</b>（差 2.80pct），前三季归母 56.71 亿元、同比 <b>-47.31%</b>。值得注意的是其<b>股价自 10-26 收盘 71.99 元涨至 11-02 收盘 79.77 元（+10.81%，为池内外最大 5 日涨幅）</b>，<b>估值上涨与基本面恶化同期发生</b>，属典型的"价格与指标反向"。</li>
+    <li><b>新进两只均为周期爆发型，且在历史核查环节全部落入剔除档。</b>招商轮船 601872（2025 年加权 ROE <b>14.55% 未达 15%</b>，2026 前三季归母 +263.15%，年初至今股价 <b>+108.95%</b>）、粤桂股份 000833（2025 年加权 ROE <b>12.81%</b> 未达标，2026 前三季归母 +161.53%，股息率 1.02% 仅超线 0.02pct）。<b>两者的 TTM 达标均来自 2026 年单年脉冲，年度序列不支持"持续稳定"</b>，这正是本策略历史核查环节要拦截的对象。</li>
+    <li><b>伟星新材 002372 的出池属"临界带口径差异"，需单独标注、不宜简单归为基本面恶化。</b>财报接口给出其 ROE(TTM) <b>15.32%</b>（高于 15%）、毛利率 41.83%、净利率 17.25%、PB 2.78、股息率 4.10%、市值 134.21 亿元，<b>按该口径 8 项应全部达标</b>；但条件选股引擎未将其纳入，说明引擎侧 ROE(TTM) 略低于 15%。<b>本期明确结论：这是一只站在阈值线上、随口径切换进出的标的，其"在池与否"不具稳健性。</b></li>
+    <li><b>中国海油 600938 是本期唯一"指标改善且历史证据加强"的核心标的。</b>前三季归母 <b>1,191.18 亿元、同比 +16.8%</b>，已达 2025 全年 1,220.82 亿元的 <b>97.6%</b>；ROE(TTM) 由 16.16% 回升至 <b>16.43%</b>。其 2025 年加权 ROE 15.64%（余量 0.64pct）仍属全池安全垫最薄的核心标的，但 2026 年的油价回升（前三季度实现油价 86.32 美元/桶，同比 +26.4%）已实质回补 2025 年的下滑。</li>
+  </ol>
+  <div class="src">
+    数据来源：domain_search（金融检索工具，内含 westock-screener 条件选股、westock-data finance / quote 接口）2026-11-03 09:07 取数，行情基准日 2026-11-02 收盘；条件选股表达式 <code>intersect([ROETTM&gt;15, GrossIncomeRatioTTM&gt;40, NetProfitRatioTTM&gt;15, DebtAssetsRatio&lt;50, PE_TTM&gt;0, PE_TTM&lt;25, PB&gt;0, PB&lt;3, DividendRatioTTM&gt;1, TotalMV&gt;100亿])</code>，返回 9 只。财务指标基准日见上方报告头。媒体类背景信息为非一手来源，已在正文标注"需核实原文"。
+  </div>
+</div>
+
+<!-- ② 筛选口径 -->
+<h2>二、筛选口径表</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:20%">指标</th><th style="width:16%">阈值</th><th>口径说明与筛选意图</th></tr></thead>
+    <tbody>
+      <tr><td class="left">净资产收益率 ROE</td><td>&gt; 15%</td><td class="left">TTM 口径。价值投资最看重的单指标，衡量股东资本的真实回报率</td></tr>
+      <tr><td class="left">毛利率</td><td>&gt; 40%</td><td class="left">TTM 口径。高毛利率是护城河（定价权 / 成本壁垒）的直接体现</td></tr>
+      <tr><td class="left">净利率</td><td>&gt; 15%</td><td class="left">TTM 口径。剔除高毛利但费用失控的"纸面优质"公司</td></tr>
+      <tr><td class="left">资产负债率</td><td>&lt; 50%</td><td class="left">最新报告期（本期为 2026-09-30）。财务安全垫，规避高杠杆放大 ROE 的假象</td></tr>
+      <tr><td class="left">市盈率 PE</td><td>0 ~ 25 倍</td><td class="left">TTM，剔除负值（&gt;0 且 &lt;25）。不为成长支付过高价格</td></tr>
+      <tr><td class="left">市净率 PB</td><td>0 ~ 3 倍</td><td class="left">LF，剔除负值（&gt;0 且 &lt;3）。资产端的估值纪律</td></tr>
+      <tr><td class="left">股息率</td><td>&gt; 1%</td><td class="left">TTM。股东回报的真实兑现，而非账面利润</td></tr>
+      <tr><td class="left">总市值</td><td>&gt; 100 亿元</td><td class="left">流动性与抗风险能力门槛，规避小市值流动性陷阱</td></tr>
+      <tr><td class="left"><b>历史盈利稳定性核查</b></td><td>定性否决项</td><td class="left"><b>必做环节</b>：逐只核对近 2 年年度 ROE 与归母净利润走势，剔除靠一次性损益扭亏、或盈利剧烈波动 / 当期指标失真的标的</td></tr>
+    </tbody>
+  </table>
+  <div class="src">阈值口径为固定策略设定，不随时间调整。市值为总市值（含限售股）。本期 8 项条件全部内嵌在单一选股表达式中一次性取交集，不做分步过滤。</div>
+</div>
+
+<div class="grid3">
+  <div class="card">
+    <h3 style="margin-top:0;">漏斗过程</h3>
+    <table>
+      <thead><tr><th>步骤</th><th>剩余</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td class="left">沪深 A 股全市场</td><td>全池</td><td class="left">筛选起点（不含北交所）</td></tr>
+        <tr><td class="left">8 项量化取交集</td><td><b>9</b></td><td class="left">表达式已内嵌市值条件，直接返回</td></tr>
+        <tr><td class="left">近 2 年稳定性核查</td><td><b>核心3 / 观察1 / 剔除5</b></td><td class="left">量化达标 &ne; 盈利可持续</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0;">分档判定三条硬标准</h3>
+    <p style="font-size:13.2px;color:var(--ink2);margin:0;line-height:1.95;">
+      ① <b>近 2 年年度 ROE 是否连续站上 15%</b>——TTM 达标但两年年度均不达标的，视为单期跳升，不作核心对待；<br>
+      ② <b>是否出现年度亏损</b>——任一年度归母净利润为负，直接进入剔除档，无论当期指标多漂亮；<br>
+      ③ <b>扣非与归母的背离幅度</b>——以"非经常性损益占归母净利润比重"量化，超过 15% 即提示利润含一次性成分。
+    </p>
+  </div>
+</div>
+
+<div class="note info">
+  <b>本期数据质量与口径披露（五项，均为需要读者知道的事实）</b><br>
+  ① <b>行情为 2026-11-02 收盘价。</b>本报告生成于 2026-11-03 09:07，A 股尚未开盘（集合竞价 09:15 起、连续竞价 09:30 起），因此最新可用完整行情为<b>前一交易日 11-02 收盘</b>。与上期（10-26 收盘）对比时，逐项差值跨 10-27 / 28 / 29 / 30 / 11-02 五个完整交易日，<b>等于 5 个交易日的累计涨跌，不等于任一单日涨跌幅</b>。本表"5 日涨跌"已与行情接口 <code>chg_5d</code> 字段逐只比对，<b>9 只全部一致</b>。<br>
+  ② <b>财务基准日本期首次实现全池统一。</b>9 只全部为 <b>2026-09-30</b>（三季报 TTM）。上期为"11 只 06-30 + 宝丰 09-30"混池，<b>本期不再存在跨基准日横向比较的问题</b>，这是相对上期的一处方法学改进。<br>
+  ③ <b>本期揭露"引擎 ROE(TTM)"与"财报接口 ROE(TTM)"在阈值临界带存在 ≤0.4pct 的差异。</b>实测：伟星新材 引擎口径未达 15% / 财报接口 15.32%（+0.32pct 方向不一致）；东方铁塔 引擎未纳入 / 财报接口 14.91%；三七互娱 引擎未纳入 / 财报接口 14.94%（差 0.06pct）。<b>结论：凡处于 15% ±0.4pct 带宽内的标的，"在池与否"由口径决定，不具稳健性</b>，本报告对此单独标注。<br>
+  ④ <b>绝对金额本期已回原始字段核对，未发现 10 倍单位放大。</b>中国海油前三季归母 1,191.18 亿元与三季报原文（119,118 百万元）一致；宝丰能源 143.17 亿元、招商轮船 119.83 亿元与季报 / 公告原文一致。<b>上期记录的"中报归母一列 10 倍放大"问题本期未复现</b>。<br>
+  ⑤ <b>一处跨期数据冲突（不予静默处理）。</b>本期检索给出的世纪华通 2023 年归母净利润为 <b>+5.24 亿元（盈利）</b>，而上期报告记载为 <b>-13.3 亿元、ROE -10.29%</b>。两者不可能同时成立。上期数据疑为 2022 年（本期数据：2022 年归母 <b>-67.47 亿元</b>）错位。<b>本报告对该股的分档结论对两种版本均成立</b>（详见第四节），故不因该冲突改变判断，但已如实标注。
+</div>
+
+<!-- ③ 指标表 -->
+<h2>三、全部入围标的指标表（9 只）</h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>代码</th><th>名称</th><th>分档</th>
+        <th>ROE<br>(TTM)</th><th>毛利率<br>(TTM)</th><th>净利率<br>(TTM)</th><th>资产负债率</th>
+        <th>PE<br>(TTM)</th><th>PB<br>(LF)</th><th>股息率<br>(TTM)</th>
+        <th>总市值<br>(亿元)</th><th>11-02 收盘<br>(元)</th><th>当日涨跌</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="code">600989</td><td class="name">宝丰能源</td><td><span class="badge b-watch">观察</span></td>
+        <td>29.46%</td><td>40.55%</td><td>28.06%</td><td>41.79%</td><td>9.88</td><td>2.91</td><td>3.70%</td><td>1,651.47</td><td>22.52</td><td class="up">+0.94%</td>
+      </tr>
+      <tr>
+        <td class="code">601872</td><td class="name">招商轮船</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td>29.18%</td><td>42.26%</td><td>36.19%</td><td>43.00%</td><td>9.87</td><td>2.88</td><td>2.11%</td><td>1,450.99</td><td>17.97</td><td class="up">+1.47%</td>
+      </tr>
+      <tr>
+        <td class="code">002432</td><td class="name">九安医疗</td><td><span class="badge b-out">剔除</span></td>
+        <td>23.10%</td><td>62.67%</td><td>534.70%</td><td>30.97%</td><td>4.40</td><td>1.02</td><td>2.67%</td><td>258.77</td><td>55.50</td><td class="down">-1.32%</td>
+      </tr>
+      <tr>
+        <td class="code">002602</td><td class="name">世纪华通</td><td><span class="badge b-out">剔除</span></td>
+        <td>21.41%</td><td>72.36%</td><td>17.52%</td><td>27.38%</td><td>12.07</td><td>2.58</td><td>1.12%</td><td>915.44</td><td>12.42</td><td class="up">+7.81%</td>
+      </tr>
+      <tr>
+        <td class="code">000833</td><td class="name">粤桂股份</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td>20.46%</td><td>41.09%</td><td>24.48%</td><td>36.05%</td><td>11.85</td><td>2.42</td><td>1.02%</td><td>141.78</td><td>16.58</td><td class="up">+0.67%</td>
+      </tr>
+      <tr>
+        <td class="code">002558</td><td class="name">巨人网络</td><td><span class="badge b-out">剔除</span></td>
+        <td>20.41%</td><td>94.67%</td><td>40.79%</td><td>19.06%</td><td>12.19</td><td>2.49</td><td>4.77%</td><td>393.04</td><td>20.68</td><td class="up">+10.00%</td>
+      </tr>
+      <tr>
+        <td class="code">002001</td><td class="name">新和成</td><td><span class="badge b-core">核心</span></td>
+        <td>20.00%</td><td>43.80%</td><td>29.56%</td><td>25.47%</td><td>10.60</td><td>2.12</td><td>3.17%</td><td>775.12</td><td>25.22</td><td class="down">-1.48%</td>
+      </tr>
+      <tr>
+        <td class="code">601958</td><td class="name">金钼股份</td><td><span class="badge b-core">核心</span></td>
+        <td>18.71%</td><td>46.03%</td><td>27.63%</td><td>13.85%</td><td>13.45</td><td>2.52</td><td>2.48%</td><td>519.48</td><td>16.10</td><td class="up">+2.42%</td>
+      </tr>
+      <tr>
+        <td class="code">600938</td><td class="name">中国海油</td><td><span class="badge b-core">核心</span></td>
+        <td>16.43%</td><td>52.87%</td><td>31.57%</td><td>29.83%</td><td>12.04</td><td>1.98</td><td>3.66%</td><td>16,759.06</td><td>35.26</td><td class="down">-1.97%</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <b>四个必须提醒的指标异常与口径边界</b><br>
+    ① <b>九安医疗 002432 净利率 TTM 为 534.70%（上期 390.91%，本期进一步上升）。</b>净利率超过 100% 意味着净利润高于营业收入。其 2025 年营收已由 2024 年 25.92 亿元降至 13.66 亿元（<b>-47.3%</b>），而归母反增 35.84%——利润来源是交易性金融资产公允价值变动等投资性收益。<b>该指标已不具备横向可比性</b>，是本策略"净利率 &gt; 15%"阈值在个别标的上失灵的直接证据。<br>
+    ② <b>宝丰能源 600989 的两项"贴线"本期进一步收窄。</b>毛利率 40.55%（余 0.55pct，与上期持平）；<b>PB 由 2.84 倍升至 2.91 倍，距 3 倍上限仅 0.09 倍</b>（上期余 0.16 倍）。其 2026 前三季毛利率 42.83%、ROE(TTM) 29.46% 均为全池最优，<b>但估值端的安全垫已薄至 3% 以内</b>——股价再涨约 3.1% 即越界。<br>
+    ③ <b>粤桂股份 000833 股息率 1.02%，仅超 1% 门槛 0.02pct，为全池最窄；总市值 141.78 亿元，余量 41.78 亿元。</b>世纪华通 002602 股息率 1.12%（余 0.12pct）、招商轮船 601872 PB 2.88（余 0.12 倍）。<b>本期"单指标极限贴线"的标的增至 3 只</b>（上期为 2 只：宝丰、世纪华通）。<br>
+    ④ <b>口径边界：本期 9 只均为 2026-09-30 基准，横向可比性优于上期</b>；但三季报为未经审计数据，与年报（经审计）存在潜在调整空间，<b>本报告不对此做调整</b>。九安医疗的净利率、世纪华通的 ROE 等指标对年报审计调整的敏感度高于其他标的。
+  </div>
+  <div class="src">
+    数据来源：domain_search（含 westock-screener 条件选股与 westock-data finance / quote 接口）2026-11-03 取数。估值类字段（PE / PB / 股息率 / 总市值 / 收盘价 / 当日涨跌幅）为 <b>2026-11-02 收盘</b>快照；财务类字段报告期统一为 2026-09-30。总市值由引擎直接返回（原始值单位：元，已换算为亿元）。全部 9 只均标注 6 位股票代码。<b>一致性校验</b>：逐只以"收盘价 × 总股本"复核市值 —— 中国海油 35.26 × 475.30 亿股 = 16,759.1 亿元、招商轮船 17.97 × 80.745 亿股 = 1,451.0 亿元、粤桂股份 16.58 × 8.551 亿股 = 141.8 亿元、新和成 25.22 × 30.734 亿股 = 775.1 亿元、金钼股份 16.10 × 32.266 亿股 = 519.5 亿元、宝丰能源 22.52 × 73.334 亿股 = 1,651.5 亿元、世纪华通 12.42 × 73.707 亿股 = 915.4 亿元、巨人网络 20.68 × 19.006 亿股 = 393.0 亿元、九安医疗 55.50 × 4.662 亿股 = 258.8 亿元，<b>9 只全部吻合</b>。
+  </div>
+</div>
+
+<!-- ④ 历史盈利稳定性分档详解 -->
+<h2>四、历史盈利稳定性分档详解（必做环节）</h2>
+
+<div class="card">
+  <h3 style="margin-top:0;">近 2 年年度 ROE 与归母净利润核查总表（附 2023 年参照）</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>代码</th><th>名称</th><th>分档</th>
+        <th>2023<br>ROE(摊薄)</th><th>2024<br>ROE(加权)</th><th>2025<br>ROE(加权)</th>
+        <th>2024 归母<br>(亿元)</th><th>2025 归母<br>(亿元)</th><th>2025 同比</th>
+        <th>TTM<br>ROE</th><th>2024&amp;2025<br>连续 &ge;15%</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="code">600989</td><td class="name">宝丰能源</td><td><span class="badge b-watch">观察</span></td>
+        <td class="flat">—</td><td>15.55%</td><td>24.84%</td>
+        <td>63.38</td><td>113.50</td><td class="up">+79.09%</td><td>29.46%</td><td class="up">是（2024 余量 0.55pct）</td>
+      </tr>
+      <tr>
+        <td class="code">601872</td><td class="name">招商轮船</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td class="flat">—</td><td class="flat">【未知】</td><td class="down">14.55%</td>
+        <td>51.07<span style="font-size:11px;">*</span></td><td>60.12</td><td class="up">+17.71%</td><td>29.18%</td><td class="down">否（2025 未达）</td>
+      </tr>
+      <tr>
+        <td class="code">002432</td><td class="name">九安医疗</td><td><span class="badge b-out">剔除</span></td>
+        <td>2.32%</td><td class="down">8.20%</td><td class="down">10.75%</td>
+        <td>16.69</td><td>22.67</td><td class="up">+35.84%</td><td>23.10%</td><td class="down">否（三年均不足）</td>
+      </tr>
+      <tr>
+        <td class="code">002602</td><td class="name">世纪华通</td><td><span class="badge b-out">剔除</span></td>
+        <td class="flat">-10.29%<span style="font-size:11px;">†</span></td><td class="down">4.94%</td><td>20.27%</td>
+        <td>12.13</td><td>56.05</td><td class="up">+362.02%</td><td>21.41%</td><td class="down">否（2024 不足）</td>
+      </tr>
+      <tr>
+        <td class="code">000833</td><td class="name">粤桂股份</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td class="flat">—</td><td class="flat">【未知】</td><td class="down">12.81%</td>
+        <td>2.79<span style="font-size:11px;">*</span></td><td>4.80</td><td class="up">+72.30%</td><td>20.46%</td><td class="down">否（2025 未达）</td>
+      </tr>
+      <tr>
+        <td class="code">002558</td><td class="name">巨人网络</td><td><span class="badge b-out">剔除</span></td>
+        <td class="down">8.42%</td><td class="down">11.56%</td><td class="down">12.45%</td>
+        <td>14.25</td><td>17.55</td><td class="up">+23.13%</td><td>20.41%</td><td class="down">否（三年均不足）</td>
+      </tr>
+      <tr>
+        <td class="code">002001</td><td class="name">新和成</td><td><span class="badge b-core">核心</span></td>
+        <td>11.15%</td><td>21.78%</td><td>21.87%</td>
+        <td>58.69</td><td>67.64</td><td class="up">+15.26%</td><td>20.00%</td><td class="up">是</td>
+      </tr>
+      <tr>
+        <td class="code">601958</td><td class="name">金钼股份</td><td><span class="badge b-core">核心</span></td>
+        <td>20.77%</td><td>18.46%</td><td>17.38%</td>
+        <td>29.83</td><td>31.55</td><td class="up">+5.77%</td><td>18.71%</td><td class="up">是（三年均达标）</td>
+      </tr>
+      <tr>
+        <td class="code">600938</td><td class="name">中国海油</td><td><span class="badge b-core">核心</span></td>
+        <td>14.36%</td><td>19.36%</td><td>15.64%</td>
+        <td>1,379.36</td><td>1,220.82</td><td class="down">-11.49%</td><td>16.43%</td><td class="up">是（余量 0.64pct）</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="src">
+    <b>口径声明（重要）</b>：本表 2024 / 2025 年 ROE 为<b>净资产收益率（加权）</b>，来自公司年度报告，经财报接口 <code>ROEWeighted</code> / <code>ROECut</code> 字段核对，取数时点 2026-11-03；2023 年 ROE 为<b>摊薄口径</b>（承前期报告，仅作趋势参照，<b>不参与分档判定</b>，且不可与 2024/2025 列直接相减）；TTM ROE 来自条件选股引擎，基准日全部为 2026-09-30。归母净利润为年度报表值（<code>NPParentCompanyOwners</code>），单位人民币亿元。<b>"2025 同比"</b>为 2025 年度对 2024 年度的同比增速。<br>
+    <b>*</b> 招商轮船 2024 归母 51.07 亿元、粤桂股份 2024 归母 2.79 亿元，均由"2025 年归母 ÷ (1 + 同比增速)"反算，<b>误差约 ±0.1%，属推算式非报表直取值</b>。<b>†</b> 世纪华通 2023 年 ROE 沿用上期报告的 -10.29%，但本期检索给出的 2023 年归母为 <b>+5.24 亿元（盈利）</b>，与上期记载的 -13.3 亿元冲突，<b>该单元格标为待核，不参与判定</b>（见本节末注）。招商轮船、粤桂股份的 2024 年 ROE 与 2023 年 ROE 本期未取得，标注【未知】。
+  </div>
+  <div class="note info" style="margin-top:14px;">
+    <b>新增口径提示：本期 TTM 由"中报窗口"整体切换为"三季报窗口"，9 只指标同时重算</b><br>
+    这是本系列报告<b>第一次出现"全池同一基准日且均为三季报"</b>的情形，因此本周几乎所有标的的 ROE(TTM) / 毛利率 / 净利率都发生了变动，<b>但不能把变动幅度直接解读为基本面变化速度</b>。判断方法是比较"TTM 变动"与"最新单季同比"是否同向：
+    <br>&nbsp;&nbsp;· <b>同向（可信）</b>：中国海油 ROE 16.16%→16.43%（Q3 单季归母 +2.7%）、金钼股份 17.00%→18.71%（前三季 +30.94%）、新和成 20.56%→20.00%（前三季 +10.28%，ROE 微降源于净资产增厚）。
+    <br>&nbsp;&nbsp;· <b>反向（需警惕）</b>：世纪华通 ROE 21.78%→21.41% 而 Q3 单季归母仅 +7.69%（增速由 2025 年的 +362% 迅速回落）；巨人网络 ROE 18.55%→20.41% 但 Q3 单季归母增速 +16.01%（远低于前三季 +103.73%）。<b>两只均显示"年度高增长正在减速"，是其留在剔除档的时效性证据。</b>
+    <br>&nbsp;&nbsp;· <b>断崖式（出池主因）</b>：三七互娱 23.18%→14.94%（Q3 单季 -79.28%）、泸州老窖 16.41%→12.20%（前三季 -47.31%）、通化东宝 19.01%→7.69%（前三季 -56.20%）。
+  </div>
+  <div class="note" style="margin-top:14px;">
+    <b>世纪华通 2023 年数据的跨期冲突（如实披露，不静默择一）</b><br>
+    · 本期检索给出四年序列：2022 年归母 <b>-67.47 亿元</b>、2023 年 <b>+5.24 亿元</b>、2024 年 <b>+12.13 亿元</b>、2025 年 <b>+56.05 亿元</b>。<br>
+    · 上期报告记载：2023 年归母 <b>-13.3 亿元</b>、ROE <b>-10.29%</b>，并据此认定"2023 年度亏损"。<br>
+    · <b>两者冲突，本期无法独立判定哪一版为准</b>（未取得 2023 年年报原文）。<b>【推测】</b>上期数据可能为 2022 年数据错位——依据是本期序列明确显示 2022 年为 -67.47 亿元巨亏年，与上期描述的"年度亏损"特征更吻合。<br>
+    · <b>对分档结论的影响：无。</b>无论 2023 年为 +5.24 亿元还是 -13.3 亿元，其 <b>2024 年加权 ROE 仅 4.94%</b> 已足以构成"标准①（近 2 年年度 ROE 未连续达标）"的否决，且 2025 年 +362.02% 系低基数爆发（2022 年巨亏后 2023—2025 年归母从 5.24 亿一年翻近 11 倍）。<b>结论稳健，但引用其 2023 年具体数值时应注明版本分歧。</b>
+  </div>
+</div>
+
+<h3>核心推荐（3 只）——盈利持续稳定</h3>
+
+<div class="stock-block">
+  <h4>新和成 <span class="code">002001</span> <span class="badge b-core">核心</span> <span class="badge b-same">稳定性证据全池最强</span></h4>
+  <div class="kv"><b>年度 ROE（加权）：</b>2024 年 21.78% → 2025 年 <b>21.87%</b> ｜ TTM 20.00%（2023 年摊薄 11.15%，仅趋势参照）</div>
+  <div class="kv"><b>年度归母：</b>58.69 亿（2024）→ 67.64 亿（2025，同比 <b>+15.26%</b>）</div>
+  <div class="kv"><b>2026 年前三季度：</b>归母 <b>58.68 亿元（同比 +10.28%）</b>——单看前三季已接近 2025 全年 67.64 亿元的 86.8%</div>
+  <div class="kv"><b>8 项指标：</b>ROE 20.00%（余 5.00pct）｜ 毛利率 43.80%（余 3.80pct）｜ 净利率 29.56%（余 14.56pct）｜ 资产负债率 25.47%（余 24.53pct）｜ PE 10.60（余 14.40 倍）｜ PB 2.12（余 0.88 倍）｜ 股息率 3.17%（余 2.17pct）｜ 市值 775.12 亿</div>
+  <div class="kv"><b>分档依据：</b>两年加权 ROE 21.78% → 21.87%，<b>变动仅 +0.09pct，连续两年站上 20%</b>；归母连续两年增长（2024 +117.01% / 2025 +15.26%）；8 项指标<b>无一贴近阈值，最窄的一项为毛利率余 3.80pct</b>——为全池安全垫结构最健康的一只。</div>
+  <div class="verdict"><b>结论：</b>维持核心档，<b>且是本期唯一"8 项指标全部留有余量、且年度 ROE 与 TTM 背离仅 -1.87pct"的标的</b>。<b>需并读的一点（延续上期）</b>：2023 年摊薄 ROE 仅 11.15%、归母 27.0 亿元，2024 年利润 +117% 的跃升本身是维生素 / 蛋氨酸价格周期上行的结果，<b>不宜把 20% 以上的 ROE 当作穿越周期的常态</b>；且 2026 前三季增速已由 2025 年的 +15.26% 放缓至 +10.28%。此为判断，非数据。<b>本期价格信号</b>：11-02 收盘 25.22 元、当日 -1.48%，5 日 -2.59%，年初至今 +3.40%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>金钼股份 <span class="code">601958</span> <span class="badge b-core">核心</span> <span class="badge b-same">全池唯一三年年度 ROE 均 ≥15%</span></h4>
+  <div class="kv"><b>年度 ROE（加权）：</b>2024 年 18.46% → 2025 年 <b>17.38%</b> ｜ TTM <b>18.71%</b>（2023 年摊薄 20.77%）——TTM 较上期 17.00% 回升 1.71pct</div>
+  <div class="kv"><b>年度归母：</b>29.83 亿（2024）→ 31.55 亿（2025，同比 <b>+5.77%</b>）｜ 2026 年前三季度 <b>29.94 亿元（同比 +30.94%）</b>，已超 2025 全年</div>
+  <div class="kv"><b>2025 年利润质量：</b>扣非 <b>31.37 亿元</b>，非经常性损益占归母 <b>0.57%</b>（利润结构干净）</div>
+  <div class="kv"><b>8 项指标：</b>ROE 18.71%（余 3.71pct）｜ 毛利率 46.03%（余 6.03pct）｜ 净利率 27.63%（余 12.63pct）｜ <b>资产负债率 13.85%（全池最低）</b>｜ PE 13.45（余 11.55 倍）｜ PB 2.52（余 0.48 倍）｜ 股息率 2.48%｜ 市值 519.48 亿</div>
+  <div class="kv"><b>分档依据：</b>三年 ROE 20.77%（摊薄）/ 18.46% / 17.38%（加权），<b>每一年都在 17% 以上，为全池唯一"三年年度 ROE 全部 ≥15%"的标的</b>。归母 29.83 → 31.55 亿元，两年波动仅 5.8%，无一年亏损、无一次性跳变；本期 TTM 回升 1.71pct 与前三季 +30.94% 同向，<b>指标改善有真实经营支撑</b>。</div>
+  <div class="verdict"><b>结论：</b>维持核心档，<b>本期证据强度进一步上升</b>（TTM 由"略低于 2025 年度"转为"高于 2025 年度"，结束此前连续下滑）。<b>两点仍需同时说清</b>：① 2024→2025 年度 ROE 下滑 1.08pct 主要源于<b>净资产增厚摊薄</b>（归母同期仍增 5.77%），但趋势方向曾连续两年下行，本期才出现反转；② 主营钼产品，<b>属强周期品</b>，2026 年前三季归母 +30.94% 远高于营收增速，<b>利润弹性来自价格而非销量</b>，价格回落时弹性同样向下。<b>本期价格信号偏负面</b>：11-02 收盘 16.10 元、当日 +2.42%，但 5 日 <b>-6.12%</b> 为池内跌幅最大、近 20 日 -15.84%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>中国海油 <span class="code">600938</span> <span class="badge b-core">核心</span> <span class="badge b-same">本期唯一指标改善的核心标的</span></h4>
+  <div class="kv"><b>年度 ROE（加权）：</b>2024 年 19.36% → 2025 年 <b>15.64%</b> ｜ TTM <b>16.43%</b>（2023 年摊薄 14.36%）</div>
+  <div class="kv"><b>年度归母：</b>1,379.36 亿（2024）→ 1,220.82 亿（2025，同比 <b>-11.49%</b>）</div>
+  <div class="kv"><b>2026 年前三季度：</b>归母 <b>1,191.18 亿元（同比 +16.8%）</b>，<b>已达 2025 全年 1,220.82 亿元的 97.6%</b>；营收 3,555.74 亿元（同比 +13.8%）；Q3 单季归母 333.00 亿元（同比 +2.7%）</div>
+  <div class="kv"><b>价格与成本（一手来源：公司三季报）：</b>前三季度实现油价 <b>86.32 美元/桶（同比 +26.4%）</b>；天然气 8.13 美元/千立方英尺（+3.4%）；<b>全成本由 27.35 升至 30.57 美元/桶（+11.8%）</b></div>
+  <div class="kv"><b>8 项指标：</b>ROE 16.43%（<b>余 1.43pct，全池最窄</b>）｜ 毛利率 52.87%｜ 净利率 31.57%｜ 资产负债率 29.83%｜ PE 12.04｜ PB 1.98｜ 股息率 3.66%｜ 市值 16,759.06 亿</div>
+  <div class="kv"><b>分档依据：</b>2024 / 2025 两年年度 ROE 连续站上 15%（加权 19.36% → 15.64%）；2025 年回落是布伦特油价中枢下移的结果，属<b>周期性波动而非盈利质量恶化</b>；2026 年前三季归母 +16.8% 已基本回补 2025 年全年降幅。</div>
+  <div class="verdict"><b>结论：</b>维持核心档，<b>本期为三只核心中唯一"ROE(TTM) 环比回升 + 前三季利润同比正增长"的标的</b>。风险点在于<b>油价与成本同时上行、且成本涨幅（+11.8%）高于产量贡献</b>：若 2027 年油价回落而全成本维持 30 美元/桶以上，其 15% 的 ROE 线将再度承压——2023 年摊薄 ROE 14.36% 曾低于阈值，说明其<b>并非"永远达标"，而是"油价支撑下达标"</b>。<b>本期价格信号</b>：11-02 收盘 35.26 元、当日 -1.97%，5 日 +0.28%，年初至今 <b>+22.06%</b>。<b>降档触发条件</b>：2026 年报加权 ROE 跌破 15%，或全成本继续抬升叠加油价回落。此为我的判断，非数据。</div>
+</div>
+
+<h3>观察档（1 只）——量化全项达标，但指标贴线</h3>
+
+<div class="stock-block">
+  <h4>宝丰能源 <span class="code">600989</span> <span class="badge b-watch">观察</span> <span class="badge b-same">PB 余量收窄至 0.09 倍</span></h4>
+  <div class="kv"><b>年度 ROE（加权）：</b>2024 年 <b>15.55%</b> → 2025 年 <b>24.84%</b> ｜ TTM <b>29.46%（全池最高，与上期完全一致）</b> ｜ 2023 年数据【未知】</div>
+  <div class="kv"><b>年度归母：</b>63.38 亿（2024）→ 113.50 亿（2025，同比 <b>+79.09%</b>）；<b>2026 年前三季度 143.17 亿元（同比 +59.97%）</b></div>
+  <div class="kv"><b>8 项指标与安全垫：</b>ROE 29.46%（余 14.46pct，最宽）｜ 毛利率 <b>40.55%（余 0.55pct）</b>｜ 净利率 28.06%（余 13.06pct）｜ 资产负债率 41.79%（余 8.21pct）｜ PE 9.88（余 15.12 倍）｜ <b>PB 2.91（余 0.09 倍，全池最窄）</b>｜ 股息率 3.70%（余 2.70pct）｜ 市值 1,651.47 亿元</div>
+  <div class="kv"><b>分档依据：</b>2024 / 2025 两年加权 ROE 15.55% → 24.84%，<b>均站上 15%</b>；归母连续增长；利润增长由<b>产能释放 + 化工品价差走阔</b>共同驱动，属真实经营改善而非一次性损益。TTM 毛利率 42.83%（三季报口径）高于筛选口径的 40.55%（后者为 TTM 滚动值），<b>两者差异源于取数窗口不同，非数据错误</b>。</div>
+  <div class="verdict"><b>结论：</b>维持观察档，<b>不升核心档</b>，理由由两项变为三项（前两项为事实，第三项为判断）：① <b>PB 由 2.84 升至 2.91，余量由 0.16 倍收窄至 0.09 倍</b>——股价再涨约 3.1% 即越界，<b>其池内资格已从"估值贴线"进入"估值临界"</b>；② 毛利率 40.55% 余 0.55pct，与上期持平，持续依赖化工品价差；③ 2024 年 ROE 15.55% 仅超线 0.55pct，<b>两年中有一年本身即为贴线达标</b>，与核心档 3 只"连续两年 17% 以上"的稳固度不在同一量级。<b>升档触发条件</b>：2026 年报毛利率站稳 40% 以上且 ROE 连续第三年 ≥15%，同时 PB 回落至 2.5 倍以下。<b>本期价格信号</b>：11-02 收盘 22.52 元、当日 +0.94%，5 日 +2.46%，年初至今 +19.85%。</div>
+</div>
+
+<h3>剔除档（5 只）——历史不稳定或指标失真</h3>
+
+<div class="stock-block">
+  <h4>招商轮船 <span class="code">601872</span> <span class="badge b-out">剔除</span> <span class="badge b-new">本期新进</span> <span class="badge b-same">周期爆发，2025 年度 ROE 未达标</span></h4>
+  <div class="kv"><b>年度 ROE：</b>2024 年【未知】→ 2025 年 <b>14.55%（加权）/ 13.98%（摊薄）</b> ｜ TTM <b>29.18%</b></div>
+  <div class="kv"><b>年度归母：</b>51.07 亿（2024，反算）→ 60.12 亿（2025，同比 <b>+17.71%</b>）；<b>2026 年前三季度 119.83 亿元（同比 +263.15%）</b>，其中 Q3 单季 50.24 亿元（<b>同比 +327.45%</b>）</div>
+  <div class="kv"><b>结构（一手来源：公司季报 + 中国证券网）：</b>油轮运输板块前三季净利 <b>99.34 亿元（同比 +425.61%）</b>，占总利润约 <b>83%</b>；Q3 单季营收 127.71 亿元（同比 +89.89%）；<b>已锁定四季度约 2/3 营运天</b></div>
+  <div class="kv"><b>8 项指标：</b>ROE 29.18%｜ 毛利率 42.26%（余 2.26pct）｜ 净利率 36.19%｜ 资产负债率 43.00%（余 7.00pct）｜ PE 9.87｜ <b>PB 2.88（余 0.12 倍）</b>｜ 股息率 2.11%｜ 市值 1,450.99 亿元</div>
+  <div class="kv"><b>剔除依据（标准①）：</b>2025 年加权 ROE <b>14.55%</b>、摊薄 13.98%，<b>均低于 15% 阈值</b>——即"近 2 年年度 ROE 未连续站上 15%"成立。TTM 29.18% 与 2025 年度 14.55% <b>背离 14.63pct，为本期全部 9 只中最大</b>，且该背离全部由 2026 年前三季度 +263.15% 的单年爆发造成。</div>
+  <div class="verdict"><b>结论：</b>本期新进入，<b>直接列剔除档而非观察档</b>。理由是"盈利剧烈波动"这一剔除硬标准成立：归母净利润 2025 年 60.12 亿 → 2026 前三季 119.83 亿（<b>9 个月已达上年的 1.99 倍</b>），而驱动因素是<b>油轮运价超级周期</b>（VLCC 运价"先抑后扬、爆发式上涨"），<b>不是可持续的经营能力提升</b>。<b>不应被 TTM 29.18% 的高 ROE 误导</b>：其年度口径从未稳定站上 15%，且股价年初至今已 <b>+108.95%</b>（52 周区间 7.56–22.85 元），<b>估值与运价周期同时处于历史高位</b>。<b>升档触发条件</b>：连续两个完整年度加权 ROE 站上 15%（即 2026、2027 年报连续达标），且油轮运价未出现断崖。此为我的判断，非数据。<b>本期价格信号</b>：11-02 收盘 17.97 元、当日 +1.47%，5 日 <b>+5.77%</b>，但近 20 日 -12.43%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>九安医疗 <span class="code">002432</span> <span class="badge b-out">剔除</span> <span class="badge b-same">指标失真（标准①③）</span></h4>
+  <div class="kv"><b>年度 ROE：</b>2023 年摊薄 2.32% → 2024 年加权 <b>8.20%</b> → 2025 年 <b>10.75%</b> ｜ TTM <b>23.10%</b></div>
+  <div class="kv"><b>年度归母：</b>16.69 亿（2024）→ 22.67 亿（2025，同比 <b>+35.84%</b>）；<b>同期营收由 25.92 亿降至 13.66 亿（-47.3%）</b></div>
+  <div class="kv"><b>2026 年 Q3 单季（一手：季报）：</b>营收仅 <b>2.74 亿元</b>，归母 <b>21.35 亿元</b>，<b>单期销售净利率 778.54%</b>；扣非 20.69 亿元</div>
+  <div class="kv"><b>8 项指标：</b>ROE 23.10%｜ 毛利率 62.67%｜ <b>净利率 534.70%（失真）</b>｜ 资产负债率 30.97%｜ <b>PE 4.40（全池最低）</b>｜ <b>PB 1.02（全池最低）</b>｜ 股息率 2.67%｜ 市值 258.77 亿元</div>
+  <div class="kv"><b>剔除依据（标准①③）：</b>三年年度 ROE <b>2.32% / 8.20% / 10.75%，三年均未达 15%</b>；TTM 23.10% 与 2025 年 10.75% <b>背离 12.35pct，为本期第二大</b>。更关键的是净利率 <b>534.70%</b>——净利润为主营收入的 5.3 倍，利润来源是交易性金融资产公允价值变动等投资性收益，<b>与主营经营能力脱钩，指标本身已失去横向比较意义</b>（2025 年营收两年腰斩 -47.3% 却归母 +35.84%，即直接证据）。</div>
+  <div class="verdict"><b>结论：</b>维持剔除档，<b>失真程度本期进一步加深</b>（净利率由 390.91% 升至 534.70%）。<b>口径提示</b>：其扣非（Q3 单季 20.69 亿元）与归母（21.35 亿元）几乎相等，表面"利润结构干净"，但这源于该公司将公允价值变动收益计入经常性损益的口径安排——<b>这恰恰说明"扣非"指标对双主业、重金融资产的公司会失效</b>，必须回到"营收规模 + 主营结构"的原始数据判断。<b>升档触发条件</b>：经营性主业收入恢复增长、净利率回到 100% 以内的合理区间。<b>本期价格信号</b>：11-02 收盘 55.50 元、当日 -1.32%，5 日 <b>+4.84%</b>，年初至今 +43.95%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>世纪华通 <span class="code">002602</span> <span class="badge b-out">剔除</span> <span class="badge b-same">低基数爆发（标准①）</span></h4>
+  <div class="kv"><b>年度 ROE：</b>2023 年 <b>待核（-10.29% 或对应盈利 +5.24 亿）</b> → 2024 年加权 <b>4.94%</b> → 2025 年 <b>20.27%</b> ｜ TTM 21.41%</div>
+  <div class="kv"><b>归母序列（本期四年数据）：</b>2022 年 <b>-67.47 亿</b> → 2023 年 <b>5.24 亿</b> → 2024 年 <b>12.13 亿</b> → 2025 年 <b>56.05 亿（同比 +362.02%）</b></div>
+  <div class="kv"><b>2026 年前三季度：</b>归母 <b>63.35 亿元（同比 +45.37%）</b>，已超 2025 全年；但 <b>Q3 单季归母 18.32 亿元、同比仅 +7.69%</b>（Q2 单季曾 +89.47%）</div>
+  <div class="kv"><b>8 项指标：</b>ROE 21.41%｜ 毛利率 72.36%｜ 净利率 17.52%（余 2.52pct）｜ 资产负债率 27.38%｜ PE 12.07｜ PB 2.58｜ <b>股息率 1.12%（余 0.12pct，池内第二窄）</b>｜ 市值 915.44 亿元</div>
+  <div class="kv"><b>剔除依据（标准①）：</b>2024 年加权 ROE <b>4.94%</b> 远低于 15%，"近 2 年年度 ROE 连续达标"不成立；2025 年 +362.02% 系<b>低基数爆发</b>（2022 年曾巨亏 67.47 亿元，2023 年仅 5.24 亿元，两年内归母增长逾 10 倍）。<b>该结论对 2023 年数据冲突的两个版本均成立。</b></div>
+  <div class="verdict"><b>结论：</b>维持剔除档。<b>本期新增的时效性证据</b>：Q3 单季归母增速骤降至 <b>+7.69%</b>，与前三季 +45.37% 形成明显落差，<b>说明高增长正在快速衰减</b>；而 TTM ROE 21.41% 仍停留在高位，<b>未来两个季度 TTM 有较大概率回落</b>。<b>升档触发条件</b>：2026 年报 ROE 站上 15% 且与 2025 年形成"连续两年达标"（2024 年的 4.94% 仍需被覆盖）。<b>本期价格信号</b>：11-02 收盘 12.42 元、当日 <b>+7.81%</b>、5 日 +6.24%，但年初至今 <b>-26.60%</b>、近 20 日 -10.45%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>粤桂股份 <span class="code">000833</span> <span class="badge b-out">剔除</span> <span class="badge b-new">本期新进</span> <span class="badge b-same">单期爆发 + 股息率贴线</span></h4>
+  <div class="kv"><b>年度 ROE：</b>2024 年【未知】→ 2025 年 <b>12.81%（加权）/ 12.19%（摊薄）</b> ｜ TTM <b>20.46%</b></div>
+  <div class="kv"><b>年度归母：</b>2.79 亿（2024，反算）→ 4.80 亿（2025，同比 <b>+72.30%</b>）；<b>2026 年前三季度 11.61 亿元（同比 +161.53%）</b>——9 个月已达 2025 全年的 2.42 倍</div>
+  <div class="kv"><b>8 项指标：</b>ROE 20.46%｜ 毛利率 41.09%（<b>余 1.09pct</b>）｜ 净利率 24.48%｜ 资产负债率 36.05%｜ PE 11.85｜ PB 2.42｜ <b>股息率 1.02%（余 0.02pct，全池最窄）</b>｜ 市值 141.78 亿元（余 41.78 亿）</div>
+  <div class="kv"><b>剔除依据（标准①）：</b>2025 年加权 ROE <b>12.81%</b> 低于 15%，"近 2 年年度 ROE 连续达标"不成立；TTM 20.46% 与 2025 年度 12.81% <b>背离 7.65pct</b>，全部由 2026 年前三季度 +161.53% 造成。<b>本策略的"历史核查"环节对其作用明确：拦截"靠 2026 年当年利润暴增把 TTM ROE 临时拉过 15%"的标的。</b></div>
+  <div class="verdict"><b>结论：</b>本期新进入，<b>直接列剔除档</b>。除历史 ROE 不达标外，其还有<b>两项指标处于极限贴线</b>：股息率 1.02%（余 0.02pct）与毛利率 41.09%（余 1.09pct），<b>是全池唯一"股息率余量不足 0.1pct"的标的</b>，任一次分红方案微调即出池。<b>升档触发条件</b>：连续两个完整年度加权 ROE 站上 15%，且股息率稳定在 1.5% 以上。<b>本期价格信号</b>：11-02 收盘 16.58 元、当日 +0.67%，但 5 日 <b>-4.38%</b>、近 20 日 -10.14%、年初至今 -14.00%。</div>
+</div>
+
+<div class="stock-block">
+  <h4>巨人网络 <span class="code">002558</span> <span class="badge b-out">剔除</span> <span class="badge b-same">三年年度 ROE 均不足（标准①）</span></h4>
+  <div class="kv"><b>年度 ROE：</b>2023 年摊薄 8.42% → 2024 年加权 <b>11.56%</b> → 2025 年 <b>12.45%</b> ｜ TTM <b>20.41%</b></div>
+  <div class="kv"><b>年度归母：</b>14.25 亿（2024）→ 17.55 亿（2025，同比 <b>+23.13%</b>）；<b>2026 年前三季度 28.86 亿元（同比 +103.73%）</b>，但 <b>Q3 单季 7.42 亿元、同比仅 +16.01%</b></div>
+  <div class="kv"><b>2025 年利润质量：</b>扣非高于归母，非经常性损益占归母为负（利润结构本身良好）</div>
+  <div class="kv"><b>8 项指标：</b>ROE 20.41%｜ <b>毛利率 94.67%（全池最高）</b>｜ 净利率 40.79%｜ 资产负债率 19.06%｜ PE 12.19｜ PB 2.49｜ <b>股息率 4.77%（全池最高）</b>｜ 市值 393.04 亿元</div>
+  <div class="kv"><b>剔除依据（标准①）：</b>三年年度 ROE <b>8.42% / 11.56% / 12.45%，每一年都未达 15%</b>，且三年抬升幅度仅 4.03 个百分点（缓升，非跳变）。TTM 20.41% 与 2025 年 12.45% <b>背离 7.96pct</b>——达标性全部来自 2026 年的单年爆发，<b>该爆发尚未经过任何一个完整年度验证</b>。</div>
+  <div class="verdict"><b>结论：</b>维持剔除档。<b>需公正指出</b>：其 2026 年前三季营收与归母同步大增（非一次性损益），<b>问题不是"造假"，而是"太新"</b>——年度口径从未达标。但<b>本期新增的减速信号值得注意</b>：Q3 单季增速由 Q2 的 +147.89% 骤降至 +16.01%，<b>若四季度延续，2026 全年归母将显著低于前三季的年化水平</b>，TTM ROE 21% 以上的状态难以维持。<b>升档触发条件</b>：2026 年报 ROE 站上 15%，2027 年形成连续两年达标。<b>本期价格信号</b>：11-02 收盘 20.68 元、当日 <b>+10.00%（涨停）</b>，但 5 日 -0.96%、年初至今 <b>-51.12%</b>（全池跌幅最大）。</div>
+</div>
+
+<div class="note">
+  <b>对抗性复核（主动假设"分档有误"，逐条找反例）</b><br>
+  ① <b>质疑：招商轮船 TTM ROE 29.18%、PE 9.87、PB 2.88、8 项全达标，利润还在爆发式增长，为何直接剔除而非列观察？</b>——反例检验：其 <b>2025 年加权 ROE 仅 14.55%（低于阈值 0.45pct）</b>，2024 年 ROE 未取得但归母更低（51.07 亿 &lt; 60.12 亿），意味着<b>两年年度口径均未达标</b>。若按观察档定义（"量化达标但盈利处下行通道"），它的问题恰恰相反——<b>盈利处在急剧上行通道</b>，而这正是"盈利剧烈波动"的另一种表述。剔除档的设立目的不是惩罚"变差"，而是排除"不可外推"，<b>运价周期顶部的 29% ROE 不具备外推性</b>。<b>这一条我保留分歧</b>：若未来两个年度 ROE 均站上 15%，说明油运进入长周期而非短脉冲，届时应无条件升档。<br>
+  ② <b>质疑：三七互娱 ROE 14.94% 仅差 0.06pct，泸州老窖净利率 39.00% 极高，是否过于机械？</b>——反例检验：三七互娱<b>同时</b>有净利率 12.84%（差 2.16pct）越界，且 Q3 单季归母 -79.28%，<b>不是单指标临界而是双指标确认恶化</b>；泸州老窖则是净利率及格（39.00%）但 ROE 12.20%（差 2.80pct）已实质跌破，叠加前三季归母 -47.31%，<b>属明确的基本面下行而非口径问题</b>。两只都无争议。<br>
+  ③ <b>质疑：伟星新材按财报接口 8 项全达标却被排除，是否属筛选器错误？</b>——反例检验：其 ROE(TTM) 15.32%、毛利率 41.83%、市值 134.21 亿元，<b>三项全部在阈值 1.8pct / 34.2 亿元以内</b>；同时 2025 年加权 ROE 仅 14.90%（上期已确认跌破阈值）。<b>这不是"筛选器错误"，而是"标的本身站在线上"的必然结果</b>。本期判定：<b>暂按引擎口径出池，但明确标注其属"阈值临界型进出"，下一期极可能回流</b>。<br>
+  ④ <b>质疑：中国海油 ROE(TTM) 16.43% 余量仅 1.43pct 为全池最窄，为何列核心？</b>——反例检验：核心档的三条硬标准是针对<b>历史稳定性</b>而非<b>当期余量</b>。其 2024/2025 两年加权 ROE 均 ≥15%、2026 前三季归母 +16.8%（为全池唯一"年度与 TTM 同向改善"的核心标的）、成本与油价数据均为一手来源可核。<b>余量薄是估值与周期风险，不是历史稳定性质疑</b>，故列核心但在个股说明中明确标注降档触发条件。
+</div>
+
+<div class="note info">
+  <b>分档方法论提示（本期新增两条）</b><br>
+  ① <b>已验证成立的结论（连续四期）</b>：<b>"TTM ROE 与年度 ROE 的背离幅度"是识别"单期跳升型"失真最有效的单一量化信号。</b>本期背离排序为：招商轮船 <b>+14.63pct</b> &gt; 九安医疗 <b>+12.35pct</b> &gt; 宝丰能源 +4.62pct &gt; 世纪华通 +1.14pct = 粤桂股份 +7.65pct &gt; 巨人网络 +7.96pct &gt; 中国海油 +0.79pct &gt; 新和成 -1.87pct &gt; 金钼股份 +1.33pct。剔除档 5 只的背离绝对值为 +14.63 / +12.35 / +1.14 / +7.65 / +7.96pct，<b>核心档 3 只为 +0.79 / -1.87 / +1.33pct，全部 ≤1.9pct</b>——<b>该规律已连续四期成立，且本期区分度最高</b>（剔除档最大 14.63pct vs 核心档最大 1.87pct，相差 7.8 倍）。<b>注：世纪华通 +1.14pct 是本期唯一"背离小但仍在剔除档"的标的，因其否决依据是 2024 年度低 ROE（4.94%），属"历史年度不达标"而非"当期跳升"，两类剔除原因需区分。</b><br>
+  ② <b>本期新增的方法学结论：三季报切换周是"名单重构周"，不宜与普通周同比。</b>本期 9 只中有 <b>5 只出池、2 只新进，名单变动率 7/12 = 58%</b>，为本系列最高。但其中<b>只有 3 只（三七互娱、泸州老窖、通化东宝）是真实的盈利恶化</b>，另 2 只（伟星新材、东方铁塔）属阈值临界（ROE(TTM) 15.32% / 14.91%），<b>本质是口径切换放大了临界标的的进出</b>。<b>建议此后将"季报切换周"与"普通周"分开记录，避免把口径效应误读为基本面效应。</b><br>
+  ③ <b>本期新增的数据源坑位（第 3 类）</b>：<b>"引擎 ROE(TTM)"与"财报接口 ROETTM"在 15% 临界带存在同向性缺失</b>——引擎排除了财报口径 15.32% 的伟星新材，却纳入了财报口径 14.94% 的三七互娱？<b>不对，三七互娱本期也未纳入</b>。实际情形是：引擎与财报接口的 ROETTM 存在 ±0.4pct 的独立计算差异，<b>凡处于 15%±0.4pct 的标的，其"是否入围"不可由单一接口判定</b>。处置办法：临界标的必须双接口并列，并在正文标注"临界型"。
+</div>
+
+<!-- ⑤ 图表 -->
+<h2>五、可视化图表</h2>
+
+<div class="card">
+  <h3 style="margin-top:0;">图 1｜ROE 双口径对比：TTM 口径 vs 2025 年度加权口径</h3>
+  <p style="font-size:13.2px;color:var(--ink2);margin:0 0 6px;">柱间落差即"稳定性背离"。橙色虚线为 15% 阈值。本期落差最大的是<b>招商轮船（29.18% vs 14.55%）</b>与<b>九安医疗（23.10% vs 10.75%）</b>，两只均在剔除档；三只核心档的落差全部在 ±2pct 以内。<b>世纪华通 TTM 与 2025 年度接近（21.41% vs 20.27%），其剔除依据在 2024 年度（4.94%）而非当期。</b></p>
+  <div id="chart1" class="chart"></div>
+  <div class="src">数据来源：TTM ROE 来自条件选股引擎（2026-11-02 收盘口径，财务基准日 2026-09-30）；2025 年度加权 ROE 来自公司 2025 年度报告（经财报接口 <code>ROEWeighted</code> 字段核对），取数时点 2026-11-03。</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">图 2｜历史年度 ROE 稳定性：2023（摊薄·参照）/ 2024 / 2025（加权）</h3>
+  <p style="font-size:13.2px;color:var(--ink2);margin:0 0 6px;">2024 与 2025 两年柱全部站上 15% 虚线的共 4 只（宝丰能源、新和成、金钼股份、中国海油）——<b>其中仅 3 只被列为核心，宝丰能源因两项指标贴线列观察</b>。招商轮船 2025 年柱（14.55%）落在虚线下方、粤桂股份 2025 年柱（12.81%）明显低于虚线，<b>这两个负向落差即本期两只新进标的被剔除的直接图示</b>。招商轮船、粤桂股份的 2024 年柱留空（【未知】）。</p>
+  <div id="chart2" class="chart"></div>
+  <div class="src">数据来源：2024 / 2025 年度报告披露的加权平均净资产收益率；2023 年为摊薄口径（承前期报告，仅作趋势参照，与后两年不同口径，不可直接相减）。世纪华通 2023 年柱标注存在跨期数据冲突（见第四节注），图示按上期口径绘制并标灰。</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">图 3｜估值位置：PE（TTM）与 PB（LF）</h3>
+  <p style="font-size:13.2px;color:var(--ink2);margin:0 0 6px;">双轴展示。柱为 PE（左轴，上限 25 倍），线为 PB（右轴，上限 3 倍）。全池 PE 在 4.40–13.45 倍区间，<b>无一逼近 25 倍上限</b>，这一维度全池安全垫充足；PB 端<b>宝丰能源 2.91 倍距 3 倍上限仅 0.09 倍、招商轮船 2.88 倍距 0.12 倍</b>——<b>本策略在 PB 维度上的约束力显著强于 PE 维度，且本期较上期进一步收紧</b>。</p>
+  <div id="chart3" class="chart"></div>
+  <div class="src">数据来源：PE(TTM) / PB(LF) 来自 2026-11-02 收盘快照（条件选股引擎返回，与行情接口 <code>pe_ratio</code> / <code>pb_ratio</code> 字段逐只一致性校验通过）。</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">图 4｜2025 年度归母净利润同比增速</h3>
+  <p style="font-size:13.2px;color:var(--ink2);margin:0 0 6px;">深青为温和增长，灰蓝为下滑，红色为增幅超过 100% 的爆发式增长。<b>世纪华通 002602（+362.02%）与粤桂股份 000833（+72.30%）的高增均建立在低基数之上</b>；中国海油 600938 为全池唯一下滑（-11.49%），但其 2026 年前三季已 +16.8% 回补，<b>说明该柱反映的是 2025 年的油价低谷，而非当前盈利能力</b>。</p>
+  <div id="chart4" class="chart"></div>
+  <div class="src">口径：2025 年度归母净利润 ÷ 2024 年度归母净利润 − 1。数据来源：2024 / 2025 年度报告，经财报接口 <code>NPParentCompanyOwners</code> 字段交叉核对（2026-11-03 取数）。招商轮船、粤桂股份 2024 年基数为"2025 年归母 ÷ (1 + 同比)"反算值。</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">历史 ROE 精确数值表（与图 2 对应）</h3>
+  <table>
+    <thead><tr><th>代码</th><th>名称</th><th>2023 ROE<br>(摊薄)</th><th>2024 ROE<br>(加权)</th><th>2025 ROE<br>(加权)</th><th>TTM ROE</th><th>2024→2025<br>变动</th><th>2025→TTM<br>变动</th><th>三年趋势</th></tr></thead>
+    <tbody>
+      <tr><td class="code">600989</td><td class="name">宝丰能源</td><td class="flat">—</td><td>15.55%</td><td>24.84%</td><td>29.46%</td><td class="up">+9.29pct</td><td class="up">+4.62pct</td><td class="left">产能驱动跃升（2023 未知）</td></tr>
+      <tr><td class="code">601872</td><td class="name">招商轮船</td><td class="flat">—</td><td class="flat">—</td><td class="down">14.55%</td><td>29.18%</td><td class="flat">—</td><td class="up">+14.63pct</td><td class="left">运价超级周期单年脉冲（背离最大）</td></tr>
+      <tr><td class="code">002432</td><td class="name">九安医疗</td><td>2.32%</td><td>8.20%</td><td>10.75%</td><td>23.10%</td><td class="up">+2.55pct</td><td class="up">+12.35pct</td><td class="left">缓升后 TTM 跳升（失真）</td></tr>
+      <tr><td class="code">002602</td><td class="name">世纪华通</td><td class="flat">-10.29%†</td><td class="down">4.94%</td><td>20.27%</td><td>21.41%</td><td class="up">+15.33pct</td><td class="up">+1.14pct</td><td class="left">巨亏→低基数爆发（2022 -67.47 亿）</td></tr>
+      <tr><td class="code">000833</td><td class="name">粤桂股份</td><td class="flat">—</td><td class="flat">—</td><td class="down">12.81%</td><td>20.46%</td><td class="flat">—</td><td class="up">+7.65pct</td><td class="left">单期利润暴增把 TTM 拉过线</td></tr>
+      <tr><td class="code">002558</td><td class="name">巨人网络</td><td>8.42%</td><td>11.56%</td><td>12.45%</td><td>20.41%</td><td class="up">+0.89pct</td><td class="up">+7.96pct</td><td class="left">三年缓升后 TTM 跳升</td></tr>
+      <tr><td class="code">002001</td><td class="name">新和成</td><td>11.15%</td><td>21.78%</td><td>21.87%</td><td>20.00%</td><td class="up">+0.09pct</td><td class="down">-1.87pct</td><td class="left">跃升后横盘（最稳）</td></tr>
+      <tr><td class="code">601958</td><td class="name">金钼股份</td><td>20.77%</td><td>18.46%</td><td>17.38%</td><td>18.71%</td><td class="down">-1.08pct</td><td class="up">+1.33pct</td><td class="left">下行后 TTM 反转回升</td></tr>
+      <tr><td class="code">600938</td><td class="name">中国海油</td><td>14.36%</td><td>19.36%</td><td>15.64%</td><td>16.43%</td><td class="down">-3.72pct</td><td class="up">+0.79pct</td><td class="left">V 型，油价驱动</td></tr>
+    </tbody>
+  </table>
+  <div class="src">单位：百分点（pct）。2024 / 2025 为<b>加权口径</b>，2023 为<b>摊薄口径</b>（两者不可直接相减，"三年趋势"判断以方向为主，不依赖跨口径差值）。† 世纪华通 2023 年数值存在跨期数据冲突，标为待核。数据来源：公司年度报告 + 条件选股引擎（TTM），取数时点 2026-11-03。</div>
+</div>
+
+<!-- ⑥ 上期对比 -->
+<h2>六、与上期报告对比（2026-10-27 → 2026-11-03）</h2>
+
+<div class="grid2">
+  <div class="card">
+    <h3 style="margin-top:0;">名单与分档变化</h3>
+    <table>
+      <thead><tr><th>变化类型</th><th>数量</th><th>明细</th></tr></thead>
+      <tbody>
+        <tr><td class="left">新进入</td><td><b>2</b></td><td class="left">招商轮船 601872（<b>剔除档</b>）、粤桂股份 000833（<b>剔除档</b>）</td></tr>
+        <tr><td class="left">出池</td><td><b>5</b></td><td class="left">三七互娱 002555（原核心）、泸州老窖 000568（原观察）、伟星新材 002372（原观察）、通化东宝 600867（原剔除）、东方铁塔 002545（原剔除）</td></tr>
+        <tr><td class="left">升档 / 降档（池内）</td><td><b>0</b></td><td class="left">—（7 只重叠标的档位全部不变）</td></tr>
+        <tr><td class="left">分档结构变化</td><td><b>3</b></td><td class="left">入围总数 12 → <b>9</b>；核心 4 → <b>3</b>；观察 3 → <b>1</b>；剔除 5 → 5</td></tr>
+        <tr><td class="left">口径变化</td><td><b>1</b></td><td class="left">财务基准日由"11 只 06-30 + 宝丰 09-30 混池"统一为<b>全池 2026-09-30</b></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--ink2);margin:10px 0 0;"><b>核心档首次减员（4 → 3），观察档缩减至 1 只，为本系列报告名单变动幅度最大的一期（变动率 58%）。</b>但需注意：<b>7 只重叠标的零升降档</b>——变化全部通过"进出"而非"升降"实现，说明分档标准本身未被调整，变的是标的是否满足量化条件。</p>
+    <div class="src">口径提示：上期报告（2026-10-27）行情 / 估值用 <b>2026-10-26 收盘价</b>；本期用 <b>2026-11-02 收盘价</b>。两者间隔 5 个完整交易日（10-27 / 28 / 29 / 30 / 11-02），下表逐项差值<b>等于 5 个交易日累计涨跌，不是单日涨跌</b>，已与行情接口 <code>chg_5d</code> 逐只核对一致。</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">五只出池标的：逐只原因与卡点指标</h3>
+    <table>
+      <thead><tr><th>代码</th><th>名称</th><th>原档位</th><th>本期 ROE(TTM)</th><th>卡点</th></tr></thead>
+      <tbody>
+        <tr><td class="code">002555</td><td class="name">三七互娱</td><td>核心</td><td class="down">14.94%</td><td class="left">ROE（差 0.06pct）+ 净利率 12.84%（差 2.16pct），<b>双越界</b></td></tr>
+        <tr><td class="code">000568</td><td class="name">泸州老窖</td><td>观察</td><td class="down">12.20%</td><td class="left">ROE（差 2.80pct）；净利率 39.00% 与毛利率 83.64% 仍达标</td></tr>
+        <tr><td class="code">002372</td><td class="name">伟星新材</td><td>观察</td><td class="flat">15.32%*</td><td class="left"><b>引擎口径未达 15%，财报接口 15.32% 达标——临界型出池</b></td></tr>
+        <tr><td class="code">600867</td><td class="name">通化东宝</td><td>剔除</td><td class="down">7.69%</td><td class="left">ROE（差 7.31pct）+ PE 28.36 倍（超 25 上限），<b>双越界</b></td></tr>
+        <tr><td class="code">002545</td><td class="name">东方铁塔</td><td>剔除</td><td class="down">14.91%</td><td class="left">ROE（差 0.09pct）——<b>全池最接近阈值的出池</b></td></tr>
+      </tbody>
+    </table>
+    <div class="src">* 伟星新材为财报接口 ROETTM 值；引擎侧未达 15%。所有 ROE 为 2026-09-30 基准 TTM 口径，行情 / 估值为 2026-11-02 收盘。<b>归类说明</b>：5 只中 3 只属"真实盈利恶化"（三七互娱 Q3 单季 -79.28%、泸州老窖前三季 -47.31%、通化东宝前三季 -56.20%），2 只属"阈值临界"（伟星新材 15.32% / 东方铁塔 14.91%），<b>后两者下一期回流的概率显著更高</b>。【推测】依据是其 ROE 距 15% 均在 0.4pct 以内、且东方铁塔前三季归母仍同比 +44.49%。</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">逐只估值与价格变动（上期 10-26 收盘 → 本期 11-02 收盘）</h3>
+  <table>
+    <thead>
+      <tr><th>代码</th><th>名称</th><th>分档</th><th>PE<br>上期→本期</th><th>PB<br>上期→本期</th><th>股息率<br>上期→本期</th><th>总市值(亿元)<br>上期→本期</th><th>价格(元)<br>上期→本期</th><th>5 日变动</th><th>年初至今</th><th>备注</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="code">600938</td><td class="name">中国海油</td><td><span class="badge b-core">核心</span><span class="badge b-same">不变</span></td>
+        <td>12.08 → 12.04</td><td>2.04 → 1.98</td><td>3.67% → 3.66%</td><td>16,711.53 → 16,759.06</td><td>35.16 → 35.26</td><td class="up">+0.28%</td><td class="up">+22.06%</td>
+        <td class="left">PE / PB 基本持平，TTM 盈利滚动与股价变动相抵；<b>三核心中唯一 5 日正收益</b></td>
+      </tr>
+      <tr>
+        <td class="code">002001</td><td class="name">新和成</td><td><span class="badge b-core">核心</span><span class="badge b-same">不变</span></td>
+        <td>11.10 → 10.60</td><td>2.28 → 2.12</td><td>3.09% → 3.17%</td><td>795.71 → 775.12</td><td>25.89 → 25.22</td><td class="down">-2.59%</td><td class="up">+3.40%</td>
+        <td class="left">PE / PB 降幅大于股价跌幅，因 TTM 盈利（前三季 +10.28%）增长摊薄估值</td>
+      </tr>
+      <tr>
+        <td class="code">601958</td><td class="name">金钼股份</td><td><span class="badge b-core">核心</span><span class="badge b-same">不变</span></td>
+        <td>14.33 → 13.45</td><td>2.68 → 2.52</td><td>2.33% → 2.48%</td><td>553.36 → 519.48</td><td>17.15 → 16.10</td><td class="down">-6.12%</td><td class="up">+6.06%</td>
+        <td class="left"><b>5 日跌幅最大</b>；PE 降幅（-6.1%）与股价跌幅（-6.12%）几乎相同，说明 TTM 盈利变动极小</td>
+      </tr>
+      <tr>
+        <td class="code">600989</td><td class="name">宝丰能源</td><td><span class="badge b-watch">观察</span><span class="badge b-same">不变</span></td>
+        <td>9.64 → 9.88</td><td>2.84 → 2.91</td><td>3.79% → 3.70%</td><td>1,611.87 → 1,651.47</td><td>21.98 → 22.52</td><td class="up">+2.46%</td><td class="up">+19.85%</td>
+        <td class="left"><b>PB 2.91 距上限仅 0.09 倍</b>；ROE(TTM) 29.46% 与上期完全一致（基准日本已是 09-30）</td>
+      </tr>
+      <tr style="background:#FFF6EE;">
+        <td class="code">601872</td><td class="name">招商轮船</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td colspan="2">— （上期未入围）</td><td>2.11%</td><td>1,450.99</td><td>17.97</td><td class="up">+5.77%</td><td class="up">+108.95%</td>
+        <td class="left"><b>本期新进入</b>：2025 年加权 ROE 14.55% 未达标，2026 前三季 +263.15%；<b>PB 2.88 余 0.12 倍</b>；近 20 日 -12.43%</td>
+      </tr>
+      <tr style="background:#FFF6EE;">
+        <td class="code">000833</td><td class="name">粤桂股份</td><td><span class="badge b-out">剔除</span><span class="badge b-new">新进</span></td>
+        <td colspan="2">— （上期未入围）</td><td>1.02%</td><td>141.78</td><td>16.58</td><td class="down">-4.38%</td><td class="down">-14.00%</td>
+        <td class="left"><b>本期新进入</b>：<b>股息率仅超线 0.02pct</b>、毛利率余 1.09pct；2025 年加权 ROE 12.81% 未达标</td>
+      </tr>
+      <tr>
+        <td class="code">002432</td><td class="name">九安医疗</td><td><span class="badge b-out">剔除</span><span class="badge b-same">不变</span></td>
+        <td>5.59 → 4.40</td><td>1.07 → 1.02</td><td>2.80% → 2.67%</td><td>246.80 → 258.77</td><td>52.94 → 55.50</td><td class="up">+4.84%</td><td class="up">+43.95%</td>
+        <td class="left"><b>股价涨 +4.84% 而 PE 由 5.59 降至 4.40</b>——TTM 盈利增幅远超股价，是净利率 534.70% 失真的估值侧表现</td>
+      </tr>
+      <tr>
+        <td class="code">002602</td><td class="name">世纪华通</td><td><span class="badge b-out">剔除</span><span class="badge b-same">不变</span></td>
+        <td>11.56 → 12.07</td><td>2.56 → 2.58</td><td>1.19% → 1.12%</td><td>861.63 → 915.44</td><td>11.69 → 12.42</td><td class="up">+6.24%</td><td class="down">-26.60%</td>
+        <td class="left">5 日 +6.24%（当日 +7.81%），但年初至今 -26.60%；<b>股息率 1.12% 余 0.12pct</b></td>
+      </tr>
+      <tr>
+        <td class="code">002558</td><td class="name">巨人网络</td><td><span class="badge b-out">剔除</span><span class="badge b-same">不变</span></td>
+        <td>12.71 → 12.19</td><td>2.59 → 2.49</td><td>4.72% → 4.77%</td><td>396.84 → 393.04</td><td>20.88 → 20.68</td><td class="down">-0.96%</td><td class="down">-51.12%</td>
+        <td class="left">当日 <b>+10.00% 涨停</b>但 5 日仍 -0.96%；年初至今 -51.12% 为全池最深</td>
+      </tr>
+      <tr style="background:#F7F5F9;">
+        <td class="code">002555</td><td class="name">三七互娱</td><td><span class="badge b-exit">出池</span><span class="badge b-same">原核心</span></td>
+        <td>11.24 → 17.18</td><td>2.65 → 2.57</td><td>5.51% → 5.82%</td><td>367.01 → 347.98</td><td>16.59 → 15.73</td><td class="down">-5.18%</td><td class="down">-31.29%</td>
+        <td class="left"><b>PE 由 11.24 升至 17.18（+53%）</b>——TTM 盈利骤降所致；ROE 14.94%、净利率 12.84% 双越界</td>
+      </tr>
+      <tr style="background:#F7F5F9;">
+        <td class="code">000568</td><td class="name">泸州老窖</td><td><span class="badge b-exit">出池</span><span class="badge b-same">原观察</span></td>
+        <td>14.11 → 20.46</td><td>2.32 → 2.50</td><td>8.02% → 7.24%</td><td>1,059.62 → 1,174.14</td><td>71.99 → 79.77</td><td class="up">+10.81%</td><td class="down">-27.77%</td>
+        <td class="left"><b>股价 5 日 +10.81%（池内外最大）而 PE 由 14.11 升至 20.46</b>——价格与盈利反向；ROE 12.20% 越界</td>
+      </tr>
+      <tr style="background:#F7F5F9;">
+        <td class="code">002372</td><td class="name">伟星新材</td><td><span class="badge b-exit">出池</span><span class="badge b-same">原观察</span></td>
+        <td>15.65 → 18.12</td><td>2.85 → 2.78</td><td>5.26% → 4.10%</td><td>134.53 → 134.21</td><td>8.45 → 8.43</td><td class="down">-0.24%</td><td class="down">-16.40%</td>
+        <td class="left"><b>临界型出池</b>：财报接口 ROETTM 15.32% 达标、引擎未纳入；<b>股息率 5.26%→4.10% 降幅远超股价，疑为派息 TTM 窗口重置</b>（未确证）</td>
+      </tr>
+      <tr style="background:#F7F5F9;">
+        <td class="code">600867</td><td class="name">通化东宝</td><td><span class="badge b-exit">出池</span><span class="badge b-same">原剔除</span></td>
+        <td>11.85 → 28.36</td><td>2.25 → 2.18</td><td>3.81% → 3.80%</td><td>153.94 → 154.53</td><td>7.86 → 7.89</td><td class="up">+0.38%</td><td class="up">+0.25%</td>
+        <td class="left"><b>PE 由 11.85 升至 28.36（+139%）</b>——前三季归母 -56.20%，TTM 盈利崩塌；ROE 7.69% 越界</td>
+      </tr>
+      <tr style="background:#F7F5F9;">
+        <td class="code">002545</td><td class="name">东方铁塔</td><td><span class="badge b-exit">出池</span><span class="badge b-same">原剔除</span></td>
+        <td>9.19 → 8.98</td><td>1.51 → 1.35</td><td>3.21% → 3.52%</td><td>155.13 → 141.33</td><td>12.47 → 11.36</td><td class="down">-8.90%</td><td class="down">-37.06%</td>
+        <td class="left"><b>5 日 -8.90% 为池内外跌幅最大</b>；ROE 14.91% 仅差 0.09pct 出池，但前三季归母仍 +44.49%</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="src">
+    上期数据来源：上期报告（<code>reports/2026-10-27.html</code>），行情口径为 <b>2026-10-26 收盘</b>。本期数据来源：<b>2026-11-02 收盘</b>快照（条件选股引擎 + 行情接口返回，价格 / 市值 / 涨跌幅逐只一致性校验通过）。<b>"5 日变动"</b> 已与行情接口 <code>chg_5d</code> 字段逐只核对，9 只在池标的<b>全部一致</b>。"年初至今"取自行情接口 <code>chg_ytd</code>。<b>三处口径差异需说明</b>：① 三七互娱、泸州老窖、通化东宝的 PE 大幅上升<b>主要由 TTM 盈利下降驱动，而非股价上涨</b>（三七、通化股价基本持平）；② 伟星新材股息率由 5.26% 降至 4.10%，降幅远超股价变动，疑为派息 TTM 窗口重置，<b>未确证，不作事实结论</b>；③ 上期 5 只出池标的的"上期 PE / PB"取自其上期报告值，本期值取自 2026-11-02 快照，<b>两期间隔 5 个交易日</b>。
+  </div>
+</div>
+
+<div class="note info">
+  <b>本期池内价格结构（供解读估值变动参考，不作大盘归因）</b><br>
+    在池 9 只自 10-26 收盘以来 <b>6 涨 3 跌</b>：世纪华通 +6.24%、招商轮船 +5.77%、九安医疗 +4.84%、宝丰能源 +2.46%、中国海油 +0.28%（以上涨），巨人网络 -0.96%、新和成 -2.59%、粤桂股份 -4.38%、金钼股份 -6.12%（以下跌）。<b>本期的结构性特征是"剔除档跑赢核心档"</b>：核心档 3 只 5 日变动 +0.28% / -2.59% / -6.12%（均值约 -2.81%），剔除档 5 只 +6.24% / +5.77% / +4.84% / +0.67% / -0.96%（均值约 +3.31%），<b>两者相差约 6.1 个百分点——这是一次明确的"质量因子跑输"周，与上期"核心档跌幅小于剔除档"的方向相反</b>。<b>需注意：这是单周现象，不构成对策略有效性的判断依据</b>；且 11-02 当日游戏板块个股（世纪华通 +7.81%、巨人网络 +10.00% 涨停）与航运（招商轮船 +1.47%）的涨幅，<b>本报告未取得板块指数数据，不作归因</b>。<br>
+    <b>结构性提示（本期变化）</b>：本池行业分布为<b>能源化工 3 只</b>（中国海油、宝丰能源、新和成）、<b>有色 1 只</b>（金钼股份）、<b>航运 1 只</b>（招商轮船）、<b>游戏传媒 2 只</b>（世纪华通、巨人网络）、<b>医药 1 只</b>（九安医疗）、<b>化工资源 1 只</b>（粤桂股份）。<b>上期的白酒（泸州老窖）、建材（伟星新材）、钢结构（东方铁塔）三个方向本期全部消失</b>，池内对<b>工业品价格与运价</b>的暴露度进一步上升（能源化工 + 有色 + 航运共 5 只，占 55.6%）。<b>这是策略的结构性特征，也是本期名单收缩至 9 只后的集中度风险来源</b>——单一价格体系（油价、化工品价差、运价）同时回落时，池内过半标的会同步恶化。
+</div>
+
+<!-- ⑦ 免责声明 -->
+<h2>七、免责声明</h2>
+<div class="disc">
+  <b>免责声明：</b>以上内容基于公开数据和量化分析，仅供参考，不构成投资建议。市场有风险，投资需谨慎。任何投资决策应结合个人风险承受能力、资金状况和投资目标独立判断，必要时咨询持牌专业机构。过往表现不预示未来收益。
+</div>
+
+<footer>
+  <b>报告说明</b><br>
+  本报告为量化数据研究，输出客观筛选结果与数据核查，<b>不含任何具体买卖价位、目标价或仓位建议</b>。<br>
+  <b>数据基准日：</b>财务指标 —— 全部 9 只为 2026-09-30（2026 年三季报 TTM，未经审计）；估值与行情 —— 2026-11-02 收盘（本报告生成于 2026-11-03 09:07，A 股尚未开盘）；历史核查 —— 2024 / 2025 年度报告（ROE 为加权口径），2023 年为摊薄口径仅作趋势参照。<br>
+  <b>数据来源：</b>domain_search 金融检索工具（内含 westock-screener 条件选股、westock-data finance / quote 接口）、公司 2025 年度报告及 2026 年三季报、中国海洋石油有限公司 2026 年第三季度报告（一手）、上海证券报·中国证券网（招商轮船三季报报道，非一手）。媒体类背景信息为非一手来源，已在正文标注"需核实原文"。<br>
+  <b>置信度标注约定：</b>正文中未加标注的陈述为<b>已验证事实</b>（有数据源支撑，关键金额均回原始字段复核）；标注【推测】的为<b>基于事实的推断</b>；标注【未知】的为<b>未能取得数据、不做结论</b>；标注"待核"的为<b>来源之间存在冲突、本期无法判定</b>。<br>
+  <b>报告期：</b>2026-11-03（周二）｜上期：2026-10-27。生成时点 2026-11-03 09:07，A 股处于开盘前，最新可用行情时点为 2026-11-02 收盘。
+</footer>
+
+</div>
+
+<script>
+var names  = ['宝丰能源','招商轮船','九安医疗','世纪华通','粤桂股份','巨人网络','新和成','金钼股份','中国海油'];
+var codes  = ['600989','601872','002432','002602','000833','002558','002001','601958','600938'];
+var xLabels = [];
+for (var i = 0; i < names.length; i++) { xLabels.push(names[i] + '\n' + codes[i]); }
+
+var roeTTM  = [29.46, 29.18, 23.10, 21.41, 20.46, 20.41, 20.00, 18.71, 16.43];
+var roe2025 = [24.84, 14.55, 10.75, 20.27, 12.81, 12.45, 21.87, 17.38, 15.64];
+var roe2024 = [15.55, null, 8.20, 4.94, null, 11.56, 21.78, 18.46, 19.36];
+var roe2023 = [null, null, 2.32, -10.29, null, 8.42, 11.15, 20.77, 14.36];
+var peArr   = [9.88, 9.87, 4.40, 12.07, 11.85, 12.19, 10.60, 13.45, 12.04];
+var pbArr   = [2.91, 2.88, 1.02, 2.58, 2.42, 2.49, 2.12, 2.52, 1.98];
+
+var C_TEAL = '#0E7490';
+var C_ORANGE = '#C05621';
+var C_SLATE = '#8A94A6';
+var C_BLUE = '#2B6CB0';
+var C_RED = '#C62828';
+
+var mark15 = {
+  symbol: 'none',
+  data: [{ yAxis: 15, lineStyle: { color: C_ORANGE, type: 'dashed', width: 1.5 },
+           label: { formatter: '15% 阈值', position: 'end', color: C_ORANGE, fontSize: 11 } }]
+};
+
+echarts.init(document.getElementById('chart1')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['TTM ROE', '2025 年度加权 ROE'], top: 0 },
+  grid: { left: 60, right: 30, top: 46, bottom: 82 },
+  xAxis: { type: 'category', data: xLabels, axisLabel: { fontSize: 10.5, interval: 0, lineHeight: 14 } },
+  yAxis: { type: 'value', name: '%', min: 0, max: 34 },
+  series: [
+    { name: 'TTM ROE', type: 'bar', data: roeTTM, itemStyle: { color: C_TEAL },
+      markLine: mark15, label: { show: true, position: 'top', fontSize: 9.5 } },
+    { name: '2025 年度加权 ROE', type: 'bar', data: roe2025, itemStyle: { color: C_SLATE },
+      label: { show: true, position: 'top', fontSize: 9.5 } }
+  ]
+});
+
+echarts.init(document.getElementById('chart2')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['2023 年度（摊薄·参照）', '2024 年度（加权）', '2025 年度（加权）'], top: 0 },
+  grid: { left: 60, right: 30, top: 46, bottom: 82 },
+  xAxis: { type: 'category', data: xLabels, axisLabel: { fontSize: 10.5, interval: 0, lineHeight: 14 } },
+  yAxis: { type: 'value', name: '%', min: -15, max: 40 },
+  series: [
+    { name: '2023 年度（摊薄·参照）', type: 'bar', data: roe2023, itemStyle: { color: C_BLUE },
+      label: { show: true, position: 'top', fontSize: 9 } },
+    { name: '2024 年度（加权）', type: 'bar', data: roe2024, itemStyle: { color: C_TEAL },
+      label: { show: true, position: 'top', fontSize: 9 } },
+    { name: '2025 年度（加权）', type: 'bar', data: roe2025, itemStyle: { color: C_ORANGE },
+      markLine: mark15, label: { show: true, position: 'top', fontSize: 9 } }
+  ]
+});
+
+echarts.init(document.getElementById('chart3')).setOption({
+  tooltip: { trigger: 'axis' },
+  legend: { data: ['PE(TTM)', 'PB(LF)'], top: 0 },
+  grid: { left: 60, right: 60, top: 46, bottom: 82 },
+  xAxis: { type: 'category', data: xLabels, axisLabel: { fontSize: 10.5, interval: 0, lineHeight: 14 } },
+  yAxis: [
+    { type: 'value', name: 'PE(倍)', min: 0, max: 25 },
+    { type: 'value', name: 'PB(倍)', min: 0, max: 3.5 }
+  ],
+  series: [
+    { name: 'PE(TTM)', type: 'bar', data: peArr, itemStyle: { color: C_TEAL },
+      label: { show: true, position: 'top', fontSize: 10.5 } },
+    { name: 'PB(LF)', type: 'line', yAxisIndex: 1, data: pbArr,
+      lineStyle: { color: C_ORANGE, width: 2 }, itemStyle: { color: C_ORANGE },
+      symbol: 'circle', symbolSize: 7,
+      label: { show: true, position: 'top', fontSize: 10.5, color: C_ORANGE } }
+  ]
+});
+
+echarts.init(document.getElementById('chart4')).setOption({
+  tooltip: { trigger: 'axis' },
+  grid: { left: 60, right: 30, top: 30, bottom: 82 },
+  xAxis: { type: 'category', data: xLabels, axisLabel: { fontSize: 10.5, interval: 0, lineHeight: 14 } },
+  yAxis: { type: 'value', name: '同比 %', min: -60, max: 400 },
+  series: [
+    { name: '2025 年度归母净利润同比增速', type: 'bar',
+      data: [
+        { value: 79.09,  itemStyle: { color: C_TEAL } },
+        { value: 17.71,  itemStyle: { color: C_TEAL } },
+        { value: 35.84,  itemStyle: { color: C_TEAL } },
+        { value: 362.02, itemStyle: { color: C_RED } },
+        { value: 72.30,  itemStyle: { color: C_TEAL } },
+        { value: 23.13,  itemStyle: { color: C_TEAL } },
+        { value: 15.26,  itemStyle: { color: C_TEAL } },
+        { value: 5.77,   itemStyle: { color: C_TEAL } },
+        { value: -11.49, itemStyle: { color: C_SLATE } }
+      ],
+      label: { show: true, position: 'top', fontSize: 10, formatter: '{c}%' }
+    }
+  ]
+});
+</script>
+</body>
+</html>
