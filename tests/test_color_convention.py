@@ -10,7 +10,7 @@ import importlib.util
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_TOOL = os.path.join(ROOT, "tools", "audit_color_convention.py")
+_TOOL = os.path.join(ROOT, "tools", "diagnostics", "audit_color_convention.py")
 
 
 def _load_tool():

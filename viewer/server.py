@@ -8526,7 +8526,7 @@ def main():
 
 
 # ── 2026-11-07 拆分：以下 api_* 已迁至 viewer/handlers/，re-export 保持命名空间兼容 ──
-from viewer.handlers.ai import (api_ai_review, api_ai_review_run, api_ai_review_history, api_ai_review_detail, api_ai_provider_key, api_ai_provider_test, api_ai_picks)  # 2026-11-07 拆分 re-export
+from viewer.handlers.ai import (api_ai_review, api_ai_review_run, api_ai_review_history, api_ai_review_detail, api_ai_provider_key, api_ai_provider_test, api_ai_picks, _pick_fallback_provider, _spawn_wb_fallback, _AI_WB_FALLBACK_SEC)  # 2026-11-07 拆分 re-export
 from viewer.handlers.avoid import (api_avoid_flags)  # 2026-11-07 拆分 re-export
 from viewer.handlers.backup import (api_backup, api_backup_restore)  # 2026-11-07 拆分 re-export
 from viewer.handlers.bili import (api_bili_pile, api_bili_methods, api_bili_scan)  # 2026-11-07 拆分 re-export
