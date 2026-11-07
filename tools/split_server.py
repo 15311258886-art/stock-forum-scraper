@@ -12,14 +12,25 @@
     routes.py 与既有测试（S.api_*）无需改动，且彻底消除跨域 api 的循环/顺序导入。
 
 用法：
-  python tools/split_server.py --domains a,b,c [--dry-run]
+  python tools/split_server.py --domains a,b,c [--dry-run] [--run-gate]
+  python tools/split_server.py --verify            # 仅跑静态关门检查，不拆分
+
+关门机制（2026-11-07 拆分教训固化）：
+  - 抽取落盘后**自动**跑静态关门 verify_handlers()：py_compile 全扫 + 引用/import
+    一致性扫描（递归收集 server 模块级绑定，含顶层 try/except 内可选别名与 global
+    声明的缓存字典），复现当时漏掉的 NameError 类，立即报错而非等到 pytest。
+  - --run-gate 额外跑运行时关门：真实 import viewer.server（捕捉循环导入/
+    未定义全局）+ pytest -q 全量回归。
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import builtins
 import keyword
 import os
+import py_compile
+import sys
 from pathlib import Path
 
 
@@ -42,20 +53,49 @@ STDLIB = {
 }
 
 
+BUILTIN = set(dir(builtins)) | {"True", "False", "None"}
+
+
+def _collect_module_level_names(node, names):
+    """递归收集**模块级**绑定名。
+
+    穿透模块作用域内执行的 Try/If/With/For/While/ExceptHandler（这些仍属
+    server 模块命名空间，如顶层 `try/except` 里的可选模块别名
+    `import cacheutil as cu`）；**不进入**函数/类的局部作用域（其内赋值属局部
+    变量），但会收集函数/类内部的 global/nonlocal 声明（它们指向的就是模块级名）。
+
+    这是 2026-11-07 拆分的关门教训：原实现只扫 tree.body 直接子节点，导致顶层
+    try 内的可选别名与 global 声明的缓存字典未被识别为 server 模块级符号，搬运后
+    运行时 NameError。递归收集后，未来拆分会自动把这些符号带进 handler 的 import。
+    """
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(child.name)
+            # 收集函数/类内部的 global/nonlocal 声明（它们引用的就是模块级名）
+            for n in ast.walk(child):
+                if isinstance(n, (ast.Global, ast.Nonlocal)):
+                    names.update(n.names)
+            continue
+        if isinstance(child, (ast.Assign, ast.AnnAssign)):
+            targets = child.targets if isinstance(child, ast.Assign) else [child.target]
+            for t in targets:
+                for nm in ast.walk(t):
+                    if isinstance(nm, ast.Name):
+                        names.add(nm.id)
+        elif isinstance(child, (ast.Import, ast.ImportFrom)):
+            for a in child.names:
+                names.add(a.asname or a.name.split(".")[0])
+        elif isinstance(child, (ast.Global, ast.Nonlocal)):
+            names.update(child.names)
+        elif isinstance(child, (ast.Try, ast.If, ast.With, ast.AsyncWith,
+                                ast.For, ast.AsyncFor, ast.While, ast.ExceptHandler)):
+            _collect_module_level_names(child, names)
+
+
 def collect_top(src: str):
     tree = ast.parse(src)
     TOP = set()
-    for n in tree.body:
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            TOP.add(n.name)
-        elif isinstance(n, ast.Assign):
-            for t in n.targets:
-                for nm in ast.walk(t):
-                    if isinstance(nm, ast.Name):
-                        TOP.add(nm.id)
-        elif isinstance(n, (ast.Import, ast.ImportFrom)):
-            for a in n.names:
-                TOP.add(a.asname or a.name.split(".")[0])
+    _collect_module_level_names(tree, TOP)
     return tree, TOP
 
 
@@ -175,11 +215,111 @@ def topo_order(handler_domains: set) -> list[str]:
     return order
 
 
+def verify_handlers() -> bool:
+    """拆分后**静态关门**检查（不依赖运行环境，纯 AST）：
+
+    1) 所有 handler + server.py 通过 py_compile（捕捉 global 关键字等语法炸弹）；
+    2) 每个 handler 引用的 server 模块级符号**必须**已 `from viewer.server import`。
+
+    返回 True 表示通过。任何一项失败即返回 False（应由调用方判失败退出）。
+    这正是 2026-11-07 拆分中暴露、并在全量 pytest 关门才发现的遗漏类：
+    被搬走的 api_* 引用了 server 顶层 try/except 内的可选模块别名或 global 声明的
+    缓存字典，却未在 handler 内 import → 运行时 NameError。固化此检查后，未来拆分
+    若在抽取时漏带符号，工具会在落盘后立即报错，而非等到 pytest。
+    """
+    ok = True
+    # 1) 语法编译检查
+    compile_err = []
+    targets = [SERVER] + sorted(HANDLERS.glob("*.py"))
+    for f in targets:
+        try:
+            py_compile.compile(str(f), doraise=True)
+        except py_compile.PyCompileError:
+            compile_err.append(f.name)
+    if compile_err:
+        ok = False
+        print("[verify] !! 语法编译失败：", compile_err)
+
+    # 2) 引用-import 一致性检查
+    _, TOP = collect_top(SERVER.read_text(encoding="utf-8"))
+    problems = []
+    for f in sorted(HANDLERS.glob("*.py")):
+        if f.name == "__init__.py":
+            continue
+        src = f.read_text(encoding="utf-8")
+        htree = ast.parse(src)
+        modbind = set()
+        imports = set()
+        for n in htree.body:
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                modbind.add(n.name)
+            elif isinstance(n, ast.Assign):
+                for t in n.targets:
+                    for nm in ast.walk(t):
+                        if isinstance(nm, ast.Name):
+                            modbind.add(nm.id)
+            elif isinstance(n, ast.AnnAssign) and isinstance(n.target, ast.Name):
+                modbind.add(n.target.id)
+            elif isinstance(n, ast.Import):
+                for a in n.names:
+                    imports.add(a.asname or a.name.split(".")[0])
+            elif isinstance(n, ast.ImportFrom):
+                for a in n.names:
+                    imports.add(a.asname or a.name)
+        loads = {n.id for n in ast.walk(htree)
+                 if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+        missing = sorted(x for x in loads
+                         if x not in modbind and x not in imports
+                         and x not in BUILTIN and x in TOP)
+        if missing:
+            problems.append((f.name, missing))
+    if problems:
+        ok = False
+        print("[verify] !! 以下 handler 引用了 server 模块级符号却未 import：")
+        for name, miss in problems:
+            print(f"    {name}: {miss}")
+    if ok:
+        print("[verify] OK：全部 handler 语法通过，且引用的 server 模块级符号均已 import")
+    return ok
+
+
+def run_gate() -> bool:
+    """运行时**最终**关门（需完整运行环境：yaml/bs4/requests/...）：
+
+    - 真实 `import viewer.server`：捕捉循环导入 / 未定义全局（延迟导入模式唯一可能踩的坑）；
+    - `pytest -q`：全量回归，应仅在基线已知的 flaky/环境失败上非零，不应出现新失败。
+
+    返回 True 表示 import 闸门通过（pytest 非零仅提示，不硬判，因环境型 flaky 与拆分无关）。
+    """
+    import subprocess
+    ok = True
+    print("[gate] import viewer.server ...")
+    r = subprocess.run([sys.executable, "-c", "import viewer.server"], cwd=str(ROOT))
+    if r.returncode != 0:
+        ok = False
+        print("[gate] !! import viewer.server 失败（见上方回溯）")
+    else:
+        print("[gate] import viewer.server OK")
+    print("[gate] pytest -q（需依赖齐全；flaky/环境失败需人工比对基线）...")
+    subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=str(ROOT))
+    return ok
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--domains", required=True, help="逗号分隔的域前缀")
+    ap.add_argument("--domains", help="逗号分隔的域前缀（--verify 时不需要）")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划，不落盘")
+    ap.add_argument("--verify", action="store_true",
+                    help="仅对当前 handlers 跑静态关门检查（语法+引用/import 一致性），不拆分")
+    ap.add_argument("--run-gate", action="store_true",
+                    help="抽取落盘后额外跑运行时关门：import viewer.server + pytest -q")
     args = ap.parse_args()
+
+    if args.verify:
+        sys.exit(0 if verify_handlers() else 1)
+
+    if not args.domains:
+        ap.error("--domains 为必填（除非使用 --verify）")
     domains = [d.strip() for d in args.domains.split(",") if d.strip()]
 
     src = SERVER.read_text(encoding="utf-8")
@@ -312,6 +452,16 @@ def main() -> None:
         f"\n[done] server.py 已更新：删除 {len(removed_ranges)} 个函数，"
         f"重建 re-export 块（{len(ordered)} 域，拓扑序）"
     )
+
+    # ── 静态关门：复现 2026-11-07 遗漏类 bug（语法+引用/import 一致性）──
+    if not verify_handlers():
+        print("\n[FAIL] 静态关门检查未通过，拆分结果存在隐患，请修复后再提交。")
+        sys.exit(1)
+
+    # ── 可选运行时关门 ──
+    if args.run_gate:
+        if not run_gate():
+            sys.exit(1)
 
 
 if __name__ == "__main__":

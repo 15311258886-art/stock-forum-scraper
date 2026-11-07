@@ -124,4 +124,31 @@ pytest -q
 - **可逆**：`git revert 10ce465 724fa34 aca2b70` 或回到 `c3725a0` 即可整段回退。
 - **残余风险**：仅"延迟导入 / 循环导入"类，已被 import 闸门（运行时真实 `import viewer.server`）覆盖；目前已 PASS。
 - **后续**：全量 `pytest -q` 已在沙箱跑通（704 passed / 53 failed，0 个由拆分引起）；本机依赖齐全时结果应一致或更优。本 ADR 与拆分 commit 分离提交，不污染拆分历史。
-- **工具待强化**：`tools/split_server.py` 的静态依赖扫描应纳入"递归收集模块级绑定（穿透 Try/If/With + global 声明）"，避免下次再漏可选模块别名 / 缓存字典；并建议拆分后自动跑一轮 `pytest` 关门。
+- **工具已强化**（见 §8）：`tools/split_server.py` 已把"递归收集模块级绑定"纳入静态依赖扫描，并在落盘后自动跑静态关门 + 可选运行时关门，下次拆分不会再漏可选模块别名 / 缓存字典。
+
+---
+
+## 8. 工具固化（`tools/split_server.py`，2026-11-07 关门教训）
+
+全量 `pytest` 关门暴露的真实回归（被搬走的 `api_*` 引用了 server 顶层 `try/except` 内的可选模块别名 `cu`/`avoid_mod`/`dragon_mod`/`lift_mod` 与 `global` 声明的缓存字典，却未在 handler 内 import → 运行时 `NameError`）已**固化进工具本身**，避免下次同类拆分再漏：
+
+1. **根因修复 —— 递归收集模块级绑定**（`_collect_module_level_names` 替换原 `collect_top`）：
+   - 穿透模块作用域内执行的 `Try/If/With/For/While/ExceptHandler`（顶层 `try/except` 里的 `import cacheutil as cu` 等可选别名现在会被识别为 server 模块级符号）；
+   - 不进入函数/类的局部作用域（避免把局部变量误当模块级），但收集其中的 `global/nonlocal` 声明；
+   - 经此，`api_deps` 在抽取时会自动把 `cu`/`*_mod`/`*_CACHE` 等带进 handler 的 `from viewer.server import (...)`。
+
+2. **静态关门 `verify_handlers()`**（落盘后**自动**执行，失败即 `sys.exit(1)`，未提交前即报错）：
+   - `py_compile` 全扫 server + 全部 handler —— 复现 `global` 关键字等语法炸弹；
+   - 引用/import 一致性扫描（同递归 TOP） —— 复现"引用了 server 模块级符号却未 import"的 `NameError` 类；
+   - 已用负向测试验证：临时从 `kline.py` 删掉 `cu` 再跑 `--verify` 会精确报 `kline.py: ['cu']` 并 exit 1，恢复后即通过。
+
+3. **可选运行时关门 `--run-gate`**：真实 `import viewer.server`（捕捉循环导入/未定义全局）+ `pytest -q` 全量回归。
+
+用法：
+```bash
+python tools/split_server.py --domains a,b,c            # 抽取 + 自动静态关门
+python tools/split_server.py --domains a,b,c --run-gate # 抽取 + 静态 + 运行时关门
+python tools/split_server.py --verify                   # 仅对当前 handlers 跑静态关门（语法+引用/import 一致性）
+```
+
+> 这条"纯静态 import 解析检查有盲区，必须配运行时 import 闸门 + 全量 pytest 才算真闭环"的教训，已通过上面 1+2+3 彻底写进工具，未来同类重构零复犯。
