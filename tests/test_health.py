@@ -74,16 +74,33 @@ def _ins(con, job, ok, ended):
     con.commit()
 
 
+def _ago(days: int, hour: int = 1) -> str:
+    """相对今天生成一个时间戳。
+
+    ★ 2026-11-06 审计 T12：这组断言原来写死了 "2026-10-28 ~ 10-31"。
+      `job_health()` 只统计**最近 7 天**（`ended >= now - 7d`），
+      所以到 11-06 再跑时，那些记录全部滑出了窗口，`jobs` 变成空列表，
+      测试以 IndexError 失败 —— 但**代码是对的，测试自己过期了**。
+      这类"时间耦合"最坑的地方是：它坏了以后看上去像产品出问题，
+      实际只是测试在替一个过期的日历日期背书。
+      改成相对时间后，这组断言在任何一天跑都表达同一件事。
+    """
+    from datetime import datetime, timedelta
+    d = datetime.now() - timedelta(days=days)
+    return d.replace(hour=hour, minute=0, second=0, microsecond=0).strftime(
+        "%Y-%m-%d %H:%M:%S")
+
+
 def test_consecutive_failure_stops_at_last_success():
     """最近一次成功之前的失败，不算进连续失败。
 
     否则一个昨天刚修复的任务会永远显示"连失 3 次"，人就不再信这个数了。
     """
     con = _mem_db()
-    _ins(con, "fixed_job", False, "2026-10-28 10:00:00")
-    _ins(con, "fixed_job", False, "2026-10-28 11:00:00")
-    _ins(con, "fixed_job", False, "2026-10-29 10:00:00")
-    _ins(con, "fixed_job", True, "2026-10-30 10:00:00")   # 修好了
+    _ins(con, "fixed_job", False, _ago(4, 10))
+    _ins(con, "fixed_job", False, _ago(4, 11))
+    _ins(con, "fixed_job", False, _ago(3))
+    _ins(con, "fixed_job", True, _ago(2))          # 修好了
     st = H.job_health(con=con)
     j = [x for x in st["jobs"] if x["job"] == "fixed_job"][0]
     con.close()
@@ -96,9 +113,9 @@ def test_consecutive_failure_stops_at_last_success():
 def test_three_consecutive_failures_is_broken():
     """连续 3 次失败判 broken —— 这是面板上唯一要求人处理的信号。"""
     con = _mem_db()
-    _ins(con, "dead_job", True, "2026-10-28 10:00:00")
-    for hh in ("2026-10-29 10:00:00", "2026-10-30 10:00:00", "2026-10-31 10:00:00"):
-        _ins(con, "dead_job", False, hh)
+    _ins(con, "dead_job", True, _ago(4))
+    for d in (3, 2, 1):
+        _ins(con, "dead_job", False, _ago(d))
     st = H.job_health(con=con)
     j = [x for x in st["jobs"] if x["job"] == "dead_job"][0]
     con.close()
@@ -110,14 +127,29 @@ def test_three_consecutive_failures_is_broken():
 def test_single_failure_is_degraded_not_broken():
     """单次失败只标 degraded —— 网络抖动不该触发"任务坏了"。"""
     con = _mem_db()
-    _ins(con, "flaky_job", True, "2026-10-29 10:00:00")
-    _ins(con, "flaky_job", False, "2026-10-30 10:00:00")
+    _ins(con, "flaky_job", True, _ago(2))
+    _ins(con, "flaky_job", False, _ago(1))
     st = H.job_health(con=con)
     j = st["jobs"][0]
     con.close()
     assert j["consec_fail"] == 1
     assert j["degraded"] is True
     assert j["broken"] is False
+
+
+def test_old_runs_outside_window_are_ignored():
+    """窗口外的记录必须**看不见** —— 这条钉的是 `days` 参数真的起作用。
+
+    没有它，上面三条即使把日期写错也可能因为"反正都读进来了"而误绿。
+    """
+    con = _mem_db()
+    _ins(con, "ancient_job", False, _ago(30))
+    _ins(con, "fresh_job", True, _ago(1))
+    st = H.job_health(con=con)
+    names = [x["job"] for x in st["jobs"]]
+    con.close()
+    assert "fresh_job" in names
+    assert "ancient_job" not in names
 
 
 def test_record_job_run_writes_one_row_and_keeps_error():

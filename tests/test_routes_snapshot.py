@@ -17,7 +17,8 @@ import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SERVER = os.path.join(ROOT, "viewer", "server.py")
+# P1 重构后路由已从 server.py 抽到 routes.py；路由清单的权威来源是 routes.py。
+SERVER = os.path.join(ROOT, "viewer", "routes.py")
 SNAPSHOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "routes_snapshot.json")
 
 
@@ -30,6 +31,10 @@ def extract_routes(src: str) -> list:
     pats += re.findall(r'route\.startswith\(\s*["\'](/api/[^"\']+)["\']', src)
     for m in re.finditer(r'route\s+in\s*\(([^)]*)\)', src):
         pats += re.findall(r'["\'](/api/[^"\']+)["\']', m.group(1))
+    # 2026-11-07（#4 路由注册表统一·分批）：从 ROUTE_HANDLERS 字典提取已迁移的精确路由键
+    mh = re.search(r'ROUTE_HANDLERS\s*=\s*\{([^}]*)\}', src, re.S)
+    if mh:
+        pats += re.findall(r'["\'](/api/[^"\']+)["\']\s*:', mh.group(1))
     # 规整 startswith 前缀（去掉末尾通配，保留稳定前缀用于对比）
     norm = set()
     for p in pats:

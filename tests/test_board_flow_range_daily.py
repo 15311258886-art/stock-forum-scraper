@@ -74,6 +74,13 @@ def bfr(monkeypatch, tmp_path):
     monkeypatch.setattr(
         mod, "is_trading_day",
         lambda today=None: datetime.strptime(today or DAY, "%Y-%m-%d").weekday() < 5)
+    # ★ 2026-11-06 审计 T12：`latest_trade_date()` 也必须一起钉死。
+    #   它来自 timeutil，读的是真实交易日历/库 —— 只冻结 `datetime.now()` 是不够的。
+    #   不冻结时会发生什么：`datetime.now()` 说是 2026-10-30，
+    #   但 `latest_trade_date()` 说 2026-11-06，于是 `_target_date()` 算出 11-06，
+    #   断言却在找 10-30 的数据 —— 测试报错，产品其实是好的。
+    #   这类失败最消耗信任：它看起来像"数据没落库"，实际只是两个时钟没对齐。
+    monkeypatch.setattr(mod, "latest_trade_date", lambda *a, **k: DAY)
     monkeypatch.setattr(mod, "_SYNC_RUNNING", {"v": False})
     yield mod
     mod._SYNC_RUNNING["v"] = False
