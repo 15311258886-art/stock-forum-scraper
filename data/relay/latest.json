@@ -1,7 +1,7 @@
 {
- "generated_at": "2026-11-10T01:14:11Z",
+ "generated_at": "2026-11-10T03:59:35Z",
  "counts": {
-  "bbc_world": 29,
+  "bbc_world": 30,
   "bbc_business": 30,
   "aljazeera": 25,
   "nyt_world": 30,
@@ -17,9 +17,7 @@
   "gnews_fed": 25,
   "arxiv_qfin": 20,
   "arxiv_csai": 20,
-  "arxiv_econ": 20,
-  "gdelt_disaster": 25,
-  "gdelt_supply": 25
+  "arxiv_econ": 20
  },
  "errors": {
   "yt_cnbc": "HTTPError: HTTP Error 404: Not Found",
@@ -31,6 +29,8 @@
   "reuters_world": "HTTPError: HTTP Error 404: Not Found",
   "reuters_markets": "HTTPError: HTTP Error 404: Not Found",
   "gdelt_conflict": "HTTPError: HTTP Error 429: Too Many Requests",
+  "gdelt_disaster": "HTTPError: HTTP Error 429: Too Many Requests",
+  "gdelt_supply": "HTTPError: HTTP Error 429: Too Many Requests",
   "reddit_worldnews": "HTTPError: HTTP Error 403: Blocked",
   "reddit_stocks": "HTTPError: HTTP Error 403: Blocked",
   "reddit_investing": "HTTPError: HTTP Error 403: Blocked"
@@ -40,7 +40,7 @@
    "title": "Trump says FBI investigating Nvidia boss's affair with alleged Chinese spy",
    "url": "https://www.bbc.co.uk/news/articles/cqg7x7dpvym8o?at_medium=RSS&at_campaign=rss",
    "summary": "The US president said he spoke with Jensen Huang on Monday and asked him about the affair with the alleged spy.",
-   "publish_time": "2026-11-10 00:34:53",
+   "publish_time": "2026-11-10 03:58:13",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -63,6 +63,17 @@
    "url": "https://www.bbc.co.uk/news/articles/cqpvgvrpjvv8o?at_medium=RSS&at_campaign=rss",
    "summary": "Kyiv, Washington and Moscow are all sending delegation to the United Arab Emirates for the first trilateral talks since February.",
    "publish_time": "2026-11-10 00:09:49",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Trump says Iran war is 'effectively over' militarily with further strikes unlikely",
+   "url": "https://www.bbc.co.uk/news/articles/cq5yny4nl2d3o?at_medium=RSS&at_campaign=rss",
+   "summary": "The president says the US is keeping \"status quo\" with Iran but remains “locked and loaded” should the situation in the Middle East change.",
+   "publish_time": "2026-11-10 02:38:00",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -95,7 +106,18 @@
    "title": "Republican congressman to force impeachment vote on Defence Secretary Hegseth",
    "url": "https://www.bbc.co.uk/news/articles/cwr5y58jjp8ro?at_medium=RSS&at_campaign=rss",
    "summary": "The effort will likely fail, but Representative Thomas Massie wants to push Trump to fire Hegseth before Democrats can launch their own impeachment process next year.",
-   "publish_time": "2026-11-09 23:45:14",
+   "publish_time": "2026-11-10 01:38:49",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Qantas to outsource 850 local jobs with most roles moving to India",
+   "url": "https://www.bbc.co.uk/news/articles/cry838v4qzvyo?at_medium=RSS&at_campaign=rss",
+   "summary": "The Australian airline said the move was aimed at modernising its IT systems and noted the impact of AI.",
+   "publish_time": "2026-11-10 01:55:22",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -345,21 +367,10 @@
    "kind": "media"
   },
   {
-   "title": "Germans wrestle with what to do with Hitler's destroyed Eagle's Nest retreat",
-   "url": "https://www.bbc.co.uk/news/articles/cm74pk1g51nko?at_medium=RSS&at_campaign=rss",
-   "summary": "While some believe the site should be partially or completely rebuilt, others want it abandoned and all memory of its Nazi past forgotten.",
-   "publish_time": "2026-11-08 00:48:59",
-   "source_key": "bbc_world",
-   "source_name": "BBC World",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Trump says FBI investigating Nvidia boss's affair with alleged Chinese spy",
    "url": "https://www.bbc.co.uk/news/articles/cqg7x7dpvym8o?at_medium=RSS&at_campaign=rss",
    "summary": "The US president said he spoke with Jensen Huang on Monday and asked him about the affair with the alleged spy.",
-   "publish_time": "2026-11-10 00:34:53",
+   "publish_time": "2026-11-10 03:58:13",
    "source_key": "bbc_business",
    "source_name": "BBC Business",
    "region": "GLOBAL",
@@ -415,6 +426,17 @@
    "url": "https://www.bbc.co.uk/news/articles/cw1l3lmem165o?at_medium=RSS&at_campaign=rss",
    "summary": "The discount chain is continuing to edge towards collapse and is said to be \"running on fumes\", according to one insider.",
    "publish_time": "2026-11-09 16:46:40",
+   "source_key": "bbc_business",
+   "source_name": "BBC Business",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Qantas to outsource 850 local jobs with most roles moving to India",
+   "url": "https://www.bbc.co.uk/news/articles/cry838v4qzvyo?at_medium=RSS&at_campaign=rss",
+   "summary": "The Australian airline said the move was aimed at modernising its IT systems and noted the impact of AI.",
+   "publish_time": "2026-11-10 01:55:22",
    "source_key": "bbc_business",
    "source_name": "BBC Business",
    "region": "GLOBAL",
@@ -642,17 +664,6 @@
    "kind": "media"
   },
   {
-   "title": "Welsh aviation firm AerFin bought in £475m deal",
-   "url": "https://www.bbc.co.uk/news/articles/cq203vjxnln7o?at_medium=RSS&at_campaign=rss",
-   "summary": "The company, which was majority owned by a private equity firm, said it was beginning a \"new chapter\".",
-   "publish_time": "2026-11-05 11:01:06",
-   "source_key": "bbc_business",
-   "source_name": "BBC Business",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "The engine parts that 'fight the laws of the universe'",
    "url": "https://www.bbc.co.uk/news/articles/cwe9lmp1pyyxo?at_medium=RSS&at_campaign=rss",
    "summary": "Investment has surged into the making of jet turbine blades - an extremely difficult component to make.",
@@ -686,6 +697,105 @@
    "kind": "media"
   },
   {
+   "title": "Saudi Arabia downs missiles fired at Riyadh after Houthi attack on pipeline",
+   "url": "https://www.aljazeera.com/news/2026/11/10/saudi-arabia-downs-missiles-fired-at-riyadh-after-houthi-attack-on-pipeline?traffic_source=rss",
+   "summary": "Saudi forces intercept two missiles fired towards Riyadh, hours after reporting damage to key East-West pipeline.",
+   "publish_time": "2026-11-10 03:17:51",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Newly-elected Democrats react to Hegseth impeachment bid",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/10/newly-elected-democrats-react-to-hegseth-impeachment-bid?traffic_source=rss",
+   "summary": "Newly-elected Democrats say holding Defense Secretary Pete Hegseth accountable, will be a priority in the next Congress.",
+   "publish_time": "2026-11-10 03:16:44",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Harare demolitions leave families homeless after years of building",
+   "url": "https://www.aljazeera.com/news/2026/11/10/harare-demolitions-leave-families-homeless-after-years-of-building?traffic_source=rss",
+   "summary": "Residents who say they legally bought land have seen their homes demolished.",
+   "publish_time": "2026-11-10 02:48:19",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Russia, Ukraine and US to meet as Zelenskyy claims battlefield successes",
+   "url": "https://www.aljazeera.com/news/2026/11/10/russia-ukraine-and-us-to-meet-as-zelenskyy-claims-battlefield-successes?traffic_source=rss",
+   "summary": "Zelenskyy claims Russia &#039;suffering record losses&#039; as Trump says US seeing &#039;strong inclination&#039; to end war in Ukraine.",
+   "publish_time": "2026-11-10 02:45:14",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Cameroon sets date for twice-delayed legislative and local elections",
+   "url": "https://www.aljazeera.com/news/2026/11/10/cameroon-sets-date-for-twice-delayed-legislative-and-local-elections?traffic_source=rss",
+   "summary": "President Paul Biya, the world&#039;s oldest leader, sets February 7 for Cameroon&#039;s delayed legislative and local polls.",
+   "publish_time": "2026-11-10 02:03:59",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Israel’s Shin Bet finds no evidence of foreign election interference",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/10/israels-shin-bet-finds-no-evidence-of-foreign-election-interference?traffic_source=rss",
+   "summary": "Israel&#039;s internal security service has found no evidence of foreign interference in last month’s election.",
+   "publish_time": "2026-11-10 01:59:59",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Poll finds Americans less likely to back pro-war candidates by 3-1 margin",
+   "url": "https://www.aljazeera.com/news/2026/11/10/poll-finds-voters-preferred-candidates-who-opposed-iran-war-by-3-1-margin?traffic_source=rss",
+   "summary": "Americans say the US should prioritise avoiding higher prices over achieving Trump&#039;s military goals in Iran.",
+   "publish_time": "2026-11-10 01:56:47",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "France blames Iran for October supermarket cyberattack",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/10/france-blames-iran-for-october-supermarket-cyberattack?traffic_source=rss",
+   "summary": "French Foreign Minister Jean-Noël Barrot has blamed the Iranian Islamic Revolutionary Guard Corps for the cyberattack.",
+   "publish_time": "2026-11-10 01:01:47",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Trump signals ‘positive momentum’ with Iran after meeting Qatari PM",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/10/trump-signals-positive-momentum-with-iran-after-meeting-qatari-pm?traffic_source=rss",
+   "summary": "Trump says there is ‘positive momentum’ towards ending the war on Iran following a ceasefire proposal delivered by Qatar",
+   "publish_time": "2026-11-10 01:00:00",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Verdict delayed in Honduras sex-trafficking case linked to disappearance",
    "url": "https://www.aljazeera.com/news/2026/11/10/verdict-delayed-in-honduras-sex-trafficking-case-linked-to-disappearance?traffic_source=rss",
    "summary": "Angie Pena&#039;s disappearance in 2022 exposed what prosecutors called a sex-trafficking network and state corruption.",
@@ -697,7 +807,7 @@
    "kind": "media"
   },
   {
-   "title": "Trump says FBI probing Nvidia CEO’s affair with alleged spy",
+   "title": "Trump says FBI probing Nvidia CEO Huang’s affair with alleged spy",
    "url": "https://www.aljazeera.com/economy/2026/11/10/trump-says-fbi-probing-nvidia-ceos-affair-with-alleged-spy?traffic_source=rss",
    "summary": "US president says he believes CEO Jensen Huang had no knowledge of woman&#039;s alleged work for Chinese intelligence.",
    "publish_time": "2026-11-10 00:44:28",
@@ -708,9 +818,9 @@
    "kind": "media"
   },
   {
-   "title": "Iran war live: Trump says escalation ‘unlikely’, Iran demands ‘surrender’",
+   "title": "Iran war live: Iran demands US ‘surrender’ to its conditions",
    "url": "https://www.aljazeera.com/news/liveblog/2026/11/9/iran-war-live-trump-says-war-effectively-over-iran-demands-surrender?traffic_source=rss",
-   "summary": "US President Donald Trump made the remarks after meeting Qatar&#039;s prime minister in Washington, DC.",
+   "summary": "US President Donald Trump said the war was \"effectively over\" after meeting Qatar&#039;s prime minister in Washington, DC.",
    "publish_time": "2026-11-09 23:55:23",
    "source_key": "aljazeera",
    "source_name": "Al Jazeera",
@@ -862,105 +972,6 @@
    "kind": "media"
   },
   {
-   "title": "Russell Brand sentenced to 10.5 years over sexual assault charges",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/9/russell-brand-sentenced-to-10-5-years-over-sexual-assault-charges?traffic_source=rss",
-   "summary": "Russell Brand has been sentenced to 10 years and six months in prison after being convicted of raping one woman",
-   "publish_time": "2026-11-09 20:08:18",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Explosion at Turkish steel plant kills at least 16 people",
-   "url": "https://www.aljazeera.com/news/2026/11/9/explosion-at-turkish-steel-plant-kills-at-least-16-people?traffic_source=rss",
-   "summary": "President Erdogan announces an investigation after a crane collapsed into a furnace, triggering the blast near Izmir.",
-   "publish_time": "2026-11-09 19:58:40",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "South Africa detains foreigners suspected of heading to join Russian forces",
-   "url": "https://www.aljazeera.com/news/2026/11/9/south-africa-detains-foreigners-suspected-of-heading-to-join-russian-forces?traffic_source=rss",
-   "summary": "Africans and others continue to be recruited to fight for Russia in its war on Ukraine.",
-   "publish_time": "2026-11-09 19:56:45",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "How is Gaza coping with another severe winter?",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/9/how-is-gaza-coping-with-another-severe-winter?traffic_source=rss",
-   "summary": "How is Gaza coping with another severe winter?",
-   "publish_time": "2026-11-09 19:47:46",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "US agencies unite to combat rogue drone threats nationwide",
-   "url": "https://www.aljazeera.com/news/2026/11/9/us-agencies-unite-to-combat-rogue-drone-threats-nationwide?traffic_source=rss",
-   "summary": "More than $40bn allocated by NATO for counter-drone technologies as US agencies ramp up measures against aerial threats.",
-   "publish_time": "2026-11-09 19:07:56",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Trump reverses stance, alleges fraud in recent US midterm elections",
-   "url": "https://www.aljazeera.com/news/2026/11/9/trump-reverses-stance-alleges-fraud-in-recent-us-midterm-elections?traffic_source=rss",
-   "summary": "Democratic Senate leader Schumer criticises Trump&#039;s poll denialism, calling it an avoidable return to baseless claims.",
-   "publish_time": "2026-11-09 19:07:42",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "What’s next for US Republicans and Trumpism?",
-   "url": "https://www.aljazeera.com/video/the-bottom-line/2026/11/9/whats-next-for-us-republicans-and-trumpism?traffic_source=rss",
-   "summary": "Republican politician Tom Garrett argues his party lost US midterm elections because it made promises it couldn’t keep.",
-   "publish_time": "2026-11-09 19:02:54",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Two security breaches near White House prompt brief lockdown",
-   "url": "https://www.aljazeera.com/news/2026/11/9/two-security-breaches-near-white-house-prompt-brief-lockdown?traffic_source=rss",
-   "summary": "Active investigations are under way after a vehicle crashed at Lafayette Park and a second individual jumped a barrier.",
-   "publish_time": "2026-11-09 18:57:01",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Al Jazeera.net co-founder and cartoonist Shujaat Ali dies aged 54",
-   "url": "https://www.aljazeera.com/news/2026/11/9/al-jazeera-net-co-founder-and-cartoonist-shujaat-ali-dies-aged-54?traffic_source=rss",
-   "summary": "Ali was an award-winning pioneer of animated political caricatures and Pakistan&#039;s first court artist.",
-   "publish_time": "2026-11-09 18:50:29",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Shipwreck Off Senegal Kills Dozens as Canary Islands Declare Migrant Emergency",
    "url": "https://www.nytimes.com/2026/11/09/world/africa/senegal-migrant-boat-capsize-europe.html",
    "summary": "Migrant arrivals to Europe are down overall but still claiming scores of victims, overwhelming local officials and dominating political debate.",
@@ -997,7 +1008,7 @@
    "title": "Immigrants Are Being Systematically Returned Home Despite Court Orders",
    "url": "https://www.nytimes.com/2026/11/09/world/africa/trump-deportations-court-orders-refoulement.html",
    "summary": "Working with the Trump administration, foreign partners accept deportees, then ship them to nations where the U.S. itself would be prohibited from sending them.",
-   "publish_time": "2026-11-09 21:54:45",
+   "publish_time": "2026-11-09 21:54:46",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1008,7 +1019,7 @@
    "title": "Ukraine Peace Talks Resume This Week in Abu Dhabi",
    "url": "https://www.nytimes.com/2026/11/09/world/europe/ukraine-russia-peace-talks.html",
    "summary": "U.S.-led talks to end the war between Russia and Ukraine will resume this week in Abu Dhabi. A cease-fire won’t be on the table.",
-   "publish_time": "2026-11-09 15:08:54",
+   "publish_time": "2026-11-10 03:39:35",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1097,6 +1108,17 @@
    "url": "https://www.nytimes.com/2026/11/08/world/middleeast/saudi-aramco-tower-riyadh-hit.html",
    "summary": "The Saudi authorities said no one was hurt after “falling shrapnel” hit the building in Riyadh’s financial district — one of the highest-profile areas targeted by the Houthis.",
    "publish_time": "2026-11-08 16:52:42",
+   "source_key": "nyt_world",
+   "source_name": "NYT World",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "China’s Trade Surplus Passes $1 Trillion at Record Pace",
+   "url": "https://www.nytimes.com/2026/11/09/business/china-trade-surplus-trillion.html",
+   "summary": "China’s exports exceeded imports by $1 trillion in the first 10 months of this year, reaching that milestone one month earlier than last year.",
+   "publish_time": "2026-11-10 03:49:08",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -1280,17 +1302,6 @@
    "kind": "media"
   },
   {
-   "title": "America’s Rebuke of Trump Won’t Swiftly Restore Canada-U.S. Harmony",
-   "url": "https://www.nytimes.com/2026/11/07/world/canada/carney-trump-canada-us-relations-midterm-elections.html",
-   "summary": "While U.S. voters largely oppose the trade war with Canada, many Democrats and their supporters have protectionist leanings.",
-   "publish_time": "2026-11-07 11:00:07",
-   "source_key": "nyt_world",
-   "source_name": "NYT World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Trump says he’s keeping ‘status quo’ with Iran, with no need for new strikes",
    "url": "https://www.washingtonpost.com/politics/2026/11/09/trump-says-he-sees-no-need-new-military-strikes-against-iran/",
    "summary": "In an impromptu news conference, the president insisted negotiations are making progress.",
@@ -1456,9 +1467,9 @@
    "kind": "media"
   },
   {
-   "title": "Is settler violence Israeli policy or extremism — and would a new leader bring change?",
-   "url": "https://www.washingtonpost.com/world/2026/11/08/israeli-policy-money-fuel-settler-violence-erode-palestinian-self-rule/",
-   "summary": "Netanyahu supporters blame radicals and “drug-addled teens” for attacks eroding Palestinian self-rule. Others see “state violence” and hope Gadi Eisenkot has an answer.",
+   "title": "Mysterious billionaire shows off ‘America’s oil’ — and Trump’s Venezuela",
+   "url": "https://www.washingtonpost.com/world/2026/11/07/mysterious-billionaire-shows-off-americas-oil-trumps-venezuela/",
+   "summary": "A visit to the petroleum-rich Orinoco Belt revealed a nascent U.S.-backed oil empire in a vassal state where officials once railed against the imperial north.",
    "publish_time": "2026-11-08 10:00:00",
    "source_key": "washpost_world",
    "source_name": "Washington Post World",
@@ -1467,9 +1478,9 @@
    "kind": "media"
   },
   {
-   "title": "Mysterious billionaire shows off ‘America’s oil’ — and Trump’s Venezuela",
-   "url": "https://www.washingtonpost.com/world/2026/11/07/mysterious-billionaire-shows-off-americas-oil-trumps-venezuela/",
-   "summary": "A visit to the petroleum-rich Orinoco Belt revealed a nascent U.S.-backed oil empire in a vassal state where officials once railed against the imperial north.",
+   "title": "Is settler violence Israeli policy or extremism — and would a new leader bring change?",
+   "url": "https://www.washingtonpost.com/world/2026/11/08/israeli-policy-money-fuel-settler-violence-erode-palestinian-self-rule/",
+   "summary": "Netanyahu supporters blame radicals and “drug-addled teens” for attacks eroding Palestinian self-rule. Others see “state violence” and hope Gadi Eisenkot has an answer.",
    "publish_time": "2026-11-08 10:00:00",
    "source_key": "washpost_world",
    "source_name": "Washington Post World",
@@ -1544,21 +1555,10 @@
    "kind": "media"
   },
   {
-   "title": "Russian strikes aim to cut Ukraine in half, Zelenskyy warns",
-   "url": "https://www.ft.com/content/efc3048c-c614-4d71-bf1b-e8cdce40722f?syn-25a6b1a6=1",
-   "summary": "Moscow’s strikes on the bridges across the Dnipro river could sever power and transport links with the east of the country",
-   "publish_time": "2026-11-10 00:08:38",
-   "source_key": "ft_home",
-   "source_name": "Financial Times",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Russia rations petrol after new Ukrainian strikes on refineries",
-   "url": "https://www.ft.com/content/ae06452b-3447-4fee-bd94-355cd324d1c5?syn-25a6b1a6=1",
-   "summary": "State-owned Rosneft limits sales to 30 litres per car in cities and 50 litres on highways",
-   "publish_time": "2026-11-09 16:37:52",
+   "title": "China’s trade surplus exceeds $1tn for first 10 months of year",
+   "url": "https://www.ft.com/content/a267d321-a489-4426-940e-1e4be712dc09?syn-25a6b1a6=1",
+   "summary": "Balance is on course for new annual record that would intensify tensions with trade partners",
+   "publish_time": "2026-11-10 03:09:14",
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
@@ -1599,10 +1599,10 @@
    "kind": "media"
   },
   {
-   "title": "ExxonMobil explores return to Venezuela after calling nation ‘uninvestable’",
-   "url": "https://www.ft.com/content/cd3b2969-9c58-404a-a80a-c823754899ef?syn-25a6b1a6=1",
-   "summary": "US oil major says it has signed a memorandum of understanding with Caracas",
-   "publish_time": "2026-11-10 00:34:45",
+   "title": "Russian strikes aim to cut Ukraine in half, Zelenskyy warns",
+   "url": "https://www.ft.com/content/efc3048c-c614-4d71-bf1b-e8cdce40722f?syn-25a6b1a6=1",
+   "summary": "Moscow’s strikes on the bridges across the Dnipro river could sever power and transport links with the east of the country",
+   "publish_time": "2026-11-10 00:08:38",
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
@@ -1610,10 +1610,153 @@
    "kind": "media"
   },
   {
+   "title": "Russia rations petrol after new Ukrainian strikes on refineries",
+   "url": "https://www.ft.com/content/ae06452b-3447-4fee-bd94-355cd324d1c5?syn-25a6b1a6=1",
+   "summary": "State-owned Rosneft limits sales to 30 litres per car in cities and 50 litres on highways",
+   "publish_time": "2026-11-09 16:37:52",
+   "source_key": "ft_home",
+   "source_name": "Financial Times",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Rising Fuel Flows Through Hormuz May Help Ease Strained Market",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/rising-fuel-flows-through-hormuz-may-help-ease-strained-market",
+   "summary": "The volume of refined products being loaded within the Persian Gulf is rising, with most of that exiting the Strait of Hormuz and providing some relief to one of the tightest corners of the global oil market nine months into the Iran war.",
+   "publish_time": "2026-11-10 03:39:50",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Japan 30-Year Bond Sale Sees Weaker Demand Than 12-Month Average",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/japan-30-year-bond-sale-sees-weaker-demand-than-12-month-average-mwa53xcl",
+   "summary": "Japan’s 30-year government bond auction drew weaker demand than its 12-month average as concerns over global fiscal policy weighed on investor appetite.",
+   "publish_time": "2026-11-10 03:38:06",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Copper Extends Rebound as Global Technology Stocks Resume Rally",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/copper-extends-rebound-as-global-technology-stocks-resume-rally",
+   "summary": "Copper extended its rebound from last week’s slump, tracking a rally in technology shares due to the metal’s use in power infrastructure and data centers.",
+   "publish_time": "2026-11-10 03:04:14",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Singapore Launches Gold Vaulting Service for Central Banks",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/singapore-launches-gold-vaulting-service-for-central-banks",
+   "summary": "Singapore has launched a gold vaulting service for overseas central banks and official institutions, seeking to capitalize on global demand to diversify storage of bullion reserves.",
+   "publish_time": "2026-11-10 03:00:10",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Asian Stocks Ride Tech Rally Higher as Oil Drops: Markets Wrap",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-09/stock-market-today-dow-s-p-live-updates",
+   "summary": "Asian stocks headed for their biggest two-day advance since early August, boosted by a tech rally and a further decline in oil prices.",
+   "publish_time": "2026-11-09 22:16:53",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Hegseth Hits Out at Critics as Massie Pushes Impeachment",
+   "url": "https://www.bloomberg.com/news/videos/2026-11-10/hegseth-hits-out-at-critics-as-massie-pushes-impeachment-video",
+   "summary": "President Donald Trump and Secretary of State Marco Rubio defended Defense Secretary Pete Hegseth after Republican representative Thomas Massie introduced articles of impeachment over military operations in Iran. Hegseth has rejected calls to step down, characterizing the effort as politically motivated. (Source: Bloomberg)",
+   "publish_time": "2026-11-10 02:49:21",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Singapore’s Interbank Rate Hits Highest in More Than a Year",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/singapore-s-interbank-rate-climbs-to-highest-in-more-than-a-year",
+   "summary": "Singapore’s benchmark interest rate climbed to the highest level in more than a year on tighter local liquidity and expectations for further US interest-rate hikes.",
+   "publish_time": "2026-11-10 01:21:22",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Latest Oil Market News and Analysis for Nov. 10",
    "url": "https://www.bloomberg.com/news/articles/2026-11-09/latest-oil-market-news-and-analysis-for-nov-10",
-   "summary": "Oil steadied near its lowest since August after US President Donald Trump said further strikes on Iran wouldn’t be necessary.",
+   "summary": "Oil extended declines from the lowest close since August after US President Donald Trump said further strikes on Iran wouldn’t be necessary.",
    "publish_time": "2026-11-09 23:01:44",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Kioxia Leveraged Product Debuts in HK After One Year Hiatus",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/kioxia-leveraged-product-debuts-in-hk-after-one-year-hiatus",
+   "summary": "A leveraged product tracking Kioxia Holdings Corp. debuts in Hong Kong on Tuesday, the first such single-stock instrument in the city since a similar SK Hynix Inc. product helped trigger extreme volatility in the underlying stock and drew market scrutiny.",
+   "publish_time": "2026-11-10 01:59:09",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "China Water Environment Seeks $410 Million Loan Restructuring",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/china-water-environment-seeks-410-million-loan-restructuring",
+   "summary": "China Water Environment Group, one of the nation’s largest sewage treatment firms, is seeking to restructure about $410 million of offshore loans, according to people familiar with the matter, adding to a growing number of Chinese state-backed firms facing debt challenges.",
+   "publish_time": "2026-11-10 01:51:14",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Berkshire Tests Wider Yen Spreads in Latest Japan Bond Deal",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/berkshire-tests-wider-yen-spreads-in-latest-japan-bond-deal",
+   "summary": "Berkshire Hathaway Inc. is marketing its latest yen bond deal at wider levels than it offered in April, highlighting how investors are demanding more compensation to buy debt.",
+   "publish_time": "2026-11-10 01:16:38",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Australia Probes Bathla as Private Credit Flaws Persist",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-09/australia-watchdog-probes-bathla-as-private-credit-flaws-persist",
+   "summary": "Australia’s corporate regulator has opened an investigation into insolvent Sydney developer Bathla Group as its latest surveillance showed that poor practices persist in the country’s A$250 billion ($172 billion) private credit industry.",
+   "publish_time": "2026-11-09 18:00:00",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Indonesia Markets Second Panda Bond Offering Despite MSCI Threat",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-10/indonesia-markets-second-panda-bond-offering-despite-msci-threat",
+   "summary": "Indonesia has begun marketing its second yuan-denominated bond in China’s domestic debt market, even as Southeast Asia’s largest economy grapples with the threat of a double downgrade from MSCI Inc.",
+   "publish_time": "2026-11-10 01:02:37",
    "source_key": "bloomberg_markets",
    "source_name": "Bloomberg Markets",
    "region": "US",
@@ -1676,17 +1819,6 @@
    "kind": "media"
   },
   {
-   "title": "Asian Stocks Rally After US Tech Surge, Oil Slump: Markets Wrap",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/stock-market-today-dow-s-p-live-updates",
-   "summary": "Asian stocks climbed, tracking Wall Street higher after a rally in technology shares and a slump in oil prices drove US benchmarks to their best day in seven months.",
-   "publish_time": "2026-11-09 22:16:53",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Japan’s Household Spending Slumps Most Since Pandemic",
    "url": "https://www.bloomberg.com/news/articles/2026-11-09/japan-household-outlays-fall-for-10th-month-as-inflation-lingers",
    "summary": "Japan’s household spending unexpectedly fell by the most since 2020, highlighting persistent weakness in consumption, even as the Bank of Japan grows more confident that inflation has become entrenched enough to warrant further interest-rate increases.",
@@ -1702,127 +1834,6 @@
    "url": "https://www.bloomberg.com/news/articles/2026-11-10/exxonmobil-signs-deal-in-step-toward-re-entering-venezuela",
    "summary": "ExxonMobil Holdings Corp. formalized negotiations with Venezuela about operating one or more oil fields, months after Chief Executive Officer Darren Woods called the country “uninvestable” given its condition at the time.",
    "publish_time": "2026-11-10 00:01:34",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Baltic Exchange's Oil Benchmark TD3C Described as `Complete Nonsense'",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-10/baltic-exchange-s-oil-benchmark-td3c-described-as-complete-nonsense",
-   "summary": "Legal filings and testimony provide a glimpse into tensions at the Baltic Exchange, which sets benchmark prices for shipping commodities.",
-   "publish_time": "2026-11-10 00:01:02",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Thai Bond Sales Set for Rebound in 2027 as AI Investment Surges",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-10/thai-bond-sales-set-for-rebound-in-2027-as-ai-investment-surges",
-   "summary": "Thailand’s corporate bond sales are poised to rebound in 2027 after four years of decline, as companies tap the debt market to fund investments in power plants and data centers, according to the head of the Thai Bond Market Association.",
-   "publish_time": "2026-11-10 00:00:00",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Colombian Inflation Accelerates Less Than Forecast to 6.30%",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/colombian-inflation-accelerates-less-than-forecast-to-6-30",
-   "summary": "Colombian inflation accelerated less than expected in October, easing pressure on policymakers to resume interest rate increases.",
-   "publish_time": "2026-11-09 23:11:49",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Faltering Philippine Growth Spurs Calls for State Action, Pause in Rate Hikes",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/faltering-philippine-growth-spurs-calls-for-state-action-pause-in-rate-hikes",
-   "summary": "A surprise slowdown in the Philippine economy has triggered calls for the central bank to go easy on interest rate increases, and for President Ferdinand Marcos Jr. to do more to revive growth.",
-   "publish_time": "2026-11-09 23:00:00",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Kiwi Extends Gains to Most in Seven Months After Election Result",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/kiwi-extends-gains-to-most-in-seven-months-after-election-result",
-   "summary": "New Zealand’s dollar extended Monday’s rise to finish the session with its biggest one-day gain since April after the incumbent center-right government emerged from the weekend election with a path back to power.",
-   "publish_time": "2026-11-09 22:50:15",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Skydance Reports First Earnings Since Merger",
-   "url": "https://www.bloomberg.com/news/videos/2026-11-09/skydance-reports-first-earnings-since-merger-video",
-   "summary": "Skydance is laying out its plans for its recent merger of Paramount and Warner Brod. Discovery, including a potential bundle of Paramount+ and HBO Max and a push to deliver $6 billion in merger synergies. Bloomberg Intelligence Senior Media Analyst Geetha Ranganathan joins Bloomberg Businessweek Daily to discuss the future of the company and why the troubled history of major media mergers is givin",
-   "publish_time": "2026-11-09 22:28:02",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Dutch Bros CEO: Gas Prices Are Impacting the Consumer",
-   "url": "https://www.bloomberg.com/news/videos/2026-11-09/dutch-bros-ceo-gas-prices-are-impacting-the-consumer-video",
-   "summary": "Dutch Bros CEO Christine Barone says the coffee chain delivered more than 30% year-over-year growth in revenue and EBITDA in the third quarter. The company also recorded its 14th consecutive quarter of positive same-store sales and ninth consecutive quarter of positive traffic, while continuing to open stores; it plans to open 250 new locations in 2027. Barone credited beverage launches, including",
-   "publish_time": "2026-11-09 22:24:17",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "JBS Profit Hit as China Quotas Overshadow US Beef Recovery",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/jbs-profit-hit-as-china-quotas-overshadow-us-beef-improvement",
-   "summary": "JBS NV is finally seeing some recovery in its US beef business, but the improvement wasn’t enough to outweigh the impact of China’s import restrictions on the world’s largest meatpacker.",
-   "publish_time": "2026-11-09 21:27:37",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Paraguay’s New President Overhauls Cabinet After Peña Ouster",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/paraguay-s-new-president-taps-ex-regulator-to-lead-central-bank",
-   "summary": "Paraguay’s Pedro Alliana moved to put his stamp on the cabinet he inherited from his impeached predecessor, Santiago Peña, naming new ministers and asking senior officials from the previous administration to tender their resignations.",
-   "publish_time": "2026-11-09 13:37:38",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "CVS Has Not Received Offers For the Retail Pharmacy Business, CEO Says",
-   "url": "https://www.bloomberg.com/news/videos/2026-11-09/cvs-received-no-offers-for-pharmacies-ceo-says-video",
-   "summary": "CVS Health Chief Executive Officer and Chairman David Joyner says no offers have been received yet for its retail pharmacy business which is being spun off in the first half of next year. The company's Aetna insurance unit and Caremark pharmacy benefits division are staying together. Joyner talks about the decision on \"Bloomberg The Close.\" (Source: Bloomberg)",
-   "publish_time": "2026-11-09 21:49:19",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "JPMorgan Weighs Big Discount to Lure Lenders for Software Debt",
-   "url": "https://www.bloomberg.com/news/articles/2026-11-09/jpmorgan-weighs-big-discount-to-lure-lenders-for-software-debt",
-   "summary": "Banks led by JPMorgan Chase & Co. could offer one of the year’s biggest discounts to sell some of the $5 billion in debt for software firm Qualtrics International Inc. that the underwriters were stuck holding a few months ago.",
-   "publish_time": "2026-11-09 21:46:26",
    "source_key": "bloomberg_markets",
    "source_name": "Bloomberg Markets",
    "region": "US",
@@ -2171,17 +2182,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "The Iran conflict turns hybrid, and other geopolitical stories to know this month - World Economic Forum",
-   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxQOW1UQk9iQWtJNTVEdE1OQ2o0Qzc3U0JzMFBfaHR3ZlhtZ05ZNnRFWUhWWFRFcE9Vbl9oSG5ZMmcxLWM1dUxVZGtLNVQta3NxSEtGaTJYYmdxcHpuamFVaFhQc2xIT3FmaXZiRXlyVXRYd2UycUNqVGdCQUwyel9CejhpTmpvOFlKdkJhVWNIaW8xbzF1RjRERmtmcmVNU19rV09MR0hSRXVtRTFhdjBTTzdQY2RDclM4N2FFeXBRMA?oc=5",
-   "summary": "The Iran conflict turns hybrid, and other geopolitical stories to know this month World Economic Forum",
-   "publish_time": "2026-10-06 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Conflict threatens Gulf climate commitments at COP31 - Inspenet",
    "url": "https://news.google.com/rss/articles/CBMid0FVX3lxTE9ndEdWQ3ZqZXU5WkEyTHdyWm9lYVl3bFBPckdzS1NwV2hBRFFzMG9SSndhRTYtbHU1SlhBRFZ4d0hqQmdMdzFqQ2Jpb05XRXExNXFvYmxjREpLNTZVNTh3YUxHV1hWWlJPem1QTTVhRzJBLUU3YWg0?oc=5",
    "summary": "Conflict threatens Gulf climate commitments at COP31 Inspenet",
@@ -2204,10 +2204,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Arctic Technical Cooperation Amid Geopolitical Fragmentation: Lessons from the Cold War - HARVARD Kennedy School - Belfer Center",
-   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxNV3NPUUowOU0wSy1QS1YzdDl4Z2RNZGN3dGRDN3pQdEF2c3NCT24yYjhkeEtIdm9FdkVkekxLNTFkNVFYSFpGUW9paEFfSXFlQ0JZcE14eC1fOS1NSXhOODgzOGt0d0pUMWd1ZThpR0JLSks4ZGZ3aTFKekwwUEM2QWtIUlQ1cWM3WmRQV21GM1BCclFvV20wTklmV1ZtUWpjSDJCd3ZQS1lfVi1KdVFXdFkxT0xnSkoyYVN0S1AxeVlUdw?oc=5",
-   "summary": "Arctic Technical Cooperation Amid Geopolitical Fragmentation: Lessons from the Cold War HARVARD Kennedy School - Belfer Center",
-   "publish_time": "2026-06-08 07:00:00",
+   "title": "The Iran conflict turns hybrid, and other geopolitical stories to know this month - World Economic Forum",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxQOW1UQk9iQWtJNTVEdE1OQ2o0Qzc3U0JzMFBfaHR3ZlhtZ05ZNnRFWUhWWFRFcE9Vbl9oSG5ZMmcxLWM1dUxVZGtLNVQta3NxSEtGaTJYYmdxcHpuamFVaFhQc2xIT3FmaXZiRXlyVXRYd2UycUNqVGdCQUwyel9CejhpTmpvOFlKdkJhVWNIaW8xbzF1RjRERmtmcmVNU19rV09MR0hSRXVtRTFhdjBTTzdQY2RDclM4N2FFeXBRMA?oc=5",
+   "summary": "The Iran conflict turns hybrid, and other geopolitical stories to know this month World Economic Forum",
+   "publish_time": "2026-10-06 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2215,43 +2215,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "How US financial markets react to geopolitical shocks hitting oil supply - European Central Bank",
-   "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxOWU12NVJXUzZfckFZbXh5RHZiTkRLNDZ5clNDNUFKOGxoNWU1WGpNZFJTdkRwT05sSlI0MnoxWXZ6al94WWZsXzY1VTJlQndfMmZhUUlRMGYwbHRQNU9OOEhrM0hLd2tCUFc1MV9jdzdud2FtZU9vMEZUcElvNGZkb2w2dzhRd0tQYll6SDhDUFJYejRIVWxKZnZWS2VVNExiVlZCQ0pB?oc=5",
-   "summary": "How US financial markets react to geopolitical shocks hitting oil supply European Central Bank",
-   "publish_time": "2026-06-25 08:04:26",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Mythos, not the Iran war, is the most significant geopolitical warning of our time - Atlantic Council",
-   "url": "https://news.google.com/rss/articles/CBMi3wFBVV95cUxQdk5OYTNZdTV6SS1rZmNTckQ2TkdCU3JhdkdfUHhnQW1OTF84TlB2XzkybWRiNm55aXBMVS1wMHZmcjlHdnhPdkF0MWRNYnhGMEFUYllqckY2MHhkaUtEd3RHWnhKOHlMVnlBQUd3MTRVaFp1aldJT2Z5T01qWkJLV3hnajhtbFBzRFJRQ3o1bEk0YzI4ajBtek1VX0FvLXUzb0h5Tk16eWFINjJ6bmpMdWFySDU3M2NqM18wU2tyaURIWEppZmhnVzBsa0ZZS285NWo2V25zamkxQ1lpdGZV?oc=5",
-   "summary": "Mythos, not the Iran war, is the most significant geopolitical warning of our time Atlantic Council",
-   "publish_time": "2026-04-30 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The Iran War and an Emerging Geopolitical Order - Middle East Council on Global Affairs",
-   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOYU9VUGlLOGkzek5wOHVaa3NadUxoV25NZHFoZWtfbzMtTzFNeEpyemlMSnM5NmlpazFhY1ZTNU5Oam5FYXRTUlkwOXV0aGVOMXBpLUo5ODN1RzMwQ0VCSGx6cmFwMkN5SGsxT280dlc1RF96Q3p0czVzX0dDYmMtWnhLODQ2bUUxYlE?oc=5",
-   "summary": "The Iran War and an Emerging Geopolitical Order Middle East Council on Global Affairs",
-   "publish_time": "2026-05-10 13:44:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty - OECD",
-   "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxOLWtjNTJyTFdDMVNiQU04ZXROeXlrSUJQUTVGVUFfRXJUN0pFaXUyN1hjQzJDX1hTYnZSb0U5M01LVDRFaWkwdWxDcnItckwtQ1NTNDdNRGJUZE85VG80Tlc2X2NRZndqWWV5OFJIdkhoUndJR2lyR1NzM0ZWMWlKUXZxRk03NXY0VTdPQzlqam03cTU1RkwzdHlWRTJRY2tPOU9GdHhNWVFKZ3Y5YXdOWXJrT3NwTXlPMGZadkh5MWhTWXluQ3YtX01aVEhTcnBTQXhqQjBsYmdac0pQRjVBNlBOX290M01h?oc=5",
-   "summary": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty OECD",
-   "publish_time": "2026-04-28 07:00:00",
+   "title": "The Gulf at War: Geopolitical, Defence and Geo-economic Dimensions - The International Institute for Strategic Studies",
+   "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxNY1FjdTJZUHlJUDNoNzZzNnpyS0RDVmtBMHdfWThfcFRiSHBCcmNCa3Zja05DcTBraUM0NHl0dUV4Q2hyLV9aMjN0cnF0SVVOMHQ0bEFLU0VTOEJOMWtrQlNhYnBLcUtTaHc4YlpCWG9sQVN0NUtCc001d2ExMFNOUGM5UTdHcjdJd2hURHJWam91ZXZ3dEFHZjhhbHBOTnJSTXc1S0NRQ0lXTTNxa1B1M0QyVjZpOFU?oc=5",
+   "summary": "The Gulf at War: Geopolitical, Defence and Geo-economic Dimensions The International Institute for Strategic Studies",
+   "publish_time": "2026-10-15 12:23:34",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2270,10 +2237,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Geopolitical analysis of the imposed war against Iran - Al Jazeera",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPcmJwVk9DMnJQYkZZZnU1SzNoV0VSc0JmaWlrZklKNlQycWNhR2dCMzJRV0RITVlVTlNNWTRLNjRMaUJTYzBXWjh3ejhvSW8wZXpWZHdZR21iWnpmbzg4Ykw4TEV4X3ZzaEtvSW9Od3lXTTVIbjEtN215SWpBNmJJZkhEeV9ydXdtRVZQV1BVd3hKNTdhWGV5dS1CUHdmNU3SAaQBQVVfeXFMUHRPNHdUYW5Mc0daR1k4T295OTFkXzF0RnAwQ0NxUjQxak96LV9ONE9Rd0VJbjFWdmE2OTNfeVZNZHJ3T3hZX0ltb0pTZ3Jxa0RxWmpDQ0w5bHZocXdncVRpZlQxMUlMYkZRWkN6Nm5YamdGVEpiZU42Sk52ZlpoM2lzaF9SemVEdVRBNjFWX1FsaTVkWm9JeGZVa3N0WnhEVUl3VXU?oc=5",
-   "summary": "Geopolitical analysis of the imposed war against Iran Al Jazeera",
-   "publish_time": "2026-03-10 07:00:00",
+   "title": "How US financial markets react to geopolitical shocks hitting oil supply - European Central Bank",
+   "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxOWU12NVJXUzZfckFZbXh5RHZiTkRLNDZ5clNDNUFKOGxoNWU1WGpNZFJTdkRwT05sSlI0MnoxWXZ6al94WWZsXzY1VTJlQndfMmZhUUlRMGYwbHRQNU9OOEhrM0hLd2tCUFc1MV9jdzdud2FtZU9vMEZUcElvNGZkb2w2dzhRd0tQYll6SDhDUFJYejRIVWxKZnZWS2VVNExiVlZCQ0pB?oc=5",
+   "summary": "How US financial markets react to geopolitical shocks hitting oil supply European Central Bank",
+   "publish_time": "2026-06-25 08:04:26",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2285,6 +2252,83 @@
    "url": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxPNEV3TEhQWV8zUzItaHVfcURkOXBSSmhOUEVidlRxaUs3QWtYblJlem1IaDFPVTBGNFRaT1JmbUYwR3pMZzdDY3JXZ19SVDAzbnR1dzhUVkoxaWlUdklRalpuT3RPZUFJa24yeGVOczBWRHRVTE0zUFpEeWpVY3B6cHp3X0xpekdCM3c3UzlJSGxrN0czamRZTmZhMnJCNzhUNnpDV1RSSVNBb1pDLUFySG1ZTlB3V3RmUUZvc2JWUkIyM0pqU2liZ1ZsbEFyQnZVQ3c?oc=5",
    "summary": "Hostilities in Iran war resume, and other geopolitical stories to know this month World Economic Forum",
    "publish_time": "2026-09-09 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "The Business: The Iran war will end, says geopolitical forecaster George Friedman The Business - ABC iview",
+   "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE1NdXNNUnpkLUlTODgyS2VzQXhQUUtvbFM0ZktkT240ZERyMTNvcl9icGN1X3lENFUyMl9TemFUc1Facjd3ZEI3WjVGRjBjOWNHQzJlMFRxVkh1Qk9WNlRqV3FoUXMxRmNCYjZ3WXkzMzlMNkV1eE83WGRMbw?oc=5",
+   "summary": "The Business: The Iran war will end, says geopolitical forecaster George Friedman The Business ABC iview",
+   "publish_time": "2026-11-09 08:50:05",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Iran-US war widens and other geopolitical stories to know this month - World Economic Forum",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOVDVuVlNvRzNpSWlzX21JcnllVlhFeU8yZkIwYWFuU21oWWNHOUhXbzA0cGJkdnhkU1l4Z3F5VkRQQmFQcGc3dDhpcTAxZnpPOHg5M29FYlFITnJpRmprVWd0QThGSERpVXkxVGlOaGlzZXdDOGxnYXRnYnpVQnI5ZzNHelY3MVRWQUpOdTZXWW54b0g4TllITndSa2tEbG9Db3p1anpTMWIyQ1M5d3RFWjl2ODZqd1RMc0FJcg?oc=5",
+   "summary": "Iran-US war widens and other geopolitical stories to know this month World Economic Forum",
+   "publish_time": "2026-08-07 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "How to understand the Iran war market swings: A geopolitical put option - Atlantic Council",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxQWWhPV1hhUkdiTExmbUVZYlNLTmdSS2RROUVJSmp5bXhhdWRQa2hFS0kzQlhMRlhCOGdjVG02aW8zbUF1R1IwWWJDVml1STBpQXRkdlhReGRlMGZDUmFmU1NWX0ZCaldPMjZPWW1EOHNjLUp0Z1J6QUpIeFhKWk9kRVp5YWszUG9aelNFZllNclZlWGZlOFd3WEEwRjZSeVFZd01YT3AwX3NoYldBenBLQzEtV0pwX3FSbEJsRw?oc=5",
+   "summary": "How to understand the Iran war market swings: A geopolitical put option Atlantic Council",
+   "publish_time": "2026-03-10 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "The Iran War and an Emerging Geopolitical Order - Middle East Council on Global Affairs",
+   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOYU9VUGlLOGkzek5wOHVaa3NadUxoV25NZHFoZWtfbzMtTzFNeEpyemlMSnM5NmlpazFhY1ZTNU5Oam5FYXRTUlkwOXV0aGVOMXBpLUo5ODN1RzMwQ0VCSGx6cmFwMkN5SGsxT280dlc1RF96Q3p0czVzX0dDYmMtWnhLODQ2bUUxYlE?oc=5",
+   "summary": "The Iran War and an Emerging Geopolitical Order Middle East Council on Global Affairs",
+   "publish_time": "2026-05-10 13:44:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "US, Iran ceasefire collapses, and other geopolitical stories to know this month - World Economic Forum",
+   "url": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxPMHdVaXM4NXVmWnYtTVFJQlk3SEtPZmw4bXExZ2tFdVpXYm5CNml1eDU0ZzlxVnh2UG5iRElLemdoWXg3TW9yR19NRVF1Y1RvMHFVZmdYMVRONWpDOEE1RkswS2dLbGFuVzNOYW1LTzBwNDNMRVBVZ3VwQjl2QTktM0xBbGdaOXJBak5oZGdaMzhsVXg2M0Q2LVA3eHZTUDFEV0p2ejRNT1Vyd1NVY3U3aGVEWnpCWFBmczVCLURfeTk2aWRCNUpNcDkyYUxUOXRrVFVkc2FhOUVtQXc?oc=5",
+   "summary": "US, Iran ceasefire collapses, and other geopolitical stories to know this month World Economic Forum",
+   "publish_time": "2026-07-10 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty - OECD",
+   "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxOLWtjNTJyTFdDMVNiQU04ZXROeXlrSUJQUTVGVUFfRXJUN0pFaXUyN1hjQzJDX1hTYnZSb0U5M01LVDRFaWkwdWxDcnItckwtQ1NTNDdNRGJUZE85VG80Tlc2X2NRZndqWWV5OFJIdkhoUndJR2lyR1NzM0ZWMWlKUXZxRk03NXY0VTdPQzlqam03cTU1RkwzdHlWRTJRY2tPOU9GdHhNWVFKZ3Y5YXdOWXJrT3NwTXlPMGZadkh5MWhTWXluQ3YtX01aVEhTcnBTQXhqQjBsYmdac0pQRjVBNlBOX290M01h?oc=5",
+   "summary": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty OECD",
+   "publish_time": "2026-04-28 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Geopolitical analysis of the imposed war against Iran - Al Jazeera",
+   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPcmJwVk9DMnJQYkZZZnU1SzNoV0VSc0JmaWlrZklKNlQycWNhR2dCMzJRV0RITVlVTlNNWTRLNjRMaUJTYzBXWjh3ejhvSW8wZXpWZHdZR21iWnpmbzg4Ykw4TEV4X3ZzaEtvSW9Od3lXTTVIbjEtN215SWpBNmJJZkhEeV9ydXdtRVZQV1BVd3hKNTdhWGV5dS1CUHdmNU3SAaQBQVVfeXFMUHRPNHdUYW5Mc0daR1k4T295OTFkXzF0RnAwQ0NxUjQxak96LV9ONE9Rd0VJbjFWdmE2OTNfeVZNZHJ3T3hZX0ltb0pTZ3Jxa0RxWmpDQ0w5bHZocXdncVRpZlQxMUlMYkZRWkN6Nm5YamdGVEpiZU42Sk52ZlpoM2lzaF9SemVEdVRBNjFWX1FsaTVkWm9JeGZVa3N0WnhEVUl3VXU?oc=5",
+   "summary": "Geopolitical analysis of the imposed war against Iran Al Jazeera",
+   "publish_time": "2026-03-10 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2314,87 +2358,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "Geopolitical risk and supply chain diversification - CEPR",
-   "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxNWmNVamkzVlR3TDR6S1Z5TGYzR0VtSGtXRTdtZDNrWjhMWmJqVDd1cVNIemxNWXUyUmlicG1HWjR5RFpNR3liRV9BOE9fM0FRRGpEd0VsenBRNDUxX0RzYWZzTlhMQS1XX2o0TVVMUW94eHFFWDI1QzByWXljRU9fMzQ0ZFZ6STlO?oc=5",
-   "summary": "Geopolitical risk and supply chain diversification CEPR",
-   "publish_time": "2026-02-23 08:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Geopolitical Risk and Financial Stability | Bulletin – June 2026 - Reserve Bank of Australia",
-   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQSW9hdmhLczl3Um1CQzZnejRPSnZ6QU9XN1F3aTk1RGl1YnhITElvSFZyWTJSY252bDA4T3liT2RFYThmSmRGNmhHdTZwQmRlY3lfRkhGVW00RGdQczFraUNoLTcwa2pVUjN1VUlkTk4yeTU4S0lvZXVnRFVvYVBrdGxiLTB1bFNKamdudm51emtaNEMxYTFzOXMzaHhXc2hLbFE?oc=5",
-   "summary": "Geopolitical Risk and Financial Stability | Bulletin – June 2026 Reserve Bank of Australia",
-   "publish_time": "2026-06-09 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The Business: The Iran war will end, says geopolitical forecaster George Friedman The Business - ABC iview",
-   "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE1NdXNNUnpkLUlTODgyS2VzQXhQUUtvbFM0ZktkT240ZERyMTNvcl9icGN1X3lENFUyMl9TemFUc1Facjd3ZEI3WjVGRjBjOWNHQzJlMFRxVkh1Qk9WNlRqV3FoUXMxRmNCYjZ3WXkzMzlMNkV1eE83WGRMbw?oc=5",
-   "summary": "The Business: The Iran war will end, says geopolitical forecaster George Friedman The Business ABC iview",
-   "publish_time": "2026-11-09 08:50:05",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Higher oil prices from the war in the Middle East: assessing the headwinds for euro area growth - European Central Bank",
-   "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxQb1hfNDZyaVN0UElOYlRXcUQ4QlU3VE1PdGZwOUluc1lha25LWGRYcjFBSWw2SGZ5cEtZMkZ4ZE45eVNfYWpmNXZXMV92aC1NeEU5b1N2RjRveU9IbHY2V0ZMenVLR010RjBEYXV0NVVCRmtmMF9CREhqZHNDSEpXZ2MxdFpyM0h0RXhTb3NkRmh6TlJ3eGpIdmRSckRPYVZZa3dfUlB3?oc=5",
-   "summary": "Higher oil prices from the war in the Middle East: assessing the headwinds for euro area growth European Central Bank",
-   "publish_time": "2026-06-24 12:00:45",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Uncertainty around US-Iran talks, and other geopolitical stories to know this month - World Economic Forum",
-   "url": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxPd05Kb3kyLThNVXc4MU5TZGlfLW5ISHNnbXZiS1FDVGUxOWRjc2dQenlBaWV6RVE5VlA3bEItYTNTQmZaYW9YLUh5T2w5TDRBYmlOY0U0Z2ZHUUtzMDZzaUxBYlVSSllyeGl5cXVGaXh6RlVfTEpVV2FpVjlWbHNBc3FhS0Z4STVhLXc2djFneUcwekdseUVlMWE2RmZSaUU3TFFEQmtsWWlzYXlnWm55dDM5dGlTREJFZFhDQmkxNy1SMHlIWGtfSnQxMURFX2JSLW1aX2dkaDlKUFh0emc?oc=5",
-   "summary": "Uncertainty around US-Iran talks, and other geopolitical stories to know this month World Economic Forum",
-   "publish_time": "2026-06-09 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Iran-US war widens and other geopolitical stories to know this month - World Economic Forum",
-   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOVDVuVlNvRzNpSWlzX21JcnllVlhFeU8yZkIwYWFuU21oWWNHOUhXbzA0cGJkdnhkU1l4Z3F5VkRQQmFQcGc3dDhpcTAxZnpPOHg5M29FYlFITnJpRmprVWd0QThGSERpVXkxVGlOaGlzZXdDOGxnYXRnYnpVQnI5ZzNHelY3MVRWQUpOdTZXWW54b0g4TllITndSa2tEbG9Db3p1anpTMWIyQ1M5d3RFWjl2ODZqd1RMc0FJcg?oc=5",
-   "summary": "Iran-US war widens and other geopolitical stories to know this month World Economic Forum",
-   "publish_time": "2026-08-07 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Middle East conflict: How geopolitical risk is reshaping data center resilience and investment - Marsh",
-   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxNdGNUMTJXc3prV3JWV0cwaGV2ZUY4a2JmcjByT0FxS2VGM01PeHZ6bU1HMng0NEdwXzA5emNkemRWMERMcDhfdmNEU2RqejFfTUNoNUpHcWJuWkJZUHJjSjBpMjNTTGRkQkxZOGdPREV0MGVVV3ZVTEVlUGhvM0dMd0VmUm1Eb1E3VGEteHJLWG85SWRDZ2RBR2U0Z3hveE03OVdDYlBldkQtZ0hRZGc2WVdyVVA5OXJKYnFoZTFUOU1WT3hpTUdMX3BhSzFLclVSczNxNg?oc=5",
-   "summary": "Middle East conflict: How geopolitical risk is reshaping data center resilience and investment Marsh",
-   "publish_time": "2026-04-23 17:17:58",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Geopolitical conflict impedes climate change mitigation - npj Climate Action - Nature",
    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE5UcXExOHlIOFk0c2dDT1V6NWJDU0w4SmdCWWV2Z0kwVktFTGJsZzJ3R3dJMlpWdHN6b3RDRWpMVUpZdHZyVzgzTkduQWlhNU9tM0FveEtpSDh2MzMzTFVj?oc=5",
    "summary": "Geopolitical conflict impedes climate change mitigation - npj Climate Action Nature",
    "publish_time": "2025-03-29 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Impacts of Geopolitical Tensions: What Russia’s War in Ukraine Means for Cooperation and Scientific Programs in the Arctic - HARVARD Kennedy School - Belfer Center",
+   "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxNWVNodl9KcU1tOENNR3oxb05oeTJlcGhOcE9UZnMydXNyb0ZWU2JLR2V5eXpJTHdVUjE0SzdKQTVqUWJSYzJ0TnpVWEZjeUFMUndWUHI5akhCTW9xcDJORXUzRzdGTU5FczF3OURQWU9DdGY5YUVCa3BDc1gxVEI5NkpUWlFtaW1PSkl3ZllVWG85OEY4ODd0MjdEU3VMdGNkMFN5TC05SkdZcDl4aWRUNE1ycm9UbFlhb3NBSDN3anc?oc=5",
+   "summary": "Impacts of Geopolitical Tensions: What Russia’s War in Ukraine Means for Cooperation and Scientific Programs in the Arctic HARVARD Kennedy School - Belfer Center",
+   "publish_time": "2025-11-27 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Geopolitical conflicts and space: considering the law of war and sanctions - Monckton Chambers",
+   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxOdGRvMmtZbjJXVW52ckdSTmx0R3RwR2JiMGdia2JKbHpwQzJpNW5hNnlmSnlxbmNnNXhMQUlSQzBYYXkyemZ5YjFLd0N4QTZBSzV3SnRUelZXdDlST2NMZVNhMHV0RXNVcmthbndDX2RmbnFucUlJTEowSktlRUltenNnMlB5dTNTUllzdGlYdk1hVTJqbFpVNGQwdzhraFJU?oc=5",
+   "summary": "Geopolitical conflicts and space: considering the law of war and sanctions Monckton Chambers",
+   "publish_time": "2026-04-14 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2424,12 +2413,56 @@
    "kind": "aggregator"
   },
   {
+   "title": "The geopolitical implications of the Israel-US-Iran war - The London School of Economics and Political Science",
+   "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9sYU5MWGI1aFlIRTVZODRPOGtfdDM3S1ZLU016bEFMdlBYcFQ2M1ZmSHhsSm5GTTUzQWEzZG5CWFNUR0RaamgxRnZ2TmcwY0FRSkE?oc=5",
+   "summary": "The geopolitical implications of the Israel-US-Iran war The London School of Economics and Political Science",
+   "publish_time": "2026-03-17 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Press Release – Book Launch “Geopolitical Conflict in the Wolf World, Great Power Competition and the Illiberal Revolt against the Liberal Order” by Marc Saxer - Institute of Strategic Studies Islamabad (ISSI)",
+   "url": "https://news.google.com/rss/articles/CBMihgJBVV95cUxQVmgwRTRKaWNucGdHaTNwT3RZN0M4ZzNzU2tYZTBsM1pXWGUyRWppU2c3RnhxVjVlbHlhNGtPd2dncVB1Yi13blFGUERSaVhvSFdLcGR4TG5vMUh0U1JKdUhSZUhOOFBZTFdyYWgtTjdmTDQtSHN0R21FNDZKYXpGUXRlRXhWVGtGdE5GdFE5U0ZJNzdMWkFVa3d3NGVxajB6aDlTcUFkQjhQNGRzZ2tqOTlZaTJEemNhRWM0cFZObFB2Tk9zYnpLMUJVLWFDeUQtX0swSlBadk05cFNrMnZYdVMxRFZHTG9INUt0Z21zMGhERFdJZ0ZjeEEzT1UzRUpRWTdBa2R3?oc=5",
+   "summary": "Press Release – Book Launch “Geopolitical Conflict in the Wolf World, Great Power Competition and the Illiberal Revolt against the Liberal Order” by Marc Saxer Institute of Strategic Studies Islamabad (ISSI)",
+   "publish_time": "2026-05-14 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Mar 13, 2024: Globalization at a record high - despite pandemic and geopolitical conflict, reveals DHL Global Connectedness Report 2024 - DHL Group",
    "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPaklscHFjVWtmMHpEdzBXa3pfdHBYVEFNSS1NdzlRS1MxcFpicVZxOThpeDBFM09LY2FTOXdHQUlGaTdUU2c4M2hfVmRaemJqXzBGWjBwV3JxSmNVdll1OExKbzg4cG11bS1EeUEzYjV5X0ZGM1VrOHdMc2s1RVo3SFFuamd1WlZuQjlJRHV0R3ZJRkxmLUtLOUY5REppSDY1ZkV2YQ?oc=5",
    "summary": "Mar 13, 2024: Globalization at a record high - despite pandemic and geopolitical conflict, reveals DHL Global Connectedness Report 2024 DHL Group",
    "publish_time": "2024-03-13 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Children among the dead as heavy rains flood tents and shelters in Gaza - UN News",
+   "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE9mckpTbzlrdW55SmVad1p6T2x6ZWNxbmRNQkNMZVFESmRYb3dLUkROdFZfbk9feV9WWG1NQWtVLS1URUFSLUExQmdRbUlDeFB1WnVOM3VHQQ?oc=5",
+   "summary": "Children among the dead as heavy rains flood tents and shelters in Gaza UN News",
+   "publish_time": "2026-11-09 20:29:41",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Frederick County wildfire evacuates trails near Cove Campground - WUSA9",
+   "url": "https://news.google.com/rss/articles/CBMi0gFBVV95cUxOSDBTUTlNbjYzQ0Q2c25IM1pnVGV2eWd2RXd6Mkh5QjhnYUkzM094RWt5bjhKdVU3ZnRGN21Uc1NGeUQ5dnQxLVZidFM5RmdKSVh1RXliWlF3WUtLNnRvdnZ4ZXZaVnVwcFZSYkFiU3IzU1VQbFhKS1d5N0VkYlRPdExNZnNOVnBidHlwQzNxcmVQTFhUMnRxTW5oeUxzcGtOOUg3NjV1WVVFazhZY2dXaE9qQVRDUllaRFZRbjREeGo4UGFOQ1dpLTFJbFZKSDJFbVE?oc=5",
+   "summary": "Frederick County wildfire evacuates trails near Cove Campground WUSA9",
+   "publish_time": "2026-11-10 02:38:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
    "lang": "en",
    "kind": "aggregator"
@@ -2446,10 +2479,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Wildfire in western Frederick County leads to evacuations - The Winchester Star",
-   "url": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxPR2ZJZ3RJMXN3aXhfdmpKYzlQMy1Sa2I1QWkwMlJLaWpiWXg1ZkdaMlViV0I4RjB4Q0Q3QmdOcmVONGxkcS1ucmVhd0lsSGc2bUgxYndUV3hRWXNadFhEYjdlaS15UGdISEd5RlB2aEF2VnU4YXRrejhuV1BWWUpTS3hVb3dyM0Rwb3l0WEh0bWtWdFVhTkFiYXNBVkFyR2FsSVp3dUk2clRSeWJ6Y1M0NFQtQU94MjdZdGw1SWFvYVdTOWZCYXNpN1o2UkM4VW9GSEpkT1N4U1dzWjhxWXNQTjVtLUN1clRZclE?oc=5",
-   "summary": "Wildfire in western Frederick County leads to evacuations The Winchester Star",
-   "publish_time": "2026-11-09 21:49:00",
+   "title": "Magnitude 2.0 earthquake recorded near LaFayette in Walker County, Georgia - wtvcfox",
+   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxQOGRNX21QVXBFdDVudWxBazhrTHpndEtYUEdmM0VtcHEzNmVrRVpWVENsR2xfRVNpVU1EYnhtRFRWTkpDWk9fUW1raXMzNTdvbmd1eDVxY1hBXzZiQXZhOW9TSTJEd1dDcGN1QndmT1FVcWtvbEYydXR1YU5XaV9jT2k0aktEM1FRU2FHMHhmTjRQXzI5NEpNUVZINGdnRXlIc2NLTWxBUnBJRWxTQWFB?oc=5",
+   "summary": "Magnitude 2.0 earthquake recorded near LaFayette in Walker County, Georgia wtvcfox",
+   "publish_time": "2026-11-09 20:41:08",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Breaking: New wildfire reported in Los Angeles County on Nov. 9 - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE9IeUFCbGxLT1lyeEhYS3EzY3lHSTB2VGNpZ1RBaHBTeGRCOTRzOHotRUVlYVdiRDhwOXUwVTlWRDZHMXgxaUlvZTl3YzJpQlhobVFBX2dmUjRMSDd1TUZvbGRuQ3B5T0xxN0V2bkVHMENVSk5Y?oc=5",
+   "summary": "Breaking: New wildfire reported in Los Angeles County on Nov. 9 Sacramento Bee",
+   "publish_time": "2026-11-10 03:39:07",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2468,6 +2512,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "McCaysville flood recovery: Historic surge damages mountain businesses - FOX 5 Atlanta",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxQZmw1UFlfTGctWmdwUkdWMDllV295dmczZU9YUmVnaUFDR24zQjJWa2NWRTFzNlFzLVc3SFVsV1FWeVFlUnFaNzF5QlVSM1FxcVB6UlJCcGNHV0pMMmV6UmJaSy1LY0JTMEs5Vkc3UUxzLUREREdIZElRNHIxdlNkazN2WXFKai1zeEdVNUdzcE5PNENNQVljck9GZTB3eFM5MVdXVw?oc=5",
+   "summary": "McCaysville flood recovery: Historic surge damages mountain businesses FOX 5 Atlanta",
+   "publish_time": "2026-11-10 01:42:50",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "A Recipe for Disaster in Taiwan - Foreign Affairs",
    "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxObEpSVzVad0lhSGo3ZjdXbVZYX0VBa2dQN096dFU2X1ZEYjJTVURQR29HOUtHd1B4eXhFbThUMEpxcl9TSFo0V2hfVk1PaXpNUmFhTTJEVE8xcHFEbkVxblllc1FraHJ0TEp3QmVWaFo4V3RKbjZQUTF5cmVEbHV4N25INjZOQ2s?oc=5",
    "summary": "A Recipe for Disaster in Taiwan Foreign Affairs",
@@ -2479,10 +2534,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Finding home after the Kipnuk flood - Boise State Public Radio",
-   "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQUV9XVUc1Sm14WWhKOVFGRmhOaHpSZzAwT3A0V1NZNTVMbU5Ba2lFNElYRktVaWI1TzFRbDZIQ055cHRDeFFZREZoYldnUjVaXzJMVWhFT1RGRzlUUDhMaTVicFlZT2R1VDhWRmRkT18xcWVzSXdoeVY5M19jeXlYZzdOVGlweG0zV25rWjZlS3JrdDA?oc=5",
-   "summary": "Finding home after the Kipnuk flood Boise State Public Radio",
-   "publish_time": "2026-11-09 18:39:00",
+   "title": "St. Johns River rises in western Brevard as damage assessment continues - Florida Today",
+   "url": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxQNnVSb2VWN2hKd1hhalREeDhXbWR6Z214a05fUTd5bG83QmNHMWRfRWhxVHpRUUNadGU0dEN6RTFJeThiSUFSeXZWVFNLdHNoUzZfUFJmUmU1ZjhRNVVFZTBXWUQxLXIyVnJUdy1QX3NfMndtUnI3eWk3eFJEOFNtQWlCZ1FEVEhpSzcxczlheWg3NE5MX3NKMFVPSzFuNmRDcjltVWhGWHZXektmVG1sSXNoOVNqU0YtbFZXeEpWay1TQXJ2NzNOTm1TaU9FOWg4QkNJ?oc=5",
+   "summary": "St. Johns River rises in western Brevard as damage assessment continues Florida Today",
+   "publish_time": "2026-11-09 19:23:00",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2501,10 +2556,43 @@
    "kind": "aggregator"
   },
   {
-   "title": "Flood risk remains with 1-3 more inches of rain possible - share your photos and video - WOAI",
-   "url": "https://news.google.com/rss/articles/CBMihAJBVV95cUxOa3RiQVN1eUhDOHVyNHh1XzNyRk1VQ1RlQWdpNTcwb3BIR0pHc1o4NkNIaGVxUFMtY3lYejRhaU5OUkxtNG5McWdLS2NlUzF6VzkwMzFyYllod3FSNkQ3M2g4RW9HaGo0d0lTZWtmajhuNV9qaDdRcTByMjFSV3FGeHZWek1PTTRZaHlaQjd6YmR4ZDBhVFhUckloNFJaNlVzZVVialQzeUtuT0RFMGhXQ2pCN25QbVVkUk1rbXZEdmJ0MExtRzJpdU1lZWNvY2hPS2hacFczblMtdk8wRG00aVNnWTNwek5CUWZ3d3NRQVBzM3JqbktBZUJkc29ERUcwcmdsNA?oc=5",
-   "summary": "Flood risk remains with 1-3 more inches of rain possible - share your photos and video WOAI",
-   "publish_time": "2026-11-09 21:45:03",
+   "title": "Finding home after the Kipnuk flood - Boise State Public Radio",
+   "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQUV9XVUc1Sm14WWhKOVFGRmhOaHpSZzAwT3A0V1NZNTVMbU5Ba2lFNElYRktVaWI1TzFRbDZIQ055cHRDeFFZREZoYldnUjVaXzJMVWhFT1RGRzlUUDhMaTVicFlZT2R1VDhWRmRkT18xcWVzSXdoeVY5M19jeXlYZzdOVGlweG0zV25rWjZlS3JrdDA?oc=5",
+   "summary": "Finding home after the Kipnuk flood Boise State Public Radio",
+   "publish_time": "2026-11-09 18:39:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Examining how climate change is fueling more flood damage - NBC Bay Area",
+   "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNazRhZ2ZwRWFVVWNpLTBXeFp4V00xYm41cUU1T2tZMWViWlh2dms2OUNQa1EzQTN4cWdVRi1sUVRIMVhQWW8yMVRGMkZVWXFuMUFYWEo1NFVCWThYQmk4TVFrekhtR0ZRM2cwNzNpZXFZUklmQ3R5OG45elFWTVNyUFhuOHZTLWPSAY8BQVVfeXFMTUFxclhvZzNybjdIMm1kSzIxTkFpc1hROUtWODFzMGpnZ2Y0MGtRYWRfUFZkZDZ3R212TXExOEVNdW1iUnNVVzZoVUJDNFhSMUJaRWJrWHhhYXZnV21uWThOTWs5b0dOcG0yZ2VhZl9OZ2VnZl9weFE1M3B2WVF4UmdudTc2X3QwRHlvRHJBb3c?oc=5",
+   "summary": "Examining how climate change is fueling more flood damage NBC Bay Area",
+   "publish_time": "2026-11-10 00:50:58",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Pritzker appeals FEMA’s decision to deny Illinois disaster aid - Capitol City Now",
+   "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxQaElwN3F1YzBhbEd0SHIzVHJJbTdmbEU1dEJtTEk2clVnUF85dEgwckZwbndqLUx6US1ZQlljTTdrV05yZkxUcHBEU1ZRR1ZhQUtGVGQ2Smk0VVltLWJPUmtkOFdIdXNUSVRXQlpDUXBUU0x2THY0S3drRmFoQ1Q5QkxyTm9mdUpURW1DUldVZ01RZVBjMkxTNHpjRG1VY3g5SGQ4?oc=5",
+   "summary": "Pritzker appeals FEMA’s decision to deny Illinois disaster aid Capitol City Now",
+   "publish_time": "2026-11-09 22:33:58",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "New Camp Mystic lawsuit alleges owners knew of flood warning gaps years before disaster - KXAN Austin",
+   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxNM1FGcDE3Z3l1dEhuTTktcGdhSjR3d1VEWnFkNmVPSkFxV29zdlpTQjcweHNXQjZJVF8xQjFhV1ZRcHVLdWwzNzZsY2t4Vm1vRTZrbjRqcUdRamFxWlFlZXluNnA5aE93c1RYWkpZMVhNaC1DUzlPdTZRLS16ZGJNYmNjV25rLWc2eDk4QVlETmlBdDJielhEM3pQS2IxdGtOaUtodDhGUnFqSnpDdUdKUXlFbkVnZjBNWFE0aUdrT3kzUdIBxwFBVV95cUxPazJfZGd4alV1dFhiNzg5aEprbDJDdmc0M1dzaDRXR3h2YlRxemwzclJLbE9UUms2R0o2eFJwRFJQMTBjSTNzejZZbHJWdkVkNGVYTC1TTGk3OHpLNlIxZnllWW4xXzNqWWJWODhvaUlIdXNwY3k1NUlXM245NXN4MkpGTkk3YjlZN2pHOUtENTRMSk1VaVUzVTlNR3RobExYZS1YQW1FdWFXSDhKRzdGREN1YjZIRG1YeFJPc1A0cXRwVVdJVnZv?oc=5",
+   "summary": "New Camp Mystic lawsuit alleges owners knew of flood warning gaps years before disaster KXAN Austin",
+   "publish_time": "2026-11-09 23:05:24",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2523,10 +2611,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Resources for Brevard flood survivors: Here's where to go - FOX 35 Orlando",
-   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxPTjZuX3k4OGZMOU5zaEN0ZHZsUUFfTHRMRFZmOEdEVUpZa0tacDNXWmprN18wSHRna1RXWkJ2a1pxUWNEdFpsLUMxYWFpdDZmQnBpcllQemppTExRbU5kbGdWbU9uUFJ1bmFkbExzcVM1RmRBNlVEUlNTc0k5aVpXTlZnLUIxWjhnMGc?oc=5",
-   "summary": "Resources for Brevard flood survivors: Here's where to go FOX 35 Orlando",
-   "publish_time": "2026-11-09 21:17:34",
+   "title": "Camp Verde flood damage: Resident loses dream home to historic river flooding - FOX 10 Phoenix",
+   "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNMnZHdVlYWkZ4djd4anFHX1FWNy1TLXktSXRqNExtR3FmTXpoR3k0NXVHTDhQaEFzZDVmbDF3ajJCUDctMzN4NE9QRXFiSXJoNnFxMUFDRFl0NmlsVTVWOGt6YnVuRnhsQzJmalFwR2dyYUJEcWFZZ2VRZmFwc2l4b3I0UlF5ZGl6ZFhEcGtLbHQyZXdwbGlYUmJlVGFHU1VwbWYxaDNuX2FaWGc?oc=5",
+   "summary": "Camp Verde flood damage: Resident loses dream home to historic river flooding FOX 10 Phoenix",
+   "publish_time": "2026-11-10 03:46:09",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2534,10 +2622,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "Abnormally dry conditions, warm temps intensified wildfire in N.H.’s White Mountains - WBUR",
-   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxQbTNjcG04NGpTbUdzd194X0VqUEk4UDJDbmduN0hWdFRPVjJjSlVXNGRxUlhRdmYwYzU3N1lTN3ZBSkdVaE5XU2hZQ0NxV1NmZnN2amJSdUctakxtU2N6ZGpMQkVnX3h4ODVyV0ZKRHRMcUVLSWY4RDU1aWU4X0VMclN0SkpyQVhwV2QxMURncUJxRmEyOUlKTA?oc=5",
-   "summary": "Abnormally dry conditions, warm temps intensified wildfire in N.H.’s White Mountains WBUR",
-   "publish_time": "2026-11-09 14:59:38",
+   "title": "Flood risk remains with 1-3 more inches of rain possible - share your photos and video - WOAI",
+   "url": "https://news.google.com/rss/articles/CBMihAJBVV95cUxOa3RiQVN1eUhDOHVyNHh1XzNyRk1VQ1RlQWdpNTcwb3BIR0pHc1o4NkNIaGVxUFMtY3lYejRhaU5OUkxtNG5McWdLS2NlUzF6VzkwMzFyYllod3FSNkQ3M2g4RW9HaGo0d0lTZWtmajhuNV9qaDdRcTByMjFSV3FGeHZWek1PTTRZaHlaQjd6YmR4ZDBhVFhUckloNFJaNlVzZVVialQzeUtuT0RFMGhXQ2pCN25QbVVkUk1rbXZEdmJ0MExtRzJpdU1lZWNvY2hPS2hacFczblMtdk8wRG00aVNnWTNwek5CUWZ3d3NRQVBzM3JqbktBZUJkc29ERUcwcmdsNA?oc=5",
+   "summary": "Flood risk remains with 1-3 more inches of rain possible - share your photos and video WOAI",
+   "publish_time": "2026-11-09 21:45:03",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Texas A&M students help organize disaster relief kits - KBTX News 3",
+   "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxOZE9odEtxYTNEZHdUVkRTcTFyQklPVGg3RllZY0JYVTJ0MmFLTVZVYlEtTXl4WUYwN3pSYnpIbEh1WjA1czNxNDdfVW43N2NkeHRGd1FyTG9wakR6R1BUZ3Nsb0paTkpDcm5xYVhfZno1b3dZT0x1di1WUWNueHZyM3VOcTVHaktGRG8wOVl30gGiAUFVX3lxTE41TjEwWEUzVnhSVy1ZaVJ4UGtfdkZiTFJyd1V3c1RrOHMyNzYtdHFPa1NObnBielM2a1YzZkZNTXdjbUhxblVTRERiOHZ6ZzdnUmVXbFhDRUNnMlZvNHZqTEgtdnZneFF1LVFZM0RfbFZOWGVBWHRyUXkzdDJ0MGpfSXBBazdxcFRlYzNBNzh2Ulc5eWtqZG9lY09zRjF6cEJkdw?oc=5",
+   "summary": "Texas A&M students help organize disaster relief kits KBTX News 3",
+   "publish_time": "2026-11-10 00:10:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Resources for Brevard flood survivors: Here's where to go - FOX 35 Orlando",
+   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxPTjZuX3k4OGZMOU5zaEN0ZHZsUUFfTHRMRFZmOEdEVUpZa0tacDNXWmprN18wSHRna1RXWkJ2a1pxUWNEdFpsLUMxYWFpdDZmQnBpcllQemppTExRbU5kbGdWbU9uUFJ1bmFkbExzcVM1RmRBNlVEUlNTc0k5aVpXTlZnLUIxWjhnMGc?oc=5",
+   "summary": "Resources for Brevard flood survivors: Here's where to go FOX 35 Orlando",
+   "publish_time": "2026-11-09 21:17:34",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2556,131 +2666,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Florida Sen. Ashley Moody secures $2.5B in FEMA disaster aid amid flooding recovery - WPEC",
-   "url": "https://news.google.com/rss/articles/CBMiigNBVV95cUxNdkhSd19hVmkzanY4RGdJMms1YzB1OFpLUEtUcVJXWWtJenFtU3I1SHc1bkpFUVA1LU5BV1FBRzdxZXNSMUpmR0pGbzk1TVlkcTV6Y1h5WmM5Q211VURZRWhMZkpFMVFQTHItc2Fwck9yM0F4bDZIWnBFS3RlVWQ1MGtzNFdoVVVIVDBGWWxDMkg1by1oRVNNdzBWbjFYazdWaVJBTFllX3ZQdUhrNjFNRUNfODdjMllaXzBHZFJLQkdiZk5UUnpPZG9tSTlJbjV2RDh6TmhjNDNQVmxsR1VXVWpublRzdlRwdnpmX2RkNXQ4Z0UxZnpIYy1Kc3FpWUVSWk42N1o2eGVlSjBqSGRXQW90U3Rpcm9UeTBlTnZPZ1N6b2w4WjhoSnhuWXdIWXByLXg5aVlDaDFQOE0wN1M5bXZ5c2dxcVJCVFlxdXhYUFlXb09aekVnc0QwSHVySkR3R3RDcGxXUVdFQ1hkRlYxNWpqSXBKUkw2dEZQR2tBMGxQb2R2akNxSHZ3?oc=5",
-   "summary": "Florida Sen. Ashley Moody secures $2.5B in FEMA disaster aid amid flooding recovery WPEC",
-   "publish_time": "2026-11-09 20:37:58",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "White Mountain National Forest wildfire 29% contained after rain - WCAX",
-   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPVjBITnBXWGtzU25VTXJYNEJMTl9IdUVUUXl0QmxHLU5nd1hzeFlmaVo0dzZYMVdvOGNkb2lZalNOUEdWcVRVM2hMWHJsZ1NDZzRqb1FDUXJiUDNrWFh2cnl5VmtRcm9vcnphRlFEYmlkMVZvUE1BQ3M5YldMLVRyNFFaYVVwcnhvVmYyVWU5c1M2d284NVowWk9UdV8?oc=5",
-   "summary": "White Mountain National Forest wildfire 29% contained after rain WCAX",
-   "publish_time": "2026-11-09 20:24:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Magnitude 3.3 earthquake strikes off Oregon Coast on Sunday - KOIN.com",
-   "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNbVAzRTRuYVVhLTJKSGF1V1ZGTnN2VEUwRkZMZV8tUVJ4TmVUQTNLNFVRcUdUT1NZUGZLd25TdnBydWM0aUlYSXV2QVRZXzZIdnpNWWhpaUdqSEZFV2ZnbV9BSW4xajVtZlhhZFVUcXpYcElpNFZCTjgwWUUzU0ZzLTVPTmJudTjSAYwBQVVfeXFMUGVlMWRMRWJ3SkdqMUJXX0RHZzN6OEhNSmkwUjcyTDV6RUY2b3ZjODl6VXhqNjR5WTVEZ0EtTkM1T0x4S3Bwa2trc2hmMHFia0hVMkcteVJFSkY0OW5GakQxb0hBMXB2TzFqR3FxU3JNMUhXeV9XUnNqWnRaS0t1NVh0emlGdXVvNUR3Vng?oc=5",
-   "summary": "Magnitude 3.3 earthquake strikes off Oregon Coast on Sunday KOIN.com",
-   "publish_time": "2026-11-09 17:31:46",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The Unrelenting Ordeal Of Wildfire Recovery - Honolulu Civil Beat",
-   "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxNUGFLbzVZelcwS2dzaFE1RU9WU05OWGhwNURCRHBBMUdlRFktWkxBMl82R0NBcmZzamgyczFaUVd1Z3dZYmo4WGNUREVSV3p3V0xqNDFjUGpNM2NVWWl4WWJwWkY3bE9LaFotdEh2OXBNTm5RXzhYM2tLb3hfZU1nZUliQ20?oc=5",
-   "summary": "The Unrelenting Ordeal Of Wildfire Recovery Honolulu Civil Beat",
-   "publish_time": "2026-11-09 10:01:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Breaking: New wildfire reported in Los Angeles County on Nov. 9 - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTFBGR1pkTXlubHhHM2xoM0pUUlZPamhJTjJ5al9qaVNCU0p5Wi1NemJqU08wTHk3WFJGUE5NbzdlV0VhZGRldFpFWGEwa203eW9CeGdMMVRIWEZkcjgwQmhWc201d0FPcnRYMHNQY2JKYkJUM0xs?oc=5",
-   "summary": "Breaking: New wildfire reported in Los Angeles County on Nov. 9 Sacramento Bee",
-   "publish_time": "2026-11-10 00:03:07",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Flood-closed roads threaten Wolf Creek Ski Area, businesses banking on winter tourism - Denver7",
-   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxPUGpybUFIdEQ4OS1hcXJuMDdDNGIzMmZiaVM4ajRTQ2wtblZBZmRYMkxYUU9qVHE2R1E1MU14enExc3dkaEt5bDJ1VHg5cTNvNS1wR3ozb2hNVndmNl9QQjFRdVZPU2dfanZuNVc2MXBKUGNYelRIZkhDUVpBa0kzaFlHVUVJYlpranJTTmY2a2NpeXZZSThxbGRCNkFPTTBWc2NqdGpGbldrM3FfR1FPeE5yS1pJb0pZNVRpWEhSSm55UQ?oc=5",
-   "summary": "Flood-closed roads threaten Wolf Creek Ski Area, businesses banking on winter tourism Denver7",
-   "publish_time": "2026-11-09 12:17:42",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Flood-damaged Florida homeowners may qualify for property tax break. Here's what to know - WPTV",
-   "url": "https://news.google.com/rss/articles/CBMiygFBVV95cUxPdVR0dmhNSWs0dC05ZVFfR3RhR1VXeldLQ3Z3V21HM3NrajhpaUZxdlBsZl96cDg4RU5VcGtTV2k0ellGeWQyQ0JIOG9abjBvRnBNd1NKN1lHaHYyQm5WakowWDFxMkNGNjBCbGFHNms3QkN2dU5QZ0xac2xiUm40U2d4aWZCdWkyYnpxSkN5SktJRFd2M2NWRnd6M0tFTjVDc3pvUU0yYVBuT0RmTFVDdEtCcWFhSTRJLXhiek1LdWw2Y3Bqc2EzSnV3?oc=5",
-   "summary": "Flood-damaged Florida homeowners may qualify for property tax break. Here's what to know WPTV",
-   "publish_time": "2026-11-09 22:02:10",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Lofgren secures $54.8M for Pajaro River flood protection | - Register-Pajaronian",
-   "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNUlExWjlhQ0dTNnNDdE1lekE5NlBuUVRzWFFUNXlnU1FVMWRrQlRJRWxfZmJpdXhLZWhSaC1PYWRWNEhfRzVnSEN1X0hoeWpZWDMzVlBxTlVEN0Z3ZGN6dnJfZlRmQ1BoNVVhOUxiNEpVa1E2QThYZl9JVzcyd1ZvRHhsOFNyZw?oc=5",
-   "summary": "Lofgren secures $54.8M for Pajaro River flood protection | Register-Pajaronian",
-   "publish_time": "2026-11-09 21:14:53",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "McCaysville flood strips shops down to studs - FOX 5 Atlanta",
-   "url": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE9IR1czV3NSV3lzcU9XMkhvVHVKcmNyQ25rRWdoa1dYSlVZa2hSVkIyNTB2WWhUVk5oYmREV3k1TG1uQjZwR1N2ampYbGE1WHQzT0U0UENtLWRaNFVHTU1BQ253WnbSAWpBVV95cUxPLVVmS1VaQWRUOUZXa1J3V21pUGlRNk9iUEhLWDg5Qi1yVHJ1bE9WTXZmaFFTYjFkN1FXVDNtVnlvTVRKaURLRTB4YTZFc3NDWmE5a1FaNHU3SmE0dEpNLW02Wk5lV2Rsc2FB?oc=5",
-   "summary": "McCaysville flood strips shops down to studs FOX 5 Atlanta",
-   "publish_time": "2026-11-09 23:55:28",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Earthquake rattles area close to Petrolia, CA: 2.8 magnitude detected on Oct. 30 - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE84SnFRYlFKa25YVmhWVXljNWxVRTBvUktyenBjUVZCblpuSU9Ud2JOcDNIS1E2ZEVGZGx2WE5ldGJWaHpfOElObEt4MjZxaWU4VjBvUW4wNnhXbFVaVXBtQko4OUtYbnJkM0NUVTEwV0VnTWV6S1pzSFB3Q2Q?oc=5",
-   "summary": "Earthquake rattles area close to Petrolia, CA: 2.8 magnitude detected on Oct. 30 Sacramento Bee",
-   "publish_time": "2026-11-09 21:51:07",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Dozens of neighbors stranded after flood washes away only road into Lake Placid neighborhood - FOX 13 Tampa Bay",
-   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPTDgxRG9Jc2J1MXBBaTFSc1lzOWRMNVVxV2NFUzdIQW9YZGRfVmJSamFOdXp2T1BoNHhaSXRhbFBTRHNkVlFjangwVEVsUWp3UW1RLVByalIwRC1nb2NpM0w4ejdILVBfclVUVkI4ajV3Mm1aUEtuM3JWX25DOEhyRVoyRnBhclA3b2xfZ3hnNjJxWXBhU3Y4ZmJOWnVKbk9tS3BTU0FQUGl4aW1abEZTV1JWXzhidw?oc=5",
-   "summary": "Dozens of neighbors stranded after flood washes away only road into Lake Placid neighborhood FOX 13 Tampa Bay",
-   "publish_time": "2026-11-09 23:57:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "BLM and State of Montana Expand Good Neighbor Partnership to Boost Forest Health, Community Wildfire Resilience - State of Montana Newsroom (.gov)",
-   "url": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxNcXVtOEJFUml3d0UwS3lLOW5xSnA4OGdLX290NFFwR1lNRkFjRi1pTnFrcmNfbC03Q3pTbWFFV2VENDQ4ZFNiNk5hdDdnQVlkUnV0bFZaMGFJZ2JiRmxpN01XYk9rZ0w5dDVLZ1ZLai1kYUlRaTlPMHU4V0c4b2FUVHV0QTlDd3BaejVBMDFIR3A3bnJWa0pFNnpNTF9GSE55UG9IWUdubDNuX25PZ2ttbnJtdnZlZmlJRGoxb0lQN1B2dHhJd2lCV24zbjczV1FfM2FWQXMxZ2E5a2JPVnVvdQ?oc=5",
-   "summary": "BLM and State of Montana Expand Good Neighbor Partnership to Boost Forest Health, Community Wildfire Resilience State of Montana Newsroom (.gov)",
-   "publish_time": "2026-11-10 00:58:50",
+   "title": "'Devastating': Flood assessments underway in Palm Beach and Okeechobee counties and Treasure Coast - WPBF",
+   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxQNkV2bDVRcy11VFNaWW9LNVJfc2lwN09lcWltc20wT0JYRFFyRjA3N3NiNDBERURFMV9VbTFES1NaRjlqcUFCak1hQkRDZHdITnpCYXhOZWx3bFF6WnE4c3JYRFctcklpWmVNZzVwQ2UtLUV5eU5LZGJEUnFsR1BXcWNPcWo3TXdCRWc?oc=5",
+   "summary": "'Devastating': Flood assessments underway in Palm Beach and Okeechobee counties and Treasure Coast WPBF",
+   "publish_time": "2026-11-10 01:27:00",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2699,10 +2688,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "Children among the dead as heavy rains flood tents and shelters in Gaza - UN News",
-   "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE9mckpTbzlrdW55SmVad1p6T2x6ZWNxbmRNQkNMZVFESmRYb3dLUkROdFZfbk9feV9WWG1NQWtVLS1URUFSLUExQmdRbUlDeFB1WnVOM3VHQQ?oc=5",
-   "summary": "Children among the dead as heavy rains flood tents and shelters in Gaza UN News",
-   "publish_time": "2026-11-09 20:29:41",
+   "title": "White Mountain National Forest wildfire 29% contained after rain - WCAX",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPVjBITnBXWGtzU25VTXJYNEJMTl9IdUVUUXl0QmxHLU5nd1hzeFlmaVo0dzZYMVdvOGNkb2lZalNOUEdWcVRVM2hMWHJsZ1NDZzRqb1FDUXJiUDNrWFh2cnl5VmtRcm9vcnphRlFEYmlkMVZvUE1BQ3M5YldMLVRyNFFaYVVwcnhvVmYyVWU5c1M2d284NVowWk9UdV8?oc=5",
+   "summary": "White Mountain National Forest wildfire 29% contained after rain WCAX",
+   "publish_time": "2026-11-09 20:24:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Greene County talks about flood preparedness - cbs19news.com",
+   "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxNbGQzbVQtbzl2aW1pdDFtdlJLVGhJUk1BZl9lZjZqekhuNDk4eE9SNnZkX0tUbU5PLV9CNWNIeUdEOXp6ejZacjh5YVNkT3FjMkVEOS1IRWIyb21jUGVEMUlZZ0VST0kta1NjRWVfR1h3c1BzRUZNOTYteFowWnJXTk5UUTJ1aWRTWTVMcGh5X3hIc3BfWkswaWd4SVpxeXA4cjZsSVFkejBEX29lREhiQ0pIUUpuekV1NHF0UWo4bjJwUGc?oc=5",
+   "summary": "Greene County talks about flood preparedness cbs19news.com",
+   "publish_time": "2026-11-10 02:35:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Heavy Rains Flood Displacement Camps in Gaza: AH&H Prepares Emergency Tarp Deliveries - All Hands & Hearts",
+   "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxNclZDVVVsd0pUUm85d25mU0VObkdJOXlWMHB6Y1M5dmktajUyT1BSaHBCOXg2ZkV3VThwX1dyZFNOc0FBN0x4aGZMLUJfVGx0YjN4V294dVNqOU14N1c5Sl9SX1VYY2RoMjA3dnNEb05LSkhlamtSVTA3cUgxME8wQXVYaE5LcjBIWTRoc3J0Q00xcXJ0bHdQVE5PbVZrcnBJRzBBYi1TSDBUSVd0MHdOenEzRzhReS1iR3c?oc=5",
+   "summary": "Heavy Rains Flood Displacement Camps in Gaza: AH&H Prepares Emergency Tarp Deliveries All Hands & Hearts",
+   "publish_time": "2026-11-10 01:47:55",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -2985,6 +2996,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "Colombia - Food Security Outlook Update (October 2026 - May 2027): Expansion of areas in Crisis (IPC Phase 3) driven by conflict and weather shocks - ReliefWeb",
+   "url": "https://news.google.com/rss/articles/CBMi-wFBVV95cUxPZ2tXZmpoWEFMLWlla0o4M0VoRWZWbm9fT20wb3NJdGJrS1RCcWpxZnA0akNJb2F6RTE2OTdjeVZkMFRHWFc4RndJWEhiZmFtdnc3cmVEak9FRHFsVGhDZGIwanY5WVV0VTMzRGpkODlSYTh0d1Q1X19PSlNPT2Vjd0lPekVqWkw5cXo4ejc1M3Nlc2VZY3BhTkNILXpoMmtLUEh5b0N1bldKV1pjWGMzbDdnY21SbVpxcFNfczdrYVllcWM1NFcyS0VHcE1PR2ZrMXBzaFl6OGwwMk9BdEZmQnp2akxoLVdFRm9iVFV5Slh5VkNPcnhxeXV1cw?oc=5",
+   "summary": "Colombia - Food Security Outlook Update (October 2026 - May 2027): Expansion of areas in Crisis (IPC Phase 3) driven by conflict and weather shocks ReliefWeb",
+   "publish_time": "2026-11-10 01:26:15",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Take 5: food security, cybersecurity jobs and AI chatbots - NH Business Review",
    "url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxNelZzYTd4UFpwMEtUMDBjQ0tXR0F5LUp1eGY1emVleDJOd2l3TXhhdW92Tk82SmRDcllYU2xvWjNRd2RTakhoTDNfMzFkS2hIUzY5elR3Z3FTalFLOG5MMzZub1BRX1F1eGwwRlBDbWJLTk9fNVZ5a2N5REstcWFwb1RwNA?oc=5",
    "summary": "Take 5: food security, cybersecurity jobs and AI chatbots NH Business Review",
@@ -3029,10 +3051,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Livelihoods and Gender Equality Learning Paper: Linking Gender Equality, Food Security and Livelihoods: Learning from Integrated Programming in Sierra Leone. | Concern Worldwide - ReliefWeb",
-   "url": "https://news.google.com/rss/articles/CBMirgJBVV95cUxNUGQwNUo1MGdKZEpGczZoSW5Yc2xrQWNvYWp3a2JaZUlqUlVNVVhNTmRJb2RYOTdIZHZLWjRBaENHbEVpQXNRajByenRDdXltOTI3TTFNWUpKQThNYmE4QlpidlVMZWJlamZfYUFGY3BiQm5pQkktNUdmNjNHd1pVYjZuNUhIUjMzanRzMEdRMUFDeGlKZWJzNHQ4VTdGaVBqS2VUT0VOR2NKbWU2WUNoQkl6Yk5TZG84N0ctOVAzQmVPaEhCYmV0MlJ5b2FGcUtWa01RTXRtTnprQm5kOWRicy1BNEtNbkUydk50VnotODlMaC16akFoMjh4cnRHTGhjdXVrbzAxVXhVSkxPdUVURmp1aWR5Rk9UT1NydWZjRmp1ckNkdm9Ld3hiSm4tdw?oc=5",
-   "summary": "Livelihoods and Gender Equality Learning Paper: Linking Gender Equality, Food Security and Livelihoods: Learning from Integrated Programming in Sierra Leone. | Concern Worldwide ReliefWeb",
-   "publish_time": "2026-11-09 13:03:09",
+   "title": "Food security hinges on more than just boosting productivity, says Olam Agri CEO - FeedNavigator.com",
+   "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxNME9ueWdreHQ1Rm1DWjhHV3ZhRHNKVThWNFhLYU5xZUxTX1BRSjFLOTZCc0dIQ1BuWnV3RUJna0hOUUxtY0R2ZkNUdGo2czdnelA2dU83dlJYaFJIS254TkFtQnVGRlRCSkhiVkcyQVplNHlSLXM0QTdaRG1YdHZ2WTZzd2ZFSnlzSTBndU1oQm03UE9sZmVseG92cWEwZEJKQm9ZdmhyMFE3Wjk3OVlyZFJrSzRCZG1mQmNCVGQ5Uzd5SEFRU0E?oc=5",
+   "summary": "Food security hinges on more than just boosting productivity, says Olam Agri CEO FeedNavigator.com",
+   "publish_time": "2026-11-10 03:36:18",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Will We Go Hungry? The Illusion of Food Security - tovima.com",
+   "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxPTTNlcERiWlBxZWo0YWlLZkhoQ0toOW9GVUhEcmtPckh2dURNYWRnbi1IUEw3SjJ0bXRBeXRibjl3VURpYXlGRjdmQ3h4N1pZcVNfNlpvOVJ0VlBFVE9pbDBrNEhUVGphMXhYelAtdl9xTGh1bWRQLXZmTzZDbjR4eEF3?oc=5",
+   "summary": "Will We Go Hungry? The Illusion of Food Security tovima.com",
+   "publish_time": "2026-11-09 21:32:45",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3062,17 +3095,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Will We Go Hungry? The Illusion of Food Security - tovima.com",
-   "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxPTTNlcERiWlBxZWo0YWlLZkhoQ0toOW9GVUhEcmtPckh2dURNYWRnbi1IUEw3SjJ0bXRBeXRibjl3VURpYXlGRjdmQ3h4N1pZcVNfNlpvOVJ0VlBFVE9pbDBrNEhUVGphMXhYelAtdl9xTGh1bWRQLXZmTzZDbjR4eEF3?oc=5",
-   "summary": "Will We Go Hungry? The Illusion of Food Security tovima.com",
-   "publish_time": "2026-11-09 13:32:21",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Serino unveils $722M 'no-frills' 2027 Dutchess County budget - The Poughkeepsie Journal",
    "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxQZGdOd2hxYmlsVkx0NVRDaGh1SE5qYW94UU00MnlkUmxiR1ZIcWt1aGV6cWp0SWRJRHJraDAzcS1UUXBiSlJGUVVzd1ItS1FiT0VCV1RZTVhyNnVEd29sUTRubkIyUkNLd3hieHpuSS1CTzB1N0R0RXczNHZPTEFYY2k3MXFDRE5VTE90RTlxRHpia2J1V2lOcnNnNDRpTld3cnlDdHo0NmNMbExwSXBhS085TjBXZ0Q1bF9wM3Y5X3NfVWRI?oc=5",
    "summary": "Serino unveils $722M 'no-frills' 2027 Dutchess County budget The Poughkeepsie Journal",
@@ -3095,32 +3117,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "National Policy Dialogue: Making Kenya’s Agricultural Evidence Count - Africa South of the Sahara",
-   "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE1JVkRaMElJM2ZBaGdMUThiWFowTVBmYmdZcWVOd0FTRW42aGFFT0M4M2dQbjU1WmdlQm9IWlpkcVBDSExmMHc2c1VBbHExM2l3bnp6QmR4amNKdV9lVWlraHNPa0piQQ?oc=5",
-   "summary": "National Policy Dialogue: Making Kenya’s Agricultural Evidence Count Africa South of the Sahara",
-   "publish_time": "2026-11-09 18:44:42",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "SNAP Benefit Theft: Skimming, EBT Security, and the Growing Threat to Food Security - Food Research & Action Center (FRAC)",
    "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE8wcjRYbm93UDkxU1BOeGQ1MzFKQzd4RDZwWldmWWVXeEJ2Q05naXhGd09uSElJYWhieU1IMVNSWlhONk5mR01mMVN6M2tLMlBHbEdmNTc4X04?oc=5",
    "summary": "SNAP Benefit Theft: Skimming, EBT Security, and the Growing Threat to Food Security Food Research & Action Center (FRAC)",
    "publish_time": "2026-11-06 14:57:12",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "India’s journey to global food security: South-South collaboration & sustainable solutions - ET Government",
-   "url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxNNFhHbUxWb0xBOEprVTN2Tk4yQUJkZl9zMzVLYmV2UkVWYkVTRFFVRWFmTjlQMTg0OEtScjdydW1HVE1yNzZzNlp5bEZIQmFER1pXNUpYbDBuci1WQUhXZFRnOXVWYlNaNVJocXFXQmh3TDg5aC1tZWtzUVI0VDZfR3ZndU5odXRicWhQMjEtemJ2T01ibDl1cG15Ul9mNS1xZzJpc0otLURRTElWNGRYaG1mRUdEY3ZfOGk0LTc1b0ZleXI3aGwtSmZXOF9kdm1SeUd5N1hfZ1N5eGIwN0dBOTVn0gHnAUFVX3lxTE45YXJ0WlgzdGdXbUFvall4S0FPMjAzbVcwanJDNEZKZzZaekY4dEkwend0RldVcy1WaTFKOXdnbHNvUG5fenlST1ppYmJBM1hNbEdPQXJ6RXFsZlFJV0lMVm5UNmtJYzZyWkRoTVY1WHBVS2tkWDFUd1ZfdUZIRjNNdUNoRnZHVk9tZ2J4b0NYS2ZFTE9oejVJbVdkdk1SR3dnMDYyN3dxZFRGLWZSN20zSV9hc1pPb09ZdkJvbUJ1a3JfLWJOUThKNkNKQW5HOTlIZ0FVal9KWHlGM3hYMzNMNnA0NHJzMA?oc=5",
-   "summary": "India’s journey to global food security: South-South collaboration & sustainable solutions ET Government",
-   "publish_time": "2026-11-09 14:20:18",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3139,10 +3139,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth - Central Current",
-   "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNU3kxSVB4Nl9JZERSMndIU2JFZURIX2NoTFM1aGxkQmFpa2UyY0pqdGpiZFdQd0JVcGRiajN5SjBvREhaX3M4eWZtWkgwbGdZZWE4bEh2a3VxOW9BV3RnRDN6OFZaeXlRYWFhRjhhTmpUU1hKcFRnSzJkUU5DbnJBWHh6SjJ3ZzYyZ1lsbGV5SjNMRjc1TzFIRWUzeGJVTUxDRkwwQ0xmdWtUSEhfX2NOQ2NCMWJEcHNvSC00ZVdGNEN5Q1ViWGxYTFJhekhvZw?oc=5",
-   "summary": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth Central Current",
-   "publish_time": "2026-11-04 21:17:44",
+   "title": "National Policy Dialogue: Making Kenya’s Agricultural Evidence Count - Africa South of the Sahara",
+   "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE1JVkRaMElJM2ZBaGdMUThiWFowTVBmYmdZcWVOd0FTRW42aGFFT0M4M2dQbjU1WmdlQm9IWlpkcVBDSExmMHc2c1VBbHExM2l3bnp6QmR4amNKdV9lVWlraHNPa0piQQ?oc=5",
+   "summary": "National Policy Dialogue: Making Kenya’s Agricultural Evidence Count Africa South of the Sahara",
+   "publish_time": "2026-11-09 18:44:42",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3161,10 +3161,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Climate and food security - The Express Tribune",
-   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE4tN3l2VXozUUFDRXV6dGJYZDBrZUQ5eWtITGxnN3NqNUhGTEh5NHAwWXFhSzNjMzlxa093RXNSUHJyd0RLWFhPS3ZKMDE5b3c1VmVpcl9pV091ZWxxZDk1UkRSc3dzNWZjUUdydng2ONIBd0FVX3lxTFBMZ09sOVpYd3drd0h5VmhDdWRrWHptZEEzd0dndTJFMlpNSXQ5LU95OURPa3pqRWRJQWZoeVhKcWxOcXdINlZkTlM2Z2hBOWktNFo4a3lfbkpHRzhScS1sLXY3NUxkSVhZVUtGU2tjRWNpX2NvM0RZ?oc=5",
-   "summary": "Climate and food security The Express Tribune",
-   "publish_time": "2026-11-09 20:15:28",
+   "title": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth - Central Current",
+   "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNU3kxSVB4Nl9JZERSMndIU2JFZURIX2NoTFM1aGxkQmFpa2UyY0pqdGpiZFdQd0JVcGRiajN5SjBvREhaX3M4eWZtWkgwbGdZZWE4bEh2a3VxOW9BV3RnRDN6OFZaeXlRYWFhRjhhTmpUU1hKcFRnSzJkUU5DbnJBWHh6SjJ3ZzYyZ1lsbGV5SjNMRjc1TzFIRWUzeGJVTUxDRkwwQ0xmdWtUSEhfX2NOQ2NCMWJEcHNvSC00ZVdGNEN5Q1ViWGxYTFJhekhvZw?oc=5",
+   "summary": "With a supermajority, county legislature Democrats to keep focus on housing, food security, equitable growth Central Current",
+   "publish_time": "2026-11-04 21:17:44",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3172,10 +3172,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Oʻahu voters approve new Food Security Fund - Hawaii Public Radio",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxNaTFvOVZyc19wTnNrOTN1elFsWU9CZU1ORVhUWnB2ZGpydWxhanpvWXFBMHJ1TmpUaFRHeWhyZVNPbGFRZkg4LVhTVXh4TUZxY2FaM3dZM2JVQkFkY0lDRTFaSGtCcGlSQTI5dF8zaXUxSzkwSGsxNF9pUmZGRGJOODBmY1BUdmtUdXl6Vzd5cjZCMGxUTjhmWUZnd1NtT3M?oc=5",
-   "summary": "Oʻahu voters approve new Food Security Fund Hawaii Public Radio",
-   "publish_time": "2026-11-04 06:20:00",
+   "title": "Mozambique Food Security Outlook: Crisis expected to emerge in November as food stocks decline in the center and south, October 2026 - May 2027 - ReliefWeb",
+   "url": "https://news.google.com/rss/articles/CBMi9gFBVV95cUxPRzdFS0swRGZ5T2xRVi16bUFHMTRja1F3SHVHdWtxVHNUbmhlYXRvcWFUcjFWc0c3THR5ZldPaTRlcENYbExvMXNZYlJwWUY2UjB2czVpWW9scEx1QW1SZVQzNUZxZkM1bVpKTGRsbGtscDR2Q09ZT2JGcW10cEpRZGpneGMzQ29XZWFUZjNPYzJBb3ZpRnJ3STRnVXNQb0s5VlJWZFRGRjllMG5UNHZ2UGdXUjFWemNWX2UyTnNfOFh2b25nZDdmTlFwa0N0NjlxdmJOMzFGdTZ6ejZTa2c2OXBUb1JfcUNBckRFRTgzQmRGNlZablE?oc=5",
+   "summary": "Mozambique Food Security Outlook: Crisis expected to emerge in November as food stocks decline in the center and south, October 2026 - May 2027 ReliefWeb",
+   "publish_time": "2026-11-10 01:29:43",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Livelihoods and Gender Equality Learning Paper: Linking Gender Equality, Food Security and Livelihoods: Learning from Integrated Programming in Sierra Leone. | Concern Worldwide - ReliefWeb",
+   "url": "https://news.google.com/rss/articles/CBMirgJBVV95cUxNUGQwNUo1MGdKZEpGczZoSW5Yc2xrQWNvYWp3a2JaZUlqUlVNVVhNTmRJb2RYOTdIZHZLWjRBaENHbEVpQXNRajByenRDdXltOTI3TTFNWUpKQThNYmE4QlpidlVMZWJlamZfYUFGY3BiQm5pQkktNUdmNjNHd1pVYjZuNUhIUjMzanRzMEdRMUFDeGlKZWJzNHQ4VTdGaVBqS2VUT0VOR2NKbWU2WUNoQkl6Yk5TZG84N0ctOVAzQmVPaEhCYmV0MlJ5b2FGcUtWa01RTXRtTnprQm5kOWRicy1BNEtNbkUydk50VnotODlMaC16akFoMjh4cnRHTGhjdXVrbzAxVXhVSkxPdUVURmp1aWR5Rk9UT1NydWZjRmp1ckNkdm9Ld3hiSm4tdw?oc=5",
+   "summary": "Livelihoods and Gender Equality Learning Paper: Linking Gender Equality, Food Security and Livelihoods: Learning from Integrated Programming in Sierra Leone. | Concern Worldwide ReliefWeb",
+   "publish_time": "2026-11-09 13:03:09",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3194,10 +3205,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "Donor aid models don’t determine food security in Zambia, but local farming practices do - The Conversation",
-   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxNRVNpSWYwbVpPV2NGREZUSGdteHZKR0N1RVl6Vy1hSDFxcDVSTjFSUE5pODJRQXdPWTR1dktfMk5yamMyTG5Md3hyYy14amhQSjZRbEdhOU1iM0pzS29rNno2ck51a2tnRDRCWUdtdHZ3ZklMbEFVSnF6UzJ2WGJqbko5LS1VZDNGZUVEQm1pM0VPcnp5OF9kT1JZV19TYWNsR0FteU10RjZFaXE3Nk9Vdmpxc2hEak1tYk5VeTBB?oc=5",
-   "summary": "Donor aid models don’t determine food security in Zambia, but local farming practices do The Conversation",
-   "publish_time": "2026-11-05 14:23:46",
+   "title": "India’s journey to global food security: South-South collaboration & sustainable solutions - ET Government",
+   "url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxNNFhHbUxWb0xBOEprVTN2Tk4yQUJkZl9zMzVLYmV2UkVWYkVTRFFVRWFmTjlQMTg0OEtScjdydW1HVE1yNzZzNlp5bEZIQmFER1pXNUpYbDBuci1WQUhXZFRnOXVWYlNaNVJocXFXQmh3TDg5aC1tZWtzUVI0VDZfR3ZndU5odXRicWhQMjEtemJ2T01ibDl1cG15Ul9mNS1xZzJpc0otLURRTElWNGRYaG1mRUdEY3ZfOGk0LTc1b0ZleXI3aGwtSmZXOF9kdm1SeUd5N1hfZ1N5eGIwN0dBOTVn0gHnAUFVX3lxTE45YXJ0WlgzdGdXbUFvall4S0FPMjAzbVcwanJDNEZKZzZaekY4dEkwend0RldVcy1WaTFKOXdnbHNvUG5fenlST1ppYmJBM1hNbEdPQXJ6RXFsZlFJV0lMVm5UNmtJYzZyWkRoTVY1WHBVS2tkWDFUd1ZfdUZIRjNNdUNoRnZHVk9tZ2J4b0NYS2ZFTE9oejVJbVdkdk1SR3dnMDYyN3dxZFRGLWZSN20zSV9hc1pPb09ZdkJvbUJ1a3JfLWJOUThKNkNKQW5HOTlIZ0FVal9KWHlGM3hYMzNMNnA0NHJzMA?oc=5",
+   "summary": "India’s journey to global food security: South-South collaboration & sustainable solutions ET Government",
+   "publish_time": "2026-11-09 14:20:18",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Oʻahu voters approve new Food Security Fund - Hawaii Public Radio",
+   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxNaTFvOVZyc19wTnNrOTN1elFsWU9CZU1ORVhUWnB2ZGpydWxhanpvWXFBMHJ1TmpUaFRHeWhyZVNPbGFRZkg4LVhTVXh4TUZxY2FaM3dZM2JVQkFkY0lDRTFaSGtCcGlSQTI5dF8zaXUxSzkwSGsxNF9pUmZGRGJOODBmY1BUdmtUdXl6Vzd5cjZCMGxUTjhmWUZnd1NtT3M?oc=5",
+   "summary": "Oʻahu voters approve new Food Security Fund Hawaii Public Radio",
+   "publish_time": "2026-11-04 06:20:00",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Climate and food security - The Express Tribune",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE4tN3l2VXozUUFDRXV6dGJYZDBrZUQ5eWtITGxnN3NqNUhGTEh5NHAwWXFhSzNjMzlxa093RXNSUHJyd0RLWFhPS3ZKMDE5b3c1VmVpcl9pV091ZWxxZDk1UkRSc3dzNWZjUUdydng2ONIBd0FVX3lxTFBMZ09sOVpYd3drd0h5VmhDdWRrWHptZEEzd0dndTJFMlpNSXQ5LU95OURPa3pqRWRJQWZoeVhKcWxOcXdINlZkTlM2Z2hBOWktNFo4a3lfbkpHRzhScS1sLXY3NUxkSVhZVUtGU2tjRWNpX2NvM0RZ?oc=5",
+   "summary": "Climate and food security The Express Tribune",
+   "publish_time": "2026-11-09 20:15:28",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3216,17 +3249,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Systematic Review Maps Climate Change and Biodiversity Impacts Across Global Food Security - Bioengineer.org",
-   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxNa2ZEY0RvVkxoNWQ5RWE3VGVvXzhXa1l2UG4xbmthLXo0d2NMdGd4ZzZtTF85eU5NcV9pcmxaY3U1amZFcTczWmRZTzdpblZnV2R5QzItc1hlSms2ZTl5ZHY2dV90b0lPQlB2TktNYmhveUhCT25DM0ZIVUQ3SVB0ZnpDVUNCVEFubTNWSXczanprTEQ1RThEbmRTR1NROVZVUTZXYzk5UWFwelJZX2tZNXBibDlkUQ?oc=5",
-   "summary": "Systematic Review Maps Climate Change and Biodiversity Impacts Across Global Food Security Bioengineer.org",
-   "publish_time": "2026-11-08 22:40:18",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Millets Hold Key to Food Security for Eastern Himalayan Indigenous Communities - Bioengineer.org",
    "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxNc1ZTQjhhZE44ejhhdkI5UHQ5dVdOSF9jOXdNNVlQZ1NHS1g5OEpQZ244VlpXWjhYS0lrbUtJMGNnY25EQ3VsTzl6WDJGN1FGWG9RMjhUT0dTZG0tdDJubWxQM2UtU28wbnB0WGlpTWxNNGhNbE5Oek5fUGhVSmQ1VkhTa1hRb2dBZ0Yzc08ybDR6Rzl4d2ZPZlhveUJyOU1CZGxkV2VB?oc=5",
    "summary": "Millets Hold Key to Food Security for Eastern Himalayan Indigenous Communities Bioengineer.org",
@@ -3238,21 +3260,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "How Chemistry Strengthens Food Security, Competitiveness - Mexico Business News",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPR1NWdUFrdEo2bnVnTmw1NExrVXlWd0g1eVdzbHV0WVJrY1pZeVNBN0hVV2lIZGo1enhHakZnTjdDX2toSGthbmFfb0JZWDMzaWR0OC1oeFhSWHhibnN3NUk0WmZoazI1aUlTcWZ4Zi1CMEZ5R1ZVZTA1YXZaekc3MUd6Q0xLZVR2V0xpS2hyRGNmdnZ1SlY3MVdUQmRISzA?oc=5",
-   "summary": "How Chemistry Strengthens Food Security, Competitiveness Mexico Business News",
-   "publish_time": "2026-11-03 12:30:00",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Food security needs more pooled capital that reaches the whole system - Alliance magazine",
-   "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxQWS1UenhRZ1dscDBmRjVzZnNUWlRhOHU2UWNUb1A2MDZYREl4NWppVkVfUWxxX0oxWDdzYkR2QWxyTWxnV3VvZFRPMlVDU0hhR04wSUFOblU1cm9LU05oTVBJeDR2Sm05cHhhZG0ydjBxTDZ1cDFuR0hOS2Jvc1k4bVF2dWpzb3BUQ2t2N05PbUZBX0JBN2w2SWxGNzk4S3JDdkJZdl9Hc3pIME5P?oc=5",
-   "summary": "Food security needs more pooled capital that reaches the whole system Alliance magazine",
-   "publish_time": "2026-11-03 10:32:15",
+   "title": "Systematic Review Maps Climate Change and Biodiversity Impacts Across Global Food Security - Bioengineer.org",
+   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxNa2ZEY0RvVkxoNWQ5RWE3VGVvXzhXa1l2UG4xbmthLXo0d2NMdGd4ZzZtTF85eU5NcV9pcmxaY3U1amZFcTczWmRZTzdpblZnV2R5QzItc1hlSms2ZTl5ZHY2dV90b0lPQlB2TktNYmhveUhCT25DM0ZIVUQ3SVB0ZnpDVUNCVEFubTNWSXczanprTEQ1RThEbmRTR1NROVZVUTZXYzk5UWFwelJZX2tZNXBibDlkUQ?oc=5",
+   "summary": "Systematic Review Maps Climate Change and Biodiversity Impacts Across Global Food Security Bioengineer.org",
+   "publish_time": "2026-11-08 22:40:18",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3286,17 +3297,6 @@
    "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxOWHhVYmRXNHYtYVlVcWVQLU9TLW5NcUtIaHlta3M0RXlZeTQzNkxHWGluWVoyQUhpVEJSNkVqaHVJSUFIOVlLWmVVRUxNdy1Xd2MxQzZTaFlJekFhcThRZkdIY1lJVGdhUUVsXzhVQlppMlA4R1JSMmR5amc2Q0JfeXBnVG9TX3JPNVcxMHg3SjlxY1FCQ0pEcXEwVkxSOGo0VkRrd3ZkVjRFWW9RMmg5LTUzekY4UE3SAcsBQVVfeXFMTUpWVVRkbnRpYnhOa0N1RXF1eHB1bnNKa2tTUkY4dmt1Q25lZ0dKQmNSWUc5WjI4TDRadDRLN0tPaEtpT2lNd1pfZjVCNWduaHV5MHRzRVRNWVNaZFNXUXFreFJLX09rX0V6ZFZxMVRiN19LZEM3aDFId3B1YWNfNXhNWWd5aERKY0ZUb2VPU21yU1ZjNzVkM3AwcXh2RzNhUXNBdmtJMjJWSVRRXzM1Uk5DTlYxdjM0N3NYTGdpWDRZblJuSnd2aHY3ZHc?oc=5",
    "summary": "Bucks-area neighbors question proposed natural gas plant, carbon capture facility Fox 10 News",
    "publish_time": "2026-11-09 23:01:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Anthropic joins AI’s natural gas frenzy, buys $3.4B worth of turbines - TechCrunch",
-   "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxOMEZpcGwxWDBCejFkemJxSmw3THNuaTBSRU5SUS15bXloTE1zLTVxajNVLXVlY1B1OG1rVThJX01tVmJ0UUR2ZngzTEFJNGF3YnlmNlM5TFh3LXhJa2Z3b1ZYaWtha2NLZjU3MUg3Z010YjZEeGhpTkdwSUN5MWp2V3ZrLUxPLUhmaTFqNWEtQVZ4ZkJWMVZ6X1ZXR2JpeGRhc2pj?oc=5",
-   "summary": "Anthropic joins AI’s natural gas frenzy, buys $3.4B worth of turbines TechCrunch",
-   "publish_time": "2026-11-09 16:56:54",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3359,6 +3359,39 @@
    "kind": "aggregator"
   },
   {
+   "title": "Anthropic joins AI’s natural gas frenzy, buys $3.4B worth of turbines - TechCrunch",
+   "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxOMEZpcGwxWDBCejFkemJxSmw3THNuaTBSRU5SUS15bXloTE1zLTVxajNVLXVlY1B1OG1rVThJX01tVmJ0UUR2ZngzTEFJNGF3YnlmNlM5TFh3LXhJa2Z3b1ZYaWtha2NLZjU3MUg3Z010YjZEeGhpTkdwSUN5MWp2V3ZrLUxPLUhmaTFqNWEtQVZ4ZkJWMVZ6X1ZXR2JpeGRhc2pj?oc=5",
+   "summary": "Anthropic joins AI’s natural gas frenzy, buys $3.4B worth of turbines TechCrunch",
+   "publish_time": "2026-11-09 16:56:54",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Port St. Joe Elementary School evacuated due to a strong odor of natural gas - WJHG",
+   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxOUV9CZUMxS0VjMWFBbXkyNlQ1RHliUUFWZFltTVNGVVFGSnRPeThvQkZjanZBbnVkcHZZazhaZWhQN3R0U0ttS0FMWnFkaVlCYzdrSmF4S0xnU1REX0txNlhRZmZBelBIaERXQzJaSGxuWGZpanNHaERlcmg5RllUd3BYa2dFM2FtMlpydzlVVVdMS2c2TGpJajZlbW1HYnZYU0E?oc=5",
+   "summary": "Port St. Joe Elementary School evacuated due to a strong odor of natural gas WJHG",
+   "publish_time": "2026-11-09 20:13:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "SIC to launch one-semester oil, natural gas technician program in Carmi - Southern Illinoisan",
+   "url": "https://news.google.com/rss/articles/CBMi4wFBVV95cUxPN0d2WGVYOTVCSTcwMXBmeWpxYmFOVk10ZWppcnBtQ2tweFAzeWlVaE5mRTZ1QzBXMHUtSUFPV1otclBKTllNdlJDeW14V0p2eXRtRXpxUzhxQlhSd08yRGREd1VXWjluWnpBNWoxUHJnSlZHRmMyY00ya1UwUVBEU0lBZU5WSmk5ajBuTlF3b3VsQ2R2aGNBYTd2bkxXMHhhdjR2Qi1VN1AwSWxwQWs0dkhZcXVpZkNKVlhYa29xRjYwNzA0LWtrN2ttQ2x1RVVtdDZlbHBtWk5uYnk0ajlBalh6bw?oc=5",
+   "summary": "SIC to launch one-semester oil, natural gas technician program in Carmi Southern Illinoisan",
+   "publish_time": "2026-11-10 01:05:22",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Natural Gas Services: Q3 Earnings Snapshot - Yahoo Finance",
    "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxQRTItRWxRZnpkU2lsNGFwTGoxVnZSR2pxVVRqQi0ya3RRQTFxRHQydTZOUDZSWUZIQTdjbmhqcjhWZmV1ZldSNFBWM3l2dG9BQ2FJRU5nOHUxNkJRQkF2dGlxVzhHckF5TnlFQUJBUDZkcURwUV9RUVlLYnc1cHNucFFxTkJPSUUtbThBd2FpY2xrRzdXU1R3MmFiZ0pvUQ?oc=5",
    "summary": "Natural Gas Services: Q3 Earnings Snapshot Yahoo Finance",
@@ -3370,10 +3403,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Brent Crashes 7% on Iran Peace Hopes Despite Fresh Saudi Pipeline Attack - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxNMVkwSk8xdlE0dTF6dGk0Rnp3elNCYkdJV1ZLb2otcnlSa3JfcWhyV1Z0Y1dCeHcxUUxpZzdXYlBRUEQwZTRqdU9GZ21XZ3JXMmVfRzBFbWk0OHJXWmhVc0cybnp1eWZDTTB1S09PLUZ2VjQ5elFhWXVnajlJWEhsa2FpYXkyUlVPSDFtNHRVaTBmcFg2UUU3UEpfTEctWkgxMjIxaEhodW05akVFdmFRTEVuV00zZ0RGaU9xRThZWTVVMGRuVVHSAcsBQVVfeXFMTy03cmFMdmxqNkJ5NG9HM0dDVDBWNzBmd00yWkg5enA2a09Cek16bnYxRXdHQ00tWEhUYTBUUVVYWUxpTUo2ZE5MQzYtLTMtb1N1cGRjN2w4UnNoT3ZieElqS1VYZGFxSUxLbm1yNXpJd3ZLYUZJQ0gtRUJybWdVTWloTmdPMnlEdlFVWlBQdkJ3MjVfSzdtRTU2d0JNV21VQWJobzJTM2NKUkJ4RG4zRUhqeWNfMk5YQ25NM1hBRmoxcF80MnFKTDZBMmM?oc=5",
-   "summary": "Brent Crashes 7% on Iran Peace Hopes Despite Fresh Saudi Pipeline Attack Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-09 20:10:55",
+   "title": "Timeline: PSO breaks ground on natural gas expansion project in Oologah - News On 6",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxNSVlOSnZEZmZaRDhIQ1BFZll2YnMwZEIxb2JNbFUxSTM1V0tLYzgtN3JqN2Q3VkJlbW9sWWh1NUhrREhrTTJLR1pBLUVYeXhqNDhtZlkzNXJfNVo2TlpIZUpYRkxVZ3ZaUFM2X2JucUJCZDNDOXdWeWtyY1R1UXYxSURsbjdlMjN3dU1HcVZmOFo1ekNxWjhKWE41MkhWOHRYZ1A5SE0zbFF1QlowNFVTcl8yUWQ?oc=5",
+   "summary": "Timeline: PSO breaks ground on natural gas expansion project in Oologah News On 6",
+   "publish_time": "2026-11-10 03:40:33",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "China Cuts LNG Imports as Cheap Domestic Gas Undercuts Global Prices - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxNWmNXSWo1NlJYTmJLNm51NlZDLW1qUFFydFJhUjJmYnVnbUs1b2VJTFIwUnIzSTBhTnFjRGVXeXd5eEVmSTV0aEN1SGNKbVBUOHBzZHVuVmRXMEJpRGo4TGVCMzg5WWJ5VU5mb3l3OHhtNWdOc3dTUTd0ck15QzlUdU1oUVFoREFMcFFEQ1hQQ1lzUkRVQWNTYmNmT29tZnNqYkd5TllkZU9ITDhzd1Bwb2dRbE5lTEpMMU1PM0JrRVdCZ9IBxwFBVV95cUxQbTM3YnEzRGNKcG1wM2FMR1FTM0twVE9GMlhFaUJ4c21uYkI3aGFPOHFrUFZSX3BYTkJ0OVJraGtWempLTmVCNlNER3FrbW43Z1FUWjBSVFQyc3VZSUxsNHVEVHBpanBDenMwVkktRk5NRTc5bjRLODlJd1Bhci1UQVhZSXFoRTBIUTVRbUVaT2ktcGVGNGhGX3FPMmxyTkZlTDdqSHBaaTB1RmRxNWJ5bmFXTXFhdHZvUkxsZ3FrbXdZMFFMQThn?oc=5",
+   "summary": "China Cuts LNG Imports as Cheap Domestic Gas Undercuts Global Prices Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-09 08:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3392,32 +3436,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Natural Gas Services (NGS) Q3 Earnings and Revenues Surpass Estimates - Yahoo Finance",
-   "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxNa3p2N2tyVDd4dV91QmMxbXRDUFZJVmptbnhvTlo3dHAzd1hHbFVwdlpfbXp6cnNZWHZZdl9kUEpvMmNLaVJ5WXd3Z2hXWFM5SkhMWXZmOHZqZk96ZjZoN3BjYVVKdEZsOWRQWFplTVgzeG1PRU1zMWRfd3ZxT0lHcEt2RUc2Y1FRTnpxcURtNlg0REFBU2ww?oc=5",
-   "summary": "Natural Gas Services (NGS) Q3 Earnings and Revenues Surpass Estimates Yahoo Finance",
-   "publish_time": "2026-11-09 22:35:06",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "COP31 Opens in Antalya With a UN Push for Faster Climate Action - Crude Oil Prices Today | OilPrice.com",
    "url": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxNTGd0ZmtNbEhKaUZZVlIwUGFEZHZGVU9IZUltS2JaTExIRjFjZzJ3dDZucTJhU1hxSm45emZUU19sc1Jxek8yVUx4ZHBJU3dEWGd6UnE3a0Z6S0x3UEltZTJnTmJORVpycVpqZEFPX1hsNE9SV0NuSkkzeW5jeEVOdGpiOTk5amhvY09EZGtoNk00TTVmM01ELWZEUEtxSWw1aE1weW14SUI5emVUYU4zakxINHJhcHdPYjNB0gHAAUFVX3lxTE5faTdKSWh4dnZtem5iWGhVc29uZWJOclY3YmtRY2s0NEM1OVJTMXRxVEc4UlZ3MTNWUFpyWFI2bG51Q0tiR1lndlQzMUpXSnZxZGNRN3kwVWZWRUgxMXdELVE4WU9fMm1sR2pMU05LcWxIWnlhTndoRnZUZzI0WHZRckhCMkdiemN5bFNsRXBqcUZNLVFESUZ0Y0c5bWdpLUptd2UzcHpvckVfeTZwemlINXFWNUlFcEo3b2ZoZm5heg?oc=5",
    "summary": "COP31 Opens in Antalya With a UN Push for Faster Climate Action Crude Oil Prices Today | OilPrice.com",
    "publish_time": "2026-11-09 15:30:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Soaring LNG, HDDs Trigger Natural Gas Rally - Natural Gas Intelligence",
-   "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxQNjBzM2ptM0xXYURaR2t5NjlqUEhubG5FczBRV0VfQTM1MDBRT3NRaTQ5OTBhTThiTXZMMWZTR0tET0hTWHRoejFRdWFKOGpha25UNFlCN3A2NTlsendjRFNDQm9GZkxYQWlvaVNpazF1UzVZeVJoLUdoSnhUNDgwNGpB?oc=5",
-   "summary": "Soaring LNG, HDDs Trigger Natural Gas Rally Natural Gas Intelligence",
-   "publish_time": "2026-11-09 17:19:13",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3458,10 +3480,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Iraq Strikes U.S. Deal to Boost Oil Exports Through Hormuz - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQVDFLMnliZE9CVEhBemh3Nlk2WjBXYXhQbXh6SC1ZRDl0MnV1ZWg0R2lRTk1KWnBKQk9mYjZzcjRmNDlnRG9KV29DNjR5TTFveDdOWkoxenVESnJQVmU3Z0VsODNremhBU0JVZU8tXzZNckkxTlhBdVYyVzZCUHZSOG5nZDlWTXYtMmgyUzFHRHRhUjZQbGVpNDBTTml3Zmxud0UwMFZaWldmdVhQQk02a3JR0gG3AUFVX3lxTE5Pck94RDZHSTlGUThxMnlvdEViSGNLYncxRlVUM1FOb3ZDTHdXeWE0QWNUeVgtR2F6MWN4YTd3Vkp3WTlPUFpnQ293VzJfb3E1OGg5UC05VldXUE9PM1M3ZlladFAwcTRKeDV3d1dvQjVMVGtlcmdXUVZBUlQxOEJjbXl6QUg3UzU2QzlDdmRWZ0w3Tjd0Vk5pRzBRdXNKa1VhR0p3V0xGLUlXVlZYbEFFUzQxcFBLOA?oc=5",
-   "summary": "Iraq Strikes U.S. Deal to Boost Oil Exports Through Hormuz Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-09 09:10:00",
+   "title": "Soaring LNG, HDDs Trigger Natural Gas Rally - Natural Gas Intelligence",
+   "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxQNjBzM2ptM0xXYURaR2t5NjlqUEhubG5FczBRV0VfQTM1MDBRT3NRaTQ5OTBhTThiTXZMMWZTR0tET0hTWHRoejFRdWFKOGpha25UNFlCN3A2NTlsendjRFNDQm9GZkxYQWlvaVNpazF1UzVZeVJoLUdoSnhUNDgwNGpB?oc=5",
+   "summary": "Soaring LNG, HDDs Trigger Natural Gas Rally Natural Gas Intelligence",
+   "publish_time": "2026-11-09 17:19:13",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3469,10 +3491,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Daniel Energy Partners: Natural gas demand expected to climb over next five years, driven by LNG exports, data centers - Drilling Contractor",
-   "url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxQWC0zd1IySTlEejZPaE40Rm9lUGRrcXFxem1oX1RkTWYxRWU0ZXFUQldUaThiX05WamRTM2FJSnJYRU5tbnBYUEZGVDRvTjUxRmh0eUY0cGtUY1I2TEtXOFk3aENNS3NyMFhRSy1FS2Z4WGd2eDNHMWE4UFo1UVhBWEF1a18xQjhwUkxOMnRCZENIMTlLOGdCb0RkcXhTOGdNN3lUeXd6U2ZlU2pqUmcwSlRPcV9BeThHX09Ga1Q0NnpsSExoNGtXakN1MXZ3cU5wcUFOZUlMbHhoR3JVdC0wV0RDN0RFNjA?oc=5",
-   "summary": "Daniel Energy Partners: Natural gas demand expected to climb over next five years, driven by LNG exports, data centers Drilling Contractor",
-   "publish_time": "2026-11-09 13:37:50",
+   "title": "Crude Oil Futures Overview - CME Group",
+   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE1OVHltWktpaTJQRXlsS281OXVOT19HMDFWWUtxa3hmRkQzT0VLZHMtazhvX0VOQkJwM0ZsVGZ2R1YtZnB2YmI3VHhvbjdPdjlfQ3g5Z0xiNVkzMnhYMmRxMGpNNFFIeXM2eEZDVnVnLUhYcEVBX09PZlhxTng?oc=5",
+   "summary": "Crude Oil Futures Overview CME Group",
+   "publish_time": "2026-11-06 21:44:45",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3480,32 +3502,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "COMMENTARY: Middle East oil price war heralds post-conflict glut - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxOWWdUbTZOMkxOdnRzOHBPdHRWSFBmNG1jZnFISWQ0MVFaWEc1MUlkTjRuNlhSQzdMQWQxaXQzYTBOTGtBd0NkYnRNTFNHaDlNZ0xwVU1JODVSMFdLZnREeGttWWlEdmE3ZnJwODdnMG5iQnJwRlZBbDZvOEU5UjczRC1UcGo5S0p4U01KZWMzcVBjNEdnWW42clRaR1U5QXpoMHh1bnE0T2phU1I1OEpUVFJJUHN2LThoMFd3WGJR?oc=5",
-   "summary": "COMMENTARY: Middle East oil price war heralds post-conflict glut Reuters",
-   "publish_time": "2026-11-09 07:00:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "China Cuts LNG Imports as Cheap Domestic Gas Undercuts Global Prices - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxNWmNXSWo1NlJYTmJLNm51NlZDLW1qUFFydFJhUjJmYnVnbUs1b2VJTFIwUnIzSTBhTnFjRGVXeXd5eEVmSTV0aEN1SGNKbVBUOHBzZHVuVmRXMEJpRGo4TGVCMzg5WWJ5VU5mb3l3OHhtNWdOc3dTUTd0ck15QzlUdU1oUVFoREFMcFFEQ1hQQ1lzUkRVQWNTYmNmT29tZnNqYkd5TllkZU9ITDhzd1Bwb2dRbE5lTEpMMU1PM0JrRVdCZ9IBxwFBVV95cUxQbTM3YnEzRGNKcG1wM2FMR1FTM0twVE9GMlhFaUJ4c21uYkI3aGFPOHFrUFZSX3BYTkJ0OVJraGtWempLTmVCNlNER3FrbW43Z1FUWjBSVFQyc3VZSUxsNHVEVHBpanBDenMwVkktRk5NRTc5bjRLODlJd1Bhci1UQVhZSXFoRTBIUTVRbUVaT2ktcGVGNGhGX3FPMmxyTkZlTDdqSHBaaTB1RmRxNWJ5bmFXTXFhdHZvUkxsZ3FrbXdZMFFMQThn?oc=5",
-   "summary": "China Cuts LNG Imports as Cheap Domestic Gas Undercuts Global Prices Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-09 08:00:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Natural gas surges 8% as record short position unwinds on cooler forecasts - Investing.com",
-   "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxPSmZMV0VsUnpaYzJNN2VCUFBtODBncHRFZC00LWUtRWd3elJEYWtod09YMEZDYjY2S1RmdHZfU1hMbFJHVTBoZnNMbjhSdWlRdlQ0TGJKNHVNOXZQYlE3Z3ZZRnBmSjJQQW0zM1F2QVhpRGg2RkZ2UjRNX0Q2RXp1VFBpbkZEeUlqdHhxNGJ5NUJOSkdWWmdPMU5NeVdPVmlNaGpJNkFkUWVWbDdqZ21JbUVpLXFtWENZRlhKS1h1R0VHMFRuTGgtYUtxNEgzZDA?oc=5",
-   "summary": "Natural gas surges 8% as record short position unwinds on cooler forecasts Investing.com",
-   "publish_time": "2026-11-09 19:48:41",
+   "title": "Natural Gas Services (NGS) Q3 Earnings and Revenues Surpass Estimates - Yahoo Finance",
+   "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxNa3p2N2tyVDd4dV91QmMxbXRDUFZJVmptbnhvTlo3dHAzd1hHbFVwdlpfbXp6cnNZWHZZdl9kUEpvMmNLaVJ5WXd3Z2hXWFM5SkhMWXZmOHZqZk96ZjZoN3BjYVVKdEZsOWRQWFplTVgzeG1PRU1zMWRfd3ZxT0lHcEt2RUc2Y1FRTnpxcURtNlg0REFBU2ww?oc=5",
+   "summary": "Natural Gas Services (NGS) Q3 Earnings and Revenues Surpass Estimates Yahoo Finance",
+   "publish_time": "2026-11-09 22:35:06",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3524,10 +3524,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Natural Gas Futures Rally on 21 Bcf/d LNG Feedgas, Late Week Cold Shot - Natural Gas Intelligence",
-   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxOVXZtLXBCR1hPRGUyWjBhWkR2OFg3N3pveWpna2JwRHFEcWg2SVVxVmlSLUdudU55cE9fa2ZDMDNpWGc3WWZ6V0tDTi1MU2VPWldURFE3dmVJRVZ4WU56Q0tkQ3dZMjdkLUlLdnFGTDJ3M3pOODdwZkdqSGY4d3FHbkcxdHVyZHRsUld0QUV2UFRQZ09rR2ZzQVhqWDFmYkRFMUlOcw?oc=5",
-   "summary": "Natural Gas Futures Rally on 21 Bcf/d LNG Feedgas, Late Week Cold Shot Natural Gas Intelligence",
-   "publish_time": "2026-11-09 13:39:49",
+   "title": "WTI oil price outlook: After a 17.5% slide, can buyers reclaim $92.53? - investingLive",
+   "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxPRmhqWFhscVlUNzF0OVRoNTVEcG81c3A4dDl6UVVidmhKel9OTEN5VWI0SV90U3RjRnNLZ2lVNWoxQjlSRFFDTWVyVHJIYmEyNVc1WkoxZnd4TEZPRlg1elFzeTF4U2h1ZEprTVl5Q053eGY3MHZHVzZNb2ZnMXc0c2w0S01VWTJiUngwaUx6aDJZMnhreE5uSmVKRmVLak5iTVE2d2RZMA?oc=5",
+   "summary": "WTI oil price outlook: After a 17.5% slide, can buyers reclaim $92.53? investingLive",
+   "publish_time": "2026-11-08 10:43:36",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Portion of Poplar Street closes for natural gas leak repairs - Your Wyoming Link",
+   "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxQdnVBTVFTVTNsODJEZVhiYnZTWVJ2SGY5WUtZSW8wNU9KX2FrQ2t3eW5neWVobW82OG55eXhGeDhic0NDSGhCMlJscTBUanNBTFZOOEFXaEx0UUpPZlNTNm9lU0tsbFNKMmlNUU1XcGRuOWNlQnVXUm5Hd2xUam9HYmdhekZlMll3TFkya3otMmc5cVg2WkttaUJFUEVkbE1YN1RheVdHTXVXM0ZhcDUwUGZRMHlpZVlwYWhHYlZpbE1FWHZ3RGg5bk4yVU1UcDVHc3BCLWVsdExDczBYT2laUTZQX0Q4OE5Y?oc=5",
+   "summary": "Portion of Poplar Street closes for natural gas leak repairs Your Wyoming Link",
+   "publish_time": "2026-11-09 19:31:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -3546,10 +3557,43 @@
    "kind": "aggregator"
   },
   {
+   "title": "Inflation likely took a breather last month as fuel prices fell - NBC News",
+   "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxOZGpidGZURWRoNnJJd3hZUFd2SkRDVmk0bEI0NnA5cVJXTmR2dlVMNHRsbE01WjFDM240QVBIOFI3RTdrdGdMcWtOdE5SY2V4Y08wZjEyc3BrejJaNVJycHJuMlo5QThxNlJacGZsb3djREVCV2tjUkFOMWJTaUxTTW9KZV9IRW5MbnV6d01pZGZFaV9Ka3c?oc=5",
+   "summary": "Inflation likely took a breather last month as fuel prices fell NBC News",
+   "publish_time": "2026-11-09 23:00:41",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "October inflation data is expected to be cooler, helped by steadying energy prices - Yahoo Finance",
+   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOVkF5cFN6TVFZdzB2LWFKNXJqM0tFMmZOMjhwUjgzWkhvVFFiLWNhYXlsVzRrVHR3bUdVV1FqeV95bGRzcFgtWHBiN05ucWxpUlludWQzdk5DYXVoS2t5U2R6SWxJM1I4UGI2cjdrb0FzM3Nkb282UWVoVHVDV1pQbDhxYWE0dUMyZ2t1YVBOeTdlODlOaG1OSFFQZGhzRHVHd2VhUXpXT1cyZEhLQ0Z3eVNtNjZKSzFOVVFISExPeUZjcURLTW41MGtUV3lUS0JqSDMtVQ?oc=5",
+   "summary": "October inflation data is expected to be cooler, helped by steadying energy prices Yahoo Finance",
+   "publish_time": "2026-11-09 19:00:00",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Fed should move policy 'with care' as it responds to inflation, Barkin says - Reuters",
    "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOb2pkV1hRTWpneFJMd191WGQtaGRvMTUtR1dHZE9UMzNYZmpocWNLeEx2UDd6RHZEajNibW9NZ3FBUUpsdHBwdjJMUjd4M0ZTNm1ib3huSXpneUpJY25FUFdabFRWZUZOQ3MxQWEwZDZ5SENvMmtfaU1ZQnlPenYxT0tiUFg3RmtzU0prYS1PNFp2X2I3U2phRXBFRGQ5c2kwUlF0Mmg0cUxDM2ZoamxTUQ?oc=5",
    "summary": "Fed should move policy 'with care' as it responds to inflation, Barkin says Reuters",
    "publish_time": "2026-11-09 19:12:26",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "What to Expect from Tuesday’s Closely Watched Inflation Report - Investopedia",
+   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOc1otOVlzYW04MzZYZk9OSjNiTzVpUjQ2Y2hJaE84SkNFQm1ITHY2NDhHcTNPU2ZwS0VSRENyX1NqUjQ1ZXNyUWNTWjNZelhaMDZucFNnSkZUVTF5WEIzT1o1MDRrdTkyZThIQkM1ZjAxOEg5SmprSzFnZ2NHU2xDcFdCX2ZXdDZhQVMzemhfbzk1Wk1SbUdWTDAxS29ZU3dBeWViR2JqS0lxcG16WEZ1a0xmdTg4MXNxQW9nUmtiQVlGN3VFRWpVWEpZeUYxZ3BvQ3JheQ?oc=5",
+   "summary": "What to Expect from Tuesday’s Closely Watched Inflation Report Investopedia",
+   "publish_time": "2026-11-09 20:53:23",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3568,21 +3612,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Inflation likely took a breather last month as fuel prices fell - NBC News",
-   "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxOZGpidGZURWRoNnJJd3hZUFd2SkRDVmk0bEI0NnA5cVJXTmR2dlVMNHRsbE01WjFDM240QVBIOFI3RTdrdGdMcWtOdE5SY2V4Y08wZjEyc3BrejJaNVJycHJuMlo5QThxNlJacGZsb3djREVCV2tjUkFOMWJTaUxTTW9KZV9IRW5MbnV6d01pZGZFaV9Ka3c?oc=5",
-   "summary": "Inflation likely took a breather last month as fuel prices fell NBC News",
-   "publish_time": "2026-11-09 23:00:00",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Chinese Producer Inflation Hits 5.7% for Post-Covid Era High - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQMmtVSmRjR3dJWkJYWi1ROURuRTNuVXFmUFBDelZtUkFHQ0pwaWRmVzFJNXhiMEFoS0g0Mmx3UTJoTFpEcWFDVm4tNTZMSmV5NkhrRGs1SWhYMC1iNmpaMG92UlRweV9wTldzNHFLdE1qbUh1U0ltcWdNcDUwVHpaVkhidDlobUM3RTNGV0pIbkR2OUF3akRtamtaRi1iN3VuZXl5VkJlS1IzclV3ZFZNVWhyS2U?oc=5",
-   "summary": "Chinese Producer Inflation Hits 5.7% for Post-Covid Era High Bloomberg.com",
-   "publish_time": "2026-11-09 09:14:37",
+   "title": "BLS Will Not Publish 12-Month CPI, Core CPI Figures For October - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNRVl6bmRwX1djWWNpSEVoeUZzZm1uelVmVWFFdWMyUTFWZ3RzN3E5bkdJWEZrRFloci04azh3NW1KYUVXSm1DUW5Bd29kMUZiTVU3RTNrY3NfV0JkMzFJUjRqR0kwWlVqdWhQMnEwTk1QZmhTN0l2UEdJR1VkYmFfZ0hpZ01lQlVjVHBHTURyR01uQUFEX1pCanN5bUhvalFTb1RuQUJDdXktZXBaRnpTenZkQQ?oc=5",
+   "summary": "BLS Will Not Publish 12-Month CPI, Core CPI Figures For October Bloomberg.com",
+   "publish_time": "2026-11-09 19:05:51",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3623,10 +3656,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Hot U.S. inflation hasn’t cooled off. Rising consumer prices to keep Fed rate hike on track. - MarketWatch",
-   "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNdUItcWJEaWRyZlZ5anZHQUJVWVozUWhQOUswVng4ZTVHTmhBT2pibTF1Q2p0TnJXc2xBWEd2SUQ2VURTVmF4RmgwR0ZFeW01eks3YnhyVkNpY3FIVnBFd0dKNmtWSTkwNzRuTHFINEVUeUpmV09MZ29HMWZmWWh5bmw4djY0bmNEOVdtRlVRYlUyRHcyZlg5aEdhQWg1Wi0tRm5uWW1NUHNZRUxTRHJwR0p5NGhPT0E3Vnp6anhPY3NTU0FGNDhRdmhqVQ?oc=5",
-   "summary": "Hot U.S. inflation hasn’t cooled off. Rising consumer prices to keep Fed rate hike on track. MarketWatch",
-   "publish_time": "2026-11-09 21:01:00",
+   "title": "Gold Edges Lower as Investors Await Key U.S. Inflation Data - WSJ",
+   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxOLWdJcGVCYzJpRDF3cHlEUlBWb3duUEl2bUp3bHYzQXVUWTh0Q3hMZVRzVlhoUndFTlUzOHBvNzBWUVhPUGFNVWdudGF4S0J5dFVtaTZyYWp3amZlRGktZHZ4XzdUNDZOc3BSN0pJaEVWdUhSd3RpMVFEV1VmUnRoZC1XSlF5dDFzV0VrSzFIMDlGbHlpRE5WYm5Wc1dzZnVvSnBVLWtWVW5EWTh2RF9VbE1sTlBRUQ?oc=5",
+   "summary": "Gold Edges Lower as Investors Await Key U.S. Inflation Data WSJ",
+   "publish_time": "2026-11-10 00:35:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3634,10 +3667,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Trump committee to hold hearing on possible removal of Lisa D. Cook from Federal Reserve Board - Consumer Finance Monitor",
-   "url": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxNaUlsWk1nb0NqNncwcVFnNjRUZW92MFdseExGdDR1SXlLQkF5bTN0UEp4WDE0OXExRFoxczFMeEE3WkNiZndjVllYUHFNNE82ajhoa3hGY3RYNkZkSWVXNElPOFYzaV9fNjl6WXRkZm94NFQ1aWhSS1BtT1VfTFAtdkRaQUFNZVpfMmkzNEZGN3liWGlFR2ZHU0FVcDEyaVNoZzJLU1k3NzlmZnltNlNJaGlZN1pZTTlESUJ2Sk9neFVOTzVUVV9wbVhwaDhzaWlET0h2LVpwMm1VVThQ?oc=5",
-   "summary": "Trump committee to hold hearing on possible removal of Lisa D. Cook from Federal Reserve Board Consumer Finance Monitor",
-   "publish_time": "2026-11-09 21:57:03",
+   "title": "High fossil fuel prices spread inflation ‘like a cancer’, UN climate chief tells Cop31 - The Guardian",
+   "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPMlVISEQyRGRFU1NmSEg4RmR1Z2x3Z0VEZklrLU5pOUVHZTdCRW80QUJFVG5JR0lITlFDcUlHd0xJR3QzNFpEVmktTWxvR2pxOFFRMG9LZzRER1NWbFRXLUpadVRsc2lON1MyT2ZzOFdBeW5DY09OMnhEY19ScWlmb1ZtWHRWaXE5VGtsaFhvZ3J4WUNjdE9RUDdBV0lUbTlCMFZ2eGFBOHBLODRna2Rqa1BIUWNnQ1hDYnAtSWZLbkhJVXk0aGNuVzNuRQ?oc=5",
+   "summary": "High fossil fuel prices spread inflation ‘like a cancer’, UN climate chief tells Cop31 The Guardian",
+   "publish_time": "2026-11-10 02:24:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3645,10 +3678,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "What to watch in markets this week - Axios",
-   "url": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBWVjg4YVA3Y2ZtQUxEUGFNZlhWN29vSmdwOEpiRW1MRkI1c1lsSG1VMFU0OENRZTlHa0V1UVdjVFpSVEc0b1g1aXoxX3R1RmNHTjRybW1UUEQ1SUotX1hhQk9jOA?oc=5",
-   "summary": "What to watch in markets this week Axios",
-   "publish_time": "2026-11-09 12:12:01",
+   "title": "Gold edges lower as focus shifts to US inflation data - Reuters",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxNUUt5d0NsOEFXZzVGWU5qOFFwbGtuT0pyM3RMcTR3ZDRXYzFqV1NkM1VadUV0VzdNUFpZREVYLU1mdWFpSDE5V0w3Qlo5X1luTXVXRkZKNHQ1bXY1X0VCNHRienZVbnhQdE93UWFYRk41T0Fhd2tiQ2dpZzF2WEZmM0hVTFpjMVFzR2JhNlpWN0R5ZkFCY0JkRUVuYw?oc=5",
+   "summary": "Gold edges lower as focus shifts to US inflation data Reuters",
+   "publish_time": "2026-11-10 03:31:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3656,21 +3689,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "What to Expect from Tuesday’s Closely Watched Inflation Report - Investopedia",
-   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOc1otOVlzYW04MzZYZk9OSjNiTzVpUjQ2Y2hJaE84SkNFQm1ITHY2NDhHcTNPU2ZwS0VSRENyX1NqUjQ1ZXNyUWNTWjNZelhaMDZucFNnSkZUVTF5WEIzT1o1MDRrdTkyZThIQkM1ZjAxOEg5SmprSzFnZ2NHU2xDcFdCX2ZXdDZhQVMzemhfbzk1Wk1SbUdWTDAxS29ZU3dBeWViR2JqS0lxcG16WEZ1a0xmdTg4MXNxQW9nUmtiQVlGN3VFRWpVWEpZeUYxZ3BvQ3JheQ?oc=5",
-   "summary": "What to Expect from Tuesday’s Closely Watched Inflation Report Investopedia",
-   "publish_time": "2026-11-09 20:53:23",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Dollar sellers hit pause for US inflation data - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxPT3JzaUt6cC05eXdxeTNvcFBPX2JGZmFka29UbGZvQzQyTFVTc2dUM3dyX0FUVkk5SngyWGs1SW80ckQ1Qk5Pb0laLU11MDM1MUtsOEptTmJiSERHdEdsR2tVanR1em5scXpGb1NuQzg2NmU3V0tXWm82aWlkeXpDQmZaMkQzQnl0eHc3WkFMZGNWdlZwblp0V0drdG9xQQ?oc=5",
-   "summary": "Dollar sellers hit pause for US inflation data Reuters",
-   "publish_time": "2026-11-10 00:38:00",
+   "title": "Chinese Producer Inflation Hits 5.7% for Post-Covid Era High - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQMmtVSmRjR3dJWkJYWi1ROURuRTNuVXFmUFBDelZtUkFHQ0pwaWRmVzFJNXhiMEFoS0g0Mmx3UTJoTFpEcWFDVm4tNTZMSmV5NkhrRGs1SWhYMC1iNmpaMG92UlRweV9wTldzNHFLdE1qbUh1U0ltcWdNcDUwVHpaVkhidDlobUM3RTNGV0pIbkR2OUF3akRtamtaRi1iN3VuZXl5VkJlS1IzclV3ZFZNVWhyS2U?oc=5",
+   "summary": "Chinese Producer Inflation Hits 5.7% for Post-Covid Era High Bloomberg.com",
+   "publish_time": "2026-11-09 09:14:37",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3689,10 +3711,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Mexico Inflation Jumps to Put Focus on Banxico’s Rate Policy - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxQOUdzZDMzcmFwSkU4OE1WWWtFVU4yMEt0TURNMWxCRzdMTDdScW9yb0ZVWjlmTXBhZ2NmVjZvM3ZMSmRLbTBJb2d6ZHVQMnJmQkdwWGUwaTFMc0thcHVCTmFKVVZtandqbEpfeG40aUZibW5UZkhmMkg5M3B3ZFpzTy1EcHl6OVhhT1llMXZzNTZrdXdYa3JTYzljQS13S2htcDhfM2RJUWJBYlR5S3ZNTTlIZ0lFZw?oc=5",
-   "summary": "Mexico Inflation Jumps to Put Focus on Banxico’s Rate Policy Bloomberg.com",
-   "publish_time": "2026-11-09 17:39:58",
+   "title": "U.S. stock futures steady after tech-led rebound; CPI in focus - Yahoo Finance",
+   "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxPc1lvNUx3UG5pSllRLUd6al9NbTVnV0pfWEhUekxSMWxyMm5IdDNPVnl6a0FtUVJqMWVTeEt2WHVHTTJxNDF0UVBmZE9SeG1qY0l6YUdrV1VkUFBNTUs1Um9iVjk1dUxudThBR2lIOFpSS3pCOEstQThPdWI2NmVpSjRsaW9ocnk2YXV2cGFSb2gtMV9SOVp3?oc=5",
+   "summary": "U.S. stock futures steady after tech-led rebound; CPI in focus Yahoo Finance",
+   "publish_time": "2026-11-10 00:43:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3711,10 +3733,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "BLS Will Not Publish 12-Month CPI, Core CPI Figures For October - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNRVl6bmRwX1djWWNpSEVoeUZzZm1uelVmVWFFdWMyUTFWZ3RzN3E5bkdJWEZrRFloci04azh3NW1KYUVXSm1DUW5Bd29kMUZiTVU3RTNrY3NfV0JkMzFJUjRqR0kwWlVqdWhQMnEwTk1QZmhTN0l2UEdJR1VkYmFfZ0hpZ01lQlVjVHBHTURyR01uQUFEX1pCanN5bUhvalFTb1RuQUJDdXktZXBaRnpTenZkQQ?oc=5",
-   "summary": "BLS Will Not Publish 12-Month CPI, Core CPI Figures For October Bloomberg.com",
-   "publish_time": "2026-11-09 19:05:51",
+   "title": "Inflation Data to Test Limits of Treasury Rally After Haven Bid - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxObGdKazB3cGVKLUR0VG45X1hQNEpxeVdwaVdUNEdSUl96YnlaQzRuSVgxa2F6NVE2dHU3SmRpOG5xNHdhT2pKS3RSOTdsbGxGYlVWMmxXQm9EUC1YQ1VudlVYeG5pLUJKbnRiczJDRVg2TXlJQlh0OE81dVNDLW1jdU1vT2tMZGRzV1VOeHR6TlVSbEFBTGNBMjh4Z2Zlc3VUei11SFkxcjI3U2EzS0llOEl1SnE?oc=5",
+   "summary": "Inflation Data to Test Limits of Treasury Rally After Haven Bid Bloomberg.com",
+   "publish_time": "2026-11-10 00:46:00",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Treasury yields rise as investors await October CPI and producer prices - CNBC",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5JVE44LUJheWlkSEJZWlBaUVRGUXR2aGVMbm9yZnNDUnR1alJLSDdlU3Y3RktFcmplWmViVjV1ME1UYU9qSDA1YTN2NUdJbTJvWmZGUU5FZ3VTMU1lV3ppbk10SXBWLWxTcHVWYjRFbw?oc=5",
+   "summary": "Treasury yields rise as investors await October CPI and producer prices CNBC",
+   "publish_time": "2026-11-09 09:42:37",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3733,10 +3766,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Wall St jumps as oil slide cools inflation worries; Nvidia slumps - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxNNldnOF8ybWVHdkNyWXAxOG1mSFRERGpWNlpaM2N6R1ctTUk1MDZEWlR4aEtWZ1RlT092T1NtaVBfbDRtWmItVi01TWpzV3BIdTRDUDJUblRwSkFSZDl6S0J1NE42bzE4bEsxVGMyeURKR3lTbmlYNTRLQnM2TmFCQ1JUZkJ1aFppVURGQjkxSk1PVWtCcEF1Sy12SlB5a3UyaW5lVkhkMWZtTktaclE?oc=5",
-   "summary": "Wall St jumps as oil slide cools inflation worries; Nvidia slumps Reuters",
-   "publish_time": "2026-11-09 21:26:25",
+   "title": "Trump committee to hold hearing on possible removal of Lisa D. Cook from Federal Reserve Board - Consumer Finance Monitor",
+   "url": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxNaUlsWk1nb0NqNncwcVFnNjRUZW92MFdseExGdDR1SXlLQkF5bTN0UEp4WDE0OXExRFoxczFMeEE3WkNiZndjVllYUHFNNE82ajhoa3hGY3RYNkZkSWVXNElPOFYzaV9fNjl6WXRkZm94NFQ1aWhSS1BtT1VfTFAtdkRaQUFNZVpfMmkzNEZGN3liWGlFR2ZHU0FVcDEyaVNoZzJLU1k3NzlmZnltNlNJaGlZN1pZTTlESUJ2Sk9neFVOTzVUVV9wbVhwaDhzaWlET0h2LVpwMm1VVThQ?oc=5",
+   "summary": "Trump committee to hold hearing on possible removal of Lisa D. Cook from Federal Reserve Board Consumer Finance Monitor",
+   "publish_time": "2026-11-09 21:57:12",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3744,10 +3777,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Gold climbs more than 1% as inflation fears ease on lower crude prices - Reuters",
-   "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNbEdIVXlJc2RaUEw2RmFrR2FZcXYzYlBKUG9Cdl9WUVFfalVxT0hGcGFCdW1DS3JMT2daanhDYktBeXVGNGt5TGlsOGZJVWVSMFpnT3ZVa2RBUjZYakRlVlQ3SXd1ZkpTQVNXVkpoNUZoemdycWY0MG02dVk0cWRuWG4taG5VMm9kbEluSHctTVZVMXJwWXNWSWdVcmxQeWtRSW1EWDQ2dTJ6QVV2TzhoeQ?oc=5",
-   "summary": "Gold climbs more than 1% as inflation fears ease on lower crude prices Reuters",
-   "publish_time": "2026-11-09 03:01:00",
+   "title": "Hot U.S. inflation hasn’t cooled off. Rising consumer prices to keep Fed rate hike on track. - MarketWatch",
+   "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNdUItcWJEaWRyZlZ5anZHQUJVWVozUWhQOUswVng4ZTVHTmhBT2pibTF1Q2p0TnJXc2xBWEd2SUQ2VURTVmF4RmgwR0ZFeW01eks3YnhyVkNpY3FIVnBFd0dKNmtWSTkwNzRuTHFINEVUeUpmV09MZ29HMWZmWWh5bmw4djY0bmNEOVdtRlVRYlUyRHcyZlg5aEdhQWg1Wi0tRm5uWW1NUHNZRUxTRHJwR0p5NGhPT0E3Vnp6anhPY3NTU0FGNDhRdmhqVQ?oc=5",
+   "summary": "Hot U.S. inflation hasn’t cooled off. Rising consumer prices to keep Fed rate hike on track. MarketWatch",
+   "publish_time": "2026-11-09 21:01:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3755,10 +3788,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Inflation Data to Test Limits of Treasury Rally After Haven Bid - Bloomberg.com",
-   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxObGdKazB3cGVKLUR0VG45X1hQNEpxeVdwaVdUNEdSUl96YnlaQzRuSVgxa2F6NVE2dHU3SmRpOG5xNHdhT2pKS3RSOTdsbGxGYlVWMmxXQm9EUC1YQ1VudlVYeG5pLUJKbnRiczJDRVg2TXlJQlh0OE81dVNDLW1jdU1vT2tMZGRzV1VOeHR6TlVSbEFBTGNBMjh4Z2Zlc3VUei11SFkxcjI3U2EzS0llOEl1SnE?oc=5",
-   "summary": "Inflation Data to Test Limits of Treasury Rally After Haven Bid Bloomberg.com",
-   "publish_time": "2026-11-10 00:46:00",
+   "title": "What to watch in markets this week - Axios",
+   "url": "https://news.google.com/rss/articles/CBMiY0FVX3lxTFBWVjg4YVA3Y2ZtQUxEUGFNZlhWN29vSmdwOEpiRW1MRkI1c1lsSG1VMFU0OENRZTlHa0V1UVdjVFpSVEc0b1g1aXoxX3R1RmNHTjRybW1UUEQ1SUotX1hhQk9jOA?oc=5",
+   "summary": "What to watch in markets this week Axios",
+   "publish_time": "2026-11-09 12:12:01",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3766,10 +3799,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Can consumers escape inflation? - Bank of America Institute",
-   "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE9xSThweEEzQ2t3S2VyZDRCWnc0RjRoODZBVVd3RzRmTTNLbVdSVEhaa2dWYXE5S2hnVXl5VGh2LS1WZ0lRc0FId1NSRnVoSG8ySFlOdnpWZFBSTzhHY3N4TUs3Q0dNa2dOOXF4b21waGxZVzNOTU1sUVFZRQ?oc=5",
-   "summary": "Can consumers escape inflation? Bank of America Institute",
-   "publish_time": "2026-11-09 14:17:16",
+   "title": "Gold Holds Gain Above $4,100 as Lower Oil Eases Inflation Woes - Bloomberg.com",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxOMWZxX1NKb3NlaFNCOHJlcE1kN2NRZjh0OEVaM3hQS1dQX0t4VkFadURVZzJhVE45Mlk0a2RWajItRjdDdWxBSU1mcWZBYng4cnBFUTNSSWE3VnQyOUE0WnRVWGtpcFNZejlNWlJLelgwNk9hWjRsZ3ZyYU1ERnQ1cS1VRWk5dG1PcUJoU01SeURPQUZoN3RnVEFTM1FkVzRORU9PWUpHN20wYXZpOU9jNGd3?oc=5",
+   "summary": "Gold Holds Gain Above $4,100 as Lower Oil Eases Inflation Woes Bloomberg.com",
+   "publish_time": "2026-11-10 00:27:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -3788,26 +3821,15 @@
    "kind": "aggregator"
   },
   {
-   "title": "From the director: Accountability in the age of AI - Federal Reserve Bank of Minneapolis",
-   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxQVHYzaDlkSXp0bDQzdFlmRG9lMHVhd3VxVGE0ZHdLY0JfTHVUajVkdjhLcU02Z1A3eWllMUs1QTlCeXhaNXZFQWFKR040OGIzSnRxb2FmYTM5WG5wR01ocU14bXZpODd5dXNCUjh2UWI1Y0lHc0pwTmZzVV80SkRBcDhwekpBck5HOEJMbURwNmtvM0tpUlRvSQ?oc=5",
-   "summary": "From the director: Accountability in the age of AI Federal Reserve Bank of Minneapolis",
-   "publish_time": "2026-11-09 20:15:00",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
+   "source_key": "arxiv_qfin",
+   "source_name": "arXiv·金融经济论文",
    "region": "GLOBAL",
    "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The Rooms Driving the Economy | Tom Barkin | Inflation | Employment - Federal Reserve Bank of Richmond",
-   "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxPd19QTmhVellmQmZoQkF4RnJ3LTM0Ym5LVm01V3FIOXJTNXVwZEFKMGhXdlVfRm54NC0wYmZWWWg3bWNYa0ctd2pfV3BmTXVXYktsaERIWHU1a0p5djBGZGpNazZ6cUZNbV9Ka1RvZEpYeThRa19VeUYzRk9rcWVkVlZXM1pNNjkxRVhTTkJQdE5Sb2VTU1E?oc=5",
-   "summary": "The Rooms Driving the Economy | Tom Barkin | Inflation | Employment Federal Reserve Bank of Richmond",
-   "publish_time": "2026-11-09 17:19:53",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
+   "kind": "research",
+   "title": "DeepFinance: Can AI Diligence a $100MM Deal?",
+   "url": "http://arxiv.org/abs/2611.10926v1",
+   "summary": "Existing evaluations of AI models on high-finance work focus on retrieving answers from financial documents and producing numerically correct outputs. Real private equity (PE) and investment banking (IB) work also depends on choosing between conflicting sources, making sound assumptions, and keeping every step auditable. We introduce DeepFinance, an ultra long-horizon benchmark of 21 end-to-end PE",
+   "publish_time": "2026-11-07 19:31:09"
   },
   {
    "source_key": "arxiv_qfin",
@@ -4019,15 +4041,15 @@
    "publish_time": "2026-09-27 23:03:31"
   },
   {
-   "source_key": "arxiv_qfin",
-   "source_name": "arXiv·金融经济论文",
+   "source_key": "arxiv_csai",
+   "source_name": "arXiv·AI 论文",
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Evolution of Market Microstructure in the Age of AI",
-   "url": "http://arxiv.org/abs/2609.33058v1",
-   "summary": "Market microstructure studies how trading rules turn orders into prices and allocations. Those rules have been rebuilt repeatedly: for floor traders, electronic limit order books and high-frequency trading, batch auctions and dark pools, blockchains run by automated market makers and block builders, and now AI agents that discover, pay for, and compete over resources. This survey traces that evolu",
-   "publish_time": "2026-09-27 00:45:36"
+   "title": "Sampling Is Not Curiosity: Why LLM Agents Should Investigate",
+   "url": "http://arxiv.org/abs/2611.10501v1",
+   "summary": "LLM agents are increasingly used for open-ended tasks, very common in research scenarios where they are required to explore, investigate, or act curiously. At inference time, an LLM is a fixed map from context to next-token distribution, the pretrained weights determine the function, and only its conditioning changes as context accumulates. Mechanisms like temperature, best-of-N, tree search, or R",
+   "publish_time": "2026-11-07 06:02:37"
   },
   {
    "source_key": "arxiv_csai",
@@ -4035,10 +4057,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "On Agentic Manipulation Policies",
-   "url": "http://arxiv.org/abs/2611.09892v1",
-   "summary": "Recent work on robot manipulation has focused on specialist policies trained on demonstrations. We show that generalist AI models can control manipulators more reliably than specialist policies such as vision-language-action models (VLAs) and world-action models (WAMs). We systematically analyze agentic manipulation policies (AMPs), in which a generalist AI model commands the manipulator directly,",
-   "publish_time": "2026-11-06 18:59:34"
+   "title": "Safer for Whom? A Systematic Exploration of AI Safety in Eating Disorder Interactions",
+   "url": "http://arxiv.org/abs/2611.10488v1",
+   "summary": "AI assistants advise users about diet, exercise, and weight loss---areas in which unsafe guidance can worsen body dissatisfaction, dietary restriction, compulsive exercise, and other behaviors associated with eating disorders (EDs). Existing evaluations emphasize diagnostic accuracy, overtly harmful prompts, or synthetic scenarios, providing limited insight into whether models recognize implicit v",
+   "publish_time": "2026-11-07 05:30:37"
   },
   {
    "source_key": "arxiv_csai",
@@ -4046,10 +4068,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "CPU-ARC: Agentic Reasoning Caching for on-CPU Reasoning Reuse",
-   "url": "http://arxiv.org/abs/2611.09891v1",
-   "summary": "Large language models reinvent the wheel all the time. They conflate task-solving with the execution of the solutions, which forces them to solve every problem from scratch. We show that once a task has been reasoned through, the application of its solution to a new problem instance can be done very efficiently and with little involvement from language models. We introduce agentic reasoning cachin",
-   "publish_time": "2026-11-06 18:58:50"
+   "title": "Test-Time Scaling for Diffusion Language Models with Frequency-Aware Remasking",
+   "url": "http://arxiv.org/abs/2611.10486v1",
+   "summary": "Diffusion language models (DLMs) generate text through iterative denoising, where decisions about which tokens to commit or remask strongly affect output quality. Existing certainty-aware strategies rely on instantaneous confidence or entropy, but these local signals can be misleading on difficult reasoning problems. We formulate DLM test-time scaling as adaptive allocation of both inference compu",
+   "publish_time": "2026-11-07 05:26:09"
   },
   {
    "source_key": "arxiv_csai",
@@ -4057,10 +4079,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "On the Reliability of Majority-Vote Pseudo-Labels in Test-Time Reinforcement Learning",
-   "url": "http://arxiv.org/abs/2611.09872v1",
-   "summary": "Test-time reinforcement learning (TTRL) adapts pretrained language models to unlabeled target-domain data using self-generated pseudo-labels, whose reliability remains poorly understood. We analyze majority-vote supervision for TTRL with online Direct Preference Optimization (DPO) and decompose its error into population-majority bias and prompt-dependent finite-rollout variation. Because populatio",
-   "publish_time": "2026-11-06 18:49:02"
+   "title": "Can General-Purpose Generative AI Supply Training Data for Medical Vision Models? A Multimodal Retrospective Study",
+   "url": "http://arxiv.org/abs/2611.10484v1",
+   "summary": "Background: Well-annotated, diverse medical imaging datasets remain a major constraint for vision-based medical AI. We evaluated Nano Banana, a general-purpose image generation and editing model, as a source of synthetic medical images for model training, subgroup augmentation, and model auditing. Methods: In this retrospective study across four imaging modalities, chest radiography, fundus photog",
+   "publish_time": "2026-11-07 05:12:38"
   },
   {
    "source_key": "arxiv_csai",
@@ -4068,10 +4090,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "GRAC: Graph-Based Retrieval-Augmented Captioning for Surgical Scene Description",
-   "url": "http://arxiv.org/abs/2611.09866v1",
-   "summary": "Purpose: Surgical operative reports support procedural documentation, surgical training, performance assessment, and workflow review. However, extracting meaningful information often requires extensive manual review and clinical expertise. Automated surgical scene descriptions could reduce this burden by leveraging recurring surgical activities and prior knowledge. Methods: We propose GRAC (Graph-",
-   "publish_time": "2026-11-06 18:47:23"
+   "title": "PatternBloom: Empowering Agentic RAG with Externalized RL-Distilled Graph Patterns",
+   "url": "http://arxiv.org/abs/2611.10477v1",
+   "summary": "Reinforcement-learning-trained agents for retrieval-augmented generation retrieve content (passages, knowledge-graph fragments, or hyperedges) and supervise training with outcome rewards on the final answer. Across these paradigms the reasoning route through retrieved content never leaves the language model's hidden state, conflating declarative knowledge with the procedural knowledge that recurs ",
+   "publish_time": "2026-11-07 05:02:26"
   },
   {
    "source_key": "arxiv_csai",
@@ -4079,10 +4101,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Grasp-TAGS: Task-Aware Grasp Selection via Critic Distillation for Prehensile Loco-Manipulation",
-   "url": "http://arxiv.org/abs/2611.09864v1",
-   "summary": "Loco-manipulation, which requires mobile manipulators to coordinate locomotion and manipulation over long horizons, is a key capability for large-object rearrangement in applications such as service robotics and warehouse automation. Despite recent progress, reliably executing these tasks remains challenging because performance depends on complex robot-object and object-environment interaction dyn",
-   "publish_time": "2026-11-06 18:44:33"
+   "title": "Hibana: Fast Agentic Inference on Unified-Memory Devices",
+   "url": "http://arxiv.org/abs/2611.10469v1",
+   "summary": "Local AI promises capable personal assistants that run on users' own devices, keeping data and computation under their control. Open-weight models that fit on local devices can now handle practical tasks such as coding. Yet current inference engines fall short. Popular engines such as vLLM and SGLang target datacenter GPUs with dedicated host memory, while local engines underuse the memory hierarc",
+   "publish_time": "2026-11-07 04:38:35"
   },
   {
    "source_key": "arxiv_csai",
@@ -4090,10 +4112,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Flow-Guided Target-Space Alignment via Path Consistency",
-   "url": "http://arxiv.org/abs/2611.09863v1",
-   "summary": "Many multimodal alignment problems require mapping a source modality into a fixed space defined by a target modality, where the target space is not merely an intermediate embedding but is used directly for downstream analysis. In this setting, successful alignment should preserve both the global structure of the target distribution and the instance-level correspondence observed in paired source--t",
-   "publish_time": "2026-11-06 18:44:08"
+   "title": "Beyond Discrete Ancestry Groups: Distribution-Aware In-Context Learning for Cancer Outcome Prediction Across the Genetic Ancestry Continuum",
+   "url": "http://arxiv.org/abs/2611.10464v1",
+   "summary": "Machine learning models for omics-based prediction of cancer outcomes are commonly built on aggregated data without distinguishing ancestry groups, or under an ancestry-discrete design, which partitions samples into ancestry groups and fits a separate model within each group. Recent evidence shows that this approach is inherently limited: predictive accuracy declines with genetic distance from the",
+   "publish_time": "2026-11-07 04:27:40"
   },
   {
    "source_key": "arxiv_csai",
@@ -4101,10 +4123,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Ensemble Methodology for Reference-Free Confidence Estimation in LLM-based Code Summarization",
-   "url": "http://arxiv.org/abs/2611.09846v1",
-   "summary": "This paper describes an approach and use case to estimate the correctness of LLM-generated COBOL summaries without access to human-authored references. The core intuition is that inter-model agreement on semantics is informative about truth, and that an LLM-as-judge can provide higher-fidelity pairwise assessments than traditional string- or embedding-based metrics. We operationalise this intuitio",
-   "publish_time": "2026-11-06 18:29:48"
+   "title": "Represented but Not Used: Value-Policy Dissociation in LLM Agents",
+   "url": "http://arxiv.org/abs/2611.10457v1",
+   "summary": "Large language model (LLM) agents need to choose actions whose consequences unfold over multiple future steps, yet poor decisions do not reveal whether the model failed to represent those consequences or failed to use them. Mechanistic interpretability has studied internal representations of environment state and plans, but sequential decision making also requires evaluating how candidate actions ",
+   "publish_time": "2026-11-07 04:17:31"
   },
   {
    "source_key": "arxiv_csai",
@@ -4112,10 +4134,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Can Agentic Systems Close the Gap in Radiology with Production AI Tools?",
-   "url": "http://arxiv.org/abs/2611.09836v1",
-   "summary": "Radiology AI has developed along two paths: specialized models that perform well on narrow tasks but cover few clinical findings, and generalist models that address a broader range of tasks but remain prone to hallucination and inaccurate measurements. Combining the two through agentic systems offers a route towards comprehensive radiology reporting, but published systems are tied to one modality ",
-   "publish_time": "2026-11-06 18:23:14"
+   "title": "Decentralised Drone Swarm Formation under Silent Failures with ACO Pheromone Claims and PSO Tuning",
+   "url": "http://arxiv.org/abs/2611.10454v1",
+   "summary": "We study decentralised drone formation, without a central planner, under the conditions that make it hard: nobody knows how many drones are alive, failures are silent, radio is short-ranged and lossy, and actuation is noisy. In our controller, ant colony optimisation (ACO) allocates drones to picture positions through claims that behave as reinforced, evaporating pheromone and are gossiped between",
+   "publish_time": "2026-11-07 04:06:34"
   },
   {
    "source_key": "arxiv_csai",
@@ -4123,10 +4145,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "BitDecoding-FP4: Native FP4 KV Cache Decoding via Algorithm-System Co-Design",
-   "url": "http://arxiv.org/abs/2611.09825v1",
-   "summary": "The key-value (KV) cache dominates memory capacity and bandwidth in long-context LLM serving. While 4-bit microscaling formats (NVFP4, MXFP4) shrink the cache and run attention on FP4 Tensor Cores, a fundamental gap remains between algorithmic quantization and system-aware acceleration: existing FP4 KV systems use vanilla quantization that causes severe accuracy drops, whereas accuracy-oriented 4-",
-   "publish_time": "2026-11-06 18:13:54"
+   "title": "BunshinRL: Splitting Live Agent Workspaces for Memory-Efficient Agentic RL",
+   "url": "http://arxiv.org/abs/2611.10453v1",
+   "summary": "Agentic reinforcement learning (RL) rollouts interleave model reasoning with tool calls in persistent workspaces. Scaling these rollouts incurs substantial memory costs for concurrent environments, while slow tool calls delay entire rollout batches. We present BunshinRL, an agentic RL rollout system that exploits shared environment state and recurring tool calls through three techniques: memory sh",
+   "publish_time": "2026-11-07 04:05:17"
   },
   {
    "source_key": "arxiv_csai",
@@ -4134,10 +4156,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Discovering formally verified quantum programs with AI",
-   "url": "http://arxiv.org/abs/2611.09822v1",
-   "summary": "The timeline by which quantum computers can solve breakthrough problems in science depends on improved quantum algorithms as much as on better hardware. Such algorithmic advances are typically achieved through many years of expert human collaboration. In mathematics and computer science, large language models have accelerated progress through automated discovery loops. However, quantum algorithms ",
-   "publish_time": "2026-11-06 18:08:06"
+   "title": "The Truth Beneath the Tokens: Prompt-Space Recovery of Knowledge Edits in Language Models",
+   "url": "http://arxiv.org/abs/2611.10450v1",
+   "summary": "Model editing provides an efficient way to update factual knowledge in transformer models. Recent approaches reverse edits by modifying, masking, or decomposing model weights, but make recovery dependent on weight-space interventions. We instead show that pre-edit knowledge can be recovered through input-space interventions alone, without modifying the edited model's weights. We introduce Memento,",
+   "publish_time": "2026-11-07 04:01:18"
   },
   {
    "source_key": "arxiv_csai",
@@ -4145,10 +4167,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Generative Latent Priors for Interpreting and Steering Protein Language Models",
-   "url": "http://arxiv.org/abs/2611.09818v1",
-   "summary": "Dominant methods for interpreting large models impose strong structural assumptions. Generative Latent Priors (GLP) are a complementary approach: a diffusion model that learns the distribution of a frozen model's activations directly, imposing no assumptions. We port GLP to ESM-2 activations (UniRef50) and evaluate it at two host scales (ESM-2-8M and -650M), both as a lens for protein representati",
-   "publish_time": "2026-11-06 18:06:39"
+   "title": "DiSARM: Diverse and Surprising Association Rule Mining with Large Language Models",
+   "url": "http://arxiv.org/abs/2611.10445v1",
+   "summary": "Exploratory Data Analysis (EDA) aims to discover informative patterns in large datasets. For transactional data, Association Rule Mining (ARM) is an established approach that facilitates EDA by efficiently generating candidate patterns. Beyond efficient mining, identifying informative rules has also been extensively studied through both objective and subjective interestingness measures. Recent adv",
+   "publish_time": "2026-11-07 03:46:48"
   },
   {
    "source_key": "arxiv_csai",
@@ -4156,10 +4178,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Scaling Graph Similarity Learning with Graph Neural Networks",
-   "url": "http://arxiv.org/abs/2611.09805v1",
-   "summary": "Graph similarity computation is an important task in graph mining with many real-world applications, such as chemical compound analysis, program dependence comparison, and social network analysis. The problem is computationally challenging: Graph Edit Distance (GED) and Maximum Common Subgraph (MCS), which quantify the distance between graphs and identify their largest shared subgraph, respectivel",
-   "publish_time": "2026-11-06 17:55:35"
+   "title": "Split and Bridge: Multimodal Generation via Diffusion Bridging",
+   "url": "http://arxiv.org/abs/2611.10441v1",
+   "summary": "Visual data are often expressed through multiple complementary modalities (e.g., images and segmentation masks), each capturing different aspects of the same underlying structure. Most existing multimodal methods adopt a top-down paradigm, learning a shared latent variable through joint training from scratch, which limits scalability. We propose Split and Bridge (SnB), a bottom-up framework for mu",
+   "publish_time": "2026-11-07 03:41:27"
   },
   {
    "source_key": "arxiv_csai",
@@ -4167,10 +4189,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "When Instruction Files Go Stale: Documentation Debt and Hidden Cost in Coding Agents",
-   "url": "http://arxiv.org/abs/2611.09802v1",
-   "summary": "LLM-based coding agents such as Claude Code are guided by repository instruction files (also called context files or agent configuration files) like AGENTS.md and CLAUDE.md, which are read in every agent session. As any documentation artifact, these files can fall behind the code and become stale (e.g., a test folder moves, but the file still points to the old one). In technical debt terms, such a",
-   "publish_time": "2026-11-06 17:54:01"
+   "title": "Who Remembers What? Multi-Granularity Memory Extraction for Multi-User, Multi-Agent Interaction",
+   "url": "http://arxiv.org/abs/2611.10439v1",
+   "summary": "Self-evolving agents improve their own skills, memory, and harness code from experience without retraining the base LLM, and group-evolving agents go further by sharing these lessons across agents. Yet most such systems overlook that sharing across users and heterogeneous agents requires deciding who can benefit from each lesson and what information must remain private. We present MixUA, a memory ",
+   "publish_time": "2026-11-07 03:35:51"
   },
   {
    "source_key": "arxiv_csai",
@@ -4178,10 +4200,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Maya a1: Do the Options Read the Model, or Does Their Position? Order Sensitivity in a Non-Autoregressive Decision Model",
-   "url": "http://arxiv.org/abs/2611.09803v1",
-   "summary": "Laya answers typed multiple-choice questions in one forward pass by scoring a hidden state at one [MASK] marker per option. We re-engineer the checkpoint (421M parameters; a 2-layer option head with no positional tensor; a documented but unused parallel layout) and test whether the answer depends on where an option is listed. Presenting 951 Qwen-verified questions under every cyclic rotation of th",
-   "publish_time": "2026-11-06 17:54:01"
+   "title": "HexIt: Learning Hexahedral Block Decomposition with Expert Iteration on Combinatorial Maps",
+   "url": "http://arxiv.org/abs/2611.10433v1",
+   "summary": "Decomposing a polyhedral solid into a few well-shaped hexahedral blocks is a long-standing open problem in mesh generation. We cast it as a sequential decision problem on a 3-dimensional generalised map: an agent splits edges, faces and volumes with three insert operations until every cell is a hexahedron and the mesh passes a quality threshold, and a policy that convolves over the map's involutio",
+   "publish_time": "2026-11-07 03:25:23"
   },
   {
    "source_key": "arxiv_csai",
@@ -4189,10 +4211,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Test-Time Compute Scales Better with Parallel Agent Teams",
-   "url": "http://arxiv.org/abs/2611.09798v1",
-   "summary": "Test-time scaling improves the performance of a fixed model by spending more computation at inference. There are two common ways to spend it on agents when a verifier can score every attempt. Best-of-N sampling runs many independent agents and keeps the best result but saturates quickly. One large team of collaborating agents can score higher but stops improving as it grows. Can we get the best of",
-   "publish_time": "2026-11-06 17:53:07"
+   "title": "D-REAL: Acceptance-Length Optimization with Unbiased Gradients for Speculative Decoding",
+   "url": "http://arxiv.org/abs/2611.10432v1",
+   "summary": "Speculative decoding efficiency depends on the number of consecutively accepted draft tokens, yet token-level training objectives do not directly optimize this quantity. We introduce D-REAL (Drafter Reinforcement of Expected Acceptance Length), a post-training method that directly optimizes expected acceptance length for a fixed decoding context. D-REAL weights position-wise draft-target distribut",
+   "publish_time": "2026-11-07 03:19:43"
   },
   {
    "source_key": "arxiv_csai",
@@ -4200,10 +4222,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Knowing When to Intervene: Causal Evaluation of AI Agents",
-   "url": "http://arxiv.org/abs/2611.09792v1",
-   "summary": "Current evaluations of agentic AI systems primarily rely on benchmarks. However, the static nature of benchmarks makes them uninformative about the value of auditing interventions at deployment time. For reliable deployment, we often need to determine within an agent's trajectory whether or not to intervene, e.g., by verifying the agent's current output or steering it toward different behavior, us",
-   "publish_time": "2026-11-06 17:46:53"
+   "title": "Deploying Physically and Epistemically Compliant Agents by Distilling Belief-Space Task and Motion Planners",
+   "url": "http://arxiv.org/abs/2611.10430v1",
+   "summary": "In this work, we train agents to act under uncertainty according to specified, belief-dependent rules. Deep reinforcement learning (RL) can in theory train agents to follow rules if encoded into well-designed rewards, but in practice, RL fails to perfectly optimize these rewards, leading to ineffective or noncompliant agent behavior. Belief-space planners by construction produce behavior in line w",
+   "publish_time": "2026-11-07 03:17:09"
   },
   {
    "source_key": "arxiv_csai",
@@ -4211,10 +4233,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Assessing the Impact of Retrieval-Augmented Generation on Algorithmic Problem-Solving",
-   "url": "http://arxiv.org/abs/2611.09791v1",
-   "summary": "Competitive programming problems pose distinctive challenges for Large Language Models, as they demand not only proficient code generation but also advanced algorithmic reasoning. This study presents a Retrieval-Augmented Generation approach specifically designed to enhance the capacity of Large Language Models to address such problems. Our approach integrates an embedding-based retrieval mechanis",
-   "publish_time": "2026-11-06 17:46:28"
+   "title": "Mental Imagery That Matters: Curing Latent Collapse in Multimodal Reasoning",
+   "url": "http://arxiv.org/abs/2611.10423v1",
+   "summary": "Mental simulation, the ability to reason by constructing and updating internal visual states, is central to flexible human cognition, but remains elusive in current multimodal large language models. Latent multimodal reasoning offers a promising route toward this capability by interleaving text with continuous visual latent blocks, allowing models to maintain internal visual workspaces without dec",
+   "publish_time": "2026-11-07 02:56:51"
   },
   {
    "source_key": "arxiv_csai",
@@ -4222,10 +4244,10 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "ROSE: Risk-Aware Orthogonal Subspace Navigation for Lifelong Knowledge Editing in Multimodal Large Language Models",
-   "url": "http://arxiv.org/abs/2611.09770v1",
-   "summary": "Multimodal Large Language Models (MLLMs) require continuous factual updates to stay current, yet lifelong knowledge editing remains a daunting challenge. The primary obstacle is the severe Locality Erosion and Catastrophic Forgetting, where sequential edits inevitably interfere with pre-trained capabilities and prior updates. In this paper, we propose \\textbf{ROSE}, a \\textbf{R}isk-aware \\textbf{O",
-   "publish_time": "2026-11-06 17:32:49"
+   "title": "Beyond Query Similarity: Safety-Conditioned Cache Routing for LLM Response Reuse",
+   "url": "http://arxiv.org/abs/2611.10418v1",
+   "summary": "Semantic response caching reuses a cached response for a semantically similar query to improve LLM inference efficiency. However, query similarity alone can lead to unsafe reuse when safety conditions change. Existing approaches improve cache safety through stricter similarity checks, context-aware validation, or response verification, yet they may still miss safety conflicts between the cached re",
+   "publish_time": "2026-11-07 02:49:57"
   },
   {
    "source_key": "arxiv_csai",
@@ -4233,21 +4255,43 @@
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Language as Trait, Politeness as Strategy: Controlled Tests of Linguistic Effects in LLM Social-Deduction Agents",
-   "url": "http://arxiv.org/abs/2611.09768v1",
-   "summary": "Large language model (LLM) agents coordinate through conversation, and the same message can be phrased in simpler or more complex language, bluntly or politely. We test whether such differences change how other agents judge and act, using the LURK Werewolf framework, which separates each utterance's speech-act predicate from its natural-language realization. We rewrite only the realization, check ",
-   "publish_time": "2026-11-06 17:31:01"
+   "title": "Track or Follow? A Jev-Compatible Multi-Agent Trading System When Web News Lags the Market",
+   "url": "http://arxiv.org/abs/2611.10414v1",
+   "summary": "LLM agents increasingly trade on the Web news they read, yet much Web news about listed firms is published after, and about, the price move it reports, so a reader can agree with the market by following it instead of reading the event. We ask whether LLM judgments of Web news track the market's reaction to the reported event or follow it. To answer, we built a multi-agent trading system whose agen",
+   "publish_time": "2026-11-07 02:47:13"
   },
   {
-   "source_key": "arxiv_csai",
-   "source_name": "arXiv·AI 论文",
+   "source_key": "arxiv_econ",
+   "source_name": "arXiv·经济计量论文",
    "region": "GLOBAL",
    "lang": "en",
    "kind": "research",
-   "title": "Continuous wavelet-based feature extraction for laser-induced breakdown spectroscopy classification of human plasma samples",
-   "url": "http://arxiv.org/abs/2611.09746v1",
-   "summary": "Extracting discriminative features from laser-induced breakdown spectroscopy (LIBS) spectra is important for the classification of complex biological samples. This study evaluates continuous wavelet transform (CWT)-based spectral peak extraction for distinguishing human plasma samples labeled as SARS-CoV-2-positive or negative. Plasma specimens from 181 individuals, comprising 53 positive samples ",
-   "publish_time": "2026-11-06 17:17:07"
+   "title": "Winning Reviews, Losing Discovery? The Co-Evolutionary Game of AI Research and Peer Review",
+   "url": "http://arxiv.org/abs/2611.10791v1",
+   "summary": "Autonomous research systems can produce convincing manuscripts whose scientific value is difficult to verify, while automated reviewers can reward the appearance of completeness. We examine how this gap can become a self-reinforcing threat to the research community. In a two-population evolutionary game, authors choose between acceptance-oriented and exploratory research, and reviewers choose betw",
+   "publish_time": "2026-11-07 15:15:37"
+  },
+  {
+   "source_key": "arxiv_econ",
+   "source_name": "arXiv·经济计量论文",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "research",
+   "title": "Have wind and solar energy increased electricity price volatility? And what is electricity price volatility, anyway?",
+   "url": "http://arxiv.org/abs/2611.10731v1",
+   "summary": "It is widely held that wind and solar power increase the volatility of electricity prices. This paper argues that the literature conflates two distinct types of price variation: across delivery time and across trading time. Determined simultaneously in the same day-ahead auction, prices for power to be delivered in distinct quarter-hours differ. This price dispersion, which I call \"variability,\" i",
+   "publish_time": "2026-11-07 13:44:25"
+  },
+  {
+   "source_key": "arxiv_econ",
+   "source_name": "arXiv·经济计量论文",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "research",
+   "title": "When Is Prosocial Behavior Intuitive? The Moderating Role of Empathic Perspective Taking",
+   "url": "http://arxiv.org/abs/2611.10155v1",
+   "summary": "Why is prosocial behavior intuitive for some individuals but deliberative for others? We examine whether empathic perspective taking moderates the association between reflective processing and prosocial choice. We run a laboratory experiment with 652 participants, where we measure prosociality using a four-player Distribution Game that holds aggregate payoffs constant and orders allocations from s",
+   "publish_time": "2026-11-06 19:21:32"
   },
   {
    "source_key": "arxiv_econ",
@@ -4435,589 +4479,6 @@
    "url": "http://arxiv.org/abs/2611.02960v1",
    "summary": "We examine whether corporate leverage persistence reflects only firms' own adjustment frictions or also the past financing choices of economically connected firms. We combine annual firm fundamentals with time-varying text-based product-market networks and estimate a heterogeneous dynamic partial-adjustment model with interactive effects using defactored instrumental variables. The estimator accom",
    "publish_time": "2026-11-02 11:29:48"
-  },
-  {
-   "source_key": "arxiv_econ",
-   "source_name": "arXiv·经济计量论文",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "research",
-   "title": "Labor Market Returns to Education and Intra-family Educational Inequality: Theory and Experimental Evidence",
-   "url": "http://arxiv.org/abs/2611.02959v1",
-   "summary": "How do labor market conditions shape educational inequality within- and between families? A growing body of evidence documents convex wage returns to education in labor markets across the world. We develop a theoretical model that demonstrates that earnings convexity can increase or decrease between-sibling differences in investments and outcomes depending on the parameter of parental inequality a",
-   "publish_time": "2026-11-02 11:27:49"
-  },
-  {
-   "source_key": "arxiv_econ",
-   "source_name": "arXiv·经济计量论文",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "research",
-   "title": "Public salience mobilizes nationwide responses to violence against women",
-   "url": "http://arxiv.org/abs/2611.02647v1",
-   "summary": "Does public salience around femicides mobilize societal responses or trigger further harm through imitation? Using newly assembled case-level data on femicides in Italy from 2017 to 2024, we study the nationwide consequences of the most salient cases for help-seeking, police reporting, and lethal violence. We find that highly salient intimate partner femicides (IPFs) generate nationwide increases ",
-   "publish_time": "2026-11-02 07:09:47"
-  },
-  {
-   "source_key": "arxiv_econ",
-   "source_name": "arXiv·经济计量论文",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "research",
-   "title": "Ask More, Hear Less: How a Review Prompt Changes What Online Ratings Show",
-   "url": "http://arxiv.org/abs/2611.02623v1",
-   "summary": "Platforms ask customers for online reviews to reduce self-selection, but theory conflicts on whether review solicitation makes online ratings more or less informative. Selection theory implies that asking helps, voice theory that it dilutes the news, and research on rating inflation that compression destroys information. We reconcile these views with signal detection theory, which separates what a",
-   "publish_time": "2026-11-02 06:50:10"
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·edaily.co.kr",
-   "region": "GLOBAL",
-   "lang": "Korean",
-   "kind": "media",
-   "title": "아산재단 , 네팔 홍수 피해 이재민 구호 성금 20만 달러 전달",
-   "url": "https://www.edaily.co.kr/News/Read?newsId=03020886645577824&mediaCodeNo=257",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·munhwa.com",
-   "region": "GLOBAL",
-   "lang": "Korean",
-   "kind": "media",
-   "title": "아산재단 , 홍수피해 네팔에 20만달러 지원",
-   "url": "https://www.munhwa.com:443/article/11615021",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·biz.heraldcorp.com",
-   "region": "GLOBAL",
-   "lang": "Korean",
-   "kind": "media",
-   "title": "아산재단 , 네팔 홍수 피해 이재민에 20만 달러 전달",
-   "url": "https://biz.heraldcorp.com/article/10864898",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·gxnews.com.cn",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "从 展板 到 实景 ！ 沉浸式应急科普 ， 让防灾科普走 新 更走心 - 广西新闻网",
-   "url": "http://www.gxnews.com.cn/staticpages/20260904/newgx6a9aacf2-21990422.shtml",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·gxnews.com.cn",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "从 展板 到 实景 ！ 沉浸式应急科普 ， 让防灾科普走 新 更走心 - 广西新闻网",
-   "url": "http://www.gxnews.com.cn/staticpages/20260904/newgx6a9aacf2-21990382.shtml",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·gxnews.com.cn",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "从 展板 到 实景 ！ 沉浸式应急科普 ， 让防灾科普走 新 更走心 - 广西新闻网",
-   "url": "http://www.gxnews.com.cn/staticpages/20260904/newgx6a9aacf2-21990414.shtml",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·setn.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "LINE公布防災意識調查 ： 台灣 、 日本最怕 「 地震 」 | 生活 | 三立新聞網 SETN . COM",
-   "url": "https://www.setn.com/news/1910535",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·dailynayadiganta.com",
-   "region": "GLOBAL",
-   "lang": "Bengali",
-   "kind": "media",
-   "title": "জাপানে টাইফুন দুজুয়ানে মৃত্যু বেড়ে ৬ , নিখোঁজ ৬ : Daily Naya Diganta ( দৈনিক নয়া দিগন্ত )",
-   "url": "https://www.dailynayadiganta.com/post/asia/1055615",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·cna.com.tw",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "國家防災日 花蓮縣長參選人提政策韌性治理 | 政治",
-   "url": "https://www.cna.com.tw:443/news/aipl/202609210250.aspx",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·news.ltn.com.tw",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "0918地震4年了 花蓮崙天大橋進度86 ％ 趕下月初完工 - 生活",
-   "url": "https://news.ltn.com.tw/news/life/breakingnews/5591752",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·chinatimes.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "專業統籌 李鴻源喊話設防災總署 - 焦點",
-   "url": "https://www.chinatimes.com/newspapers/20260825000478-260121",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·cnbc.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "It been a rough month of natural disasters . Here a review",
-   "url": "https://www.cnbc.com/2026/09/08/natural-disasters-month-review-earthquake-volcano-flood.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·cna.com.tw",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "颱風薔琵來襲 高雄輕軌211顆樹木傾斜儀監測 | 地方",
-   "url": "https://www.cna.com.tw/news/aloc/202610230110.aspx",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·ec.ltn.com.tw",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "老屋電氣起火風險高 住宅平均屋齡逾33年 、 住火地震險投保率僅4成",
-   "url": "https://ec.ltn.com.tw/article/breakingnews/5581028",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·zdnet.co.kr",
-   "region": "GLOBAL",
-   "lang": "Korean",
-   "kind": "media",
-   "title": "네팔 대규모 홍수 , 우주서 봤더니 [ 우주서 본 지구 ]",
-   "url": "https://zdnet.co.kr/view/?no=20260827165943",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·hankookilbo.com",
-   "region": "GLOBAL",
-   "lang": "Korean",
-   "kind": "media",
-   "title": "HD현대 , 네팔에 건설장비 · 구호품 긴급 지원 … 두산도 장비 지원 준비 - 경제ㅣ한국일보",
-   "url": "https://www.hankookilbo.com/news/article/A2026090109490004888",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·ntdtv.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "李燕銘 ： 颱風三襲共軍基地 諸多神奇引人深思 | 異常颱風路徑 | 玉環海軍基地 | 超強白海豚",
-   "url": "https://www.ntdtv.com/b5/2026/09/04/a104130319.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·news.ifeng.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "1厘米之差避免太湖流域性大洪水 ， 无事发生 为何值得关注 ？_ 凤凰网",
-   "url": "https://news.ifeng.com/c/8vtuA56R063",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·kochinews.co.jp",
-   "region": "GLOBAL",
-   "lang": "Japanese",
-   "kind": "media",
-   "title": "小社会 移ろう 「 防災の日 」",
-   "url": "https://www.kochinews.co.jp/article/detail/1039789",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·epochtimes.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "李燕铭 ： 台风三袭共军基地 诸多神奇引人深思",
-   "url": "https://www.epochtimes.com/gb/26/9/3/n14842402.htm",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·ettoday.net",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "國家警報 「 啾啾聲 」 嚇死人 ！ 4步驟能改善 | ETtoday生活新聞",
-   "url": "https://www.ettoday.net/news/20260826/3225783.htm",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·n.yam.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "薔琵颱風來襲 林欽榮副市長視察輕軌雨豆樹隧道科技監測",
-   "url": "https://n.yam.com/Article/20261023220252",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·finance.eastmoney.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "车泡水田被淹房受损 ， 保险怎么赔 _ 东方财富网",
-   "url": "https://finance.eastmoney.com/a/202608193844986226.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·auto.cyol.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "车泡水田被淹房受损 ， 保险怎么赔",
-   "url": "http://auto.cyol.com/gb/articles/2026-08/20/content_enPY5juBaq.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_disaster",
-   "source_name": "GDELT·自然灾害·news.cnfol.com",
-   "region": "GLOBAL",
-   "lang": "Chinese",
-   "kind": "media",
-   "title": "车泡水田被淹房受损 ， 保险怎么赔 _ 国内财经 _ 财经 _ 中金在线",
-   "url": "http://news.cnfol.com/guoneicaijing/20260819/32339303.shtml",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·finance.yahoo.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Why Going Global Isnt Always the Right Call",
-   "url": "https://finance.yahoo.com/small-business/articles/why-going-global-isn-t-130000980.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·thestarphoenix.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Ansaldo Energia Selects Kinaxis to Power the Future of Global Energy Infrastructure",
-   "url": "https://thestarphoenix.com/press-releases/business-wire/ansaldo-energia-selects-kinaxis-to-power-the-future-of-global-energy-infrastructure/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·finanznachrichten.de",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "GoComet brings AI execution to Gulf supply chains facing geopolitical volatility",
-   "url": "https://www.finanznachrichten.de/nachrichten-2026-10/69845506-gocomet-brings-ai-execution-to-gulf-supply-chains-facing-geopolitical-volatility-008.htm",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·asia.nikkei.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Japan Tokuyama to make key chip material in Vietnam , Malaysia",
-   "url": "https://asia.nikkei.com/business/tech/semiconductors/japan-s-tokuyama-to-make-key-chip-material-in-vietnam-malaysia",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·news.webindia123.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "56 % of business leaders expect external shocks to severely disrupt operations over next 5 years : KPMG",
-   "url": "https://news.webindia123.com/news/Articles/Business/20261108/4517360.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·asiaone.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Singapore moves stockpiled food from warehouses to retail outlets as part of disruption readiness exercise",
-   "url": "https://www.asiaone.com:443/singapore/food-supply-disruption-exercise-sfa-janil-puthucheary",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·asiaone.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Singapore moves stockpiled food from warehouses to retail outlets as part of disruption readiness exercise",
-   "url": "https://www.asiaone.com/singapore/food-supply-disruption-exercise-sfa-janil-puthucheary",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·siliconangle.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Supply chain agents replace apps as Blue Yonder rethinks work",
-   "url": "https://siliconangle.com/2026/08/28/supply-chain-agents-replace-apps-blue-yonder-rethinks-work-blueyonder/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·finanznachrichten.de",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Omdia Identifies Four Forces Set to Reshape Technology in 2027",
-   "url": "https://www.finanznachrichten.de/nachrichten-2026-09/69713168-omdia-identifies-four-forces-set-to-reshape-technology-in-2027-004.htm",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·ksat.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Your wallet could take a hit : What to watch for as the Iran conflict grows",
-   "url": "https://www.ksat.com/news/local/2026/08/26/your-wallet-could-take-a-hit-what-to-watch-as-the-iran-conflict-grows/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·moneycontrol.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "India auto industry needs deeper localisation to build world - class supply chain : Maruti Suzuki CEO",
-   "url": "https://www.moneycontrol.com/automobile/india-s-auto-industry-needs-deeper-localisation-to-build-world-class-supply-chain-maruti-suzuki-ceo-article-14020652.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·wwd.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Why Supply Chains Are Human Networks : Insights from Angela Rhea",
-   "url": "https://wwd.com/sourcing-journal/industry-news/trade-beyond-angela-rhea-product-lifecycle-management-1239144414/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·haberler.com",
-   "region": "GLOBAL",
-   "lang": "Turkish",
-   "kind": "media",
-   "title": "AB Komiseri Hansen , marketlere yönelik siber saldırılar gıda arzını riske atmadı dedi",
-   "url": "https://www.haberler.com/ekonomi/ab-komiseri-hansen-marketlere-yonelik-siber-20391112-haberi/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·aol.co.uk",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Hospitals in England hit by shortages of common drugs such as paracetamol",
-   "url": "https://www.aol.co.uk/articles/hospitals-england-hit-shortages-common-060056000.html",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·observer.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "The Hidden Water Risk in Supply Chain Resilience",
-   "url": "https://observer.com/2026/09/water-risk-supply-chain-resilience/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·mondaq.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Five Checks For … What Supply Chain Leaders Should Rethink In The Trump Tariff Environment 2 . 0",
-   "url": "https://www.mondaq.com:443/unitedstates/export-controls-trade-investment-sanctions/1858062/five-checks-for-what-supply-chain-leaders-should-rethink-in-the-trump-tariff-environment-20",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·en.dailypakistan.com.pk",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Finance Minister flags Rs120Billion Daily Loss Risk from Protest , Strikes",
-   "url": "https://en.dailypakistan.com.pk/20-Sep-2026/finance-minister-flags-rs120billion-daily-loss-risk-from-protest-strikes",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·amren.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Ranchers Accuse Trump Administration of Disrupting Beef Supply , as Prices Rise - American Renaissance",
-   "url": "https://www.amren.com/news/2026/09/ranchers-accuse-trump-administration-of-disrupting-beef-supply-as-prices-rise/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·finanznachrichten.de",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "DP World : From Volume to Resilience : How Automotive Supply Chains Are Adapting to a New Market Reality",
-   "url": "https://www.finanznachrichten.de/nachrichten-2026-08/69400595-dp-world-from-volume-to-resilience-how-automotive-supply-chains-are-adapting-to-a-new-market-reality-200.htm",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·manilatimes.net",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "New Report Details Supply Chain Complexity of Vitamin and Amino Acid Precursors",
-   "url": "https://www.manilatimes.net/2026/09/30/tmt-newswire/globenewswire/new-report-details-supply-chain-complexity-of-vitamin-and-amino-acid-precursors/2435533",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·economictimes.indiatimes.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "ReNew CEO warns China reliance puts energy transition at risk",
-   "url": "https://economictimes.indiatimes.com/small-biz/trade/exports/insights/renew-ceo-warns-china-reliance-puts-energy-transition-at-risk/articleshow/134981872.cms",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·wwd.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Fashion Cant Keep Reacting to the Next Crisis",
-   "url": "https://wwd.com/sourcing-journal/sustainability/fashion-geopolitical-climate-risk-vf-corp-olam-agri-1239377855/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·adn.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Ranchers accuse Trump administration of disrupting beef supply as prices rise",
-   "url": "https://www.adn.com/nation-world/2026/09/27/ranchers-accuse-trump-administration-of-disrupting-beef-supply-as-prices-rise/",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·aa.com.tr",
-   "region": "GLOBAL",
-   "lang": "Turkish",
-   "kind": "media",
-   "title": "AB , süpermarketlere yönelik siber saldırıların gıda tedarik zincirine etkisini değerlendirecek",
-   "url": "https://www.aa.com.tr/tr/ekonomi/ab-supermarketlere-yonelik-siber-saldirilarin-gida-tedarik-zincirine-etkisini-degerlendirecek/4109820",
-   "summary": "",
-   "publish_time": ""
-  },
-  {
-   "source_key": "gdelt_supply",
-   "source_name": "GDELT·供应链扰动·techtimes.com",
-   "region": "GLOBAL",
-   "lang": "English",
-   "kind": "media",
-   "title": "Boston Scientific Cyberattack Stalls Cardiac Device Supply Chain for Hospitals",
-   "url": "https://www.techtimes.com/articles/325756/20260827/boston-scientific-cyberattack-stalls-cardiac-device-supply-chain-hospitals.htm",
-   "summary": "",
-   "publish_time": ""
   }
  ]
 }
