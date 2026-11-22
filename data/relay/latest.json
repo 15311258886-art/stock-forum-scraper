@@ -1,17 +1,17 @@
 {
- "generated_at": "2026-11-21T21:52:09Z",
+ "generated_at": "2026-11-22T01:21:24Z",
  "counts": {
   "yt_cnbc": 15,
   "yt_bloomberg": 15,
   "yt_yahoo": 15,
   "yt_reuters": 15,
   "yt_ft": 15,
-  "bbc_world": 26,
+  "bbc_world": 27,
   "bbc_business": 30,
   "aljazeera": 25,
   "nyt_world": 30,
-  "washpost_world": 14,
-  "ft_home": 11,
+  "washpost_world": 12,
+  "ft_home": 9,
   "bloomberg_markets": 20,
   "economist_finance": 30,
   "gnews_conflict": 25,
@@ -884,32 +884,10 @@
    "kind": "media"
   },
   {
-   "title": "Tech stock sell-off drags markets down as Anthropic shares slide",
-   "url": "https://www.bbc.co.uk/news/articles/c6808ym10vzgo?at_medium=RSS&at_campaign=rss",
-   "summary": "Pressures weighed on US markets, with the S&P 500 and the Dow Jones Industrial Average pushed into correction territory.",
-   "publish_time": "2026-11-20 22:42:47",
-   "source_key": "bbc_world",
-   "source_name": "BBC World",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Fight over fossil fuels leaves COP31 climate talks in deadlock",
    "url": "https://www.bbc.co.uk/news/articles/c6ly5w40eg07o?at_medium=RSS&at_campaign=rss",
    "summary": "Countries from nearly 200 countries are in a deadlock to try and get a new global climate agreement.",
-   "publish_time": "2026-11-21 19:33:49",
-   "source_key": "bbc_world",
-   "source_name": "BBC World",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "FBI reportedly investigating apparent hack of its criminal database",
-   "url": "https://www.bbc.co.uk/news/articles/cvze7de86pk3o?at_medium=RSS&at_campaign=rss",
-   "summary": "The National Crime Information Center database is used by federal and local law enforcement to share information.",
-   "publish_time": "2026-11-21 16:35:15",
+   "publish_time": "2026-11-21 22:19:43",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -920,7 +898,7 @@
    "title": "Mexican drug lord on FBI's 10 most wanted list arrested in shoot-out",
    "url": "https://www.bbc.co.uk/news/articles/ckz749ey0r75o?at_medium=RSS&at_campaign=rss",
    "summary": "Fausto Isidro \"Chapo Idisro\" Meza Flores, who is accused of drug trafficking and torture, is detained after gun fight with authorities.",
-   "publish_time": "2026-11-21 21:05:29",
+   "publish_time": "2026-11-21 23:31:17",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -928,10 +906,10 @@
    "kind": "media"
   },
   {
-   "title": "French police officers sentenced for beating of music producer Michel Zecler",
-   "url": "https://www.bbc.co.uk/news/articles/ck9d7e9wvvweo?at_medium=RSS&at_campaign=rss",
-   "summary": "The court has upheld the 2020 beating of the black music producer as an aggravated circumstance of racism.",
-   "publish_time": "2026-11-20 22:37:09",
+   "title": "FBI reportedly investigating apparent hack of its criminal database",
+   "url": "https://www.bbc.co.uk/news/articles/cvze7de86pk3o?at_medium=RSS&at_campaign=rss",
+   "summary": "The National Crime Information Center database is used by federal and local law enforcement to share information.",
+   "publish_time": "2026-11-22 00:10:44",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -961,10 +939,43 @@
    "kind": "media"
   },
   {
+   "title": "Lock of former US President George Washington's hair sells for $4,000",
+   "url": "https://www.bbc.co.uk/news/articles/cwe9k23dpz0do?at_medium=RSS&at_campaign=rss",
+   "summary": "The hair was given as a sign of friendship shortly before Washington's death in 1799, according to a descendent of its former owner.",
+   "publish_time": "2026-11-21 22:01:19",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Deal with EU not dependent on tuition fees agreement, Miliband says",
    "url": "https://www.bbc.co.uk/news/articles/cm9w9p4geke8o?at_medium=RSS&at_campaign=rss",
    "summary": "Brussels sources had previously suggested the bloc might not apply the wider deal until fees were lowered for EU students in Britain.",
    "publish_time": "2026-11-21 09:40:55",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "French police officers sentenced for beating of music producer Michel Zecler",
+   "url": "https://www.bbc.co.uk/news/articles/ck9d7e9wvvweo?at_medium=RSS&at_campaign=rss",
+   "summary": "The court has upheld the 2020 beating of the black music producer as an aggravated circumstance of racism.",
+   "publish_time": "2026-11-20 22:37:09",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Tech stock sell-off drags markets down as Anthropic shares slide",
+   "url": "https://www.bbc.co.uk/news/articles/c6808ym10vzgo?at_medium=RSS&at_campaign=rss",
+   "summary": "Pressures weighed on US markets, with the S&P 500 and the Dow Jones Industrial Average pushed into correction territory.",
+   "publish_time": "2026-11-20 22:42:47",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -1093,6 +1104,28 @@
    "kind": "media"
   },
   {
+   "title": "How a teen gamer and his mother helped rescue a missing girl",
+   "url": "https://www.bbc.co.uk/news/articles/cmq8lyv8lkjwo?at_medium=RSS&at_campaign=rss",
+   "summary": "When 16-year-old Landon Tresp met a teenage girl in an online game, it led to him and his mother helping the FBI rescue her from kidnapping.",
+   "publish_time": "2026-11-22 00:09:58",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Nigerian youth have shown their power in the past - why aren't they shaping this election?",
+   "url": "https://www.bbc.co.uk/news/articles/ck4g174n020eo?at_medium=RSS&at_campaign=rss",
+   "summary": "Fewer young people have registered to vote in next year's election than in 2023 - are young people losing faith in democracy?",
+   "publish_time": "2026-11-22 00:10:37",
+   "source_key": "bbc_world",
+   "source_name": "BBC World",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "They were fined $811m for conning detained migrants, but the scams didn't stop",
    "url": "https://www.bbc.co.uk/news/articles/cqgm0zlkgrm2o?at_medium=RSS&at_campaign=rss",
    "summary": "How convicted fraudsters made millions from detained immigrants, evaded efforts to shut down their bail business and left migrants behind bars.",
@@ -1119,28 +1152,6 @@
    "url": "https://www.bbc.co.uk/news/articles/cmn502ek17yvo?at_medium=RSS&at_campaign=rss",
    "summary": "Grieving Filipinos confront a distressing reality: their dogs and cats may not have received the send-off they paid for.",
    "publish_time": "2026-11-20 23:20:33",
-   "source_key": "bbc_world",
-   "source_name": "BBC World",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "A new Nepal, an old neighbour - Balendra Shah's India test on first visit",
-   "url": "https://www.bbc.co.uk/news/articles/c6jre8xd83qgo?at_medium=RSS&at_campaign=rss",
-   "summary": "Trade, connectivity and regional cooperation will be on top of the agenda when Nepal's PM meets his India counterpart.",
-   "publish_time": "2026-11-20 23:28:17",
-   "source_key": "bbc_world",
-   "source_name": "BBC World",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "'I tell my son it's just fireworks': Life inside Yemeni city besieged by Houthis",
-   "url": "https://www.bbc.co.uk/news/articles/cx7v2d8q879eo?at_medium=RSS&at_campaign=rss",
-   "summary": "Orla Guerin speaks to seven people trapped in the key city of Taiz, cut off from the outside world for weeks.",
-   "publish_time": "2026-11-20 22:14:17",
    "source_key": "bbc_world",
    "source_name": "BBC World",
    "region": "GLOBAL",
@@ -1478,6 +1489,72 @@
    "kind": "media"
   },
   {
+   "title": "Moviegoers head for the exits as quake strikes Peru",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/22/moviegoers-head-for-the-exits-as-quake-strikes-peru?traffic_source=rss",
+   "summary": "Moviegoers head for the exits as quake strikes Peru",
+   "publish_time": "2026-11-22 01:07:19",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Clashes erupt across France in another night of protest",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/22/clashes-erupt-across-france-in-another-night-of-protest?traffic_source=rss",
+   "summary": "French police charged to disperse crowds on Saturday as the country faced a sixth weekend of demonstrations.",
+   "publish_time": "2026-11-22 00:37:32",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Iran war live: Iran targets US bases in Bahrain; Houthi strikes continue",
+   "url": "https://www.aljazeera.com/news/liveblog/2026/11/21/iran-war-live-iran-targets-us-military-in-bahrain-houthi-strikes-continue?traffic_source=rss",
+   "summary": "Bahrain has condemned Iran&#039;s strikes on US military assets in the Gulf country, as Houthis keep Saudi Arabia on edge.",
+   "publish_time": "2026-11-21 23:59:03",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Lebanese president demands Israel withdrawal, decries Iran’s interference",
+   "url": "https://www.aljazeera.com/news/2026/11/21/lebanese-president-demands-israel-withdrawal-decries-irans-interference?traffic_source=rss",
+   "summary": "Joseph Aoun says &#039;two fundamental obstacles, inseparably linked&#039; mean Lebanon cannot fully celebrate its independence.",
+   "publish_time": "2026-11-21 23:44:00",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Iran faces a ‘silent economic war’, says Iranian president",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/21/iran-faces-a-silent-economic-war-says-iranian-president?traffic_source=rss",
+   "summary": "Iran faces a ‘silent economic war’, says Iranian president",
+   "publish_time": "2026-11-21 23:18:14",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Bahrain says Iranian attack hits industrial facility",
+   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/21/bahrain-says-iranian-attack-hits-industrial-facility?traffic_source=rss",
+   "summary": "Bahrain says Iranian attack hits industrial facility",
+   "publish_time": "2026-11-21 22:02:03",
+   "source_key": "aljazeera",
+   "source_name": "Al Jazeera",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
    "title": "Bahrain says Iranian attack causes fire at industrial facility",
    "url": "https://www.aljazeera.com/news/2026/11/21/bahrain-says-iranian-attack-causes-fire-at-industrial-facility?traffic_source=rss",
    "summary": "Bahrain reports no injuries, as Iran&#039;s IRGC says it targeted US military positions at two bases in al-Riffa and Awali.",
@@ -1687,72 +1764,6 @@
    "kind": "media"
   },
   {
-   "title": "Who is El Chapo Isidro, the alleged cartel boss arrested in Mexico?",
-   "url": "https://www.aljazeera.com/news/2026/11/21/who-is-el-chapo-isidro-the-alleged-cartel-boss-arrested-in-mexico?traffic_source=rss",
-   "summary": "Mexican forces arrested Chapo Isidro in Sinaloa. He was on the FBI’s most wanted list and faces US drug charges.",
-   "publish_time": "2026-11-21 16:03:16",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "US midterms 2026: What happens before the new Congress takes office?",
-   "url": "https://www.aljazeera.com/news/2026/11/21/us-midterms-2026-what-happens-before-the-new-congress-takes-office?traffic_source=rss",
-   "summary": "What happens between the US midterm elections and January, when Democrats take control of Congress?",
-   "publish_time": "2026-11-21 15:49:32",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "French presidential candidate blames media for racist attack",
-   "url": "https://www.aljazeera.com/video/newsfeed/2026/11/21/french-presidential-candidate-blames-media-for-racist-attack?traffic_source=rss",
-   "summary": "French presidential candidate blames media for racist attack",
-   "publish_time": "2026-11-21 15:46:18",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Diallo present as Africa’s Motsepe reiterates support for FIFA’s Infantino",
-   "url": "https://www.aljazeera.com/sports/2026/11/21/diallo-present-as-africa-football-boss-motsepe-reiterates-infantino-support?traffic_source=rss",
-   "summary": "Africa&#039;s CAF join South America&#039;s CONMEBOL in giving unanimous support of FIFA President Gianni Infantino&#039;s re-election.",
-   "publish_time": "2026-11-21 15:20:43",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Tankers hit in Strait of Hormuz as Iran tightens grip on shipping",
-   "url": "https://www.aljazeera.com/news/2026/11/21/tankers-hit-in-strait-of-hormuz-as-iran-tightens-grip-on-shipping?traffic_source=rss",
-   "summary": "British maritime agency reports two incidents near Oman, while Iran says a tanker caught fire due to naval mine.",
-   "publish_time": "2026-11-21 15:01:18",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Man City claw back 1-1 draw with Fulham to end three-game losing streak",
-   "url": "https://www.aljazeera.com/sports/2026/11/21/man-city-fightback-for-1-1-draw-with-fulham-to-end-three-game-losing-streak?traffic_source=rss",
-   "summary": "Rodrigo Muniz set Fulham on the way but Elliot Anderson volley earns Manchester City a valuable Premier League point.",
-   "publish_time": "2026-11-21 14:35:52",
-   "source_key": "aljazeera",
-   "source_name": "Al Jazeera",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Top Drug Kingpin Is Captured by Mexican Army as Gunfire Erupts",
    "url": "https://www.nytimes.com/2026/11/21/world/americas/mexico-el-chapo-isidro-captured-drugs.html",
    "summary": "The arrest of Fausto Isidro Meza Flores, who is known as El Chapo Isidro and was one of the F.B.I.’s 10 most wanted, was a victory for the Mexican government.",
@@ -1900,6 +1911,17 @@
    "url": "https://www.nytimes.com/2026/11/20/world/europe/putin-trump-xi-summit-apec.html",
    "summary": "Standing alongside the U.S. and Chinese leaders, President Vladimir V. Putin secured a symbolic triumph in his long quest to restore Russia’s place as a global power.",
    "publish_time": "2026-11-20 13:56:56",
+   "source_key": "nyt_world",
+   "source_name": "NYT World",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Drones, Texts and Diversions: How Mexico Captured a Most Wanted Man",
+   "url": "https://www.nytimes.com/2026/11/21/world/americas/mexico-captures-drug-kingpin.html",
+   "summary": "U.S. and Mexican authorities shared intelligence for weeks to track Fausto Isidro Meza Flores, a drug cartel leader that a U.S. official called the most dangerous man in Mexico.",
+   "publish_time": "2026-11-22 01:02:29",
    "source_key": "nyt_world",
    "source_name": "NYT World",
    "region": "US",
@@ -2072,12 +2094,23 @@
    "kind": "media"
   },
   {
-   "title": "Trump Flaunts Camaraderie With Xi and Putin but Has Little to Show for It",
-   "url": "https://www.nytimes.com/2026/11/19/world/asia/trump-xi-putin.html",
-   "summary": "President Trump called Russia’s leader his “friend” and marveled at China’s warm welcome for his first-ever trilateral summit. But there were no breakthroughs on nuclear control, the war in Ukraine or A.I.",
-   "publish_time": "2026-11-20 22:34:05",
-   "source_key": "nyt_world",
-   "source_name": "NYT World",
+   "title": "Poland says Russian missiles hit its territory; Trump calls it a mistake",
+   "url": "https://www.washingtonpost.com/world/2026/11/21/poland-says-russian-missiles-hit-its-territory-trump-calls-it-mistake/",
+   "summary": "Poland also joined other European countries in expressing outrage over allegations of a thwarted plot linked to Moscow to kill a U.S.-Ukrainian rapper on Danish soil.",
+   "publish_time": "2026-11-21 22:28:30",
+   "source_key": "washpost_world",
+   "source_name": "Washington Post World",
+   "region": "US",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "Researchers tracked a long-legged bird’s migration. He flew 6,800 miles.",
+   "url": "https://www.washingtonpost.com/the-seven/2026/11/21/researchers-tracked-bar-tailed-godwit-called-phil-migrating-6800-miles/",
+   "summary": "Conservationists say the journey made by the bird, a bar-tailed godwit called Phil, was an \"incredible feat.\"",
+   "publish_time": "2026-11-21 22:00:00",
+   "source_key": "washpost_world",
+   "source_name": "Washington Post World",
    "region": "US",
    "lang": "en",
    "kind": "media"
@@ -2120,17 +2153,6 @@
    "url": "https://www.washingtonpost.com/world/2026/11/21/mexico-seizes-cartel-boss-el-chapo-isidro-among-fbis-most-wanted/",
    "summary": "The cartel leader’s capture was a victory for the Mexican government as it faces increased pressure from the Trump administration.",
    "publish_time": "2026-11-21 15:57:42",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Poland says Russian missiles hit its territory; Trump calls it a ‘mistake’",
-   "url": "https://www.washingtonpost.com/world/2026/11/21/poland-says-russian-missiles-hit-its-territory-trump-calls-it-mistake/",
-   "summary": "Polish Prime Minister Donald Tusk claimed Russia deliberately violated his country's airspace while a military exercise was underway.",
-   "publish_time": "2026-11-21 15:56:44",
    "source_key": "washpost_world",
    "source_name": "Washington Post World",
    "region": "US",
@@ -2204,39 +2226,6 @@
    "kind": "media"
   },
   {
-   "title": "In summit with Trump and Putin, Xi put himself and China at center stage",
-   "url": "https://www.washingtonpost.com/world/2026/11/19/summit-with-trump-putin-xi-put-himself-china-center-stage/",
-   "summary": "Chinese leader Xi Jinping played the role of choreographer and convener at this week’s APEC summit, showcasing his country as stable and indispensable.",
-   "publish_time": "2026-11-19 23:23:22",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Uncontacted Indigenous people emerge from Amazon forest to ask for food",
-   "url": "https://www.washingtonpost.com/world/2026/11/19/uncontacted-indigenous-people-emerge-amazon-forest-ask-food/",
-   "summary": "Their appearance startled onlookers and worried anthropologists as threats to their territory multiply.",
-   "publish_time": "2026-11-19 22:43:39",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Iran war has worsened U.S. munitions shortage, government watchdog finds",
-   "url": "https://www.washingtonpost.com/national-security/2026/11/19/gao-report-finds-iran-war-has-worsened-us-munitions-shortage/",
-   "summary": "A Government Accountability Office report contradicts assertions made by President Donald Trump and other administration officials who have rejected stockpile concerns.",
-   "publish_time": "2026-11-19 22:43:22",
-   "source_key": "washpost_world",
-   "source_name": "Washington Post World",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
    "title": "Alice Huang’s links to the chip underworld",
    "url": "https://www.ft.com/content/f3ad8a81-3890-4a8a-8853-ff0a94b08ba9?syn-25a6b1a6=1",
    "summary": "Chinese executive in romantic relationship with former Nvidia CEO Jensen Huang had connections to the lucrative trade moving chips to China",
@@ -2252,17 +2241,6 @@
    "url": "https://www.ft.com/content/77a283dd-b7af-4e72-8d83-9b53ab86f3e0?syn-25a6b1a6=1",
    "summary": "Western officials and analysts say China’s Ministry of State Security is formidable in scale and technological capability",
    "publish_time": "2026-11-21 03:58:46",
-   "source_key": "ft_home",
-   "source_name": "Financial Times",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Nvidia faces US regulator’s probe into its accounting",
-   "url": "https://www.ft.com/content/9b28ed72-aac4-4291-9734-bf60b66645ab?syn-25a6b1a6=1",
-   "summary": "Securities and Exchange Commission’s investigation adds to difficulties facing chip group after Jensen Huang’s resignation",
-   "publish_time": "2026-11-20 21:58:08",
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
@@ -2296,17 +2274,6 @@
    "url": "https://www.ft.com/content/99711b1a-3e54-4349-9c81-769cf7c96b97?syn-25a6b1a6=1",
    "summary": "Polyamory, effective altruism, demand avoidance — a stagnant society is giving new names to old things",
    "publish_time": "2026-11-21 05:00:36",
-   "source_key": "ft_home",
-   "source_name": "Financial Times",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "US tech stocks plunge into bear market in worst week since Covid-19 crisis",
-   "url": "https://www.ft.com/content/9f3c6ed6-c08f-4710-9683-ee2f5eb25841?syn-25a6b1a6=1",
-   "summary": "Shares in Anthropic and Nvidia tumble as fears over the AI spending boom grip Wall Street",
-   "publish_time": "2026-11-20 21:52:25",
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
@@ -2354,6 +2321,17 @@
    "source_key": "ft_home",
    "source_name": "Financial Times",
    "region": "GLOBAL",
+   "lang": "en",
+   "kind": "media"
+  },
+  {
+   "title": "China’s $1.7 Trillion AI Rout Turns Hot Trade Into Losing Bet",
+   "url": "https://www.bloomberg.com/news/articles/2026-11-22/china-s-1-7-trillion-ai-rout-turns-hot-trade-into-losing-bet",
+   "summary": "China’s AI stock trade, once a hot bet as the nation’s technology powerhouses raced to catch up with the US, has morphed into a losing strategy.",
+   "publish_time": "2026-11-22 00:00:00",
+   "source_key": "bloomberg_markets",
+   "source_name": "Bloomberg Markets",
+   "region": "US",
    "lang": "en",
    "kind": "media"
   },
@@ -2559,17 +2537,6 @@
    "title": "Europe’s Power Market Is Flashing a Warning to Its Economy",
    "url": "https://www.bloomberg.com/news/articles/2026-11-21/europe-s-power-market-is-flashing-a-warning-to-its-economy",
    "summary": "At a factory in Germany, there are increasingly hours when it is simply too expensive to produce steel.",
-   "publish_time": "2026-11-21 09:00:00",
-   "source_key": "bloomberg_markets",
-   "source_name": "Bloomberg Markets",
-   "region": "US",
-   "lang": "en",
-   "kind": "media"
-  },
-  {
-   "title": "Odd Lots: How AI Reshaped Chinese Industrial Policy (Podcast)",
-   "url": "https://www.bloomberg.com/news/audio/2026-11-21/odd-lots-how-ai-reshaped-chinese-industrial-policy-podcast",
-   "summary": "Can Chinese tech companies help the country achieve technological self-reliance while keeping up in the AI arms race? On this episode, we speak with Kyle Chan, a fellow at the Brookings Institution’s John L. Thornton China Center and author of the High Capacity newsletter, about Beijing’s response to the global AI boom and the tensions between Chinese companies’ commercial ambitions and the govern",
    "publish_time": "2026-11-21 09:00:00",
    "source_key": "bloomberg_markets",
    "source_name": "Bloomberg Markets",
@@ -2952,10 +2919,120 @@
    "kind": "aggregator"
   },
   {
+   "title": "The Next Phase of the US-Iran War - Geopolitical Futures",
+   "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE9BRFVpVXZqQ2oyRTlGOUZHQndqcExfUTVYdGh3cVhhWE03RGc4NDc4MFlMWDMyb1NmMzYyQ05vckxrTjNMLU9ha0lYVHQzTm9OMmo2TTJ4VGxNc3Rxcm45UjdXZ081ekdISWRIZjNld0NfS2dP?oc=5",
+   "summary": "The Next Phase of the US-Iran War Geopolitical Futures",
+   "publish_time": "2026-11-10 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "How the Russia–Ukraine War Is Reshaping Central Asia’s Geopolitical Balance - The Times Of Central Asia",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxNczR1TXRRMlZtZEU2SnNpQkJpYzc1bWN6ZlFlcm9wZWIzNWd2Rm9mU01EczhaZ3hGZUZmTWRseE02MTFjYXlmRUFOZFJOeUp0TzEwNmhGNHRmTjk5QTNKa1ZKVVEtNXZYVWRjVEc3UjJGOVZnaTl2QzdSWUo0OGZrMHp5MWU2cV9WODNKY2VXc3UwUEtvaDlIZjhidw?oc=5",
+   "summary": "How the Russia–Ukraine War Is Reshaping Central Asia’s Geopolitical Balance The Times Of Central Asia",
+   "publish_time": "2026-11-12 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Hockey Takes Center Stage In Growing Geopolitical Conflict With Russia - Yahoo Sports",
+   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOR25IMEVNUkhMdjNYMnVMTFBWVTh1bjFxUHpabEs0R1RVQ3NYa2UzMndTOUlFVTd2Ykg5Nmxsbm5rMHJGVGVzRTZ5eVpQMWRyUXlCMk5sajV3djI0NGpVMkx3bkpoekJCcVY0RmVFcEhPeWtBQnZRc3M2WTJ6WFNhWVpIWVlTQWFZSlE?oc=5",
+   "summary": "Hockey Takes Center Stage In Growing Geopolitical Conflict With Russia Yahoo Sports",
+   "publish_time": "2026-11-03 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "The Geopolitics of the Persian Gulf and War with Iran - Foreign Policy Research Institute",
    "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxOdDdDZnJGQkV0ZXNhRmpER2ZrNDNNbFhZQWhkUnQwdktyTW9IOGtNaC1VMHlMclBMcFNGQy1OQmcwY0g2VUstWFJlQmthVG0yckRwRVdQNmF4Z2thN3pXaUNici03eFBIZ3JkUnJheXoxOTVYZXc1VW5FaTBRdHduRUJCYlVqU2kxY2xyelZ3bmdOYlRIU0E?oc=5",
    "summary": "The Geopolitics of the Persian Gulf and War with Iran Foreign Policy Research Institute",
    "publish_time": "2026-10-19 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Geopolitical risks moving beyond conflict zones, finds report - The Business Travel Magazine",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPa3Npc3FiR2Y2ZlkwWDZ4aWhoaXdpdWM4N3M0bFB5RlUxMjhyRFJSTVFQY1JsOWVDRjZRd25VTXdDVXRVU092TkVXMVIyQUUtbGZkeGhmem4yT1VFazc3aExUNnFvSFE4SnlTQ3dIRVg3SS1jTnNMcGU4TDhRM0RFZDlxRnh2M19EVTN4VUNDSzJnRG9WUHFzZE93ZnhXbDdETFZpZQ?oc=5",
+   "summary": "Geopolitical risks moving beyond conflict zones, finds report The Business Travel Magazine",
+   "publish_time": "2026-11-02 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "The Strait of Hormuz at a Crossroads: How Geopolitical Conflict Could Reshape the Global Economy - مركز الروابط للدراسات الاستراتيجية والسياسية",
+   "url": "https://news.google.com/rss/articles/CBMiTkFVX3lxTE1pX1AzV1pwN0xQQ1VlRU02QzNxOERlV0dWeWEzaW1xVGxQdmVSU1hnQXlSS1lValF4bUZkbU9Wdi1XU3hmWTA4TWczb2lUZw?oc=5",
+   "summary": "The Strait of Hormuz at a Crossroads: How Geopolitical Conflict Could Reshape the Global Economy مركز الروابط للدراسات الاستراتيجية والسياسية",
+   "publish_time": "2026-11-14 17:13:25",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Middle East war challenges Gulf role in global energy markets - The International Institute for Strategic Studies",
+   "url": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxNdzhsWko1eVBWWG9EYXZjSEw4SGhRd0Z5TlplUVZVcWJOMm1NcDNWTDl0WnhiNFRVU2E0enRfWHpUREU5TGFkYS1OSlBfVmM3b0w0YURvdUdxZUNLMUFvZEFQREUyQ1E0T21mb1MzTUE0bVVzUzVKVkdMZ3daSkJfLUlzRTF0TFppcUdzMkFONFRzbGYyM1I0Y0FDWEM1N0k0VEh1dW50TExYMzVHNjc2U0FyMmFkUHpua0ttaDdUNUpqalVkSjAxVzBiTWxYMTk2NjNHYkxpM1pKeV9lLWc?oc=5",
+   "summary": "Middle East war challenges Gulf role in global energy markets The International Institute for Strategic Studies",
+   "publish_time": "2026-10-30 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Geopolitical Chat #13: Q&A Session for Paid Subscribers: Will Trump’s Midterm Humiliation Push him to Deal or to Bomb? - Trita Parsi | Substack",
+   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE5RUk40WG41VVJXWG5FcVZFV1VlWUxER2FZUlFVTUlkOEVIaUVDQmR4STFCMmlOcHBCN2xDdThfOFBxQV9nWjYxYlNiSW8yR0ZRNE9iLTNwR2dsLVdIT3AwbGhMMXZUZ1FGUjBVMXpIdjBFcDhpLVlmeVFB?oc=5",
+   "summary": "Geopolitical Chat #13: Q&A Session for Paid Subscribers: Will Trump’s Midterm Humiliation Push him to Deal or to Bomb? Trita Parsi | Substack",
+   "publish_time": "2026-11-05 08:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "The Iran conflict turns hybrid, and other geopolitical stories to know this month - World Economic Forum",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxQOW1UQk9iQWtJNTVEdE1OQ2o0Qzc3U0JzMFBfaHR3ZlhtZ05ZNnRFWUhWWFRFcE9Vbl9oSG5ZMmcxLWM1dUxVZGtLNVQta3NxSEtGaTJYYmdxcHpuamFVaFhQc2xIT3FmaXZiRXlyVXRYd2UycUNqVGdCQUwyel9CejhpTmpvOFlKdkJhVWNIaW8xbzF1RjRERmtmcmVNU19rV09MR0hSRXVtRTFhdjBTTzdQY2RDclM4N2FFeXBRMA?oc=5",
+   "summary": "The Iran conflict turns hybrid, and other geopolitical stories to know this month World Economic Forum",
+   "publish_time": "2026-10-06 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "How Wars and Geopolitical Conflicts Can Affect Stock Market Performance: What History Shows | Chase - Chase Bank",
+   "url": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxOb0stUXVwNjFPUmhyOENJQUJJVnVyLVg1VGcxMm56ekZXUjY3blY1bVhtSWpYYVhPLXNiaVFHUl9RYjhiV0FPVG5ROE1BYTRCUWV2WFgtekVrNm00WnlORmJRQmVYalF3d1hWb0JuRVBMY3lBbnVxeTZQajRrWVBrTHRab0dZeVllMVhGVjI5YzBDVWFjVnJMcGZuNi12M3VHUnBxUDVlTVExeHNfcVJPZDNqWHNPWDFPdDFieVhoWXQxX3hpLUFveQ?oc=5",
+   "summary": "How Wars and Geopolitical Conflicts Can Affect Stock Market Performance: What History Shows | Chase Chase Bank",
+   "publish_time": "2026-09-29 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Yemen’s War Reaches the Horn of Africa - Geopolitical Futures",
+   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTFBiMzg2NHBGZV9kQXFoSW5xS2NLdzlCYU1xckdJLVVSeGtMS0JscXBINHJKOE5tZjZZYUlEeFo4U19EQjlkYldya0gtTWtZaGVYeFdQQnJrYnR6eVRTLW5UdWlOUHBYcXk0ZVlyczRYR2d5OTlFQmpOMVpn?oc=5",
+   "summary": "Yemen’s War Reaches the Horn of Africa Geopolitical Futures",
+   "publish_time": "2026-11-04 08:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -2974,21 +3051,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "U.S. Geopolitical Leverage and the War on Brazilian Cartels - CUNY Graduate Center",
-   "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxOcndXTXdodUJvVUZXVHRiZlpRWEtJZWpnSnpqQkYteG5vRUZUTFZqYlcxRUNPRTdTVG9pWjFTOExmMWN5UVExN20tVVM5U0lGTWYtNTd6ODVfdWFRVnQycmxqVUdhUFNvVG9neE1UMjJjVm5YX1FNbm80QmJPek4xRHJPUVpSRG93?oc=5",
-   "summary": "U.S. Geopolitical Leverage and the War on Brazilian Cartels CUNY Graduate Center",
-   "publish_time": "2026-09-24 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "How US financial markets react to geopolitical shocks hitting oil supply - European Central Bank",
-   "url": "https://news.google.com/rss/articles/CBMipgFBVV95cUxOWU12NVJXUzZfckFZbXh5RHZiTkRLNDZ5clNDNUFKOGxoNWU1WGpNZFJTdkRwT05sSlI0MnoxWXZ6al94WWZsXzY1VTJlQndfMmZhUUlRMGYwbHRQNU9OOEhrM0hLd2tCUFc1MV9jdzdud2FtZU9vMEZUcElvNGZkb2w2dzhRd0tQYll6SDhDUFJYejRIVWxKZnZWS2VVNExiVlZCQ0pB?oc=5",
-   "summary": "How US financial markets react to geopolitical shocks hitting oil supply European Central Bank",
-   "publish_time": "2026-06-25 08:04:26",
+   "title": "Global Tensions in Geopolitics - Geopolitical Futures",
+   "url": "https://news.google.com/rss/articles/CBMicEFVX3lxTFBhSGZwY2JsUmN5aTFoNE1wUjA5dkllVUpmVGl3OGJTbjVfd0pYbDlUSktPdHhObEY5ZzBYSTVGN2RGaWl0NkplbU93cDRnbnlnSGE0V0hTblJQTS1ycE9QQ1R2LWU3aTJnOFYzcnlPLUQ?oc=5",
+   "summary": "Global Tensions in Geopolitics Geopolitical Futures",
+   "publish_time": "2026-11-02 08:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -3007,10 +3073,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "From war to water scarcity: how geopolitical conflict is threatening humanitarian access to water in Yemen - Bond",
-   "url": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxOenB4UzZRSnAxcldNTVR5TGJpakZQbnNHcG5TYmdwbklfS0VkakIzRVVDeXRzZC03S3JfcG9YLUMyU1FuVEktWDhCTjczZG9TNDJ2Tm5LTTNBNUJKeDF3YV9JMGlzSm1nS0l5cGd2NmhGZ3EwakQ5VktfaXVjUUhIRVBnOFNLbHFSN2xQOXJZSGFLLWxKRzVaUnlKXzFXbEdRSTF0dFlUYlBXdTJWaTR2SWI3UWE2YVVGY1NhYnNoclZjY2FNNWtMdVBLU0VYUTZCaEJYMmk5c2p1cVE?oc=5",
-   "summary": "From war to water scarcity: how geopolitical conflict is threatening humanitarian access to water in Yemen Bond",
-   "publish_time": "2026-08-11 07:00:00",
+   "title": "Daily Memo: Israeli Election, US War Plans - Geopolitical Futures",
+   "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBYZnVsbEMzSTMzTVdVekFvM0ZQaDNIdWZLeU83VTRfMEtFRzV0VTFrN2l5enNRek9TR1NRaWc2SWJHUEZlOFBSMGtSc3VCYlJJZ2xIanJUUEs1ejJKX013dHRNT1E2UTVBU0czRURRYlZ4eFJFSGoxcFUxNmU4QQ?oc=5",
+   "summary": "Daily Memo: Israeli Election, US War Plans Geopolitical Futures",
+   "publish_time": "2026-10-30 07:00:00",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Geopolitical Chat #14. Q&A Session for Paid Subscribers: Will Netanyahu Start the War and Force Trump’s Hand? - Trita Parsi | Substack",
+   "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE5RRnRoU0kyX0ppaVhGTUZTOTJZRXhxVElVeXp4SWk1aUR2YXdsSkJQWFkyakZUSVdUT2wtb0oybWxCN2ZtajV1NjhOTERXQXRVb29XYXFteGs2cWxOenhwTlVzczFQMENxUUpFWS0xWTZzVHQwMkZ4LU9n?oc=5",
+   "summary": "Geopolitical Chat #14. Q&A Session for Paid Subscribers: Will Netanyahu Start the War and Force Trump’s Hand? Trita Parsi | Substack",
+   "publish_time": "2026-11-14 17:05:39",
+   "source_key": "gnews_conflict",
+   "source_name": "GoogleNews·地缘冲突",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "U.S. Geopolitical Leverage and the War on Brazilian Cartels - CUNY Graduate Center",
+   "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxOcndXTXdodUJvVUZXVHRiZlpRWEtJZWpnSnpqQkYteG5vRUZUTFZqYlcxRUNPRTdTVG9pWjFTOExmMWN5UVExN20tVVM5U0lGTWYtNTd6ODVfdWFRVnQycmxqVUdhUFNvVG9neE1UMjJjVm5YX1FNbm80QmJPek4xRHJPUVpSRG93?oc=5",
+   "summary": "U.S. Geopolitical Leverage and the War on Brazilian Cartels CUNY Graduate Center",
+   "publish_time": "2026-09-24 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -3029,10 +3117,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "How to understand the Iran war market swings: A geopolitical put option - Atlantic Council",
-   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxQWWhPV1hhUkdiTExmbUVZYlNLTmdSS2RROUVJSmp5bXhhdWRQa2hFS0kzQlhMRlhCOGdjVG02aW8zbUF1R1IwWWJDVml1STBpQXRkdlhReGRlMGZDUmFmU1NWX0ZCaldPMjZPWW1EOHNjLUp0Z1J6QUpIeFhKWk9kRVp5YWszUG9aelNFZllNclZlWGZlOFd3WEEwRjZSeVFZd01YT3AwX3NoYldBenBLQzEtV0pwX3FSbEJsRw?oc=5",
-   "summary": "How to understand the Iran war market swings: A geopolitical put option Atlantic Council",
-   "publish_time": "2026-03-10 07:00:00",
+   "title": "Research shows geopolitical conflict is reshaping business decisions - Security Journal UK",
+   "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE4ydTJUdkF3eHhsUVZhQ3JHM0Zta0FLamk2TGhoV3o5RzBjSG82QkZZZXdyU3ZqbnlQNE5ZaUZDajJ6dzBMYldwNTNtNXVEQWQyMkFaNmpVdWNyTEtxRDg4cGFGVUc5c0NDYTdCdVFIdjcyMjRHWWN2UDJkRFlRVUU?oc=5",
+   "summary": "Research shows geopolitical conflict is reshaping business decisions Security Journal UK",
+   "publish_time": "2026-10-30 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -3040,10 +3128,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "The Iran War and an Emerging Geopolitical Order - Middle East Council on Global Affairs",
-   "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxOYU9VUGlLOGkzek5wOHVaa3NadUxoV25NZHFoZWtfbzMtTzFNeEpyemlMSnM5NmlpazFhY1ZTNU5Oam5FYXRTUlkwOXV0aGVOMXBpLUo5ODN1RzMwQ0VCSGx6cmFwMkN5SGsxT280dlc1RF96Q3p0czVzX0dDYmMtWnhLODQ2bUUxYlE?oc=5",
-   "summary": "The Iran War and an Emerging Geopolitical Order Middle East Council on Global Affairs",
-   "publish_time": "2026-05-10 13:44:00",
+   "title": "Secretary General Berset: “European unity is crucial in the face of geopolitical challenges” - Council of Europe",
+   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxObEZjSDM3TmR0TV8yemUxcHNyMkcwOXVlV3l3VU1GLXMtdkZLcnllSW9kcmVBTUJocHBIb0xXeDlqcGVPbWJnSUxHTmpBSDJrcnJHZS1wd0Mzc01WTjRCNlFSdFlQblQ5bVBiWDVNVDBaM0NGRWVSOTNnNjAzRXBLVlJEenRBVU0yRXJCTGtyVVkzbkpvemZTNHh0R1JDZUpyOGJVV25mcnVuTEI4RDFRMjNtY0FTTDRkTEdqVm1KUGI1VGJR?oc=5",
+   "summary": "Secretary General Berset: “European unity is crucial in the face of geopolitical challenges” Council of Europe",
+   "publish_time": "2026-09-02 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -3051,131 +3139,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty - OECD",
-   "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxOLWtjNTJyTFdDMVNiQU04ZXROeXlrSUJQUTVGVUFfRXJUN0pFaXUyN1hjQzJDX1hTYnZSb0U5M01LVDRFaWkwdWxDcnItckwtQ1NTNDdNRGJUZE85VG80Tlc2X2NRZndqWWV5OFJIdkhoUndJR2lyR1NzM0ZWMWlKUXZxRk03NXY0VTdPQzlqam03cTU1RkwzdHlWRTJRY2tPOU9GdHhNWVFKZ3Y5YXdOWXJrT3NwTXlPMGZadkh5MWhTWXluQ3YtX01aVEhTcnBTQXhqQjBsYmdac0pQRjVBNlBOX290M01h?oc=5",
-   "summary": "Insuring against war: How to protect investments, businesses and households in times of geopolitical uncertainty OECD",
-   "publish_time": "2026-04-28 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The Geopolitics of Russia’s Civil Nuclear Exports Four Years into the War - CSIS | Center for Strategic and International Studies",
-   "url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxNN1hNcEhsSW1RdXNGaXRJOUc5elBod2d5VlQ5T2hJU3BlVlhEUGlYU0VCU3FUdFpxOHhSOHBfZ0hRMzY0NWxPajd2c3MyaUtZQkdaWUxxbV9DU3NjTEtkX21qSU56VWhDcTF1d3FDNXpTZ3Z5V3lkcHdBc3lEYmhHajBpMjhoSlJaTWR2RXQ2VQ?oc=5",
-   "summary": "The Geopolitics of Russia’s Civil Nuclear Exports Four Years into the War CSIS | Center for Strategic and International Studies",
-   "publish_time": "2026-03-06 08:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Geopolitical analysis of the imposed war against Iran - Al Jazeera",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPcmJwVk9DMnJQYkZZZnU1SzNoV0VSc0JmaWlrZklKNlQycWNhR2dCMzJRV0RITVlVTlNNWTRLNjRMaUJTYzBXWjh3ejhvSW8wZXpWZHdZR21iWnpmbzg4Ykw4TEV4X3ZzaEtvSW9Od3lXTTVIbjEtN215SWpBNmJJZkhEeV9ydXdtRVZQV1BVd3hKNTdhWGV5dS1CUHdmNU3SAaQBQVVfeXFMUHRPNHdUYW5Mc0daR1k4T295OTFkXzF0RnAwQ0NxUjQxak96LV9ONE9Rd0VJbjFWdmE2OTNfeVZNZHJ3T3hZX0ltb0pTZ3Jxa0RxWmpDQ0w5bHZocXdncVRpZlQxMUlMYkZRWkN6Nm5YamdGVEpiZU42Sk52ZlpoM2lzaF9SemVEdVRBNjFWX1FsaTVkWm9JeGZVa3N0WnhEVUl3VXU?oc=5",
-   "summary": "Geopolitical analysis of the imposed war against Iran Al Jazeera",
-   "publish_time": "2026-03-10 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Geopolitical conflict impedes climate change mitigation - npj Climate Action - Nature",
-   "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE5UcXExOHlIOFk0c2dDT1V6NWJDU0w4SmdCWWV2Z0kwVktFTGJsZzJ3R3dJMlpWdHN6b3RDRWpMVUpZdHZyVzgzTkduQWlhNU9tM0FveEtpSDh2MzMzTFVj?oc=5",
-   "summary": "Geopolitical conflict impedes climate change mitigation - npj Climate Action Nature",
-   "publish_time": "2025-03-29 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Ukraine: Conflict at the Crossroads of Europe and Russia - Council on Foreign Relations",
-   "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxORHV2M1F0YWwzOWtTeWlKa1RvR3ZXWGFieU5qRXVJX0p4aXZXbWVqTVVJREhiVzlTX25CUHd1eGt3dVd2TmxaY2JORUwwUDA1d0wyRkFjbWZkbTR5X2NJd1VHT3cyanF5UDg4dTdzZEFGc194eGEzMjFtX3loUEtzOG10SGFaQQ?oc=5",
-   "summary": "Ukraine: Conflict at the Crossroads of Europe and Russia Council on Foreign Relations",
-   "publish_time": "2026-01-12 11:45:27",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Strait of Hormuz disruptions: Implications for global trade and development | - UN Trade and Development (UNCTAD)",
-   "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxNOHdxNk9JZFhOX2hpU2w3QkVyTjBzaUdHd3hGQk5oWmZNeVhGYllrZVV0amttZ0hPdFBTTEZQNlFuX21TbkF4ZEo1Qk9OQnk3SlFTbjd1WTBnaXdJQTVreGV6NlVMMDZ6ODE3ZVBwbVhoeEV1UFVCWk1HcUJpbUtrUVFXUzhLRVliaGo3RnR5NjJYNUlqN21iVnV1VXVSalU?oc=5",
-   "summary": "Strait of Hormuz disruptions: Implications for global trade and development | UN Trade and Development (UNCTAD)",
-   "publish_time": "2026-03-10 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Impacts of Geopolitical Tensions: What Russia’s War in Ukraine Means for Cooperation and Scientific Programs in the Arctic - HARVARD Kennedy School - Belfer Center",
-   "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxNWVNodl9KcU1tOENNR3oxb05oeTJlcGhOcE9UZnMydXNyb0ZWU2JLR2V5eXpJTHdVUjE0SzdKQTVqUWJSYzJ0TnpVWEZjeUFMUndWUHI5akhCTW9xcDJORXUzRzdGTU5FczF3OURQWU9DdGY5YUVCa3BDc1gxVEI5NkpUWlFtaW1PSkl3ZllVWG85OEY4ODd0MjdEU3VMdGNkMFN5TC05SkdZcDl4aWRUNE1ycm9UbFlhb3NBSDN3anc?oc=5",
-   "summary": "Impacts of Geopolitical Tensions: What Russia’s War in Ukraine Means for Cooperation and Scientific Programs in the Arctic HARVARD Kennedy School - Belfer Center",
-   "publish_time": "2025-11-27 08:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Unpacking the new face of conflict: Sudan’s civil war amid a fragmented geopolitical order - Vision of Humanity",
-   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxNMVFfVklMeG5Kdm1hQmtqcjN2OHVUdm5XaUVieEVTdFkyQnc3WXdfeFpkaVIwQ2pWVDhucEZ4MnhRd1N3S05PV3pXZXBqU0E1VDIzb1JwejZMdmFkMGpfTk8xZFNxQ1dJdG10dWcwa3oteTNjelpOaEI2dzczbmJHZk9fTXVycHQxWXdkMTJzbF9icElpb1I1Q0RqWHVKc2xrbl9tQlJuV0NBX21QQmpodm9wSEhadXNXQTdEd2VCYw?oc=5",
-   "summary": "Unpacking the new face of conflict: Sudan’s civil war amid a fragmented geopolitical order Vision of Humanity",
-   "publish_time": "2025-05-22 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Demystifying the Enemy: Putin’s Geopolitical Calculus and the War in Ukraine - Georgetown Journal of International Affairs",
-   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxNX2Z5OHotU2lscUZlZHo3UkhFaFpMWVVMNzhGVEd1SHF1aEdmcHZrcmxha0gzc09YdzNZOUtDMnN5a25SaUxaYnhrTHFnWHlNX2JRdjZaYTFpZUJnaGtocVc4X2g0dmxSaFh5eFYyT1pPS2ZRXzN1WkRjZkp1bDlvN0ktZUkzOFJ1YXhvSlMycE5HZXRMWWxybDQtU1lMdkt1WjRwdVNRTFBYU2h1SVJXVkljVENnVVIxRzhNYmNB?oc=5",
-   "summary": "Demystifying the Enemy: Putin’s Geopolitical Calculus and the War in Ukraine Georgetown Journal of International Affairs",
-   "publish_time": "2024-08-28 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Middle East conflict: How geopolitical risk is reshaping data center resilience and investment - Marsh",
-   "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxNdGNUMTJXc3prV3JWV0cwaGV2ZUY4a2JmcjByT0FxS2VGM01PeHZ6bU1HMng0NEdwXzA5emNkemRWMERMcDhfdmNEU2RqejFfTUNoNUpHcWJuWkJZUHJjSjBpMjNTTGRkQkxZOGdPREV0MGVVV3ZVTEVlUGhvM0dMd0VmUm1Eb1E3VGEteHJLWG85SWRDZ2RBR2U0Z3hveE03OVdDYlBldkQtZ0hRZGc2WVdyVVA5OXJKYnFoZTFUOU1WT3hpTUdMX3BhSzFLclVSczNxNg?oc=5",
-   "summary": "Middle East conflict: How geopolitical risk is reshaping data center resilience and investment Marsh",
-   "publish_time": "2026-04-23 17:17:58",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "The geopolitical implications of the Israel-US-Iran war - The London School of Economics and Political Science",
-   "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9sYU5MWGI1aFlIRTVZODRPOGtfdDM3S1ZLU016bEFMdlBYcFQ2M1ZmSHhsSm5GTTUzQWEzZG5CWFNUR0RaamgxRnZ2TmcwY0FRSkE?oc=5",
-   "summary": "The geopolitical implications of the Israel-US-Iran war The London School of Economics and Political Science",
-   "publish_time": "2026-03-17 07:00:00",
-   "source_key": "gnews_conflict",
-   "source_name": "GoogleNews·地缘冲突",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Mar 13, 2024: Globalization at a record high - despite pandemic and geopolitical conflict, reveals DHL Global Connectedness Report 2024 - DHL Group",
-   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPaklscHFjVWtmMHpEdzBXa3pfdHBYVEFNSS1NdzlRS1MxcFpicVZxOThpeDBFM09LY2FTOXdHQUlGaTdUU2c4M2hfVmRaemJqXzBGWjBwV3JxSmNVdll1OExKbzg4cG11bS1EeUEzYjV5X0ZGM1VrOHdMc2s1RVo3SFFuamd1WlZuQjlJRHV0R3ZJRkxmLUtLOUY5REppSDY1ZkV2YQ?oc=5",
-   "summary": "Mar 13, 2024: Globalization at a record high - despite pandemic and geopolitical conflict, reveals DHL Global Connectedness Report 2024 DHL Group",
-   "publish_time": "2024-03-13 07:00:00",
+   "title": "Understanding the world, from the Cold War to the age of AI - MIT News",
+   "url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxPa0V3V0V4dzJ6VENNS0tLeWVjaWFTTkw0VDExY25ncERJVE45NXhFUng5UDVkNk9kOWpjQVpfUmpSVkRvNXZjdlEyZWVTekV4YzVMXzRrSGhKM2oxa0FLclVuTWNjTUZCcUJBZ05jQS1WTXVLUlFYS3Q4WkhSQWg5a3BQOA?oc=5",
+   "summary": "Understanding the world, from the Cold War to the age of AI MIT News",
+   "publish_time": "2026-09-17 07:00:00",
    "source_key": "gnews_conflict",
    "source_name": "GoogleNews·地缘冲突",
    "region": "GLOBAL",
@@ -3186,7 +3153,7 @@
    "title": "Map: Earthquake Shakes Peru - The New York Times",
    "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxNMFI2ZkdVM21PODM4OUotYlUzSUNudkxJSkREMkp5aEJ4bHFfNVNfNHZXenA3ZXdFeDQ2empmdWJqTDZ2aFp5cy1oNWlHSWRfd1AwOVhRNUdzTlNKcEliazZ0Q2xNMUdRX0pRSjJyeFZ6WVV6TFZmYnpsSzc1QnZWdnhKMl9ZZGhOV3p1MGhZUE1sUHQwMzBIVmNR?oc=5",
    "summary": "Map: Earthquake Shakes Peru The New York Times",
-   "publish_time": "2026-11-21 21:28:30",
+   "publish_time": "2026-11-22 00:08:23",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3227,6 +3194,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "Preliminary 3.3-magnitude earthquake reported off Los Angeles County coast - CBS News",
+   "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE11ajZDZnkyMy16bHVxbi1jMDJ1ZW5QTjFtU1hTUl9ueFVXUEtZNGVGY0J5aF9UMjZfYjI5VFNmTHY5MzkzdE1VNmpSZDY4cWdYeUlQWlZVNnBBRnMxdUFCTWNHcl9pdWJ0bVRfdEdKcnIteUxhWEJHX01TSGwwUQ?oc=5",
+   "summary": "Preliminary 3.3-magnitude earthquake reported off Los Angeles County coast CBS News",
+   "publish_time": "2026-11-21 14:37:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Shaking reported in Australia after magnitude 6.8 earthquake rocks Timor-Leste, Pacific Ring of Fire - FOX Weather",
    "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxPbDRnMGRjOWtscHlQUkVHNm9EX0tsOEZFNUl5TXR5MUN6RTUtTkhTUmZqU3MxbHYxLTdreU5TVXVmek0wX2xrbVc0eDJ5WVlBV2JHbXVKTlA1U29PWTJIWEdHOEszazNGMHhSd2hVNV95bG13cU5ZRkRZV3FNc2Fhd0hsazgzeEJfZ0lNVkVpdU10LVZFcjYyUlNYYlQ5R0NxRkk1SXlDODZBVTZmRjBUMGxpZGpfNEVC0gG-AUFVX3lxTE9Hd094QTcydEhFX3BaZWtaNzhweFExUHBaaUt1S0FkUEVmUHU4ZS1PYzYyTEtLaFFCSTZ2Wk9WRHZ4VWxKZGJXVFpfanRXTk1BeTdQanR5VlhXeTlsMDdJMWotRTRCU0NGRUE2aDR1RnIybEp4bTlTVXg2ZnRZMnVmQnZaMjlhVUt4Smg2Q1FBNEN1ekJwT1hNN04zaDFVS1ZQYWRRTDBWWlZDdEZNcTgtLTk1NnNrbGRnUUpnaHc?oc=5",
    "summary": "Shaking reported in Australia after magnitude 6.8 earthquake rocks Timor-Leste, Pacific Ring of Fire FOX Weather",
@@ -3238,21 +3216,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "3.4M earthquake strikes King County overnight - KING5.com",
-   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxQaXIxc096SGFVR24tREpPcUthSDVqWkx3Q1lfNWNxOEJRS1k5SWNrV0Q5U0EtQXpRa05ZdTdvMXNuOUpxN3BPTE40elFIVjB0TTNCcjZaNVRUTUNpNnNuZ3FiVTlPNmc3Rm9MdWlDejFZS1V0dm1IeDAxVUJ3SDYxdUtnOUw0bVJwc1N4MzBNYTdiWW1MQi1RLS1lOFczLTU4Q2tVYlpiZTl3U3I2dzh0TExMQVAyRmdh?oc=5",
-   "summary": "3.4M earthquake strikes King County overnight KING5.com",
-   "publish_time": "2026-11-21 14:47:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Preliminary 3.3-magnitude earthquake reported off Los Angeles County coast - CBS News",
-   "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE11ajZDZnkyMy16bHVxbi1jMDJ1ZW5QTjFtU1hTUl9ueFVXUEtZNGVGY0J5aF9UMjZfYjI5VFNmTHY5MzkzdE1VNmpSZDY4cWdYeUlQWlZVNnBBRnMxdUFCTWNHcl9pdWJ0bVRfdEdKcnIteUxhWEJHX01TSGwwUQ?oc=5",
-   "summary": "Preliminary 3.3-magnitude earthquake reported off Los Angeles County coast CBS News",
-   "publish_time": "2026-11-21 14:37:00",
+   "title": "Polis submits second Major Disaster Declaration application for floods - Colorado Politics",
+   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxOT1RUcjdXcnpyRkczeGlXUzZ2VnlGVjNXMlRtQy1hb2w2VTV5UUhrdEdqUWZUTHlHMC1ad1VWSDBhdDdUbmc2ZDFZN3ZVUjJHeE41Q2stOFNJcEdHQ3B6enA1VmZScnJ2MWdaLXVtS3F6YkdRZDhLWFRTc3FhTDBuWFF4SmxMbDg1N0Z4bUh0N3VhbGk0RVl5TWtqWFdLRmpEU05Yc01GSTBEV2VTVkhFa1FDOWZZUQ?oc=5",
+   "summary": "Polis submits second Major Disaster Declaration application for floods Colorado Politics",
+   "publish_time": "2026-11-22 00:59:41",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3271,10 +3238,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Magnitude 6.7 earthquake shakes Peru’s Andes, with no damage or casualties immediately reported - ABC News - Breaking News, Latest News and Videos",
-   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQUHlxUFpCc2R2WDExaHpuckRwRlJHNnZRTEh2YTRmYlNoMGVuQjU5UW5haVFhZTc1X3FXdzRQT0RJLVBtNWlETlRyZTdPZHBRNXdNODI1NGRxMlpYbTNmU2psdDVCVTlXSHhtSm1lVjZseTl3WHJkMXJtdGVmemU1QkR0cUNFLWlVTW51d2ZVV0NMRG1fWjBfOHFNTnpwWTBvTklDTzJqckdDdllEVmFCaFZnM2PSAboBQVVfeXFMT1JQTmhmYjJFVzI3VWwwRWkzczVpeHhRd1BRTVFjTkJrMDRoSUdPSFBEZS1KdTQyOVA1VG0yV0N4R1I5LXZaNTdmVFFlemNVcjhmUkZqVUhjT0lkZTh5Yzg1WjM0NmZ5bWlENVRGRFFRYV9iWWFBeGRITVVaT0UxVXJ4XzdZS21QRjNxTDB1YWEzSUdCRVJORm9aM2hBYXdITzRhZFpmdkJTWWVZTlpBd3hJUVRzckM1Q0pB?oc=5",
-   "summary": "Magnitude 6.7 earthquake shakes Peru’s Andes, with no damage or casualties immediately reported ABC News - Breaking News, Latest News and Videos",
-   "publish_time": "2026-11-21 04:59:46",
+   "title": "3.4M earthquake strikes King County overnight - KING5.com",
+   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxQaXIxc096SGFVR24tREpPcUthSDVqWkx3Q1lfNWNxOEJRS1k5SWNrV0Q5U0EtQXpRa05ZdTdvMXNuOUpxN3BPTE40elFIVjB0TTNCcjZaNVRUTUNpNnNuZ3FiVTlPNmc3Rm9MdWlDejFZS1V0dm1IeDAxVUJ3SDYxdUtnOUw0bVJwc1N4MzBNYTdiWW1MQi1RLS1lOFczLTU4Q2tVYlpiZTl3U3I2dzh0TExMQVAyRmdh?oc=5",
+   "summary": "3.4M earthquake strikes King County overnight KING5.com",
+   "publish_time": "2026-11-21 14:47:00",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "3.4 earthquake strikes near Auburn Friday night, did you feel it? - KOMO",
+   "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxOT1RmWGNpSEVZZlp1aTFTNlJOZmxRLWNiZDZQSmRTeTdKV1lFejZjN09XTEFlbDdscUE1QTVzQ0pUN0lhdHpfQ2ZHR0NBWXAtcFc4Qk1zdE1PZExnd09GS3M2eGVPNEJPMHpoOTU1X2ZncEhnTjhjaXZrTDhydWNJeUhhNVpjTXFVVnpzS0FmS0poeXpobFRKZmZn?oc=5",
+   "summary": "3.4 earthquake strikes near Auburn Friday night, did you feel it? KOMO",
+   "publish_time": "2026-11-21 19:20:14",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3293,10 +3271,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Magnitude 3.4 earthquake shook King County late Friday night - KIRO 7 News Seattle",
-   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxPQmxrVURqZXFxTERtN0xPRExPbjZmWGJZdnI3SmxwLUdNOXFVTFBMRm1OV3hQMTZEd2paZVNFRjJkNi1mUnVCM09faGIxaXlBQ3c4ZU9SYTFOWlpSczVUV1djNU9ONWxZcWhnVExzWEhiaXFlU012VXZUMGZUS0FFakFVWFdmTVQ1ZXppYWxnc1ktYzMxaGVLTVRPZ1JlaEhyaXpjbHJmOTRwVTJEamxoU0hkNzQ2cjRPRjFiM9IB0AFBVV95cUxPbjB2OE9WN0RmUEV2c3B1YzhFdGdReDMxZWh4aWNZeXM4aUpxYUdCX0l4b3hZaTZCY3JWNmNGUUx0RmU2VnhYLXJIMmItR3VPWDl3V3pfY3psdXRHa2VXVlBERVRYUkc1dHI1TUQ1Ykp0NlE2Q2xTNEhKdEJiOG5iQWNBSi1CdUo3WjFSQjh1MjY4UEF1VERfYjdhZHhJVzBVeERKREVjQzQ0eTZnYmR4VmM0cEJSQm1aaHdSSjhia3RTOEZRWGF0VF9BdjU1dXl3?oc=5",
-   "summary": "Magnitude 3.4 earthquake shook King County late Friday night KIRO 7 News Seattle",
-   "publish_time": "2026-11-21 16:05:04",
+   "title": "Magnitude 6.7 earthquake shakes Peru’s Andes, with no damage or casualties immediately reported - ABC News - Breaking News, Latest News and Videos",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQUHlxUFpCc2R2WDExaHpuckRwRlJHNnZRTEh2YTRmYlNoMGVuQjU5UW5haVFhZTc1X3FXdzRQT0RJLVBtNWlETlRyZTdPZHBRNXdNODI1NGRxMlpYbTNmU2psdDVCVTlXSHhtSm1lVjZseTl3WHJkMXJtdGVmemU1QkR0cUNFLWlVTW51d2ZVV0NMRG1fWjBfOHFNTnpwWTBvTklDTzJqckdDdllEVmFCaFZnM2PSAboBQVVfeXFMT1JQTmhmYjJFVzI3VWwwRWkzczVpeHhRd1BRTVFjTkJrMDRoSUdPSFBEZS1KdTQyOVA1VG0yV0N4R1I5LXZaNTdmVFFlemNVcjhmUkZqVUhjT0lkZTh5Yzg1WjM0NmZ5bWlENVRGRFFRYV9iWWFBeGRITVVaT0UxVXJ4XzdZS21QRjNxTDB1YWEzSUdCRVJORm9aM2hBYXdITzRhZFpmdkJTWWVZTlpBd3hJUVRzckM1Q0pB?oc=5",
+   "summary": "Magnitude 6.7 earthquake shakes Peru’s Andes, with no damage or casualties immediately reported ABC News - Breaking News, Latest News and Videos",
+   "publish_time": "2026-11-21 04:59:46",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3315,10 +3293,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Yes, that was an earthquake - West Seattle Blog...",
-   "url": "https://news.google.com/rss/articles/CBMic0FVX3lxTE44NnhZVGQwQWpXSHBHRmphbmVlZDZRTzhJeWh1UU5FV0NfelRyQ1ZBWGo3cm81bFVLRHlVR21YMnI2OFJpWlNVdGYtTUZzWkd2T3Y1RFM0YkFFYVJDR1lvM0pOdVJVVlNQanhPTS0zbzF1VzA?oc=5",
-   "summary": "Yes, that was an earthquake West Seattle Blog...",
-   "publish_time": "2026-11-21 07:24:00",
+   "title": "Florida flood victims still waiting for federal disaster aid - WPBF",
+   "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxOUDBFMWJobnp1U0pGcnhGTzhaY2VTQXlfVVJFR2hQZ3V4YXVwMUYzQXFoRG55WUE4Y1RnS3RjOXpPTEZpR2VVT25ibmpqU3FGM293bVI4Vk9NbDNGeHVfNU5VNXU1a1plZ192ampQemV1Yzh6bnpxOUhJZ2Y5NGl3ZmRqVGtqT1Vmd256eG9IeDZaRnc?oc=5",
+   "summary": "Florida flood victims still waiting for federal disaster aid WPBF",
+   "publish_time": "2026-11-21 22:14:00",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3348,32 +3326,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Flash flood shuts down first floor of the UU - Mustang News",
-   "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5sNlJVR3dlMVUwclBRZC1NLXBXRzFXTFpnWnZVT0xMZHdlNTlMZm5qN0NMLVFJME1TS0FyQWhuN1NpaGFOeWdCVHZha3pjNDNia2xEZmt5cUo?oc=5",
-   "summary": "Flash flood shuts down first floor of the UU Mustang News",
-   "publish_time": "2026-11-21 20:14:07",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Not in a flood zone? Citizens will still require flood insurance starting Jan. 1 - FOX 13 Tampa Bay",
-   "url": "https://news.google.com/rss/articles/CBMipwFBVV95cUxNOXVGMzJoTGkycEJ3WGh6ZlN6aEk4dFMtZzI2dm94Vm82OXdGNU1iaHdTaVNta0xIaVNRd3VJSXBpbmticmdMczluTHp0UXhwYXBPc1Fib2JPWEM2NUIzU2cwQjd5ZVRQdEpLajZOWnJ0Nzl5Ynd0Z040OWlVYUJzRldlQm1NSFJPTDRtcXNuOWowSElhV1RDcUIwdTNELUpaa0htWEMycw?oc=5",
-   "summary": "Not in a flood zone? Citizens will still require flood insurance starting Jan. 1 FOX 13 Tampa Bay",
-   "publish_time": "2026-11-21 03:00:13",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Nov. 21: Earthquake measuring 2.1 shakes region close to Pinnacles, CA - Sacramento Bee",
-   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE9tX1d2WVlqTW1BTkxUM3RkRDdqRk9rem9NeHBkTW5VREdwUVZKc3hrOXV0ZEpvUlQzN0M4bC12MkpVSmFvSnRuMFhTQ0xoTGNTc2xCNl9XNjZmM1VkS3VFaVU2U3Q3STQ5a2tCeGNqZ0xJQ2RPVXhsQ2NhLTU?oc=5",
-   "summary": "Nov. 21: Earthquake measuring 2.1 shakes region close to Pinnacles, CA Sacramento Bee",
-   "publish_time": "2026-11-21 13:35:05",
+   "title": "Magnitude 3.4 earthquake shook King County late Friday night - KIRO 7 News Seattle",
+   "url": "https://news.google.com/rss/articles/CBMivAFBVV95cUxPQmxrVURqZXFxTERtN0xPRExPbjZmWGJZdnI3SmxwLUdNOXFVTFBMRm1OV3hQMTZEd2paZVNFRjJkNi1mUnVCM09faGIxaXlBQ3c4ZU9SYTFOWlpSczVUV1djNU9ONWxZcWhnVExzWEhiaXFlU012VXZUMGZUS0FFakFVWFdmTVQ1ZXppYWxnc1ktYzMxaGVLTVRPZ1JlaEhyaXpjbHJmOTRwVTJEamxoU0hkNzQ2cjRPRjFiM9IB0AFBVV95cUxPbjB2OE9WN0RmUEV2c3B1YzhFdGdReDMxZWh4aWNZeXM4aUpxYUdCX0l4b3hZaTZCY3JWNmNGUUx0RmU2VnhYLXJIMmItR3VPWDl3V3pfY3psdXRHa2VXVlBERVRYUkc1dHI1TUQ1Ykp0NlE2Q2xTNEhKdEJiOG5iQWNBSi1CdUo3WjFSQjh1MjY4UEF1VERfYjdhZHhJVzBVeERKREVjQzQ0eTZnYmR4VmM0cEJSQm1aaHdSSjhia3RTOEZRWGF0VF9BdjU1dXl3?oc=5",
+   "summary": "Magnitude 3.4 earthquake shook King County late Friday night KIRO 7 News Seattle",
+   "publish_time": "2026-11-21 16:05:04",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3392,10 +3348,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Strong magnitude 6.7 earthquake strikes Peru just outside of Lima - FOX Weather",
-   "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxOYWUyQkQwcjNjQnVNVm5ZZnJ0dnE4TGhfZXBxVzY2Q0pWajNnSktidW5qNnFIeTBYZjhRcm9iVTExMGpwOERkUG5XUk9aNmVIemRiX1F3TTlDT0VBdWhWOE54T3BlUTFZNXpUbWY4MVgwTXFoVS1RU1Z5YW1OXzZMWTAwZWYzTk1kSjJlWEpPenQ5Y0HSAZgBQVVfeXFMUEQzVFN3WHJqellfVEhrTElsbno4Y0pKdzRtM1d2NS1UZjZwaWF5SmNUbmdxZ3cyS3A1UnY0VkhiX1ZYSjlvOFhlb09wMmRkS0tSSzNlb09lVzlLRE9xbVMxdGxBQnNQVVU4elNHRXVoNndXdVZmbHZBcVVac2JMM1dkeHlLa2twUG9lZG1VNlUyVWdlTGpxT2Q?oc=5",
-   "summary": "Strong magnitude 6.7 earthquake strikes Peru just outside of Lima FOX Weather",
-   "publish_time": "2026-11-21 01:04:00",
+   "title": "Nov. 21: Earthquake measuring 2.1 shakes region close to Pinnacles, CA - Sacramento Bee",
+   "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE9tX1d2WVlqTW1BTkxUM3RkRDdqRk9rem9NeHBkTW5VREdwUVZKc3hrOXV0ZEpvUlQzN0M4bC12MkpVSmFvSnRuMFhTQ0xoTGNTc2xCNl9XNjZmM1VkS3VFaVU2U3Q3STQ5a2tCeGNqZ0xJQ2RPVXhsQ2NhLTU?oc=5",
+   "summary": "Nov. 21: Earthquake measuring 2.1 shakes region close to Pinnacles, CA Sacramento Bee",
+   "publish_time": "2026-11-21 13:35:05",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3407,6 +3363,28 @@
    "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxQS0hVNDctU0NYakhlUElBZ1AyT2RaMU00NHFycDJMdldIYXNXOHh2MnNpam9ZejlKeVNOUWtHWTFEejN0ZVY3ZWVCaS1VdktPUnVrT0xaMEpLMnRDbmZwY0tQNUo1d1c1WFVSc1haSDdDU3NrcExTaW44ZU1hV2NJeVl2d0tSUm1uZ2s3QjNrQVFHdkVRdUl3MFhBYzZSRmVGYjhLTDdBR1pHcm5nU2E1dmpTU1N3Q08td21lVEhTOXZXY3ItSXc?oc=5",
    "summary": "Melbourne church offers relief to flood victims after back-to-back flooding WKMG",
    "publish_time": "2026-11-21 20:58:38",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Coastal flood alerts continue through Monday with tidal flooding - News4JAX",
+   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPcnctbzhyTnhjN0lMOHBlaWdyWjI1cjdvcllxYnBFMk1RX0RHSUdkeHF3WUl3VGxxR1dId3FndTVGemVzT1I1YXprdHBfdkc4UXl2ay1LSUgweTJ1S3Q4aXdkazl6QW1OOEJIR01VaFpjVllIR1FxMmVsUlRPenpwOFlQT2dnN2QtZ3ZnWEZIb0kwR2xXdGp2ZXNkcHV5TnNUNnB6WXpvM29MS1BOUkE?oc=5",
+   "summary": "Coastal flood alerts continue through Monday with tidal flooding News4JAX",
+   "publish_time": "2026-11-21 20:55:18",
+   "source_key": "gnews_disaster",
+   "source_name": "GoogleNews·洪涝灾害",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Monster king tides are set to flood the Bay Area. Here are days and times they’ll be highest - San Francisco Chronicle",
+   "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNSEFhZ0EtSWNJRmJSY1U4TkU3cjRhbUFyQ1ZSWGNuZ3NiazBZbGlUZ2xTR3ktODlIb045dGYzdGRoRTBFemR0RXp3MDluOFpvQXRua29XOWd2OEtDRGlsSmlPNWs4LXA0ZnRLakFkeU5qbmc2ZE95MzFFeU1ydmZnTVg4NlB4MDk5cGRVbEg4OG4?oc=5",
+   "summary": "Monster king tides are set to flood the Bay Area. Here are days and times they’ll be highest San Francisco Chronicle",
+   "publish_time": "2026-11-21 23:04:46",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3436,21 +3414,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Nearly all Maui wildfire claimants accept $4 billion settlement, attorneys say - Hawaii News Now",
-   "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxON0ZlVHl1N1VGUDMxTkZyZ05VX1ZJRTBUZ3IydXlzVm5OYTFnQlA2enRmZV92QTRkajhTZWxkUnN6WEM4TnZ5NU1faXJTNWRYdGVVMHF0TzV2NjlmcjR1THNLTnduZmt1ZjU2YndsaS02LTVsckhwZ0s3LTd4UlF6c09fQW1iZjFIcXVuZ2ZRdkNjZDhUNTZsZE9LYTJENzJPcHJlTEt1aUtwN1N2ZWdZZmY4UWg3c2s3SFE?oc=5",
-   "summary": "Nearly all Maui wildfire claimants accept $4 billion settlement, attorneys say Hawaii News Now",
-   "publish_time": "2026-11-21 20:50:00",
-   "source_key": "gnews_disaster",
-   "source_name": "GoogleNews·洪涝灾害",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Coastal flood advisory begins before ‘extreme’ levels next week - The Mercury News",
-   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNcVVQTDZ3cTFaZTR6ZHA0eFI5cDNObFlqV1o3anozeFlYYmEzMk5ZWnl3LVNDV0lfZ19EY21INW5fSUVHeDRvenhhNEwydmtaZmIwZ240c2NTckRzeWRfdzgyQms1OW5fdjAzSXlKbHFNMm0zNnV1a2JWb0JtRUxFR0FlVFdkaE52cUNheUp5TXYtY1o4MlpDYmNGTzJYcTFBSC0tb0ZIazNpNnZNUk93?oc=5",
-   "summary": "Coastal flood advisory begins before ‘extreme’ levels next week The Mercury News",
-   "publish_time": "2026-11-21 18:48:56",
+   "title": "Coastal Flood Threat Grows Ahead of King Tides - MyNewsLA.com",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxNM2QyNU9hcEs4WjhNM1R5ZmhycGF1RVN1TzNXZjN6YVhxbERwa3g4T3Zpbzgxak1tMXdVdkN6VTNROE12RTRPcW9iWWx6cXlhY01Gd2p4ZDNDQy1oNG1LN1V4Mms2YkJQcjRlR213NXE2c1FmSGhDQjhVbndmaXVjNHdEdEVJS2hkVkxEdi1DdnJoamdoZE15OVdfOA?oc=5",
+   "summary": "Coastal Flood Threat Grows Ahead of King Tides MyNewsLA.com",
+   "publish_time": "2026-11-21 22:42:02",
    "source_key": "gnews_disaster",
    "source_name": "GoogleNews·洪涝灾害",
    "region": "GLOBAL",
@@ -3755,17 +3722,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "The Food Security Supply-Chain Resilience Test - Food Security and the Law: Part III - JD Supra",
-   "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9KdlNCSktzVjU0UUtQTjg5TWMxZHRNMi05Vk9ubGFBY3Nsd3FiczVibkpteXVPdjVUbnNfSlE2eldnY0pweXpJWk5HNTEwdF9NTUtEMEs2OWFyVk5ZVkpVTUVrQ3g2WUdLaGlrek9kQVhqUGtVcVJYcnVycDZSQQ?oc=5",
-   "summary": "The Food Security Supply-Chain Resilience Test - Food Security and the Law: Part III JD Supra",
-   "publish_time": "2026-11-20 15:05:51",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "The smart fridge hacks show food security requires trade security - The Hill",
    "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQbWxKRXBuaDBickNON0oxUko3VjVtNWF3c281dW1MbmFXdlBwS0IyT0ZZZzRlU1UzV21Jbm1fdTAwQUdYeTBGZl9MMk1OSUY2U0FyaGdUXzY5MDZZQkZITWJhalNELTdxXzdnNmU1b1llVG8tcjBqdDUzV1ZSYVljUDJUODlTQl8x0gGOAUFVX3lxTE16enBiNnlLTGVMRXVuV1lQQUdlQWVtQmdnT1hDQk9tdXlGWFNILW1ZWTNCTlVHNXhxUXBTS0NabU5aTzF3cklIUmhvTVRBazU2T2dqMGZZb0lDNGdVbmFQRHhPRFUyTUp6RTN0ZmpVTWZFd0lTNjhIZ1FkVGE1aWdwOHpBLVlseDk4MjEzYnc?oc=5",
    "summary": "The smart fridge hacks show food security requires trade security The Hill",
@@ -3799,17 +3755,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Syria, Jordan, Iraq and Lebanon sign pact to bolster food security - Middle East Online",
-   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQWHdPZFRuQnM4Z0ZRbmJhNUNuNVNOc2tIcktnZUNEbEkwa3V3NkFwcFNwN0dfY0ktSGZNX0xydVFjcUdBbmZ6bFo3Z3FfRm15MEdwbFpvaWdxc1RaTkUwNmVtX3NoUldybnB6OUVzVmNhUmtnd25DWkxHTGthUEpsYl9LWk1QUjN2cDEtNURZTXlXc0VPVVRaR2pRNA?oc=5",
-   "summary": "Syria, Jordan, Iraq and Lebanon sign pact to bolster food security Middle East Online",
-   "publish_time": "2026-11-21 08:30:30",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Structural features of the global food system can amplify geopolitical events and undermine food security - Nature",
    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFA5WDJDN2JpZ2JYUXpDTXd2aGJCd3Y0ZDQ5TWZTRlFyQWt0Tnk3bWxsalpNMTdXWU1EZU82cFhvX2Q0bGZMTWIwS1BoNzRwajJpcVNRNjEzWDlGaTJWbWRj?oc=5",
    "summary": "Structural features of the global food system can amplify geopolitical events and undermine food security Nature",
@@ -3832,6 +3777,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "Syria, Jordan, Iraq and Lebanon sign pact to bolster food security - Middle East Online",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQWHdPZFRuQnM4Z0ZRbmJhNUNuNVNOc2tIcktnZUNEbEkwa3V3NkFwcFNwN0dfY0ktSGZNX0xydVFjcUdBbmZ6bFo3Z3FfRm15MEdwbFpvaWdxc1RaTkUwNmVtX3NoUldybnB6OUVzVmNhUmtnd25DWkxHTGthUEpsYl9LWk1QUjN2cDEtNURZTXlXc0VPVVRaR2pRNA?oc=5",
+   "summary": "Syria, Jordan, Iraq and Lebanon sign pact to bolster food security Middle East Online",
+   "publish_time": "2026-11-21 08:30:30",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "A Food Security Crisis Is Also an Energy Security Crisis - Newsweek",
    "url": "https://news.google.com/rss/articles/CBMilAFBVV95cUxQZHdmTW96TnJsTlB4SUo3RUdSbUNBbnlRUzdTdVMyN2pIU0VGTUw2ODFhbEkzZ3NDQWhUWVp1d3laeFZUaWxkb3ZCY2ZDeXpLend5cktPRzVCV3lUMjUxb3FkWWVCMnliVXJLUUZyeFNKa2lRSmE2RmlNeTFMV2VsVmQ0aFVwLXkyNWFmMWY5anY2eVR6?oc=5",
    "summary": "A Food Security Crisis Is Also an Energy Security Crisis Newsweek",
@@ -3843,10 +3799,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "COP31 spotlights climate threats to global food security | Daily Sabah - Daily Sabah",
-   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNdDFubHNWM0wySHlhSkc1MDRTb0d6TEhPbXc4dGtQOTZkbWxmOE1EcG1kQ3lNNWpFWWVnTHJubEQyeEg2M1FubzVvelQ2YUR6QjlkREVndVhwd1lhSkIzNHJSWEM3TkpidkFVdjBTYW1JYUsyTjhYTW8wSFR5Z1pkWEw1cDN4SjhHNHFIdXNSLXMwQS1oM25wX1hNMkbSAaIBQVVfeXFMT1NMMGtuNm53SW9STlJRQ3kwOEtDRVhtenNDWmdiRnJ2b0I5Q1NXaDlSNlctYkU4b2NJN0xOWGp2TjRBSW15WEpwX0ZJR1gzM25PWlFVRzJwTkh2UGtGbFpzckRjU1VxaWpZNVgtNnZiRXVXTGtXemNiOE1JNE5PUVhWSlBDVXhka0h6N0I0T2RnT1Q2eXBnNHNCNWV2T3B1LUVR?oc=5",
-   "summary": "COP31 spotlights climate threats to global food security | Daily Sabah Daily Sabah",
-   "publish_time": "2026-11-17 06:04:47",
+   "title": "Defense officials warn Trump of China food security threat - Agri-Pulse Communications, Inc.",
+   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQRk9qWjZqblVRNnRHcHczd3FIcU0wR2MtUHpIYmdHSF96elV3T2h4ZTluemh1MUpieThjeW1zd0h6bDJZZVdvV0ctWjNvelIzVDNwSkJoZG13dmVZdXR4LTJfWHdVUXltbTVxbzFzRHhlcngxS202dFZ0bWZmSm90MmY2ZkczbGZGZHZwUW43SjJhRnJuTVFjQ0trNmlITzl3dmc?oc=5",
+   "summary": "Defense officials warn Trump of China food security threat Agri-Pulse Communications, Inc.",
+   "publish_time": "2026-11-20 10:00:00",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3854,10 +3810,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Defense officials warn Trump of China food security threat - Agri-Pulse Communications, Inc.",
-   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQRk9qWjZqblVRNnRHcHczd3FIcU0wR2MtUHpIYmdHSF96elV3T2h4ZTluemh1MUpieThjeW1zd0h6bDJZZVdvV0ctWjNvelIzVDNwSkJoZG13dmVZdXR4LTJfWHdVUXltbTVxbzFzRHhlcngxS202dFZ0bWZmSm90MmY2ZkczbGZGZHZwUW43SjJhRnJuTVFjQ0trNmlITzl3dmc?oc=5",
-   "summary": "Defense officials warn Trump of China food security threat Agri-Pulse Communications, Inc.",
-   "publish_time": "2026-11-20 10:00:00",
+   "title": "COP31 spotlights climate threats to global food security | Daily Sabah - Daily Sabah",
+   "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxNdDFubHNWM0wySHlhSkc1MDRTb0d6TEhPbXc4dGtQOTZkbWxmOE1EcG1kQ3lNNWpFWWVnTHJubEQyeEg2M1FubzVvelQ2YUR6QjlkREVndVhwd1lhSkIzNHJSWEM3TkpidkFVdjBTYW1JYUsyTjhYTW8wSFR5Z1pkWEw1cDN4SjhHNHFIdXNSLXMwQS1oM25wX1hNMkbSAaIBQVVfeXFMT1NMMGtuNm53SW9STlJRQ3kwOEtDRVhtenNDWmdiRnJ2b0I5Q1NXaDlSNlctYkU4b2NJN0xOWGp2TjRBSW15WEpwX0ZJR1gzM25PWlFVRzJwTkh2UGtGbFpzckRjU1VxaWpZNVgtNnZiRXVXTGtXemNiOE1JNE5PUVhWSlBDVXhka0h6N0I0T2RnT1Q2eXBnNHNCNWV2T3B1LUVR?oc=5",
+   "summary": "COP31 spotlights climate threats to global food security | Daily Sabah Daily Sabah",
+   "publish_time": "2026-11-17 06:04:47",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3920,17 +3876,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "US Agriculture Department Hit by Cyberattack, Raising Food Security Concerns - Ratopati",
-   "url": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPUGZkelBvR1d6MW1vdzJocGwxMS1mb0NmLVhpVHoyOHhzRzRNZkswV280TGtSMVA0VlVNNEYteG53dEp5OXcxRGswbDBzWTIzclczNEh6TWhiVzJMR1pVR2NYN0RXeWJqMURhNzQ5QjVrMzlfR05IWktiUzdJeS1ZanY5eDVRNVpnWUd2aWdGeFowck9Tc2VSNWJ5SUxIbjJrNTFUS1hSY09QelVra09NdTBvU0V6OGpnQm1XMjdGbFdWbjQyUnUwaw?oc=5",
-   "summary": "US Agriculture Department Hit by Cyberattack, Raising Food Security Concerns Ratopati",
-   "publish_time": "2026-11-21 14:10:57",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Philippines: DOST establishes smart greenhouse in Aurora to support food security - Hortidaily",
    "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxPMW1feHRVU3lRM0tvcmhJaXZESDFac0lsb0k0dk5qTl8tTE1lWkVwRlZ6NFJJVnJaYkctNzFkNm5Ua1F1aW5DcVhycnRIUTRDT2NNTGl1b3luWnJERXVycE4zemRYRUc1TXpTdGgwc056NVpwNEZ0ZXdZWGRPZVNEc3c0dGtKSnFRaG01Q09fY0xYZHdFVXBIYXZrWk9QZTNBRGg3NjdBeGlJU3ZMV3o3cXdVYU90MEVTX1lfdS0tdWNyUQ?oc=5",
    "summary": "Philippines: DOST establishes smart greenhouse in Aurora to support food security Hortidaily",
@@ -3942,21 +3887,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "The Making of a Global Hunger Crisis - Council on Foreign Relations",
-   "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE9ScThzQUNIUElxVlFXR0hfWTR4RjIxRk5xTy1KRHRXNEJpdWV0cG91STlIb0hpU05oQXE3dmtmTmdCcnBUcU5OMmZnUm9xdm5ZNGNNaG13a0NTUlE5TlE3SElYM2xXNDhUc1ZPVjFDSFlDQQ?oc=5",
-   "summary": "The Making of a Global Hunger Crisis Council on Foreign Relations",
-   "publish_time": "2026-11-18 13:00:00",
-   "source_key": "gnews_food",
-   "source_name": "GoogleNews·粮食歉收",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "New avocado discovery strengthens future food security - The Portugal News",
-   "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNdEZpaXI2azY2ZHAtU05ZTjdiN1Y4Vk9RaXlBZW1NOTUtTlV4R0JYY2p2eFlyV2N1ZE9mcG14b3RZQlZJM0lDN2xqNGhOdjNvdUw5VDFoam5qTkI3cktIVzdFYWpKaUNpS0VwX1E3bWVjVzViOVVNQU9NZHB0eU1Yem5KMm91N21mV0lxNlRHQktWOTBsQ2tIYl9DNV9BYXFTb2c1ckpTaTliV1d3N3VV?oc=5",
-   "summary": "New avocado discovery strengthens future food security The Portugal News",
-   "publish_time": "2026-11-21 01:52:30",
+   "title": "US Agriculture Department Hit by Cyberattack, Raising Food Security Concerns - Ratopati",
+   "url": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPUGZkelBvR1d6MW1vdzJocGwxMS1mb0NmLVhpVHoyOHhzRzRNZkswV280TGtSMVA0VlVNNEYteG53dEp5OXcxRGswbDBzWTIzclczNEh6TWhiVzJMR1pVR2NYN0RXeWJqMURhNzQ5QjVrMzlfR05IWktiUzdJeS1ZanY5eDVRNVpnWUd2aWdGeFowck9Tc2VSNWJ5SUxIbjJrNTFUS1hSY09QelVra09NdTBvU0V6OGpnQm1XMjdGbFdWbjQyUnUwaw?oc=5",
+   "summary": "US Agriculture Department Hit by Cyberattack, Raising Food Security Concerns Ratopati",
+   "publish_time": "2026-11-21 14:10:57",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3975,10 +3909,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Saginaw Community Food Club expands access to affordable healthy food - WSMH",
-   "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxOVkdIaS1pZXRFLS1QX3p2dzU3Y1E5ek96NXBrLTFKVEhkYmc0ZXlIZ1VxcUZyVE5sZkd5QU5ueHR2Ul9uUVNrcm1RTHpoZkl4anVWZHk2SDR2RGZYZ195TnB0SUVXdnRYUV9XZnRJV1ljakVPSkRWSzBtYzlVOUZpQTJjaXVQWXJUbWFZd1dMVS0ydnBtU0RiQlJicnJ5ZXE5ZkgtQ1dGM21hUEE?oc=5",
-   "summary": "Saginaw Community Food Club expands access to affordable healthy food WSMH",
-   "publish_time": "2026-11-20 02:02:42",
+   "title": "The Making of a Global Hunger Crisis - Council on Foreign Relations",
+   "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE9ScThzQUNIUElxVlFXR0hfWTR4RjIxRk5xTy1KRHRXNEJpdWV0cG91STlIb0hpU05oQXE3dmtmTmdCcnBUcU5OMmZnUm9xdm5ZNGNNaG13a0NTUlE5TlE3SElYM2xXNDhUc1ZPVjFDSFlDQQ?oc=5",
+   "summary": "The Making of a Global Hunger Crisis Council on Foreign Relations",
+   "publish_time": "2026-11-18 13:00:00",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -3986,10 +3920,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Neighbors helping neighbors: How a Sun Prairie food pantry is making sure kids and their families are fed year-round - WMTV 15 NEWS",
-   "url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxQa01nM2Y2WjVKRWd6M3JrakowN3Z5Qy1lNUJjYkoxWXlPcElYNGs2N0JNdW1SVEV5ZWktWFVyTlZwSEZwSVh2SlVoNFBBOVd4YTJwSkJVWDV4Y2tZRU9GWDc3UVNNWnUzelBVSVZpUV9qenRjcS1uWGZhLUZnaTFRMkhOaHduR2Z6aVNtTDVwM3IwZFB2VmZDMWxESlFYZVZJNWk3aUE5SFFJWTA4R0l6cXk3LWVsdUVJeUgyam5rVmd5aVB6Ul81ell3ZGlWczJudklzVFNRSGtOY3RvRC05SFBn0gH2AUFVX3lxTE5qbk84SHNjWENROU1WMm5hOHItLUlRb19LM3paUHFjWFVfNWptcHYySzJObHdYdW02Tl92bjA3Sk5LU1R0SDA2RkpkYXlUME5ObFl3OE9zUmxLVVB1THdsNm1LQnZrVWQyNnVRWXhieXhFQVNKTTFwVXhkUkwwUkNqU18zenhlVzc2TzN1QWE4SE91aHp0cjhJWjItWVBtdWFMeWstdG5JZVJtNlpGYnY1OXFSVDlUNnJmZG1CQ2ZybXk5VElqM2JNZkg0R2xTcVI0SnZ4RnE2TEZDYm43MFhVaWdGR1dkcG1NajlaazJJajY5MXlGZw?oc=5",
-   "summary": "Neighbors helping neighbors: How a Sun Prairie food pantry is making sure kids and their families are fed year-round WMTV 15 NEWS",
-   "publish_time": "2026-11-17 23:42:00",
+   "title": "Saginaw Community Food Club expands access to affordable healthy food - WSMH",
+   "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxOVkdIaS1pZXRFLS1QX3p2dzU3Y1E5ek96NXBrLTFKVEhkYmc0ZXlIZ1VxcUZyVE5sZkd5QU5ueHR2Ul9uUVNrcm1RTHpoZkl4anVWZHk2SDR2RGZYZ195TnB0SUVXdnRYUV9XZnRJV1ljakVPSkRWSzBtYzlVOUZpQTJjaXVQWXJUbWFZd1dMVS0ydnBtU0RiQlJicnJ5ZXE5ZkgtQ1dGM21hUEE?oc=5",
+   "summary": "Saginaw Community Food Club expands access to affordable healthy food WSMH",
+   "publish_time": "2026-11-20 02:02:42",
    "source_key": "gnews_food",
    "source_name": "GoogleNews·粮食歉收",
    "region": "GLOBAL",
@@ -4008,6 +3942,39 @@
    "kind": "aggregator"
   },
   {
+   "title": "COP31 speakers urge governments to put food security at the heart of climate action - The Climate Watch",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxOOGZneDNUc1lfTnlwT2lwcEhRMVJUaWpJMk51eEZFVXFpNGFoZVRkdWtfSG95cEhfclVoMkt6SU1GY0tJdHVmcHlpSXB4X2c3czBMRjdIbWh6OUZLbThFWFhjU1BWZTY1NHVnQnlZMWxWX0dDdnJ1UUp1T09wOU5za2EwVlZCNkhMZ3FrUTRsSFNkRTFEZkhDWkgwTHNwMXM0SlNBS3AwT1JMaTFSQXpRWHlR?oc=5",
+   "summary": "COP31 speakers urge governments to put food security at the heart of climate action The Climate Watch",
+   "publish_time": "2026-11-20 14:31:38",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Centraide Invests $5M to Expand Food Security Program Across Montreal - Future of Good",
+   "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNeTBLcmpZOFl0Sy1yNi1LTXQyWXU4ek0ya0xISUhLcjJaazJWcjVSWHpDdVFUa3dNU25aaHBLUmhONm5vZEJHR0d4WWsxY2lQYUg5d3I3UUNfS3Q4NkpFUlNvdVdhMkxFdTZPTFUyb3VhZEE0Wkt4R0RHMDVKVmQ2bGRXemFhUWFnZHozd0M5Ni14Sll0dVZaVw?oc=5",
+   "summary": "Centraide Invests $5M to Expand Food Security Program Across Montreal Future of Good",
+   "publish_time": "2026-11-20 16:38:51",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Community project wants to help ease food security issues on the Coast - Coast Reporter",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxOSDByOUZXNmFGdEZLdy1TbXNMRzNRcTNETzRpT1N1M3RrRzNlT01zS1BRbkRsRVBvTEpQNHpOZkVCTWJQRDl2MGw4bElJeGdhWWhpaE5jZFVqOGRiRXNFbGszVmFkT21aa3lMeDNoTnIzU19aOWwzRFBtdm81akZ6NE9vR2tEWUtRYXZHUmo0dlV1VXFLWnpob3lFVVNmOTZja2xQNVhlWWxJdkNDN0t0Uk5peGVrbWtBYkxkVkNyRQ?oc=5",
+   "summary": "Community project wants to help ease food security issues on the Coast Coast Reporter",
+   "publish_time": "2026-11-20 00:30:00",
+   "source_key": "gnews_food",
+   "source_name": "GoogleNews·粮食歉收",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Natural gas price on Nov 23, 2026 at 5:00 PM EST - Robinhood",
    "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxNVjRmcmJYYXVGcEpqbWVOVXhJaDJvcS1oRC1ZZEtMTjlqM2Q5RDgtQnhuYVAzRlZ2MTBkNGs2TDdhNlRnZHRJUXR1VURDeTlvV0VUeDlIX0c0QThVbEh6emtwc29SdkU1ekhCUGNmMUxWenBONEFPNEt4T2xNYW1ZVnpzcFBpa3daSXF4djc5WHEzc19nM0tOQjI2d2JLdUc2SEh6TVlNak5xR3ZRNUc4aTJfZ05RV1RpRmdSSmtQWXlaR0cw?oc=5",
    "summary": "Natural gas price on Nov 23, 2026 at 5:00 PM EST Robinhood",
@@ -4019,32 +3986,21 @@
    "kind": "aggregator"
   },
   {
-   "title": "Michigan environmental news: DTE says it will wait until late 2027 for next natural gas rate hike request - Planet Detroit",
-   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE10Sm5MdzdpVVNiU0YydkdkODVHTEJlQ2lXN2s2T1VKNUNFNGZwU1dVUzVXSzFrMHVLQVdveUxmOTdaZTBCUXdoUzcwb0RPTnVUSjJrRnotMTZMdWljRU5WNzVEMEN6dU9iX3U2ZlJmbw?oc=5",
-   "summary": "Michigan environmental news: DTE says it will wait until late 2027 for next natural gas rate hike request Planet Detroit",
-   "publish_time": "2026-11-21 11:00:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "UK Races to Rewrite Nuclear Rules by 2027 - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxNTHFfMDEzVVBNeWRuZFc1S2JvQjJVejE5c2pZMm5fbTJuUklMd1hqWDJtSEtnODM0SEpURUJ6bmUzTWlqekRHeWVEbE5BMnJzMVgxMXYwaE1Wd3llMWRzZF9Rb29EMEtaWEI5c1BqdEpiaFJHY1U3aWVqcGtRaWp3dk1TeS0wbTBfTldkR1dUbXRqSW1WS2tSWTFJN3g3YkZPUmfSAacBQVVfeXFMT0xzYm8wRUxnd3pJbW9RZGRYRGNKMkxBaGVLYzhVaGtmb2pvajc4b1hiLWlkbmFuZ0RrVkFMc081Yzh4ZHkyYjRocnUtQ1BFZGtLa3BLd1p0TWhzZk9oTjBLSDlReTRmeHppM2dXd3ljOFo3d2JSRkk5UlBYRWRNbWRObVV6VEJUVThyOVJEZktOY0lvcDE0ZW8xWVd3cURfTWRGcmNLTmM?oc=5",
-   "summary": "UK Races to Rewrite Nuclear Rules by 2027 Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-21 16:00:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Brent Last Day Financial Overview - CME Group",
    "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNWGU2ejZ1bGYtNEFGUUVqYVFyaFJ6NGFQWFRxM01tU3kzSWtUNDdSUDRRSnF5SDRORGVBbGZDeWstQUR2SFdkVlBmVlp2eGxwTjJ3NHZhTG41RXJHZGlCMWczZWszTXBadHI5clRjSEJ1WkdOdklQWHNGeTlBdGFFMnNqNndmZw?oc=5",
    "summary": "Brent Last Day Financial Overview CME Group",
    "publish_time": "2026-11-18 08:00:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Iraq's Oil Crackdown Sparks New Showdown With Kurdistan - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPMUNoTGtia2ZybkxrUUQwSHBuWlVfdWdtc2JzUVhJNm5RN2duOVBwYk0tSHpjak9tYlk4NWJzMW5QNGljcFRBSmF5ODFlS2Nrc3JHRUJsb2pGd1I5MWVDR0xSU0E5QTNMcE41aG9EQXM3cGxtaHZMQmdveXdjeEFVMzRwd1RCNlpJS3UxTlNOUjlCck5jX0l0dFJKRFVGX3dBejZNNNIBqgFBVV95cUxQYzNuSzF6Y0tJNWJHLWwybWpYOTVqZVVhYTFuMVBYTU9PWm1GaVNSR1NBTzlnMGNocUZoRUphTEw3VEZacVpGMWJIdERabmZnd29KdUZvODZmbzBZWXNTQTVzTGlUb2pqaFFnQ09jOFFLaVJ1YTZyclJtYnhmbDFzXzd4MzRBZEViYXFiOVhtNXUzTnFJbDRjWHFJQkxBclZ5MkRVaVF3NGQzQQ?oc=5",
+   "summary": "Iraq's Oil Crackdown Sparks New Showdown With Kurdistan Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-20 12:30:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4067,6 +4023,17 @@
    "url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPVU03UG9kTEF2elNFWjJwM3lpbDhyVzFub0EtWnBKeV8wNUR1OG5JUkVELUhRT25ZRW1vMUlUTTFaQ1E5NHZJYXZKcDFzQ3VjQTBKU0VwUHZweFBmTlJ3Um0wb25RNHJBVk10Y1JvV0JDZGZXNV9PZzVuTGpFUkpPdzFjbzl6TW9QbjQ2cDBpb3FrZw?oc=5",
    "summary": "Why oil price spikes no longer guarantee a recession Brookings",
    "publish_time": "2026-11-19 05:06:05",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Michigan environmental news: DTE says it will wait until late 2027 for next natural gas rate hike request - Planet Detroit",
+   "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE10Sm5MdzdpVVNiU0YydkdkODVHTEJlQ2lXN2s2T1VKNUNFNGZwU1dVUzVXSzFrMHVLQVdveUxmOTdaZTBCUXdoUzcwb0RPTnVUSjJrRnotMTZMdWljRU5WNzVEMEN6dU9iX3U2ZlJmbw?oc=5",
+   "summary": "Michigan environmental news: DTE says it will wait until late 2027 for next natural gas rate hike request Planet Detroit",
+   "publish_time": "2026-11-21 11:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4107,10 +4074,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Enbridge works to clean up historic natural gas spill while continuing Line 5 reroute - WTMJ",
-   "url": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxQUWM4X0d3UTc1cjQ4QURZc0ROYkdRY1U0U2hCeWZIS1RSNG5nSmxXZmNMNE5CLWxodUZiMTU5c2VSenZOWS1NcW1CVjhJT0JZbG5TZGdpeDRlOTVONlpBN2dlVVFMUmxpaXVWRDVLNmMyRjVEcG1ueHFEMWxSX2JDQXRPZFd2VFhaQTQwbkxvbkQwUEN2aDJoQXFBbnFrSXFwcDBjLWI3YUdibHNGREpvd2lTU2lZdE9TUHFR?oc=5",
-   "summary": "Enbridge works to clean up historic natural gas spill while continuing Line 5 reroute WTMJ",
-   "publish_time": "2026-11-21 03:22:04",
+   "title": "Extreme Weather Risks to International Oil and Natural Gas Shipping - IEA - International Energy Agency",
+   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxPZ1FrdS1MUjN5cWdWbEl4aXQydmFBMnVPbGRLSXNhZkl3cVZ4TWZDaEtqdHAxLXNqaTJyb0JvbGVweEJZcFU5Wi1tQ1FFNVR3OGJpWnNDUW04c0s4TnpKeHJ5M2VHQk1Bc05PQzU1MjBQTGhLcHA4cUNNR1ZGVl8xdHUzd0F6am53M1hfazlrZmU0eEtzLWwwNjZ3NA?oc=5",
+   "summary": "Extreme Weather Risks to International Oil and Natural Gas Shipping IEA - International Energy Agency",
+   "publish_time": "2026-11-18 07:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4118,21 +4085,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Iraq's Oil Crackdown Sparks New Showdown With Kurdistan - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPMUNoTGtia2ZybkxrUUQwSHBuWlVfdWdtc2JzUVhJNm5RN2duOVBwYk0tSHpjak9tYlk4NWJzMW5QNGljcFRBSmF5ODFlS2Nrc3JHRUJsb2pGd1I5MWVDR0xSU0E5QTNMcE41aG9EQXM3cGxtaHZMQmdveXdjeEFVMzRwd1RCNlpJS3UxTlNOUjlCck5jX0l0dFJKRFVGX3dBejZNNNIBqgFBVV95cUxQYzNuSzF6Y0tJNWJHLWwybWpYOTVqZVVhYTFuMVBYTU9PWm1GaVNSR1NBTzlnMGNocUZoRUphTEw3VEZacVpGMWJIdERabmZnd29KdUZvODZmbzBZWXNTQTVzTGlUb2pqaFFnQ09jOFFLaVJ1YTZyclJtYnhmbDFzXzd4MzRBZEViYXFiOVhtNXUzTnFJbDRjWHFJQkxBclZ5MkRVaVF3NGQzQQ?oc=5",
-   "summary": "Iraq's Oil Crackdown Sparks New Showdown With Kurdistan Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-20 12:30:00",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Saudi Arabia Expands Oil Storage in Japan as Tokyo Restocks - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxNUE81dExBWFVGZUlfbWh5VnhGbjZrY0J1THdnb0JBbjJINUhvLUxNYmt1ZG1ZcG5ZRXVmRWZCR0ZyazRDTUdac2FKeG9qMjJ2eVFuaVFKV3NmeEhfbmpTV05RZ2YxY1ZJTVcxRlRUUXNZM1RKcjFrNlpPN0JiX2dqekx3MFhYbFBLZXJ1V2Z6SDBpZ3dmaW03dkd1a2hTdVBHMkxZNFFVWEhJM3hETVdPV3AwUFE5QdIBuwFBVV95cUxQU2lqNFZId1BoZldvTjZDN3VjTEJBdmZWMGo5ZTNZU0NLVXpNTWtfU1I5aVBvTE5PMkU5WDJKd1FYVGRodm5EWUNOQ2ZNNjc0WnBWSVRmdEdmb0JvUWZPN2xXQklPLU56WUp5V0thZzlib3pWNElveW5XTkVqel9mMkcwd2VyeGNZR195cGhjLWhYelNzQm1mak15UGt2ZVZBR2xaUU5iMkphdlB4R3dKdVExeDJzS2xoVm0w?oc=5",
-   "summary": "Saudi Arabia Expands Oil Storage in Japan as Tokyo Restocks Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-20 18:30:00",
+   "title": "Industry collaboration with Powerhouse Energy Campus reduces natural gas emissions - Colorado State University",
+   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxOelhVdjJnVTU5YkVFX2tReVNMaDVDT29YcG9aLTdIbUFYYVJLcV9fcHlKalBDaDB3RWg4ZXJjWHNTUnE1dDVJakp6TEhzWFhqMk9Bbk85OWg1aWtTN1BwQ2NkbkFmMjlwRzhMaGVTazd4MmRPZmpLRHY4TEZ4Z1Y5cC1SMDl4aTNJcERoNzgwNTEzdXhaSnpIeXRhZjRVbm9WMzVZTlJkVEhnZ1IwOTd5anhxY0ZrQzZ2?oc=5",
+   "summary": "Industry collaboration with Powerhouse Energy Campus reduces natural gas emissions Colorado State University",
+   "publish_time": "2026-11-19 21:29:24",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4162,10 +4118,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Historic Superpower Summit Delivers Big Promises but Few Breakthroughs - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxPRnd0RHUtUTc4UVdrWFlfal9fSDZVcGdDTVoxdFlqQTJVY0JKTlZhQm1Ya0toZXMycGNPWUZTUDk5RHZHV180Vk5FOWcwX21WQmF3RXNvU25EVkR4NlRUalA3cWtfZ2xjVUt3ejJJVzdta1RxVzZDc09RQV9TMjlWZ0duM1BiOE5iSDFSNzVUbEx5VWI0V1ExaWpqbVR4OGN2bjJtbHJpVHBwYThBUldXeG1nb9IBuAFBVV95cUxOanppU3FsUkNmd1lLSzdxY19RRXdrYnprWFBnNmlFMnJVWGhEenMwaWhKNENGanpJSjdtakRYcTUwaUhVLU1aTWZvT2xwYkFub0Z0QWtUQksxTk9NaUxJUmtJdF91QUQ3TFBheHNYeFJoUTdWZXVKVXFDY0Q1MDJ4WXpSb0NlZVV2SmZCWS01R2FpVFlwUFVUMDItM1hwRlI5eWg5cDMzclRBWEVRN1dpOGtyRHRvVE1k?oc=5",
-   "summary": "Historic Superpower Summit Delivers Big Promises but Few Breakthroughs Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-20 15:00:00",
+   "title": "UK Races to Rewrite Nuclear Rules by 2027 - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxNTHFfMDEzVVBNeWRuZFc1S2JvQjJVejE5c2pZMm5fbTJuUklMd1hqWDJtSEtnODM0SEpURUJ6bmUzTWlqekRHeWVEbE5BMnJzMVgxMXYwaE1Wd3llMWRzZF9Rb29EMEtaWEI5c1BqdEpiaFJHY1U3aWVqcGtRaWp3dk1TeS0wbTBfTldkR1dUbXRqSW1WS2tSWTFJN3g3YkZPUmfSAacBQVVfeXFMT0xzYm8wRUxnd3pJbW9RZGRYRGNKMkxBaGVLYzhVaGtmb2pvajc4b1hiLWlkbmFuZ0RrVkFMc081Yzh4ZHkyYjRocnUtQ1BFZGtLa3BLd1p0TWhzZk9oTjBLSDlReTRmeHppM2dXd3ljOFo3d2JSRkk5UlBYRWRNbWRObVV6VEJUVThyOVJEZktOY0lvcDE0ZW8xWVd3cURfTWRGcmNLTmM?oc=5",
+   "summary": "UK Races to Rewrite Nuclear Rules by 2027 Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-21 16:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4173,10 +4129,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Oil Prices Caught Between a Looming Glut and Middle East Turmoil - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxPUlJxVm9uUmdPdkxHeGNqMWw1TFN6YkhKQXVqUWZEb0haSWs0YUtrT0R5aWk5VVFweXRMMTNyOF9zZUYxTUdfXzZJUUY2cGlmMmhFa1BGcVRENFNNOUNvcVNYYXNKb2E3aDEwM0RsVHhPVkEtNmdvMElsSjdjN0RRUnhDeVJTSjBWWG9mOVNxTHlmdEVvYktHQl9HU2J1dUMxaU1BTmRPV3doSzRpUkdWXzVB0gG3AUFVX3lxTFB2aGc5YmNCa21uR0taU01wdFZCeE1ob3VpU1pvNUFoaldLZFA0SDVmYmxVR054TTF3MmhhNnA0eUlDbFo2dmpYMndQWW9TYkx2SGVkNExXSGxUS2dVdVRPLWE0bW1aOVFDVmhkLUM0VXg4bXIteG1ZMnNZR3BBOGJyRk1FOTJDbzV1NVpqZkVNYzZqRHlaVFg5T1pnQTU0YkRDMFc5al9YbS1NMkhQMjZNUW5CZ1BJTQ?oc=5",
-   "summary": "Oil Prices Caught Between a Looming Glut and Middle East Turmoil Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-21 00:00:00",
+   "title": "Historic Superpower Summit Delivers Big Promises but Few Breakthroughs - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxPRnd0RHUtUTc4UVdrWFlfal9fSDZVcGdDTVoxdFlqQTJVY0JKTlZhQm1Ya0toZXMycGNPWUZTUDk5RHZHV180Vk5FOWcwX21WQmF3RXNvU25EVkR4NlRUalA3cWtfZ2xjVUt3ejJJVzdta1RxVzZDc09RQV9TMjlWZ0duM1BiOE5iSDFSNzVUbEx5VWI0V1ExaWpqbVR4OGN2bjJtbHJpVHBwYThBUldXeG1nb9IBuAFBVV95cUxOanppU3FsUkNmd1lLSzdxY19RRXdrYnprWFBnNmlFMnJVWGhEenMwaWhKNENGanpJSjdtakRYcTUwaUhVLU1aTWZvT2xwYkFub0Z0QWtUQksxTk9NaUxJUmtJdF91QUQ3TFBheHNYeFJoUTdWZXVKVXFDY0Q1MDJ4WXpSb0NlZVV2SmZCWS01R2FpVFlwUFVUMDItM1hwRlI5eWg5cDMzclRBWEVRN1dpOGtyRHRvVE1k?oc=5",
+   "summary": "Historic Superpower Summit Delivers Big Promises but Few Breakthroughs Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-20 15:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4228,10 +4184,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Extreme Weather Risks to International Oil and Natural Gas Shipping - IEA - International Energy Agency",
-   "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxPZ1FrdS1MUjN5cWdWbEl4aXQydmFBMnVPbGRLSXNhZkl3cVZ4TWZDaEtqdHAxLXNqaTJyb0JvbGVweEJZcFU5Wi1tQ1FFNVR3OGJpWnNDUW04c0s4TnpKeHJ5M2VHQk1Bc05PQzU1MjBQTGhLcHA4cUNNR1ZGVl8xdHUzd0F6am53M1hfazlrZmU0eEtzLWwwNjZ3NA?oc=5",
-   "summary": "Extreme Weather Risks to International Oil and Natural Gas Shipping IEA - International Energy Agency",
-   "publish_time": "2026-11-18 07:00:00",
+   "title": "Central Asia Faces a Looming Water Crisis as Glaciers Retreat - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPdlFjUGJOWHNOOUxOMVgwR190OGRqaDdULTlJMnBJdGtWQkdaRkRSYTluN0ktZ1gyQS1BcmZvOTlOc1Y2VDQzMzU1Y2NWLTNyZ3JXQjNzdE1qZS1KcGJrVUsxRm9xaXpJWXZfNWJvWmdqOHE0UHpxY3JrVENreWl0enZWZG1aWVdwUTBEOEIwcWMxbGZtNHhhMGJxQ2tLWmdhQjdjc0pNbWs5NVBoblHSAbMBQVVfeXFMTlQxdUZ1aWx4cGEydnhldVM4Z0F0RWpKN2lraFlIQlp2U1BwRExuLWxHa1MtQlFfX2VCTy1tNkZjY2Y0OVhEMS00Qnp2SmNudTZvUHJvalpkNkl2UlhKTUFTM0xwdGgwamttdWdhY2ZNcllYMW54MjlXUWhkVk12Ymt3aEU4THBsZzA5ZVU0WnFkUS1Nd213MURMZC1XaGdjV0lPcDBHbk9FbjNaQk5FVVo2SUk?oc=5",
+   "summary": "Central Asia Faces a Looming Water Crisis as Glaciers Retreat Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-19 19:00:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4239,10 +4195,32 @@
    "kind": "aggregator"
   },
   {
-   "title": "Central Asia Faces a Looming Water Crisis as Glaciers Retreat - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPdlFjUGJOWHNOOUxOMVgwR190OGRqaDdULTlJMnBJdGtWQkdaRkRSYTluN0ktZ1gyQS1BcmZvOTlOc1Y2VDQzMzU1Y2NWLTNyZ3JXQjNzdE1qZS1KcGJrVUsxRm9xaXpJWXZfNWJvWmdqOHE0UHpxY3JrVENreWl0enZWZG1aWVdwUTBEOEIwcWMxbGZtNHhhMGJxQ2tLWmdhQjdjc0pNbWs5NVBoblHSAbMBQVVfeXFMTlQxdUZ1aWx4cGEydnhldVM4Z0F0RWpKN2lraFlIQlp2U1BwRExuLWxHa1MtQlFfX2VCTy1tNkZjY2Y0OVhEMS00Qnp2SmNudTZvUHJvalpkNkl2UlhKTUFTM0xwdGgwamttdWdhY2ZNcllYMW54MjlXUWhkVk12Ymt3aEU4THBsZzA5ZVU0WnFkUS1Nd213MURMZC1XaGdjV0lPcDBHbk9FbjNaQk5FVVo2SUk?oc=5",
-   "summary": "Central Asia Faces a Looming Water Crisis as Glaciers Retreat Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-19 19:00:00",
+   "title": "Oil Prices Rebound as Houthi Attacks Reignite Middle East Supply Fears - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxNN3c3d19RVHF5TTRSYjJabTdKMkJ6dUtYZURXaEtvR0xsX2d1ZndtUVlrLVUwWVFJNDY4bHZtNnU4QTB2OWdJZDZ2Qjk3Y2NpZHA0WFpiT3psNWwzOXpDMEk4cjNTSTI4cGU2VG9QamlSNmxGNC1UWXFub2FKWlVEQ0pqZHhTa3ZjY1JMYWpPOWlBQVVBMTh5M0EtQWx0M3JMWmplUk12MVp5cTR1ZUV0M3FRLUN2THJZWG5kdi1kNjY1VjdS0gHKAUFVX3lxTE8wblM4Q1UtRjQ4Z3FUUlNUMHBMQTNaVWtMaGxZU1J5SzRibVVZUjUyMTkxUGtaMEppNE1SazFkN1hwSEJ2aW5LY01oSXF1bmhlMF9JcndJWERpUG9neVNJN3dLdEp5ZVFFWXNwWHNBN0EwdUdRMGViaWZUdUtQamdLbkR5MVZfZGk5ZnQ0N2JwUUlEdHhOcE43R0RoT3VjTGhqQ0dONHE5UGZtb2hHek9fOXdXWkw4UmlVSWtiVnVDMkN0QWpzRFFNRGc?oc=5",
+   "summary": "Oil Prices Rebound as Houthi Attacks Reignite Middle East Supply Fears Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-20 05:51:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Below-Average Natural Gas Storage Leaves South Central Exposed to Winter Demand - Natural Gas Intelligence",
+   "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxPV1p0MlhPSGR3VDdCZVA5NG83ZWplYWdIb0RadEx5eWxaWWd0UGhTT00xRE5Jb3d1RG1Fbmp5emM4WWFiVVNVYzdGMlZKdFZYSHdWaW1FVlNxVkVGZFZLVU5xUHh2Z1JIdVJ6bnZZWVBMOWg5QVVITkdtNWRnMXo5M1ppcEZaMFg0TElCTklVTmJzTnViZWdyaWtUbTlaZXJVSGtpLS0yRDExclNidHJONkU0OA?oc=5",
+   "summary": "Below-Average Natural Gas Storage Leaves South Central Exposed to Winter Demand Natural Gas Intelligence",
+   "publish_time": "2026-11-20 16:12:00",
+   "source_key": "gnews_oil",
+   "source_name": "GoogleNews·能源大宗",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Global Cooling Demand Overtakes Heating for the First Time - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQeERPMUtsc1BtMXJmS3hfU2R2TkNCZmM3MzZtTVcyOHJVeGpUVExDZFNIYnk0OFhRaV9hb0tDWkVNSml4WXM1VGtTS0Vad1FqZ1ZBRXl0N0xkYmg2ZDl0QzdNTV9GcU9rekw2LWFvWlREWDBtOVd2OFQxRnV0VVIxUEpRNHFleG9uMHJWZFlpelpnUi1VWnpDcTA0aXVmWDZfNmF4UkdvSUU5WXM4VFlHT0tiUFbSAboBQVVfeXFMTjdWTXhBWFlINzdackwza2o2anZoOEQ5RkhpLTg1MHNUS2ExY2JTRlF4QmpUbnFLcy1JWC1ja25nRmlGZ09sSU9QUWM4aHJlbUxGVU1iVUljMVIxM2dtZ3MzMTZsRjQycmxIVDh0RkFqNzhXeVF1bWtNLVlTYnNEeW1Idlc5SnFEMHBmMld0andUb1o0T2FZLUMwamEwWGxsWDRDbTZQUUZPSm1pa0VIeDdrelZJTEJuWk93?oc=5",
+   "summary": "Global Cooling Demand Overtakes Heating for the First Time Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-19 11:30:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4261,21 +4239,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Industry collaboration with Powerhouse Energy Campus reduces natural gas emissions - Colorado State University",
-   "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxOelhVdjJnVTU5YkVFX2tReVNMaDVDT29YcG9aLTdIbUFYYVJLcV9fcHlKalBDaDB3RWg4ZXJjWHNTUnE1dDVJakp6TEhzWFhqMk9Bbk85OWg1aWtTN1BwQ2NkbkFmMjlwRzhMaGVTazd4MmRPZmpLRHY4TEZ4Z1Y5cC1SMDl4aTNJcERoNzgwNTEzdXhaSnpIeXRhZjRVbm9WMzVZTlJkVEhnZ1IwOTd5anhxY0ZrQzZ2?oc=5",
-   "summary": "Industry collaboration with Powerhouse Energy Campus reduces natural gas emissions Colorado State University",
-   "publish_time": "2026-11-19 21:29:24",
-   "source_key": "gnews_oil",
-   "source_name": "GoogleNews·能源大宗",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Oil Prices Rebound as Houthi Attacks Reignite Middle East Supply Fears - Crude Oil Prices Today | OilPrice.com",
-   "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxNN3c3d19RVHF5TTRSYjJabTdKMkJ6dUtYZURXaEtvR0xsX2d1ZndtUVlrLVUwWVFJNDY4bHZtNnU4QTB2OWdJZDZ2Qjk3Y2NpZHA0WFpiT3psNWwzOXpDMEk4cjNTSTI4cGU2VG9QamlSNmxGNC1UWXFub2FKWlVEQ0pqZHhTa3ZjY1JMYWpPOWlBQVVBMTh5M0EtQWx0M3JMWmplUk12MVp5cTR1ZUV0M3FRLUN2THJZWG5kdi1kNjY1VjdS0gHKAUFVX3lxTE8wblM4Q1UtRjQ4Z3FUUlNUMHBMQTNaVWtMaGxZU1J5SzRibVVZUjUyMTkxUGtaMEppNE1SazFkN1hwSEJ2aW5LY01oSXF1bmhlMF9JcndJWERpUG9neVNJN3dLdEp5ZVFFWXNwWHNBN0EwdUdRMGViaWZUdUtQamdLbkR5MVZfZGk5ZnQ0N2JwUUlEdHhOcE43R0RoT3VjTGhqQ0dONHE5UGZtb2hHek9fOXdXWkw4UmlVSWtiVnVDMkN0QWpzRFFNRGc?oc=5",
-   "summary": "Oil Prices Rebound as Houthi Attacks Reignite Middle East Supply Fears Crude Oil Prices Today | OilPrice.com",
-   "publish_time": "2026-11-20 05:51:00",
+   "title": "Lufthansa to Slash 1,000 Jobs as Airlines Reel from High Fuel Costs - Crude Oil Prices Today | OilPrice.com",
+   "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxPekotWWNZSUFsMFhnTG1wMVAwd1NvdEllTHNEam1NeUhIa0FZcnJidXp4Ym5oekQ1eVNhTzE5TUxEQUNoUktLRUVxYzhnLVNzdjNCbzNWUVFDbFRYNlVXaUxnY1FRcWFTUjRpMGxROXgtTWMzOW1MbFJXZkR4eEh5MS1xYXZJb2Z1OFVNSzZqT3c2MXRzTHFHVWFsWTRkRklxaDdmSm1sNlB0bW5ZZzFtblVZa1otaTVobGdkb05Bc9IBxAFBVV95cUxObmZpLXF6aGRxNU5fSWdjcDE3dnhreUc4OHU3ZXN1bDA4bDE4LXZOVTFERFBEM3ZFRDNvMFFKU3Jrc3FVMTE3dHplb2UyWmdNaHZKT0lZX3k5ZEpoaGJrT2FDclltckpVWHJYcE85SFdNdjRoVk85aUtLa2RsMnhSNk9MUHRUNDBiX0R6VlNSY0ZGei04b2pkQVY2LXNoT2dUNVdrb0ZySk83aEkzZ3YxRWRnWXJBTzYtTEhqM0FYVkI0UHRZ?oc=5",
+   "summary": "Lufthansa to Slash 1,000 Jobs as Airlines Reel from High Fuel Costs Crude Oil Prices Today | OilPrice.com",
+   "publish_time": "2026-11-20 17:30:00",
    "source_key": "gnews_oil",
    "source_name": "GoogleNews·能源大宗",
    "region": "GLOBAL",
@@ -4327,17 +4294,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Inflation Is About Resources — and Power - Jacobin",
-   "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE51cjdpTzdkUHZVOXk0MUhvRHhmV2RzbmxMemV4UlJzSGIzeGw0bFJfLXlvbHRmdnpxUUEyRm1YTU4ycmFMQlFxUGVkLTFFYUg2dWM5ZGgxN1FFemo4Z0RBN2dvQjhrTGZ1V0Q0ckVPZTFSdw?oc=5",
-   "summary": "Inflation Is About Resources — and Power Jacobin",
-   "publish_time": "2026-11-21 16:23:44",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "US Consumers Are Holding Up Against Inflation Going Into Holiday Season - Bloomberg.com",
    "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxOVzdHalZYY2s3bHVEeENKX0g4T0M4WWxHV3lacDRlejl2b2E5VWNPd1AxbXhaaUVyNXBFLWlYZFlKTk93R3QzeFdVazI3ajljUFVLYnFpb1VVQmNrVlNvYTIyajhxM1JBbjYxTkhJMkhObEJGSVdRdmZDVzItblZFd1A4NHZaWTZiZWdFVVc4REI2RGF5UjlGWndXeDFha2k0MWdqRkE4X1ozQ1h5N0ZxZmVVTVFldC1VRi1keUdBQQ?oc=5",
    "summary": "US Consumers Are Holding Up Against Inflation Going Into Holiday Season Bloomberg.com",
@@ -4360,6 +4316,17 @@
    "kind": "aggregator"
   },
   {
+   "title": "Inflation Is About Resources — and Power - Jacobin",
+   "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE51cjdpTzdkUHZVOXk0MUhvRHhmV2RzbmxMemV4UlJzSGIzeGw0bFJfLXlvbHRmdnpxUUEyRm1YTU4ycmFMQlFxUGVkLTFFYUg2dWM5ZGgxN1FFemo4Z0RBN2dvQjhrTGZ1V0Q0ckVPZTFSdw?oc=5",
+   "summary": "Inflation Is About Resources — and Power Jacobin",
+   "publish_time": "2026-11-21 16:23:44",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
    "title": "Fed minutes: Higher interest rates needed in December as inflation worries mount - AP News",
    "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxOd2Q1ZnpsMjBsaWNUMEJIVUxmTTNSeUYyOWphQWtydFJKbDIzN3JiUXpvcEQ0dnhBcFVhRHdGWTR4dTRCQW5FNi1BVE8ycGtnTXEtWkZJMS1COGc5M25oUmNWb1hMemNpZ0p3MlRGSjBRLU1rX2cwRUlrbjNCWEcxazRkazhVd2dTUUFuWU1KN1RiVHBURHc?oc=5",
    "summary": "Fed minutes: Higher interest rates needed in December as inflation worries mount AP News",
@@ -4371,10 +4338,10 @@
    "kind": "aggregator"
   },
   {
-   "title": "Core inflation measures can't escape high energy prices - Marketplace.org",
-   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxQLVpIOUw0OFZHZlhxX2hwNHc3U3JmTk4xT3J5aXBsaFh3aUlFSEJVOVdCeUh5RTUzb2pseDd5VXFOWmhGLUVGbklaQ2FRb3h2Z20yWEhTMXRTeDhQbFV6MzQ2MlFITDBiOXU3SHZ2MEJuYTZ0ajJFY2pRbnNhV202Z0RVeW01OU1mdm9QVUZGSUEyclV3NGZfRXNweGJTS19z?oc=5",
-   "summary": "Core inflation measures can't escape high energy prices Marketplace.org",
-   "publish_time": "2026-11-20 22:35:00",
+   "title": "Inflation, economic growth and the mood of US consumers in focus this week - WTOP News",
+   "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxQeGlUMFRFa1BWLUZwcUxnOUhsTXZtcklRMUgxNGJsSUt0UEdyZlpPcmxoc0VRMWtkN1otM3k3ZkdxWU0tODh6X3FNRHRhSlhLem9FNWxUT1pxeW1Qc1g2dWtGMGlYNnZYM2FuYnY4NlFLaTZtLWhWQXI5SE5ISDZyR09mS3Rqc3Fpb0FQZ2p1Z3JtWFJhdGd2eGRwemNoYlRNdzRfaUhfbGJrTXJW?oc=5",
+   "summary": "Inflation, economic growth and the mood of US consumers in focus this week WTOP News",
+   "publish_time": "2026-11-21 16:03:58",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4386,6 +4353,17 @@
    "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxNVmJvaUdnSnExSmNTbDFYVTR6VmRvUFZoc25mRnFCM1didmVBSU1HRVFoY1VlTk9hR2hpcC1mRzBOMkw0Z1VtejBadWVUeGxPTWtTY2c4YUxaZjVZRlZQSXVuQzFJcGRwc1ZZZktRQXo2NUF0SVM0QzFpTzFwY24ySHVOTGVCQQ?oc=5",
    "summary": "Consumer Price Index, Los Angeles area — October 2026 Bureau of Labor Statistics (.gov)",
    "publish_time": "2026-11-10 08:00:00",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Core inflation measures can't escape high energy prices - Marketplace.org",
+   "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxQLVpIOUw0OFZHZlhxX2hwNHc3U3JmTk4xT3J5aXBsaFh3aUlFSEJVOVdCeUh5RTUzb2pseDd5VXFOWmhGLUVGbklaQ2FRb3h2Z20yWEhTMXRTeDhQbFV6MzQ2MlFITDBiOXU3SHZ2MEJuYTZ0ajJFY2pRbnNhV202Z0RVeW01OU1mdm9QVUZGSUEyclV3NGZfRXNweGJTS19z?oc=5",
+   "summary": "Core inflation measures can't escape high energy prices Marketplace.org",
+   "publish_time": "2026-11-20 22:35:00",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
@@ -4492,28 +4470,6 @@
    "kind": "aggregator"
   },
   {
-   "title": "Inflation, economic growth and the mood of US consumers in focus this week - The Seattle Times",
-   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNbXpOb25xWWV4QVE3U2hfMk9hdFRaNV9rZ1FIR0ExUVZpeUhOd3EwcmU0NGV0ZDAzcUJOUVJzZ3hvWG84N0pDNUg0WWJzUWRQaUF2eVo5NmJFcDY3V0lETXNoVDlOYmhPakxPcGwtU1FxWEZObmJuY1pIMm41dVNOQlVVR0xzcFlLTXJ0NG5WZm5YakU2aU5mYUt0VEtxNzNKNm5tNjEtXzVkbHZiVTlGdEZB?oc=5",
-   "summary": "Inflation, economic growth and the mood of US consumers in focus this week The Seattle Times",
-   "publish_time": "2026-11-21 16:00:19",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
-   "title": "Inflation, Tariffs and AI Drive Up Our 2027 Medical Costs - SMART Union",
-   "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNTTA3NWhTdmVBcGRId2pwYnZ4S0lZODM2Zm52U2F3ZEVJSUZxQ2I2ZVNfZlNVcGxFM0xfVEhnZUd6QjExVXdvc0taRVhyNjdUdElqSjBFd3JMdW9UOFA5Um1ybURhYnJ3UjZXdjZBY084eExNbzNuZFEtM1daemV3c1JBWjc4bkpaQURISXd3?oc=5",
-   "summary": "Inflation, Tariffs and AI Drive Up Our 2027 Medical Costs SMART Union",
-   "publish_time": "2026-11-20 22:24:09",
-   "source_key": "gnews_fed",
-   "source_name": "GoogleNews·美联储",
-   "region": "GLOBAL",
-   "lang": "en",
-   "kind": "aggregator"
-  },
-  {
    "title": "Less Pressure on Agricultural Credit Conditions - Kansas City Fed",
    "url": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOQWpNbF94OHFIOXBMZVVwcE93WWRTVTM0ZHdDQ3pSN2NhUjF6b2tQT21RRkw4RVhDZ3RmS295b1FLMFEtN19xWDdSMDVuSElaVk05RUk1WDN5REkxYnJvN0dtbFdjaS1laGF2NkxVd2hTUmlhOWo1SGN2QjBzd2JMMkNweE84bHFENElVWXJpRGNaS252eEl2X1FxMUtsMk42Ni1YUmtmdTNrRGpBUkU4a0dDcGZZM1QzS1JJaEd4aWdCMXI1amhFelM1ODRMOTJ5ZXBKNQ?oc=5",
    "summary": "Less Pressure on Agricultural Credit Conditions Kansas City Fed",
@@ -4551,6 +4507,17 @@
    "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOcXEzRFlWTEdhd3lGQThDc1NRMGhfYWdMUDBlUVFzMlo1Vzl4b1Q5RG5iaXE0bzFaMTF4TGV6MjViSzBmYzl1UVVwLXU4QnZSa25WbkU1eEE2MkdsYjRYY01vQ2JCc1ZGUzNhd2lueFR3bGdGRExZbXRhcXp5Zlo4Y3Q3bnJURWlIYk9IRFdncDl2TW56ZHN1c0t0aXZucG5aMEFScGV3OEJ2RXdYZEZnQTNTMDR5c1VHMnRKYlkxMk9sejA?oc=5",
    "summary": "Fed's Jefferson says AI boosting inflation, productivity impact possible 'in the future' Reuters",
    "publish_time": "2026-11-19 14:27:43",
+   "source_key": "gnews_fed",
+   "source_name": "GoogleNews·美联储",
+   "region": "GLOBAL",
+   "lang": "en",
+   "kind": "aggregator"
+  },
+  {
+   "title": "Inflation, Tariffs and AI Drive Up Our 2027 Medical Costs - SMART Union",
+   "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNTTA3NWhTdmVBcGRId2pwYnZ4S0lZODM2Zm52U2F3ZEVJSUZxQ2I2ZVNfZlNVcGxFM0xfVEhnZUd6QjExVXdvc0taRVhyNjdUdElqSjBFd3JMdW9UOFA5Um1ybURhYnJ3UjZXdjZBY084eExNbzNuZFEtM1daemV3c1JBWjc4bkpaQURISXd3?oc=5",
+   "summary": "Inflation, Tariffs and AI Drive Up Our 2027 Medical Costs SMART Union",
+   "publish_time": "2026-11-20 22:24:09",
    "source_key": "gnews_fed",
    "source_name": "GoogleNews·美联储",
    "region": "GLOBAL",
